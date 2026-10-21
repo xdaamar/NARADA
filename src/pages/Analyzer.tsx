@@ -60,14 +60,12 @@ export default function Analyzer() {
   const [directText, setDirectText] = useState<string>('')
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
   const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null)
-  const [history, setHistory] = useState<AnalysisResult[]>([])
+  const [history, setHistory] = useState<AnalysisResult[]>(() => getStoredAnalyses())
   const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(true)
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  // Muat riwayat awal dari sessionStorage & dengarkan perubahan reaktif
+  // Dengarkan perubahan reaktif dari sessionStorage
   useEffect(() => {
-    setHistory(getStoredAnalyses())
-
     const handleStorageUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<AnalysisResult[]>
       if (customEvent.detail) {
@@ -436,8 +434,9 @@ export default function Analyzer() {
                 text={currentResult.input || currentResult.rawContent}
                 initialFactCheck={currentResult.factCheck}
                 onResultReceived={(fc) => {
-                  currentResult.factCheck = fc
-                  saveAnalysis(currentResult)
+                  const updated: AnalysisResult = { ...currentResult, factCheck: fc }
+                  setCurrentResult(updated)
+                  saveAnalysis(updated)
                 }}
               />
             </div>

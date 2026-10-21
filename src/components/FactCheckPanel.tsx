@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   CheckCircle,
   ExternalLink,
@@ -85,7 +85,7 @@ export default function FactCheckPanel({ text, initialFactCheck, onResultReceive
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [demoFallbackUsed, setDemoFallbackUsed] = useState<boolean>(false)
 
-  const performCheck = async (contentToVerify: string) => {
+  const performCheck = useCallback(async (contentToVerify: string) => {
     if (!contentToVerify.trim()) return
 
     setIsLoading(true)
@@ -115,15 +115,13 @@ export default function FactCheckPanel({ text, initialFactCheck, onResultReceive
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [onResultReceived])
 
   useEffect(() => {
-    if (initialFactCheck) {
-      setResult(initialFactCheck)
-    } else if (text) {
+    if (!initialFactCheck && text) {
       performCheck(text)
     }
-  }, [text, initialFactCheck])
+  }, [text, initialFactCheck, performCheck])
 
   const queryTerm = result?.query || text.slice(0, 40)
   const manualTurnBackHoaxUrl = result?.manualSearchUrl || `https://search.turnbackhoax.id/?q=${encodeURIComponent(queryTerm)}`
