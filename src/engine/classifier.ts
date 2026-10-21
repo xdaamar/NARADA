@@ -187,13 +187,18 @@ export function classifyText(text: string): AnalysisResult {
   return {
     id: `NRD-${Date.now()}`,
     timestamp: Date.now(),
+    inputSource: 'text',
+    rawContent: trimmed,
     input: trimmed,
     category,
     threatLevel,
     confidence: Math.round(confidence),
+    mlScore: 0,
+    ruleScore: Math.round(confidence),
     scores: allScores,
     explanation,
     keywords: [...new Set(dominantKeywords)].slice(0, 8),
+    targetedEntities: [],
     recommendation,
   }
 }

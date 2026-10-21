@@ -33,14 +33,14 @@ function AccountCard({ profile, onRemove }: { profile: AccountProfile; onRemove:
   const botColor = isCritical ? '#EF4444' : isSuspicious ? '#F97316' : '#F59E0B'
   const authColor = profile.authenticityScore >= 70 ? '#22C55E' : profile.authenticityScore >= 50 ? '#F59E0B' : '#EF4444'
 
-  const patternLabels = {
+  const patternLabels: Record<string, { label: string; color: string }> = {
     normal: { label: 'Normal', color: '#22C55E' },
     burst: { label: 'Burst Posting', color: '#F59E0B' },
     scheduled: { label: 'Terjadwal/Bot', color: '#EF4444' },
     coordinated: { label: 'Terkoordinasi', color: '#8B5CF6' },
   }
 
-  const pattern = patternLabels[profile.postingPattern]
+  const pattern = patternLabels[profile.postingPattern] || patternLabels.normal
 
   return (
     <div className="card fade-in" style={{ 
@@ -97,7 +97,7 @@ function AccountCard({ profile, onRemove }: { profile: AccountProfile; onRemove:
               FLAG TERDETEKSI
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-              {profile.flags.map(f => (
+              {profile.flags.map((f: string) => (
                 <span key={f} style={{
                   padding: '2px 8px', background: 'rgba(239,68,68,0.1)',
                   color: '#FCA5A5', border: '1px solid rgba(239,68,68,0.2)',
@@ -117,7 +117,7 @@ function AccountCard({ profile, onRemove }: { profile: AccountProfile; onRemove:
             <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', letterSpacing: '1.5px', color: 'var(--text-muted)', marginBottom: '8px' }}>
               INDIKATOR KECURIGAAN
             </div>
-            {profile.suspiciousIndicators.map((ind, i) => (
+            {profile.suspiciousIndicators.map((ind: string, i: number) => (
               <div key={i} style={{
                 display: 'flex', alignItems: 'flex-start', gap: '7px',
                 padding: '6px 0', borderBottom: i < profile.suspiciousIndicators.length - 1 ? '1px solid var(--bg-border)' : 'none'

@@ -70,12 +70,12 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 > **Target Bobot:** `[15% Kelayakan Implementasi]` + `[25% Relevansi]`  
 > **Tujuan:** Menyiapkan fondasi environment yang kokoh, instalasi dependensi, kontrak TypeScript yang presisi tanpa `any`, dan taksonomi kamus ancaman militer awal.
 
-- [ ] **STEP 0.1: Package Audit & Engine Dependencies Setup** `[15% Kelayakan]`
+- [x] **STEP 0.1: Package Audit & Engine Dependencies Setup** `[15% Kelayakan]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L6-L25)
   - **Action:** Install dependensi inti: `tesseract.js` (Neural OCR lokal), `@mozilla/readability` + `jsdom` + `@types/jsdom` (URL Content Scraper).
   - **DoD:** `package.json` terkonfigurasi, `npm run build` sukses 0 errors.
 
-- [ ] **STEP 0.2: Unified TypeScript Interfaces (`src/types.ts`)** `[25% Inovasi]` `[25% Purwarupa]`
+- [x] **STEP 0.2: Unified TypeScript Interfaces (`src/types.ts`)** `[25% Inovasi]` `[25% Purwarupa]`
   - **Ref:** [PRD_01](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L41-L52), [PRD_02](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L117-L124), [PRD_03](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_03_fact_checker.md#L113-L133), [PRD_05](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_05_nexus_graph.md#L14-L31), [PRD_06](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_06_intel_report.md#L14-L22)
   - **Action:** Tulis ulang `src/types.ts` secara komprehensif:
     - Input types: `URLAnalysisInput`, `OCRAnalysisInput`, `TextAnalysisInput`, `BatchAnalysisInput`
@@ -85,12 +85,12 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Report config types: `IntelReportConfig`, `ReportClassification` (`RAHASIA`, `TERBATAS`, `BIASA`)
   - **DoD:** File `src/types.ts` bersih tanpa redundansi, strict type safety.
 
-- [ ] **STEP 0.3: Session Storage & Utility Subsystem (`src/utils/`)** `[15% Kelayakan]`
+- [x] **STEP 0.3: Session Storage & Utility Subsystem (`src/utils/`)** `[15% Kelayakan]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L160-L168)
   - **Action:** Buat helper `src/utils/storage.ts` (manajemen `sessionStorage` aman dengan auto-serialize dan error catching) dan `src/utils/format.ts` (formatter waktu militer `DD-MMM-YYYY HH:mm WIB`, badge style resolver, confidence gauge).
   - **DoD:** Unit test manual utility pass.
 
-- [ ] **STEP 0.4: TNI AD Cyber Threat Taxonomy Dictionary** `[25% Relevansi & Manfaat]`
+- [x] **STEP 0.4: TNI AD Cyber Threat Taxonomy Dictionary** `[25% Relevansi & Manfaat]`
   - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L108-L115)
   - **Action:** Buat `src/engine/taxonomy.ts` berisi kamus kata kunci & pola ancaman kognitif khusus matra darat & siber sosial Indonesia:
     - Kedaulatan & Separatisme (OPM, referendum, Papua merdeka, makar, sabotase)
@@ -390,13 +390,13 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 
 | Fase | Target Penilaian Terbesar | Total Step | Selesai | Status |
 |------|---------------------------|------------|---------|--------|
-| **Phase 0: Foundations** | Kelayakan (15%) + Relevansi (25%) | 4 | 0 | 🟡 READY TO START |
-| **Phase 1: Hybrid AI & Fact-Check** | Inovasi Teknis (25%) + Purwarupa (25%) | 7 | 0 | ⏳ QUEUED |
+| **Phase 0: Foundations** | Kelayakan (15%) + Relevansi (25%) | 4 | 4 | ✅ COMPLETED |
+| **Phase 1: Hybrid AI & Fact-Check** | Inovasi Teknis (25%) + Purwarupa (25%) | 7 | 0 | 🟡 IN PROGRESS |
 | **Phase 2: Multi-Input Analyzer** | Inovasi (25%) + Purwarupa (25%) | 5 | 0 | ⏳ QUEUED |
 | **Phase 3: Operational Suite** | Relevansi (25%) + Purwarupa (25%) | 5 | 0 | ⏳ QUEUED |
 | **Phase 4: Desktop Shell** | Kelayakan Implementasi (15%) | 4 | 0 | ⏳ QUEUED |
 | **Phase 5: Polish & Deliverables** | Dokumentasi (10%) + All-Round | 6 | 0 | ⏳ QUEUED |
-| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **0/31** | **0% PROGRESS** |
+| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **4/31** | **13% PROGRESS** |
 
 ---
 
