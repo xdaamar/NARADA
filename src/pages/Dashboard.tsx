@@ -1,295 +1,703 @@
-import { useState, useEffect } from 'react'
-import { 
+import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import {
   ResponsiveContainer,
-  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts'
-import { AlertTriangle, Shield, Eye, TrendingUp, Activity, Zap, Clock } from 'lucide-react'
-import type { AnalysisResult } from '../types'
+import {
+  AlertTriangle,
+  Shield,
+  Eye,
+  TrendingUp,
+  Activity,
+  Zap,
+  Clock,
+  ArrowRight,
+  Sparkles,
+  Server,
+  Layers,
+  ChevronRight,
+  ShieldAlert
+} from 'lucide-react'
+import type { AnalysisResult, ContentCategory } from '../types'
+import { getStoredAnalyses, seedDemoAnalyses } from '../utils/storage'
+import { getCategoryBadge, getThreatBadge, formatMilitaryDate, truncateText } from '../utils/format'
 
-// ─── Mock recent analyses from sessionStorage ───
-function getRecentAnalyses(): AnalysisResult[] {
-  try {
-    const stored = sessionStorage.getItem('narada_analyses')
-    return stored ? JSON.parse(stored) : []
-  } catch { return [] }
+// ─── Kategori & Konfigurasi Visual Chart ───
+const CATEGORY_COLORS: Record<ContentCategory, string> = {
+  HOAKS: '#EF4444',
+  PROPAGANDA: '#F97316',
+  BUZZER: '#F59E0B',
+  DISINFORMASI: '#8B5CF6',
+  NETRAL: '#22C55E',
 }
 
-const THREAT_TIMELINE = [
-  { time: '00:00', low: 2, medium: 0, high: 0, critical: 0 },
-  { time: '04:00', low: 1, medium: 1, high: 0, critical: 0 },
-  { time: '08:00', low: 4, medium: 2, high: 1, critical: 0 },
-  { time: '12:00', low: 5, medium: 3, high: 2, critical: 1 },
-  { time: '16:00', low: 6, medium: 4, high: 2, critical: 0 },
-  { time: '20:00', low: 3, medium: 2, high: 1, critical: 0 },
-  { time: 'Now',   low: 2, medium: 1, high: 0, critical: 0 },
-]
+interface StatCardProps {
+  icon: React.ElementType
+  label: string
+  value: string | number
+  sub?: string
+  color?: string
+  pulse?: boolean
+}
 
-const CATEGORY_DATA = [
-  { name: 'HOAKS', value: 38, color: '#EF4444' },
-  { name: 'PROPAGANDA', value: 25, color: '#F97316' },
-  { name: 'BUZZER', value: 20, color: '#F59E0B' },
-  { name: 'DISINFORMASI', value: 12, color: '#8B5CF6' },
-  { name: 'NETRAL', value: 5, color: '#22C55E' },
-]
-
-
-
-// ─── Stat Card ───
-function StatCard({ 
-  icon: Icon, 
-  label, 
-  value, 
-  sub, 
-  color = 'var(--text-primary)' 
-}: { 
-  icon: React.ElementType, label: string, value: string | number, sub?: string, color?: string 
-}) {
+function StatCard({ icon: Icon, label, value, sub, color = 'var(--text-primary)', pulse = false }: StatCardProps) {
   return (
-    <div className="card" style={{ padding: '20px' }}>
-      <div className="flex items-center gap-3 mb-4">
-        <div style={{ 
-          width: 36, height: 36, borderRadius: '8px',
-          background: 'var(--bg-elevated)',
-          border: '1px solid var(--bg-border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
+    <div
+      className="card"
+      style={{
+        padding: '20px',
+        position: 'relative',
+        overflow: 'hidden',
+        border: pulse ? '1px solid rgba(239, 68, 68, 0.4)' : undefined,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+        <div style={{
+          width: 38,
+          height: 38,
+          borderRadius: '8px',
+          background: pulse ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-elevated)',
+          border: `1px solid ${pulse ? 'rgba(239, 68, 68, 0.3)' : 'var(--bg-border)'}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: pulse ? '0 0 15px rgba(239, 68, 68, 0.2)' : undefined,
         }}>
-          <Icon size={16} color="var(--text-secondary)" />
+          <Icon size={18} color={pulse ? '#EF4444' : 'var(--text-secondary)'} />
         </div>
-        <div className="stat-label">{label}</div>
+        <div className="stat-label" style={{ fontSize: '11px' }}>{label}</div>
       </div>
-      <div className="stat-number" style={{ color }}>{value}</div>
-      {sub && <div className="stat-label" style={{ marginTop: '6px' }}>{sub}</div>}
+      <div className="stat-number" style={{ color, fontSize: '32px', lineHeight: '1' }}>{value}</div>
+      {sub && (
+        <div className="stat-label" style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-dim)' }}>
+          {sub}
+        </div>
+      )}
     </div>
   )
 }
 
-// ─── Mini Alert Feed ───
-function AlertFeed({ analyses }: { analyses: AnalysisResult[] }) {
-  const threats = analyses.filter(a => a.category !== 'NETRAL')
+export default function Dashboard() {
+  const navigate = useNavigate()
+  const [analyses, setAnalyses] = useState<AnalysisResult[]>(() => getStoredAnalyses())
+  const [currentTimeStr, setCurrentTimeStr] = useState<string>('')
 
-  if (threats.length === 0) {
-    return (
-      <div className="empty-state" style={{ padding: '30px 20px' }}>
-        <Shield size={32} className="empty-icon" />
-        <div className="empty-title">Tidak Ada Ancaman Aktif</div>
-        <div className="empty-desc">Jalankan analisis di modul Classifier untuk memulai pemantauan</div>
-      </div>
-    )
+  // Sinkronisasi data real-time & timer jam militer
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      setCurrentTimeStr(now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+    }
+    updateTime()
+
+    const interval = setInterval(() => {
+      updateTime()
+      setAnalyses(getStoredAnalyses())
+    }, 5000)
+
+    const handleUpdateEvent = (e: Event) => {
+      const custom = e as CustomEvent<AnalysisResult[]>
+      if (custom.detail) {
+        setAnalyses(custom.detail)
+      } else {
+        setAnalyses(getStoredAnalyses())
+      }
+    }
+
+    window.addEventListener('narada:analyses-updated', handleUpdateEvent)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('narada:analyses-updated', handleUpdateEvent)
+    }
+  }, [])
+
+  // Kalkulasi statistik
+  const totalAnalyses = analyses.length
+  const threatItems = useMemo(() => analyses.filter(a => a.category !== 'NETRAL'), [analyses])
+  const criticalItems = useMemo(() => analyses.filter(a => a.threatLevel === 'critical'), [analyses])
+  const highItems = useMemo(() => analyses.filter(a => a.threatLevel === 'high'), [analyses])
+
+  // Data Timeline Eskalasi Ancaman Dinamis
+  const timelineData = useMemo(() => {
+    if (analyses.length === 0) {
+      return [
+        { time: '00:00', critical: 0, high: 0, medium: 0, low: 0 },
+        { time: '04:00', critical: 0, high: 0, medium: 0, low: 0 },
+        { time: '08:00', critical: 0, high: 0, medium: 0, low: 0 },
+        { time: '12:00', critical: 0, high: 0, medium: 0, low: 0 },
+        { time: '16:00', critical: 0, high: 0, medium: 0, low: 0 },
+        { time: '20:00', critical: 0, high: 0, medium: 0, low: 0 },
+        { time: 'Now',   critical: 0, high: 0, medium: 0, low: 0 },
+      ]
+    }
+
+    // Urutkan berdasarkan waktu tertua ke terbaru
+    const sorted = [...analyses].sort((a, b) => a.timestamp - b.timestamp)
+    let c = 0, h = 0, m = 0, l = 0
+
+    return sorted.map((item, idx) => {
+      if (item.threatLevel === 'critical') c++
+      else if (item.threatLevel === 'high') h++
+      else if (item.threatLevel === 'medium') m++
+      else l++
+
+      const dateObj = new Date(item.timestamp)
+      const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`
+
+      return {
+        time: `#${idx + 1} (${timeStr})`,
+        critical: c,
+        high: h,
+        medium: m,
+        low: l,
+      }
+    })
+  }, [analyses])
+
+  // Data Distribusi Kategori Dinamis
+  const categoryChartData = useMemo(() => {
+    const cats: ContentCategory[] = ['HOAKS', 'PROPAGANDA', 'BUZZER', 'DISINFORMASI', 'NETRAL']
+    const counts = analyses.reduce((acc, curr) => {
+      acc[curr.category] = (acc[curr.category] || 0) + 1
+      return acc
+    }, {} as Record<ContentCategory, number>)
+
+    if (totalAnalyses === 0) {
+      return cats.map(c => ({
+        name: c,
+        value: 0,
+        pct: 0,
+        color: CATEGORY_COLORS[c],
+      }))
+    }
+
+    return cats.map(c => {
+      const val = counts[c] || 0
+      const pct = Math.round((val / totalAnalyses) * 100)
+      return {
+        name: c,
+        value: val,
+        pct,
+        color: CATEGORY_COLORS[c],
+      }
+    })
+  }, [analyses, totalAnalyses])
+
+  const handleSeedDemo = () => {
+    seedDemoAnalyses()
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {threats.slice(0, 5).map(a => (
-        <div key={a.id} style={{
-          display: 'flex', alignItems: 'flex-start', gap: '10px',
-          padding: '10px 12px', 
-          background: 'var(--bg-elevated)',
-          borderRadius: '8px',
-          border: '1px solid var(--bg-border)',
-        }}>
-          <AlertTriangle size={14} color={
-            a.threatLevel === 'critical' ? '#EF4444' :
-            a.threatLevel === 'high' ? '#F97316' :
-            a.threatLevel === 'medium' ? '#F59E0B' : '#22C55E'
-          } style={{ flexShrink: 0, marginTop: '1px' }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-              <span className={`category-badge cat-${a.category.toLowerCase()}`}>{a.category}</span>
-              <span className={`threat-badge ${a.threatLevel}`}>{a.threatLevel.toUpperCase()}</span>
-            </div>
-            <div style={{ 
-              fontSize: '11px', color: 'var(--text-secondary)', 
+    <div className="fade-in" style={{ paddingBottom: '32px' }}>
+      {/* ─── Header Situational Awareness ─── */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{
+              fontSize: '10px',
               fontFamily: 'var(--font-mono)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+              padding: '2px 8px',
+              borderRadius: '3px',
+              background: 'var(--narada-red-subtle)',
+              color: 'var(--narada-red)',
+              border: '1px solid rgba(200, 16, 46, 0.3)',
+              letterSpacing: '1.5px',
+              textTransform: 'uppercase'
             }}>
-              {a.input.substring(0, 60)}{a.input.length > 60 ? '...' : ''}
-            </div>
+              SITUATIONAL AWARENESS COMMAND
+            </span>
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+              PUSSIBERAD TNI AD
+            </span>
           </div>
-          <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', flexShrink: 0 }}>
-            {new Date(a.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-          </div>
+
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '24px',
+            fontWeight: '800',
+            letterSpacing: '2px',
+            textTransform: 'uppercase',
+            color: 'var(--text-primary)'
+          }}>
+            Cognitive Threat Situational Awareness
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            Pusat komando pemantauan ancaman kognitif, disinformasi, dan kampanye manipulasi siber waktu nyata.
+          </p>
         </div>
-      ))}
-    </div>
-  )
-}
 
-// ─── Dashboard Page ───
-export default function Dashboard() {
-  const [analyses, setAnalyses] = useState<AnalysisResult[]>([])
-  const [now, setNow] = useState(new Date())
-
-  useEffect(() => {
-    setAnalyses(getRecentAnalyses())
-    const interval = setInterval(() => {
-      setNow(new Date())
-      setAnalyses(getRecentAnalyses())
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const totalAnalyses = analyses.length
-  const threats = analyses.filter(a => a.category !== 'NETRAL')
-  const criticalCount = analyses.filter(a => a.threatLevel === 'critical').length
-  const highCount = analyses.filter(a => a.threatLevel === 'high').length
-
-  return (
-    <div className="fade-in">
-      {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ 
-          fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: '700',
-          letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '6px'
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: 'var(--bg-elevated)',
+          padding: '8px 14px',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--bg-border)'
         }}>
-          Situational Awareness
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Pemantauan ancaman kognitif — {now.toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
-        </p>
+          <Clock size={14} color="var(--accent-blue)" />
+          <span style={{
+            fontSize: '11px',
+            fontFamily: 'var(--font-mono)',
+            color: 'var(--text-primary)',
+            letterSpacing: '1px'
+          }}>
+            {currentTimeStr ? `${currentTimeStr} WIB` : 'SIAGA OPERASIONAL'}
+          </span>
+        </div>
       </div>
 
-      {/* Alert Banner */}
-      {criticalCount > 0 && (
-        <div className="alert-banner alert-critical mb-6">
-          <Zap size={16} />
-          <span><strong>PERINGATAN KRITIS:</strong> {criticalCount} konten dengan tingkat ancaman CRITICAL terdeteksi. Segera eskalasi ke pimpinan.</span>
+      {/* ─── 1. DEFCON Alert Banner (Muncul Saat Ada Ancaman Kritis) ─── */}
+      {criticalItems.length > 0 && (
+        <div
+          className="fade-in"
+          style={{
+            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(200, 16, 46, 0.12))',
+            border: '1px solid rgba(239, 68, 68, 0.45)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '16px 20px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '14px',
+            boxShadow: '0 0 30px rgba(239, 68, 68, 0.2)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              flexShrink: 0
+            }}>
+              <ShieldAlert size={22} color="#EF4444" />
+            </div>
+            <div>
+              <div style={{
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: '700',
+                letterSpacing: '2px',
+                color: '#EF4444',
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <Zap size={12} /> STATUS SIAGA SIBER — TINGKAT ANCAMAN KRITIS ({criticalItems.length} ITEM)
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>
+                Terdeteksi eskalasi narasi fitnah alutsista pertahanan dan propaganda kedaulatan kognitif. Segera eskalasi tindakan taktis ke Komando Satgas/Dispenad.
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate('/analyzer')}
+            style={{ boxShadow: '0 0 15px rgba(200, 16, 46, 0.4)' }}
+          >
+            Buka Multi-Input Analyzer <ArrowRight size={14} />
+          </button>
         </div>
       )}
 
-      {/* Stats Row */}
+      {/* ─── 2. Empat Kartu Statistik Taktis ─── */}
       <div className="grid-4 mb-4">
-        <StatCard icon={Eye} label="Total Analisis" value={totalAnalyses || 0} sub="Sesi ini" />
-        <StatCard icon={AlertTriangle} label="Ancaman Terdeteksi" value={threats.length || 0} sub="Dari total analisis" color={threats.length > 0 ? 'var(--threat-high)' : 'var(--text-primary)'} />
-        <StatCard icon={Zap} label="Ancaman Kritis" value={criticalCount || 0} sub="Level CRITICAL" color={criticalCount > 0 ? 'var(--threat-critical)' : 'var(--text-primary)'} />
-        <StatCard icon={TrendingUp} label="Ancaman Tinggi" value={highCount || 0} sub="Level HIGH" color={highCount > 0 ? 'var(--threat-high)' : 'var(--text-primary)'} />
+        <StatCard
+          icon={Eye}
+          label="Total Konten Dianalisis"
+          value={totalAnalyses}
+          sub="Sesi pemantauan aktif"
+          color="var(--text-primary)"
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label="Ancaman Terdeteksi"
+          value={threatItems.length}
+          sub={`${totalAnalyses > 0 ? Math.round((threatItems.length / totalAnalyses) * 100) : 0}% dari total konten`}
+          color={threatItems.length > 0 ? 'var(--threat-high)' : 'var(--text-primary)'}
+        />
+        <StatCard
+          icon={Zap}
+          label="Ancaman Kritis (Critical)"
+          value={criticalItems.length}
+          sub="Perlu eskalasi Dispenad"
+          color={criticalItems.length > 0 ? 'var(--threat-critical)' : 'var(--text-primary)'}
+          pulse={criticalItems.length > 0}
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Ancaman Tinggi (High)"
+          value={highItems.length}
+          sub="Prioritas pantauan khusus"
+          color={highItems.length > 0 ? 'var(--threat-high)' : 'var(--text-primary)'}
+        />
       </div>
 
-      {/* Charts Row */}
-      <div className="grid-2 mb-4" style={{ gridTemplateColumns: '2fr 1fr' }}>
+      {/* ─── Empty State Banner jika belum ada data ─── */}
+      {totalAnalyses === 0 && (
+        <div className="card mb-4" style={{ padding: '24px', textAlign: 'center', background: 'var(--bg-elevated)' }}>
+          <div style={{ maxWidth: '540px', margin: '0 auto' }}>
+            <Layers size={36} color="var(--narada-red)" style={{ opacity: 0.8, marginBottom: '10px' }} />
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '700', marginBottom: '6px' }}>
+              SESI BARU AKTIF — BELUM ADA DATA ANALISIS
+            </h3>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.6' }}>
+              Data pada Command Dashboard ditarik secara reaktif dari sesi pemantauan aktif. Anda dapat memuat kumpulan data skenario uji coba (demo) atau langsung menganalisis konten baru.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleSeedDemo}
+              >
+                <Sparkles size={13} /> Muat Skenario Demo Siap Pantau (5 Sampel)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => navigate('/analyzer')}
+              >
+                Buka Multi-Input Analyzer →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 3. Baris Grafik: Timeline Recharts & Distribusi Donut ─── */}
+      <div className="grid-2 mb-4" style={{ gridTemplateColumns: '1.7fr 1.3fr', gap: '16px' }}>
         {/* Timeline Chart */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">
-              <Activity size={12} style={{ display: 'inline', marginRight: '6px' }} />
-              Timeline Aktivitas Ancaman (24 Jam)
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Activity size={13} color="var(--narada-red)" />
+              TREN AKUMULASI ANCAMAN KOGNITIF (TIMELINE)
             </div>
+            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+              RECHARTS REAL-TIME
+            </span>
           </div>
           <div className="card-body">
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={THREAT_TIMELINE}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="time" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ 
-                    background: 'var(--bg-card)', border: '1px solid var(--bg-border)',
-                    borderRadius: '8px', fontSize: '12px'
-                  }}
-                />
-                <Line type="monotone" dataKey="critical" stroke="#EF4444" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="high" stroke="#F97316" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="medium" stroke="#F59E0B" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="low" stroke="#22C55E" strokeWidth={1.5} dot={false} strokeDasharray="4 2" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Category Pie */}
-        <div className="card">
-          <div className="card-header">
-            <div className="card-title">Distribusi Kategori</div>
-          </div>
-          <div className="card-body">
-            <ResponsiveContainer width="100%" height={160}>
-              <PieChart>
-                <Pie
-                  data={CATEGORY_DATA}
-                  cx="50%" cy="50%"
-                  innerRadius={45} outerRadius={70}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {CATEGORY_DATA.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} opacity={0.85} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ 
-                    background: 'var(--bg-card)', border: '1px solid var(--bg-border)',
-                    borderRadius: '8px', fontSize: '11px'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {CATEGORY_DATA.map(d => (
-                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', flex: 1 }}>{d.name}</span>
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{d.value}%</span>
+            <div style={{ height: 210 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={timelineData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--bg-border)',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-mono)'
+                    }}
+                  />
+                  <Line type="monotone" dataKey="critical" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} name="Critical" />
+                  <Line type="monotone" dataKey="high" stroke="#F97316" strokeWidth={2} dot={{ r: 3 }} name="High" />
+                  <Line type="monotone" dataKey="medium" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} name="Medium" />
+                  <Line type="monotone" dataKey="low" stroke="#22C55E" strokeWidth={1.5} dot={false} strokeDasharray="4 2" name="Low" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Legend Taktis */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: '16px',
+              marginTop: '10px',
+              paddingTop: '8px',
+              borderTop: '1px solid var(--bg-border)'
+            }}>
+              {[
+                { label: 'Critical', color: '#EF4444' },
+                { label: 'High', color: '#F97316' },
+                { label: 'Medium', color: '#F59E0B' },
+                { label: 'Low', color: '#22C55E' },
+              ].map(item => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color }} />
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                    {item.label}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Bottom Row */}
-      <div className="grid-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
-        {/* Alert Feed */}
+        {/* Kategori Donut Chart */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">
-              <Clock size={12} style={{ display: 'inline', marginRight: '6px' }} />
-              Feed Ancaman Terbaru
+            <div className="card-title">DISTRIBUSI 5 KATEGORI KOGNITIF</div>
+            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+              {totalAnalyses} KONTEN
+            </span>
+          </div>
+          <div className="card-body">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: 140, height: 140, flexShrink: 0 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={totalAnalyses === 0 ? [{ name: 'KOSONG', value: 1, color: '#2A2F45', pct: 0 }] : categoryChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={42}
+                      outerRadius={65}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {(totalAnalyses === 0 ? [{ color: '#2A2F45' }] : categoryChartData).map((entry, i) => (
+                        <Cell key={i} fill={entry.color} opacity={0.9} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--bg-border)',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)'
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Legend List */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {categoryChartData.map(d => (
+                  <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', flex: 1 }}>
+                      {d.name}
+                    </span>
+                    <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: '700', color: d.color }}>
+                      {d.value}
+                    </span>
+                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', width: '32px', textAlign: 'right' }}>
+                      {d.pct}%
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ─── 4. Baris Bawah: Live Cognitive Threat Feed & System Status ─── */}
+      <div className="grid-2" style={{ gridTemplateColumns: '1.4fr 1fr', gap: '16px' }}>
+        {/* Live Feed Ancaman */}
+        <div className="card">
+          <div className="card-header">
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={13} color="var(--threat-high)" />
+              LIVE COGNITIVE THREAT FEED (5 TERBARU)
+            </div>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => navigate('/analyzer')}
+              style={{ fontSize: '11px' }}
+            >
+              Semua Riwayat <ChevronRight size={12} />
+            </button>
+          </div>
           <div className="card-body" style={{ padding: '12px' }}>
-            <AlertFeed analyses={analyses} />
+            {threatItems.length === 0 ? (
+              <div className="empty-state" style={{ padding: '36px 20px' }}>
+                <Shield size={32} className="empty-icon" color="var(--threat-low)" />
+                <div className="empty-title">Status Aman — Tidak Ada Ancaman Terdeteksi</div>
+                <div className="empty-desc">
+                  Jalankan analisis konten di Multi-Input Analyzer untuk mendeteksi indikasi hoaks, buzzer, atau propaganda.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {threatItems.slice(0, 5).map(a => {
+                  const catBadge = getCategoryBadge(a.category)
+                  const threatBadge = getThreatBadge(a.threatLevel)
+
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => navigate('/analyzer')}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        padding: '10px 14px',
+                        background: 'var(--bg-elevated)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--bg-border)',
+                        cursor: 'pointer',
+                        transition: 'border-color 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.borderColor = `${threatBadge.color}60`)}
+                      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--bg-border)')}
+                    >
+                      <AlertTriangle size={15} color={threatBadge.color} style={{ flexShrink: 0, marginTop: '2px' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                          <span
+                            className="category-badge"
+                            style={{
+                              background: catBadge.bgColor,
+                              color: catBadge.color,
+                              border: `1px solid ${catBadge.color}30`
+                            }}
+                          >
+                            {a.category}
+                          </span>
+                          <span
+                            className="threat-badge"
+                            style={{
+                              background: threatBadge.bgColor,
+                              color: threatBadge.color,
+                              border: `1px solid ${threatBadge.borderColor}`,
+                              padding: '2px 6px',
+                              fontSize: '9px'
+                            }}
+                          >
+                            {threatBadge.label}
+                          </span>
+                          <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)', marginLeft: 'auto' }}>
+                            {formatMilitaryDate(a.timestamp)}
+                          </span>
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)',
+                          lineHeight: '1.5'
+                        }}>
+                          {truncateText(a.input || a.rawContent, 90)}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* System Info */}
+        {/* System Status Panel */}
         <div className="card">
           <div className="card-header">
-            <div className="card-title">
-              <Shield size={12} style={{ display: 'inline', marginRight: '6px' }} />
-              Status Sistem NARADA
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Server size={13} color="var(--accent-blue)" />
+              STATUS KESIAPAN SISTEM INTELIJEN
             </div>
+            <span style={{
+              fontSize: '9px',
+              fontFamily: 'var(--font-mono)',
+              padding: '2px 6px',
+              borderRadius: '2px',
+              background: 'rgba(34, 197, 94, 0.12)',
+              color: 'var(--threat-low)'
+            }}>
+              NORMAL
+            </span>
           </div>
           <div className="card-body">
             {[
-              { label: 'AI Classifier Engine', status: 'AKTIF', ok: true },
-              { label: 'Bot Profiler Module', status: 'AKTIF', ok: true },
-              { label: 'Nexus Graph Engine', status: 'AKTIF', ok: true },
-              { label: 'Intel Report Generator', status: 'AKTIF', ok: true },
-              { label: 'Koneksi Internet', status: 'OFFLINE (AMAN)', ok: true },
-              { label: 'Database Lokal', status: 'SESSION STORAGE', ok: true },
+              { label: 'AI Hybrid Classifier (ML 60% + Rules 40%)', status: 'AKTIF', ok: true },
+              { label: 'Google Fact Check & Mafindo Client', status: 'ONLINE', ok: true },
+              { label: 'Neural OCR Engine (Tesseract.js LSTM)', status: 'READY', ok: true },
+              { label: 'Mozilla Readability URL Extractor', status: 'READY', ok: true },
+              { label: 'Nexus Force Network Graph Engine', status: 'AKTIF', ok: true },
+              { label: 'Session Intelligence Cache', status: `${totalAnalyses} ITEMS`, ok: true },
             ].map(item => (
-              <div key={item.label} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '8px 0', borderBottom: '1px solid var(--bg-border)'
-              }}>
+              <div
+                key={item.label}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '8px 0',
+                  borderBottom: '1px solid var(--bg-border)'
+                }}
+              >
                 <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{item.label}</span>
-                <span style={{ 
-                  fontSize: '9px', fontFamily: 'var(--font-mono)', letterSpacing: '1px',
+                <span style={{
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '1px',
+                  fontWeight: '700',
                   color: item.ok ? 'var(--threat-low)' : 'var(--threat-critical)'
-                }}>{item.status}</span>
+                }}>
+                  {item.status}
+                </span>
               </div>
             ))}
 
-            <div style={{ marginTop: '16px', padding: '10px 12px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--bg-border)' }}>
-              <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', letterSpacing: '1px', marginBottom: '4px' }}>
-                INFORMASI SISTEM
+            <div style={{
+              marginTop: '14px',
+              padding: '12px',
+              background: 'var(--bg-elevated)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--bg-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                  NARADA SENSORY & COMMAND SUITE
+                </div>
+                <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                  PUSSIBERAD TNI AD · HACKATHON 2026
+                </div>
               </div>
-              <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', lineHeight: '1.8' }}>
-                NARADA v1.0.0<br />
-                Engine: NARADA-NLP-ID<br />
-                Model: Rule-Based + Heuristic<br />
-                <span style={{ color: 'var(--narada-red)' }}>KLASIFIKASI: INTERNAL</span>
-              </div>
+              <span style={{
+                fontSize: '9px',
+                fontFamily: 'var(--font-mono)',
+                color: 'var(--narada-red)',
+                border: '1px solid rgba(200, 16, 46, 0.3)',
+                padding: '2px 6px',
+                borderRadius: '2px'
+              }}>
+                INTERNAL
+              </span>
             </div>
           </div>
         </div>

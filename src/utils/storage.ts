@@ -103,3 +103,170 @@ export function saveUserSettings(settings: Partial<UserSettings>): UserSettings 
     return getUserSettings()
   }
 }
+
+/**
+ * Memuat kumpulan data skenario intelijen siap pantau (demo mode) ke sessionStorage
+ */
+export function seedDemoAnalyses(): AnalysisResult[] {
+  const now = Date.now()
+  const demoItems: AnalysisResult[] = [
+    {
+      id: `NRD-${now}-101`,
+      timestamp: now - 1000 * 60 * 18, // 18 menit lalu
+      inputSource: 'url',
+      title: 'Kemhan Buka Suara Terkait Beredarnya Dokumen Pembelian Alutsista Fiktif',
+      rawContent: 'BAHAYA!! Beredar bocoran dokumen rahasia pembelian alutsista fiktif Kemhan senilai Rp 24 triliun. Pemerintah dan TNI sengaja menutup-nutupi fakta ini dari publik. Viralkan sekarang ke seluruh grup WhatsApp!',
+      input: 'BAHAYA!! Beredar bocoran dokumen rahasia pembelian alutsista fiktif Kemhan senilai Rp 24 triliun. Pemerintah dan TNI sengaja menutup-nutupi fakta ini dari publik. Viralkan sekarang ke seluruh grup WhatsApp!',
+      sourceMeta: {
+        siteName: 'Detik News',
+        author: 'Tim Investigasi Cyber',
+        url: 'https://news.detik.com/berita/alutsista-fiktif-kemhan',
+      },
+      category: 'HOAKS',
+      threatLevel: 'critical',
+      confidence: 91,
+      mlScore: 92,
+      ruleScore: 90,
+      scores: [
+        { label: 'HOAKS', score: 91 },
+        { label: 'PROPAGANDA', score: 45 },
+        { label: 'DISINFORMASI', score: 40 },
+        { label: 'BUZZER', score: 30 },
+        { label: 'NETRAL', score: 5 },
+      ],
+      explanation: 'Ditemukan klaim palsu berkadar tinggi menuduh korupsi alutsista fiktif pertahanan dengan ajakan amplifikasi masif.',
+      keywords: ['dokumen rahasia', 'alutsista fiktif', 'kemhan', 'viralkan', 'menutup-nutupi'],
+      targetedEntities: ['Kemhan RI', 'TNI AD'],
+      recommendation: 'Tindakan Mendesak: Segera rilis klarifikasi resmi melalui Penerangan TNI (Dispenad). Kirimkan permintaan takedown ke BSSN/Kominfo dan lakukan pelacakan simpul awal penyebar.',
+      factCheck: {
+        available: true,
+        query: 'alutsista fiktif kemhan',
+        manualSearchUrl: 'https://search.turnbackhoax.id/?q=alutsista%20fiktif',
+        explorerUrl: 'https://toolbox.google.com/factcheck/explorer/search/alutsista;hl=id',
+        checkedAt: now,
+        claims: [
+          {
+            claimText: 'Beredar selebaran pengadaan alutsista fiktif senilai puluhan triliun oleh Kemhan RI',
+            claimant: 'Pesan Berantai WhatsApp',
+            publisherName: 'TurnBackHoax - Mafindo',
+            publisherSite: 'turnbackhoax.id',
+            articleUrl: 'https://turnbackhoax.id/2026/08/14/salah-dokumen-pengadaan-alutsista-fiktif-kemhan/',
+            articleTitle: '[SALAH] Dokumen Pengadaan Sistem Alutsista Fiktif Kemhan Senilai Rp 24 Triliun',
+            rating: '❌ SALAH (Fabricated Content)',
+            ratingColor: '#EF4444',
+            reviewDate: '14-AGU-2026',
+          },
+        ],
+      },
+    },
+    {
+      id: `NRD-${now}-102`,
+      timestamp: now - 1000 * 60 * 42, // 42 menit lalu
+      inputSource: 'ocr',
+      title: 'OCR: Screenshot Post Medsos Separatis',
+      rawContent: 'Panggilan perjuangan untuk seluruh kawan di Papua Barat! Rezim militer NKRI terus menindas dan merampas kekayaan adat. Saatnya kita boikot seluruh komando militer Kodam XVII/Cenderawasih dan menuntut hak penentuan nasib sendiri. Hancurkan penjajah!',
+      input: 'Panggilan perjuangan untuk seluruh kawan di Papua Barat! Rezim militer NKRI terus menindas dan merampas kekayaan adat. Saatnya kita boikot seluruh komando militer Kodam XVII/Cenderawasih dan menuntut hak penentuan nasib sendiri. Hancurkan penjajah!',
+      category: 'PROPAGANDA',
+      threatLevel: 'critical',
+      confidence: 93,
+      mlScore: 90,
+      ruleScore: 96,
+      scores: [
+        { label: 'PROPAGANDA', score: 93 },
+        { label: 'HOAKS', score: 35 },
+        { label: 'DISINFORMASI', score: 30 },
+        { label: 'BUZZER', score: 25 },
+        { label: 'NETRAL', score: 5 },
+      ],
+      explanation: 'Narasi memuat hasutan disintegrasi bangsa, delegitimasi otoritas komando militer wilayah, dan ajakan boikot teritorial.',
+      keywords: ['penindas', 'boikot', 'kodam xvii/cenderawasih', 'penjajah', 'separatis'],
+      targetedEntities: ['Kodam XVII/Cenderawasih', 'TNI AD'],
+      recommendation: 'Eskalasi Komando: Terdeteksi propaganda separatis/makar berintensitas tinggi. Teruskan laporan segera ke Asintel/Pussiberad dan siapkan narasi penyeimbang wawasan kebangsaan di wilayah teritorial terdampak.',
+    },
+    {
+      id: `NRD-${now}-103`,
+      timestamp: now - 1000 * 60 * 85, // 1.4 jam lalu
+      inputSource: 'text',
+      title: 'Analisis Koordinasi Buzzer Medsos',
+      rawContent: 'Ayo kawan-kawan relawan, retweet dan share postingan ini serentak malam ini pukul 20.00 WIB! Tag 10 akun teman kalian! Kita harus kompak dan solid viralkan narasi ini agar trending topik nomor satu di Indonesia!',
+      input: 'Ayo kawan-kawan relawan, retweet dan share postingan ini serentak malam ini pukul 20.00 WIB! Tag 10 akun teman kalian! Kita harus kompak dan solid viralkan narasi ini agar trending topik nomor satu di Indonesia!',
+      category: 'BUZZER',
+      threatLevel: 'high',
+      confidence: 82,
+      mlScore: 85,
+      ruleScore: 78,
+      scores: [
+        { label: 'BUZZER', score: 82 },
+        { label: 'PROPAGANDA', score: 25 },
+        { label: 'HOAKS', score: 20 },
+        { label: 'DISINFORMASI', score: 20 },
+        { label: 'NETRAL', score: 10 },
+      ],
+      explanation: 'Terdeteksi struktur kalimat khas amplifikasi terkoordinasi (astroturfing) dengan ajakan penyeragaman waktu dan tagar buatan.',
+      keywords: ['retweet serentak', 'trending topik', 'kompak dan solid', 'viralkan narasi'],
+      targetedEntities: ['Ruang Siber Publik'],
+      recommendation: 'Pengawasan Jaringan: Terdeteksi pola koordinasi artifisial buzzer. Lakukan pemetaan jejaring akun pada Nexus Graph untuk mengidentifikasi botnet dan aktor pengendali.',
+    },
+    {
+      id: `NRD-${now}-104`,
+      timestamp: now - 1000 * 60 * 150, // 2.5 jam lalu
+      inputSource: 'url',
+      title: 'Disinformasi Pemotongan Video Pos Teritorial',
+      rawContent: 'Beredar video viral rekaman kontak senjata di pedalaman yang diklaim sebagai penyerangan baru pos pengamanan TNI AD, padahal rekaman tersebut merupakan dokumentasi lama tahun 2019 yang dipotong konteksnya.',
+      input: 'Beredar video viral rekaman kontak senjata di pedalaman yang diklaim sebagai penyerangan baru pos pengamanan TNI AD, padahal rekaman tersebut merupakan dokumentasi lama tahun 2019 yang dipotong konteksnya.',
+      sourceMeta: {
+        siteName: 'Media Sosial X',
+        author: 'Akun Oposisi',
+      },
+      category: 'DISINFORMASI',
+      threatLevel: 'medium',
+      confidence: 66,
+      mlScore: 68,
+      ruleScore: 64,
+      scores: [
+        { label: 'DISINFORMASI', score: 66 },
+        { label: 'HOAKS', score: 42 },
+        { label: 'PROPAGANDA', score: 32 },
+        { label: 'BUZZER', score: 20 },
+        { label: 'NETRAL', score: 15 },
+      ],
+      explanation: 'Konten manipulasi konteks temporal dengan mempublikasikan video arsip lama seolah-olah peristiwa kontemporer.',
+      keywords: ['video viral', 'dipotong konteksnya', 'pos pengamanan tni', 'kontak senjata'],
+      targetedEntities: ['TNI AD'],
+      recommendation: 'Verifikasi Konteks: Konten memuat pemotongan fakta yang menyesatkan. Dispenad disarankan mempublikasikan dokumentasi utuh/video pembanding untuk meluruskan persepsi publik.',
+    },
+    {
+      id: `NRD-${now}-105`,
+      timestamp: now - 1000 * 60 * 240, // 4 jam lalu
+      inputSource: 'text',
+      title: 'Kegiatan Bakti TNI Manunggal Membangun Desa',
+      rawContent: 'Prajurit TNI Angkatan Darat dari Kodim 0734 bersama warga masyarakat menggelar program bakti sosial gotong royong pembersihan aliran sungai dan perbaikan saluran drainase untuk mencegah risiko bencana di wilayah Yogyakarta.',
+      input: 'Prajurit TNI Angkatan Darat dari Kodim 0734 bersama warga masyarakat menggelar program bakti sosial gotong royong pembersihan aliran sungai dan perbaikan saluran drainase untuk mencegah risiko bencana di wilayah Yogyakarta.',
+      category: 'NETRAL',
+      threatLevel: 'low',
+      confidence: 92,
+      mlScore: 12,
+      ruleScore: 10,
+      scores: [
+        { label: 'NETRAL', score: 92 },
+        { label: 'HOAKS', score: 5 },
+        { label: 'PROPAGANDA', score: 5 },
+        { label: 'BUZZER', score: 5 },
+        { label: 'DISINFORMASI', score: 5 },
+      ],
+      explanation: 'Pemberitaan kegiatan kemanunggalan teritorial rutin TNI AD yang tidak memuat sentimen negatif maupun manipulasi kognitif.',
+      keywords: ['tni angkatan darat', 'kodim 0734', 'bakti sosial', 'gotong royong'],
+      targetedEntities: ['Kodim 0734', 'TNI AD'],
+      recommendation: 'Status Aman: Lanjutkan pemantauan rutin. Konten tidak memerlukan tindakan kontranarasi atau eskalasi komando.',
+    },
+  ]
+
+  try {
+    sessionStorage.setItem(STORAGE_KEYS.ANALYSES, JSON.stringify(demoItems))
+    window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: demoItems }))
+  } catch (err) {
+    console.error('[NARADA Storage] Gagal men-seed demo analyses:', err)
+  }
+
+  return demoItems
+}
