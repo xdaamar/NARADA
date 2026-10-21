@@ -264,68 +264,258 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ─── 1. DEFCON Alert Banner (Muncul Saat Ada Ancaman Kritis) ─── */}
-      {criticalItems.length > 0 && (
-        <div
-          className="fade-in"
-          style={{
-            background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.2), rgba(200, 16, 46, 0.12))',
-            border: '1px solid rgba(239, 68, 68, 0.45)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '16px 20px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '14px',
-            boxShadow: '0 0 30px rgba(239, 68, 68, 0.2)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              background: 'rgba(239, 68, 68, 0.2)',
+      {/* ─── 1. SYNCHRONIZED DEFCON 1-5 ALERT BANNER (REAL-TIME STATUS) ─── */}
+      {(() => {
+        const defconConfig = (() => {
+          if (criticalItems.length > 0) {
+            return {
+              level: 1,
+              badge: `DEFCON 1 — SIAGA MERAH (DARURAT KOGNITIF: ${criticalItems.length} KRITIS)`,
+              color: '#EF4444',
+              bgGrad: 'linear-gradient(90deg, rgba(239, 68, 68, 0.22), rgba(200, 16, 46, 0.12))',
+              borderColor: 'rgba(239, 68, 68, 0.5)',
+              shadow: '0 0 30px rgba(239, 68, 68, 0.25)',
+              icon: ShieldAlert,
+              desc: `Terdeteksi ${criticalItems.length} konten ancaman kritis dengan indikasi hoaks alutsista / separatisme. Segera eskalasi tindakan taktis ke Komando Satgas/Dispenad.`,
+              btnText: 'Tanggapi Krisis di Analyzer',
+              btnPath: '/analyzer',
+            }
+          }
+          if (highItems.length > 0) {
+            return {
+              level: 2,
+              badge: `DEFCON 2 — SIAGA ORANYE (ANCAMAN TINGGI: ${highItems.length} ITEM)`,
+              color: '#F97316',
+              bgGrad: 'linear-gradient(90deg, rgba(249, 115, 22, 0.2), rgba(217, 119, 6, 0.1))',
+              borderColor: 'rgba(249, 115, 22, 0.45)',
+              shadow: '0 0 25px rgba(249, 115, 22, 0.2)',
+              icon: AlertTriangle,
+              desc: `Terdeteksi ${highItems.length} kampanye manipulasi dan propaganda terkoordinasi. Lakukan pelacakan klaster buzzer di Nexus.`,
+              btnText: 'Buka Radar Nexus Graph',
+              btnPath: '/nexus',
+            }
+          }
+          if (analyses.some(a => a.threatLevel === 'medium')) {
+            const medCount = analyses.filter(a => a.threatLevel === 'medium').length
+            return {
+              level: 3,
+              badge: `DEFCON 3 — SIAGA KUNING (KEWASPADAAN SIBER: ${medCount} ITEM)`,
+              color: '#F59E0B',
+              bgGrad: 'linear-gradient(90deg, rgba(245, 158, 11, 0.18), rgba(180, 83, 9, 0.08))',
+              borderColor: 'rgba(245, 158, 11, 0.4)',
+              shadow: '0 0 20px rgba(245, 158, 11, 0.15)',
+              icon: AlertTriangle,
+              desc: `Terdeteksi ${medCount} konten disinformasi atau polarisasi sedang. Lakukan pemantauan tren sentimen secara berkala.`,
+              btnText: 'Buka Profiler Akun',
+              btnPath: '/profiler',
+            }
+          }
+          if (analyses.some(a => a.threatLevel === 'low')) {
+            return {
+              level: 4,
+              badge: 'DEFCON 4 — SIAGA BIRU (MONITORING RUTIN AKTIF)',
+              color: '#3B82F6',
+              bgGrad: 'linear-gradient(90deg, rgba(59, 130, 246, 0.16), rgba(37, 99, 235, 0.08))',
+              borderColor: 'rgba(59, 130, 246, 0.35)',
+              shadow: '0 0 20px rgba(59, 130, 246, 0.15)',
+              icon: Shield,
+              desc: 'Konten terdeteksi berada pada tingkat risiko rendah. Sistem menjalankan pengawasan pasif dan verifikasi berkala.',
+              btnText: 'Periksa Riwayat Pantauan',
+              btnPath: '/analyzer',
+            }
+          }
+          return {
+            level: 5,
+            badge: 'DEFCON 5 — SIAGA HIJAU (KONDISI TERKENDALI & NORMAL)',
+            color: '#22C55E',
+            bgGrad: 'linear-gradient(90deg, rgba(34, 197, 94, 0.14), rgba(21, 128, 61, 0.06))',
+            borderColor: 'rgba(34, 197, 94, 0.3)',
+            shadow: '0 0 20px rgba(34, 197, 94, 0.1)',
+            icon: Shield,
+            desc: 'Seluruh sensor intelijen siber kognitif berada pada ambang batas normal. Sistem siaga penuh menerima input baru.',
+            btnText: 'Mulai Analisis Konten',
+            btnPath: '/analyzer',
+          }
+        })()
+
+        const DefconIcon = defconConfig.icon
+
+        return (
+          <div
+            className="fade-in"
+            style={{
+              background: defconConfig.bgGrad,
+              border: `1px solid ${defconConfig.borderColor}`,
+              borderRadius: 'var(--radius-lg)',
+              padding: '16px 20px',
+              marginBottom: '20px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
-              flexShrink: 0
-            }}>
-              <ShieldAlert size={22} color="#EF4444" />
-            </div>
-            <div>
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '14px',
+              boxShadow: defconConfig.shadow
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{
-                fontSize: '11px',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: '700',
-                letterSpacing: '2px',
-                color: '#EF4444',
-                textTransform: 'uppercase',
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                background: `${defconConfig.color}20`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                justifyContent: 'center',
+                border: `1px solid ${defconConfig.color}50`,
+                flexShrink: 0
               }}>
-                <Zap size={12} /> STATUS SIAGA SIBER — TINGKAT ANCAMAN KRITIS ({criticalItems.length} ITEM)
+                <DefconIcon size={22} color={defconConfig.color} />
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>
-                Terdeteksi eskalasi narasi fitnah alutsista pertahanan dan propaganda kedaulatan kognitif. Segera eskalasi tindakan taktis ke Komando Satgas/Dispenad.
+              <div>
+                <div style={{
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: '700',
+                  letterSpacing: '2px',
+                  color: defconConfig.color,
+                  textTransform: 'uppercase',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <Zap size={12} /> {defconConfig.badge}
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '2px' }}>
+                  {defconConfig.desc}
+                </div>
               </div>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate(defconConfig.btnPath)}
+              style={{
+                boxShadow: `0 0 15px ${defconConfig.color}40`,
+                borderColor: defconConfig.color
+              }}
+            >
+              {defconConfig.btnText} <ArrowRight size={14} />
+            </button>
+          </div>
+        )
+      })()}
+
+      {/* ─── TACTICAL QUICK LAUNCHPAD (AKSI CEPAT INTELIJEN) ─── */}
+      <div className="card mb-4" style={{ padding: '16px 20px', background: 'var(--bg-card)' }}>
+        <div style={{
+          fontSize: '11px',
+          fontFamily: 'var(--font-mono)',
+          fontWeight: '700',
+          letterSpacing: '1.5px',
+          color: 'var(--text-muted)',
+          marginBottom: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px'
+        }}>
+          <Zap size={13} color="var(--accent-blue)" /> TACTICAL QUICK LAUNCHPAD (AKSI CEPAT INTELIJEN)
+        </div>
+        <div className="grid-3" style={{ gap: '14px' }}>
+          <div
+            onClick={() => navigate('/analyzer')}
+            style={{
+              padding: '14px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--bg-border)',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--narada-red)'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--bg-border)'
+              e.currentTarget.style.transform = 'translateY(0)'
+            }}
+          >
+            <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(200, 16, 46, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Zap size={18} color="var(--narada-red)" />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>1. Multi-Input Analyzer</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Uji instan teks, OCR, URL & batch</div>
             </div>
           </div>
 
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => navigate('/analyzer')}
-            style={{ boxShadow: '0 0 15px rgba(200, 16, 46, 0.4)' }}
+          <div
+            onClick={() => navigate('/nexus')}
+            style={{
+              padding: '14px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--bg-border)',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--accent-blue)'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--bg-border)'
+              e.currentTarget.style.transform = 'translateY(0)'
+            }}
           >
-            Buka Multi-Input Analyzer <ArrowRight size={14} />
-          </button>
+            <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Activity size={18} color="var(--accent-blue)" />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>2. Radar Topologi Nexus</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Klaster bot, buzzer & relasi narasi</div>
+            </div>
+          </div>
+
+          <div
+            onClick={() => navigate('/reports')}
+            style={{
+              padding: '14px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--bg-border)',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'var(--threat-low)'
+              e.currentTarget.style.transform = 'translateY(-2px)'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'var(--bg-border)'
+              e.currentTarget.style.transform = 'translateY(0)'
+            }}
+          >
+            <div style={{ width: 36, height: 36, borderRadius: '8px', background: 'rgba(34, 197, 94, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Layers size={18} color="var(--threat-low)" />
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>3. Produk Intelijen A4</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Laporan resmi militer siap cetak</div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* ─── 2. Empat Kartu Statistik Taktis ─── */}
       <div className="grid-4 mb-4">

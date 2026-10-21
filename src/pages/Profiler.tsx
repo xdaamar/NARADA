@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { UserSearch, Plus, Trash2, AlertTriangle, CheckCircle, ShieldAlert } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { UserSearch, Plus, Trash2, AlertTriangle, CheckCircle, ShieldAlert, Network } from 'lucide-react'
 import { analyzeAccount } from '../engine/profiler'
 import type { AccountProfile } from '../types'
 
@@ -162,7 +163,17 @@ function FormField({ label, id, type = 'text', placeholder, value, onChange }: {
 
 // ─── Profiler Page ───
 export default function Profiler() {
-  const [profiles, setProfiles] = useState<AccountProfile[]>([])
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+
+  const [profiles, setProfiles] = useState<AccountProfile[]>(() => {
+    try {
+      const stored = sessionStorage.getItem('narada_profiler_accounts')
+      return stored ? JSON.parse(stored) : []
+    } catch {
+      return []
+    }
+  })
   const [isAnalyzing, setIsAnalyzing] = useState(false)
 
   // Form state
@@ -174,6 +185,15 @@ export default function Profiler() {
   const [likes, setLikes] = useState('')
   const [activeHours, setActiveHours] = useState('')
   const [bio, setBio] = useState('')
+
+  // Tangkap param query username jika dialihkan dari Analyzer/Nexus
+  useEffect(() => {
+    const queryUser = searchParams.get('username')
+    if (queryUser) {
+      const clean = queryUser.startsWith('@') ? queryUser : `@${queryUser}`
+      setUsername(clean)
+    }
+  }, [searchParams])
 
   const handleAnalyze = () => {
     if (!username.trim()) return
@@ -189,7 +209,11 @@ export default function Profiler() {
         activeHoursStr: activeHours,
         bio,
       })
-      setProfiles(prev => [result, ...prev])
+      setProfiles(prev => {
+        const updated = [result, ...prev]
+        sessionStorage.setItem('narada_profiler_accounts', JSON.stringify(updated))
+        return updated
+      })
       setIsAnalyzing(false)
       // Reset form
       setUsername(''); setFollowers(''); setFollowing(''); setPpd('')
@@ -202,8 +226,17 @@ export default function Profiler() {
     setTimeout(() => {
       const results = SAMPLE_ACCOUNTS.map(a => analyzeAccount(a))
       setProfiles(results)
+      sessionStorage.setItem('narada_profiler_accounts', JSON.stringify(results))
       setIsAnalyzing(false)
     }, 800)
+  }
+
+  const handleRemoveProfile = (index: number) => {
+    setProfiles(prev => {
+      const updated = prev.filter((_, idx) => idx !== index)
+      sessionStorage.setItem('narada_profiler_accounts', JSON.stringify(updated))
+      return updated
+    })
   }
 
   const stats = {
@@ -280,7 +313,7 @@ export default function Profiler() {
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Stats & Integrasi ke Nexus */}
           {profiles.length > 0 && (
             <div className="card" style={{ marginTop: '16px' }}>
               <div className="card-header">
@@ -298,6 +331,32 @@ export default function Profiler() {
                     <span style={{ fontSize: '14px', fontFamily: 'var(--font-display)', fontWeight: '700', color: s.color }}>{s.value}</span>
                   </div>
                 ))}
+
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  style={{
+                    width: '100%',
+                    marginTop: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    background: 'rgba(59, 130, 246, 0.12)',
+                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    color: '#60A5FA',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    padding: '8px 12px'
+                  }}
+                  onClick={() => {
+                    sessionStorage.setItem('narada_profiler_accounts', JSON.stringify(profiles))
+                    navigate('/nexus')
+                  }}
+                >
+                  <Network size={14} />
+                  🕸️ Kirim Jaringan Akun ke Nexus Graph ({profiles.length})
+                </button>
               </div>
             </div>
           )}
@@ -331,7 +390,7 @@ export default function Profiler() {
               <AccountCard
                 key={p.id}
                 profile={p}
-                onRemove={() => setProfiles(prev => prev.filter((_, idx) => idx !== i))}
+                onRemove={() => handleRemoveProfile(i)}
               />
             ))}
           </div>

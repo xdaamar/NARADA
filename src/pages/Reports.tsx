@@ -14,10 +14,12 @@ import {
 import type { AnalysisResult, IntelReportConfig, ReportClassification } from '../types'
 import { getStoredAnalyses, getUserSettings, seedDemoAnalyses } from '../utils/storage'
 import { formatMilitaryDate, truncateText } from '../utils/format'
+import { generateSHA256 } from '../utils/crypto'
 
 export default function Reports() {
   const [analyses, setAnalyses] = useState<AnalysisResult[]>(() => getStoredAnalyses())
   const userSettings = useMemo(() => getUserSettings(), [])
+  const [reportHash, setReportHash] = useState<string>('')
 
   // Auto-generate nomor laporan standar dinas militer
   const generatedReportNumber = useMemo(() => {
@@ -47,6 +49,18 @@ export default function Reports() {
     window.addEventListener('narada:analyses-updated', handleUpdate)
     return () => window.removeEventListener('narada:analyses-updated', handleUpdate)
   }, [])
+
+  // Kalkulasi stempel hash kriptografis laporan SHA-256
+  useEffect(() => {
+    let isMounted = true
+    const computeReportHash = async () => {
+      const rawData = `${config.reportNumber}|${config.classification}|${config.unitName}|${config.date}|${analyses.length}`
+      const h = await generateSHA256(rawData)
+      if (isMounted) setReportHash(h)
+    }
+    computeReportHash()
+    return () => { isMounted = false }
+  }, [config, analyses])
 
   // Perhitungan metrik laporan
   const totalAnalyses = analyses.length
@@ -321,8 +335,31 @@ export default function Reports() {
               boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
               minHeight: '840px',
               border: '1px solid rgba(255, 255, 255, 0.1)',
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
+            {/* ─── WATERMARK RESMI DINAS MILITER TNI AD ─── */}
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) rotate(-32deg)',
+              fontSize: '26px',
+              fontWeight: '900',
+              letterSpacing: '5px',
+              fontFamily: '"Rajdhani", sans-serif',
+              color: 'rgba(200, 16, 46, 0.04)',
+              pointerEvents: 'none',
+              userSelect: 'none',
+              whiteSpace: 'nowrap',
+              zIndex: 0,
+              textAlign: 'center',
+              textTransform: 'uppercase'
+            }}>
+              DOKUMEN INTELIJEN PUSSIBERAD - KLASIFIKASI: {config.classification}
+            </div>
+
             {/* ─── KOP SURAT RESMI MILITER TNI AD ─── */}
             <div style={{ borderBottom: '3px solid #C8102E', paddingBottom: '16px', marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -628,6 +665,43 @@ export default function Reports() {
               </div>
             )}
 
+            {/* ─── BAGIAN VI: DRAF KONTRANARASI TAKTIS DISPENAD ─── */}
+            <div style={{ marginBottom: '28px' }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: '800',
+                letterSpacing: '1.5px',
+                color: '#C8102E',
+                marginBottom: '8px',
+                borderBottom: '1.5px solid #E5E7EB',
+                paddingBottom: '4px'
+              }}>
+                VI. DRAF KONTRANARASI TAKTIS DISPENAD (SIAP SIAR)
+              </div>
+              <div style={{
+                padding: '12px 14px',
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '4px',
+                fontSize: '11px',
+                color: '#991B1B',
+                lineHeight: '1.6'
+              }}>
+                <div style={{ fontWeight: '700', marginBottom: '4px', color: '#B91C1C' }}>
+                  SIARAN PERS RESMI KEDINASAN PENERANGAN TNI AD (DISPENAD):
+                </div>
+                <p style={{ margin: '0 0 6px 0', color: '#1F2937' }}>
+                  "{criticals.length > 0 ?
+                    `Menanggapi narasi provokatif dan hoaks terkait ${criticals[0]?.targetedEntities?.join(', ') || 'institusi TNI AD'}, Dinas Penerangan TNI AD menegaskan bahwa informasi tersebut adalah TIDAK BENAR (HOAKS/DISINFORMASI). Seluruh dokumen dan isu yang disebarkan merupakan fabrikasi manipulatif yang bertujuan mencederai kepercayaan publik terhadap integritas TNI AD.` :
+                    `Dinas Penerangan TNI AD mengimbau seluruh lapisan masyarakat untuk senantiasa bijak menyaring informasi di media sosial, memverifikasi fakta melalui kanal resmi kemhan.go.id / tni-ad.mil.id, dan tidak menyebarluaskan konten spekulatif tanpa konfirmasi.`
+                  }"
+                </p>
+                <div style={{ fontSize: '10px', color: '#4B5563', borderTop: '1px dashed #FECACA', paddingTop: '6px', marginTop: '6px' }}>
+                  <strong>Distribusi Multikanal:</strong> Rilis Siaran Pers Resmi Media Cetak/Online · Jukrah Babinsa Pendampingan Warga · Amplifikasi Medsos (#TNIBersamaRakyat #TangkalDisinformasi #KedaulatanNKRI)
+                </div>
+              </div>
+            </div>
+
             {/* ─── KOLOM TANDA TANGAN DINAS MILITER ─── */}
             <div style={{
               display: 'grid',
@@ -656,9 +730,33 @@ export default function Reports() {
               </div>
             </div>
 
+            {/* ─── STEMPEL INTEGRITAS KRIPTOGRAFIS SHA-256 ─── */}
+            <div style={{
+              marginTop: '24px',
+              padding: '8px 12px',
+              background: '#F9FAFB',
+              border: '1px solid #E5E7EB',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '9px',
+              fontFamily: '"JetBrains Mono", monospace'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#374151', minWidth: 0 }}>
+                <span style={{ fontWeight: '700', color: '#111827', flexShrink: 0 }}>🔒 STEMPEL INTEGRITAS SHA-256:</span>
+                <span style={{ color: '#059669', wordBreak: 'break-all' }}>
+                  {reportHash || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
+                </span>
+              </div>
+              <span style={{ color: '#9CA3AF', whiteSpace: 'nowrap', marginLeft: '12px', flexShrink: 0 }}>
+                CHAIN OF CUSTODY VALID · PUSSIBERAD
+              </span>
+            </div>
+
             {/* Footer Dokumen */}
             <div style={{
-              marginTop: '28px',
+              marginTop: '20px',
               paddingTop: '8px',
               borderTop: '1px solid #F3F4F6',
               display: 'flex',

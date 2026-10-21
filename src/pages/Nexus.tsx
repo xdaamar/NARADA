@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import * as d3 from 'd3'
 import {
   RefreshCw,
@@ -8,7 +9,8 @@ import {
   X,
   Target,
   FileText,
-  Radio
+  Radio,
+  UserSearch
 } from 'lucide-react'
 import type { AnalysisResult, ThreatLevel, ContentCategory, NexusNodeType, NexusLinkType } from '../types'
 import { getStoredAnalyses } from '../utils/storage'
@@ -196,10 +198,50 @@ function buildGraphFromAnalyses(analyses: AnalysisResult[]): { nodes: D3GraphNod
     }
   }
 
+  // 4. Integrasi Jaringan Akun Profiler dari sesi
+  try {
+    const profilerRaw = sessionStorage.getItem('narada_profiler_accounts')
+    if (profilerRaw) {
+      const profilerAccounts = JSON.parse(profilerRaw)
+      if (Array.isArray(profilerAccounts)) {
+        profilerAccounts.forEach((acc: { username: string; botScore: number; postingPattern?: string; flags?: string[]; bio?: string; postsPerDay?: number }) => {
+          const accId = `prof_${acc.username.replace(/[^a-zA-Z0-9]/g, '_')}`
+          if (!nodes.some(n => n.id === accId)) {
+            const tLevel: ThreatLevel = acc.botScore >= 75 ? 'critical' : acc.botScore >= 50 ? 'high' : 'medium'
+            nodes.push({
+              id: accId,
+              label: acc.username,
+              type: 'account',
+              threatLevel: tLevel,
+              size: 14,
+              category: 'BUZZER',
+              details: `Akun Profiler: Skor Bot ${acc.botScore}%, Pola: ${acc.postingPattern || 'normal'}, Flags: ${acc.flags?.join(', ') || 'None'}`,
+              rawContent: acc.bio || `Aktivitas ${acc.postsPerDay || 0} post/hari`,
+            })
+
+            // Hubungkan ke klaster narasi terdekat atau node ancaman tertinggi
+            const target = nodes.find(n => n.type === 'narrative' || (n.type === 'content' && n.threatLevel === 'critical'))
+            if (target) {
+              links.push({
+                source: accId,
+                target: target.id,
+                strength: 0.75,
+                type: 'coordinated',
+              })
+            }
+          }
+        })
+      }
+    }
+  } catch {
+    // Abaikan jika parsing gagal
+  }
+
   return { nodes, links }
 }
 
 export default function Nexus() {
+  const navigate = useNavigate()
   const containerRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
 
@@ -207,6 +249,17 @@ export default function Nexus() {
   const [useDemoMode, setUseDemoMode] = useState<boolean>(false)
   const [selectedNode, setSelectedNode] = useState<D3GraphNode | null>(null)
   const [analyses, setAnalyses] = useState<AnalysisResult[]>(() => getStoredAnalyses())
+
+  // Hotkey Escape untuk menutup Tactical Inspector
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedNode(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Dengarkan pembaruan storage
   useEffect(() => {
@@ -789,7 +842,8 @@ export default function Nexus() {
                   border: '1px solid var(--bg-border)',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
+                  marginBottom: '16px'
                 }}>
                   <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
                     Tingkat Keyakinan AI:
@@ -804,6 +858,40 @@ export default function Nexus() {
                   </span>
                 </div>
               )}
+
+              {/* ─── Tombol Aksi Taktis Lintas-Alat ─── */}
+              <div style={{
+                marginTop: '12px',
+                paddingTop: '12px',
+                borderTop: '1px solid var(--bg-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  style={{ width: '100%', justifyContent: 'center', fontSize: '11px', gap: '6px' }}
+                  onClick={() => navigate('/reports')}
+                >
+                  <FileText size={12} />
+                  📄 Buat Laporan Intelijen Khusus Node Ini
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ width: '100%', justifyContent: 'center', fontSize: '11px', gap: '6px' }}
+                  onClick={() => {
+                    const raw = selectedNode.label.replace(/^Isu:\s*/i, '').replace(/^Konten:\s*/i, '').replace(/^Domain:\s*/i, '')
+                    const targetUser = raw.startsWith('@') ? raw : `@${raw.replace(/\s+/g, '_').toLowerCase()}`
+                    navigate(`/profiler?username=${encodeURIComponent(targetUser)}`)
+                  }}
+                >
+                  <UserSearch size={12} />
+                  👤 Selidiki Akun di Profiler
+                </button>
+              </div>
             </div>
           </div>
         )}
