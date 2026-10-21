@@ -1,347 +1,408 @@
-# ROADMAP — PANDUAN EKSEKUSI STEP-BY-STEP NARADA
-## Master Build Tracker & Execution Roadmap
+# ROADMAP — PANDUAN EKSEKUSI MASTER NARADA (LOCKED & AUDITED)
+## Master Build Tracker Berbasis Rubrik Penilaian Kartika Cyber Hackathon 2026
 **Project:** NARADA — Platform Intelijen Ancaman Kognitif Berbasis AI  
-**Event:** Kartika Cyber Hackathon 2026 (PUSSIBERAD TNI AD × CODEPOLITAN)  
+**Penyelenggara:** PUSSIBERAD TNI AD × CODEPOLITAN  
 **Kategori:** Siber Sosial (Cognitive Domain)  
-**Dokumen Terkait:** [PRD Suite](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/), [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md), [RULES.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/RULES.md)
+**Dokumen Referensi:** [PRD Suite (PRD 00 - 06)](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/), [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md), [RULES.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/RULES.md)
 
 ---
 
-## 1. PRINSIP KERJA & ATURAN EKSEKUSI (LOCKED)
+## 1. MATRIKS BOBOT PENILAIAN RESMI (KARTIKA CYBER HACKATHON 2026)
 
-Roadmap ini dikunci sebagai pedoman kerja tunggal antara **Damar** dan **Antigravity AI**.  
-Tidak ada pengerjaan di luar step yang telah didefinisikan tanpa persetujuan eksplisit.
-
-### Golden Rules:
-1. **One Step at a Time:** Kerjakan satu step secara fokus hingga tuntas dan teruji sebelum lompat ke step berikutnya.
-2. **Read PRD First:** Sebelum coding, buka dan baca file PRD terkait sesuai mapping tabel di [RULES.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/RULES.md#L8-L22).
-3. **Zero TypeScript Errors:** Setiap step WAJIB lulus `npm run build` (0 warning fatal, 0 error).
-4. **Git Commit & Push Backup:** Setiap step yang tuntas WAJIB di-commit dengan format convention (`[FEAT]`, `[FIX]`, `[UI]`, dll.) dan di-push ke GitHub repository.
-5. **Quality Over Speed:** Setiap modul harus memiliki error handling, loading states, dan empty states (tidak ada fitur yang "setengah jadi").
-
----
-
-## 2. TIMELINE & FASE PENGEMBANGAN
+Berdasarkan lembar rubrik penilaian resmi lomba:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                          NARADA BUILD TIMELINE                         │
-├───────────────┬───────────────────────────────────┬────────────────────┤
-│ FASE          │ FOKUS UTAMA                       │ OUTPUT UTAMA       │
-├───────────────┼───────────────────────────────────┼────────────────────┤
-│ Phase 0       │ Environment & Data Contracts      │ Types & Packages   │
-│ Phase 1       │ AI Engine & Fact-Checker          │ Hybrid ML + API    │
-│ Phase 2       │ Multi-Input Analyzer & OCR        │ 4 Input Sources    │
-│ Phase 3       │ Operational Intelligence Suite    │ Dashboard, Nexus,  │
-│               │                                   │ Military Report    │
-│ Phase 4       │ Desktop Shell (Electron)          │ Windows .exe App   │
-│ Phase 5       │ Polish, Scenarios & Deliverables  │ Demo, Deck, Video  │
-└───────────────┴───────────────────────────────────┴────────────────────┘
+│             DISTRIBUSI BOBOT PENILAIAN HACKATHON (100%)                │
+├───────────────────────────────┬───────┬────────────────────────────────┤
+│ ASPEK PENILAIAN               │ BOBOT │ STRATEGI EKSEKUSI NARADA       │
+├───────────────────────────────┼───────┼────────────────────────────────┤
+│ 1. Relevansi dan Manfaat      │  25%  │ Fokus pengamanan siber sosial  │
+│    (Kesesuaian solusi dengan  │       │ TNI AD: fitnah militer, hoaks  │
+│    kebutuhan IT/OT TNI AD)    │       │ alutsista, agitasi separatis,  │
+│                               │       │ format laporan Intelijen Kodam │
+├───────────────────────────────┼───────┼────────────────────────────────┤
+│ 2. Inovasi Teknis             │  25%  │ Multi-Input (URL + Neural OCR  │
+│    (Keaslian ide & pendekatan │       │ offline + Text + CSV), Hybrid  │
+│    teknologi solusi)          │       │ AI (TF-IDF + Naive Bayes 60%   │
+│                               │       │ + Rule XAI 40%), Fact-Check API│
+├───────────────────────────────┼───────┼────────────────────────────────┤
+│ 3. Fungsionalitas Purwarupa   │  25%  │ 100% fungsional tanpa dummy    │
+│    (Bisa berjalan & didemo-   │       │ palsu, respons <100ms, data    │
+│    kan sesuai rancangan)      │       │ real-time, 1-click live demo   │
+├───────────────────────────────┼───────┼────────────────────────────────┤
+│ 4. Kelayakan Implementasi     │  15%  │ Zero-Server Architecture, aman │
+│    (Potensi lanjutan & mudah  │       │ OPSEC, installer desktop .exe, │
+│    diterapkan di satuan)      │       │ siap jalan di PC satuan Korem  │
+├───────────────────────────────┼───────┼────────────────────────────────┤
+│ 5. Kualitas Dokumentasi       │  10%  │ Proposal teknis komprehensif,  │
+│    (Proposal, dokumentasi,    │       │ video demo 3 menit memukau,    │
+│    dan kejelasan video demo)  │       │ slide deck militer taktis      │
+└───────────────────────────────┴───────┴────────────────────────────────┘
 ```
+> **Fokus Utama:** 3 Aspek Teratas menyumbang **75% total nilai** (Relevansi 25% + Inovasi 25% + Purwarupa 25%).  
+> Dua aspek berikutnya menyumbang **25% penentu kemenangan** (Kelayakan 15% + Dokumentasi 10%).  
+> Seluruh step di bawah dipetakan langsung ke poin-poin penilaian ini!
 
 ---
 
-## 3. DETAIL STEP-BY-STEP ROADMAP
+## 2. VERIFIKASI KESELARASAN DENGAN PRD (100% MATCH AUDIT)
+
+| PRD File | Modul Utama | Status Keselarasan dalam Roadmap |
+|----------|-------------|----------------------------------|
+| `PRD_00_overview.md` | Problem statement BSSN, target TNI AD, zero-server | ✅ Dipetakan di Phase 0, 4, dan 5 |
+| `PRD_01_analyzer.md` | Multi-Input (URL Readability, OCR Tesseract, Text, CSV) | ✅ Dipetakan penuh di Phase 2 (Step 2.1 – 2.5) |
+| `PRD_02_ai_engine.md` | Hybrid ML (TF-IDF + Naive Bayes 60%) + Rule XAI (40%) | ✅ Dipetakan penuh di Phase 1 (Step 1.1 – 1.5) |
+| `PRD_03_fact_checker.md` | Google Fact Check API, Mafindo/TurnBackHoax, Offline link | ✅ Dipetakan penuh di Phase 1 (Step 1.6) & Phase 2 (Step 2.4) |
+| `PRD_04_dashboard.md` | DEFCON alert, 4 stat cards, Timeline chart, Donut, Feed | ✅ Dipetakan penuh di Phase 3 (Step 3.1) |
+| `PRD_05_nexus_graph.md` | D3.js Force graph, narasi clustering, sumber, similarity | ✅ Dipetakan penuh di Phase 3 (Step 3.2) |
+| `PRD_06_intel_report.md` | Laporan intelijen standar TNI AD, kop resmi, print/PDF | ✅ Dipetakan penuh di Phase 3 (Step 3.3) |
+| `BLUEPRINT.md` | Arsitektur Electron + React + Vite + Types | ✅ Menjadi acuan direktori seluruh step |
+| `RULES.md` | Coding standards, testing protocol, zero-error build | ✅ Menjadi protokol verifikasi tiap step |
 
 ---
 
-### 🟢 PHASE 0: FOUNDATIONS & DATA CONTRACTS
-> **Tujuan:** Menyiapkan dependensi, merapikan struktur folder sesuai Blueprint, dan mengunci kontrak interface data (TypeScript types) agar semua modul sinkron tanpa tipe mismatch.
+## 3. MASTER STEP-BY-STEP ROADMAP (TERSTRUKTUR & TERKUNCI)
 
-- [ ] **STEP 0.1: Package Audit & Dependencies Setup**
+---
+
+### 🟢 PHASE 0: FOUNDATIONS, DATA CONTRACTS & MILITARY DOMAIN KNOWLEDGE
+> **Target Bobot:** `[15% Kelayakan Implementasi]` + `[25% Relevansi]`  
+> **Tujuan:** Menyiapkan fondasi environment yang kokoh, instalasi dependensi, kontrak TypeScript yang presisi tanpa `any`, dan taksonomi kamus ancaman militer awal.
+
+- [ ] **STEP 0.1: Package Audit & Engine Dependencies Setup** `[15% Kelayakan]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L6-L25)
-  - **Action:** Install dependensi yang diperlukan: `tesseract.js` (OCR), `@mozilla/readability` + `jsdom` + `@types/jsdom` (URL extraction), dan dev dependencies terkait.
-  - **DoD:** `package.json` terupdate, `npm run build` sukses 0 error.
+  - **Action:** Install dependensi inti: `tesseract.js` (Neural OCR lokal), `@mozilla/readability` + `jsdom` + `@types/jsdom` (URL Content Scraper).
+  - **DoD:** `package.json` terkonfigurasi, `npm run build` sukses 0 errors.
 
-- [ ] **STEP 0.2: Types Definition Sync (`src/types.ts`)**
-  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md), [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md), [PRD_03_fact_checker.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_03_fact_checker.md)
-  - **Action:** Definisikan kontrak data lengkap:
-    - Input sources (`url`, `ocr`, `text`, `batch_file`)
-    - Hybrid AI analysis result (`mlScore`, `ruleScore`, `confidence`, `threatLevel`, `threatCategory`, `narratives`, `indicators`)
-    - Fact-check result interface (`claimReviewed`, `rating`, `factChecker`, `url`, `reviewDate`)
-    - Nexus graph nodes & links contract
-    - Intel report metadata & configuration types
-  - **DoD:** `src/types.ts` selesai tanpa type errors.
+- [ ] **STEP 0.2: Unified TypeScript Interfaces (`src/types.ts`)** `[25% Inovasi]` `[25% Purwarupa]`
+  - **Ref:** [PRD_01](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L41-L52), [PRD_02](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L117-L124), [PRD_03](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_03_fact_checker.md#L113-L133), [PRD_05](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_05_nexus_graph.md#L14-L31), [PRD_06](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_06_intel_report.md#L14-L22)
+  - **Action:** Tulis ulang `src/types.ts` secara komprehensif:
+    - Input types: `URLAnalysisInput`, `OCRAnalysisInput`, `TextAnalysisInput`, `BatchAnalysisInput`
+    - AI & ML types: `MLPrediction`, `RuleMatchDetail`, `ThreatCategory`, `ThreatLevel` (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`), `AnalysisResult`
+    - Fact Check types: `FactCheckClaim`, `FactCheckResult`
+    - Graph types: `NexusNode` (`content`, `narrative`, `source`), `NexusLink` (`similarity`, `same_source`)
+    - Report config types: `IntelReportConfig`, `ReportClassification` (`RAHASIA`, `TERBATAS`, `BIASA`)
+  - **DoD:** File `src/types.ts` bersih tanpa redundansi, strict type safety.
 
-- [ ] **STEP 0.3: Storage & Session Utilities (`src/utils/`)**
+- [ ] **STEP 0.3: Session Storage & Utility Subsystem (`src/utils/`)** `[15% Kelayakan]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L160-L168)
-  - **Action:** Buat helper `src/utils/storage.ts` untuk mengelola `sessionStorage` (`narada_analyses`, `narada_settings`) dan `src/utils/format.ts` (date, risk badge formatter).
-  - **DoD:** Helper function tersedia dan teruji.
+  - **Action:** Buat helper `src/utils/storage.ts` (manajemen `sessionStorage` aman dengan auto-serialize dan error catching) dan `src/utils/format.ts` (formatter waktu militer `DD-MMM-YYYY HH:mm WIB`, badge style resolver, confidence gauge).
+  - **DoD:** Unit test manual utility pass.
+
+- [ ] **STEP 0.4: TNI AD Cyber Threat Taxonomy Dictionary** `[25% Relevansi & Manfaat]`
+  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L108-L115)
+  - **Action:** Buat `src/engine/taxonomy.ts` berisi kamus kata kunci & pola ancaman kognitif khusus matra darat & siber sosial Indonesia:
+    - Kedaulatan & Separatisme (OPM, referendum, Papua merdeka, makar, sabotase)
+    - Delegitimasi Institusi TNI & Pimpinan (fitnah jenderal, manipulasi mutasi, hoaks anggaran alutsista)
+    - Provokasi SARA & Pembelahan Sosial (agitasi vertikal/horizontal, adu domba rakyat vs aparat)
+    - Pola Buzzer & Agitasi Digital (gerakan viralkan serentak, bot spam, tagar buatan)
+    - Indikator Clickbait Disinformasi (judul bombastis darurat, pemotongan konteks)
+  - **DoD:** Kamus terstruktur rapi dengan bobot risiko per kata kunci (1-10) dan kategori jelas.
 
 ---
 
-### 🧠 PHASE 1: HYBRID AI ENGINE & FACT-CHECK CLIENT
-> **Tujuan:** Membangun otak analisis NARADA: Tokenizer bahasa Indonesia, Vectorizer TF-IDF, Naive Bayes classifier, Rule-based keyword taxonomy militer, Combiner 60/40, serta Google Fact Check API integration.
+### 🧠 PHASE 1: HYBRID AI ENGINE & FACT-CHECK CLIENT (THE COGNITIVE CORE)
+> **Target Bobot:** `[25% Inovasi Teknis]` + `[25% Fungsionalitas Purwarupa]`  
+> **Tujuan:** Membangun mesin analisis sejati: Tokenizer, Vectorizer TF-IDF, Multinomial Naive Bayes (ML nyata), Explainable Rule Engine, Combiner 60/40, dan Google Fact Check integration.
 
-- [ ] **STEP 1.1: Indonesian Tokenizer & Preprocessor**
-  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L1-L80)
-  - **Action:** Buat `src/engine/ml/tokenizer.ts` yang mencakup:
-    - Lowercase, punctuation removal, regex clean
-    - Indonesian stopword filter (daftar stopword kata sambung umum bahasa Indonesia)
-    - N-gram generator (unigram + bigram)
-  - **DoD:** Fungsi tokenizing menghasilkan token bersih dari teks Indonesia.
+- [ ] **STEP 1.1: Indonesian Preprocessor & Tokenizer (`tokenizer.ts`)** `[25% Inovasi Teknis]`
+  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L66-L85)
+  - **Action:** Buat `src/engine/ml/tokenizer.ts`:
+    - Normalisasi teks, cleaning tanda baca & URL
+    - Stopword filtering berbasis korpus bahasa Indonesia (~250 kata sambung umum)
+    - Ekstraksi unigram & bigram penting untuk deteksi frase manipulatif
+  - **DoD:** Menghasilkan array token bersih dalam waktu <10ms per 500 kata.
 
-- [ ] **STEP 1.2: TF-IDF Vectorizer & Naive Bayes Classifier**
-  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L81-L150)
-  - **Action:** Buat `src/engine/ml/tfidf.ts` dan `src/engine/ml/naive-bayes.ts`:
-    - Perhitungan TF-IDF weights
-    - Multinomial Naive Bayes probabilistic calculation
-    - Output probabilitas per kategori (`HOAKS`, `PROPAGANDA`, `RADIKALISME`, `SARA`, `NETRAL`)
-  - **DoD:** Algoritma ML murni berjalan di client-side tanpa server eksternal.
+- [ ] **STEP 1.2: TF-IDF Vectorizer (`tfidf.ts`)** `[25% Inovasi Teknis]`
+  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L36-L42)
+  - **Action:** Buat `src/engine/ml/tfidf.ts`:
+    - Implementasi perhitungan Term Frequency (TF) dan Inverse Document Frequency (IDF)
+    - Perhitungan bobot vector numerik teks terhadap vocabulary korpus
+  - **DoD:** Menghasilkan vector feature numerik yang siap dikonsumsi Naive Bayes.
 
-- [ ] **STEP 1.3: Curated Training Weights Dataset (`model.json`)**
-  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L151-L220)
-  - **Action:** Buat `src/engine/ml/model.json` (~50-100KB) yang berisi kosakata & prior probabilities hasil pelatihan korpus ancaman siber sosial Indonesia (kasus fitnah TNI, provokasi OPM/separatisme, hoaks vaksin/politik, sentimen polarisasi, dan berita netral valid).
-  - **DoD:** Model ter-load instan oleh engine tanpa lag (<50ms).
+- [ ] **STEP 1.3: Multinomial Naive Bayes Classifier (`naive-bayes.ts`)** `[25% Inovasi Teknis]`
+  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L73-L85)
+  - **Action:** Buat `src/engine/ml/naive-bayes.ts`:
+    - Probabilistic inference dengan log-likelihood + Laplace smoothing (mencegah zero-probability)
+    - Output probabilitas per kategori: `HOAKS`, `PROPAGANDA`, `BUZZER`, `DISINFORMASI`, `NETRAL`
+    - Normalisasi softmax persentase (0-100%)
+  - **DoD:** Klasifikasi probabilistik ML murni berjalan di client-side tanpa koneksi server.
 
-- [ ] **STEP 1.4: Refactor Military Threat Rule-Engine (`classifier.ts`)**
-  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L221-L300)
-  - **Action:** Kembangkan `src/engine/classifier.ts` dengan taksonomi kata kunci spesifik pertahanan militer:
-    - Ancaman kedaulatan & provokasi separatisme (Papua/OPM)
-    - Fitnah & delegitimasi institusi TNI/Pemerintah
-    - Polarisasi SARA & narasi adu domba anak bangsa
-    - Indikator bahasa buzzer (kata seruan agitasi, provokatif, clickbait darurat)
-    - Rule-based weighting + explainability indicator extraction
-  - **DoD:** Rule engine mengembalikan match detail, highlighted keywords, dan rule score (0-100).
+- [ ] **STEP 1.4: Pre-Trained Model Weights Dataset (`model.json`)** `[25% Inovasi Teknis]`
+  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L50-L64)
+  - **Action:** Buat `src/engine/ml/model.json` (~60-120KB):
+    - Berisi vocabulary terindeks, IDF values, class priors, dan word conditional probabilities
+    - Dikalibrasi dari data riil ancaman siber sosial Indonesia (kasus hoaks Mafindo, narasi propaganda, berita netral)
+  - **DoD:** File JSON tervalidasi dan ter-bundle rapi dalam build.
 
-- [ ] **STEP 1.5: Hybrid Combiner (60% ML + 40% Rules)**
-  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L301-L380)
+- [ ] **STEP 1.5: Explainable Rule-Based Engine (`classifier.ts`)** `[25% Relevansi]` `[25% Purwarupa]`
+  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L101-L125)
+  - **Action:** Tulis ulang `src/engine/classifier.ts` menggunakan taksonomi militer:
+    - Pattern matching kontekstual, deteksi frase provokatif, akumulasi skor risiko
+    - Menghasilkan Explainability (XAI): daftar kata kunci yang memicu kecurigaan beserta kalimat konteksnya
+    - Penjelasan narasi ancaman dalam bahasa Indonesia formal
+  - **DoD:** Mengembalikan `RuleMatchDetail` dengan transparan dan akurat.
+
+- [ ] **STEP 1.6: Hybrid Combiner Engine (`combiner.ts`)** `[25% Inovasi Teknis]` `[25% Purwarupa]`
+  - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L128-L160)
   - **Action:** Buat `src/engine/combiner.ts`:
-    - Menggabungkan skor ML (60%) dan Rule Score (40%)
-    - Menentukan Threat Level final (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`)
-    - Ekstraksi narasi kunci, entitas yang ditargetkan, dan rekomendasi respons
-  - **DoD:** Fungsi `analyzeContent(text: string): AnalysisResult` menghasilkan output komprehensif.
+    - Penggabungan bobot: 60% ML Probability + 40% Rule Severity
+    - Penentuan `ThreatLevel` final (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`)
+    - Penentuan rekomendasi respons taktis militer (e.g. Counter-Narrative Dispenad, Klarifikasi Satgas, Eskalasi Komando)
+  - **DoD:** Fungsi `analyzeHybrid(text: string): AnalysisResult` selesai, kecepatan eksekusi <50ms.
 
-- [ ] **STEP 1.6: Google Fact Check Client & Offline Fallback**
+- [ ] **STEP 1.7: Real-Time Fact-Check Client (`fact-checker.ts`)** `[25% Inovasi Teknis]` `[25% Relevansi]`
   - **Ref:** [PRD_03_fact_checker.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_03_fact_checker.md)
   - **Action:** Buat `src/engine/fact-checker.ts`:
-    - Ekstraksi klaim inti dari teks
-    - Query ke Google Fact Check Tools API (`languageCode=id`)
-    - Fallback heuristic & direct search link (TurnBackHoax / CekFakta Tempo) bila offline / tanpa API key
-  - **DoD:** Engine dapat mengambil fakta nyata dari database Mafindo / media cek fakta nasional.
+    - Otomatis mengekstrak klaim utama dari teks
+    - Integrasi Google Fact Check Tools API (`languageCode=id`) untuk memanggil data Mafindo/TurnBackHoax & CekFakta Tempo
+    - Fallback otomatis: jika offline / tanpa API key, generate direct verified query search URL ke database TurnBackHoax dan Google Fact Check Explorer
+  - **DoD:** Verifikasi fakta nyata berjalan otomatis setelah proses analisis.
 
-- [ ] **MILESTONE 1 VERIFICATION:**
-  - [ ] Run test skrip engine dengan 3 sampel (fitnah TNI, hoaks kesehatan, berita resmi Kemhan).
-  - [ ] Verifikasi akurasi hybrid verdict dan scoring.
-  - [ ] Commit: `[FEAT] complete hybrid AI engine and fact check client` & push ke GitHub.
+- [ ] **MILESTONE 1 TESTING & AUDIT:**
+  - [ ] Validasi uji 4 kasus: (1) Hoaks penculikan berlatar TNI, (2) Provokasi separatis Papua, (3) Teks propaganda buzzer, (4) Rilis pers resmi TNI AD (Netral).
+  - [ ] Hasil hybrid logis, confidence score presisi, fact-check terintegrasi.
+  - [ ] Commit: `[FEAT] implement hybrid AI ML engine and real fact checker` & git push.
 
 ---
 
 ### 👁️ PHASE 2: MULTI-INPUT ANALYZER & OCR (THE SENSORY SUITE)
-> **Tujuan:** Membangun antarmuka utama Analyzer (`Analyzer.tsx`) yang menerima input dari 4 saluran (URL, Screenshot OCR, Raw Text, Batch CSV/TXT), menampilkan verdict card, dan detail fact-check.
+> **Target Bobot:** `[25% Inovasi Teknis]` + `[25% Fungsionalitas Purwarupa]`  
+> **Tujuan:** Membangun antarmuka utama penerimaan data dari 4 saluran nyata: URL berita/medsos, Screenshot medsos (Neural OCR offline), Teks mentah, dan Batch file CSV/TXT.
 
-- [ ] **STEP 2.1: OCR Module with Tesseract.js (`OCRUploader.tsx`)**
-  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L80-L150)
-  - **Action:** Buat komponen `src/components/OCRUploader.tsx`:
-    - Area drag & drop screenshot medsos / gambar hoaks
-    - Progress bar real-time selama proses neural network OCR (init, recognizing, done)
-    - Tampilan preview gambar + hasil ekstraksi teks yang dapat diedit sebelum dianalisis
-  - **DoD:** Screenshot berita/chat WA terbaca teksnya secara offline/lokal.
+- [ ] **STEP 2.1: Neural OCR Extraction Module (`OCRUploader.tsx`)** `[25% Inovasi Teknis]`
+  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L61-L96)
+  - **Action:** Buat `src/components/OCRUploader.tsx`:
+    - Drag & drop area screenshot postingan medsos (X/Twitter, Instagram, FB, WhatsApp chat)
+    - Inisialisasi Tesseract.js worker dengan bahasa `ind` + `eng`
+    - Real-time progress bar (Status: Menginisialisasi Model → Mengenali Teks OCR → Ekstraksi Selesai)
+    - Tampilan side-by-side preview gambar dan textarea hasil ekstraksi yang bisa dikoreksi/diedit analis
+  - **DoD:** Gambar teks postingan medsos terbaca dengan akurasi tinggi dan teksnya dapat diedit sebelum dianalisis.
 
-- [ ] **STEP 2.2: URL Fetcher & Article Extractor (`URLInput.tsx`)**
-  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L30-L79)
-  - **Action:** Buat komponen `src/components/URLInput.tsx`:
-    - Input URL berita / postingan publik
-    - Fetcher konten artikel dengan `@mozilla/readability` (ekstraksi judul, teks utama, sumber)
-    - Fallback graceful jika terkena CORS (mode browser web) atau bypass langsung via Electron shell
-  - **DoD:** URL berita diparsing otomatis menjadi teks bersih siap analisis.
+- [ ] **STEP 2.2: Web Article & Social URL Extractor (`URLInput.tsx`)** `[25% Inovasi Teknis]`
+  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L14-L60)
+  - **Action:** Buat `src/components/URLInput.tsx`:
+    - Input URL berita / link posting publik dengan validasi regex
+    - Fetcher konten dengan fallback ganda (Electron Native fetcher saat desktop shell aktif, atau client-side reader)
+    - Ekstraksi judul, nama media, penulis, tanggal rilis, dan teks artikel inti via `@mozilla/readability`
+  - **DoD:** Analis cukup paste link berita, NARADA otomatis mengambil artikel dan mengisinya ke area analisis.
 
-- [ ] **STEP 2.3: Batch File Uploader (`BatchUploader.tsx`)**
-  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L180-L240)
-  - **Action:** Buat komponen upload file `.txt` / `.csv`:
-    - Parsing multiple baris postingan / teks komentar buzzer
-    - Analisis batch sequential dengan progress indicator
-    - Rangkuman distribusi ancaman dari batch input
-  - **DoD:** File CSV berisi 20 baris komentar medsos teranalisis secara berurutan.
+- [ ] **STEP 2.3: Batch Comment / Post File Analyzer (`BatchUploader.tsx`)** `[25% Relevansi & Manfaat]`
+  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L119-L140)
+  - **Action:** Buat `src/components/BatchUploader.tsx`:
+    - Upload file `.csv` atau `.txt` berisi puluhan baris narasi/komentar netizen
+    - Parsing otomatis baris per baris dan eksekusi batch analysis secara sekuensial dengan visual progress bar
+    - Rangkuman statistik batch (e.g. "Dari 50 komentar dianalisis: 32 Terindikasi Buzzer, 10 Hoaks, 8 Netral")
+  - **DoD:** File CSV komentar medsos terproses cepat dan tersimpan dalam sesi.
 
-- [ ] **STEP 2.4: Result Card & Fact-Check Panel Components**
-  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L241-L320), [PRD_03_fact_checker.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_03_fact_checker.md#L120-L190)
+- [ ] **STEP 2.4: Tactical Result Card & Fact-Check Panel (`AnalysisResultCard.tsx`)** `[25% Purwarupa]`
+  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L155-L163), [PRD_03_fact_checker.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_03_fact_checker.md#L86-L107)
   - **Action:** Buat `src/components/AnalysisResultCard.tsx` dan `src/components/FactCheckPanel.tsx`:
-    - Badge tingkat ancaman (CRITICAL, HIGH, MEDIUM, LOW)
-    - Radar/meteran hybrid confidence (ML vs Rules)
-    - Highlight kata kunci indikator ancaman dalam teks
-    - Kartu verifikasi TurnBackHoax / Mafindo dengan rating kebenaran
-  - **DoD:** Komponen visual responsif, informatif, dan bergaya militer modern.
+    - Visual badge tingkat ancaman: `CRITICAL` (Merah), `HIGH` (Oranye), `MEDIUM` (Kuning), `LOW` (Hijau)
+    - Meteran perbandingan skor ML (60%) vs Rule Severity (40%)
+    - Text highlighter yang menandai kata-kata indikator ancaman langsung di dalam teks
+    - Kartu hasil verifikasi fakta resmi Mafindo / TurnBackHoax lengkap dengan status kebenaran (`❌ SALAH`, `⚠️ MISLEADING`, `✅ BENAR`) dan tautan sumber debunking
+    - Tombol cepat "Kirim ke Nexus Graph" dan "Tambahkan ke Laporan Intelijen"
+  - **DoD:** Panel hasil analisis menyajikan intelijen yang padat, jelas, dan siap aksi.
 
-- [ ] **STEP 2.5: Build Main `Analyzer.tsx` Page & Router Update**
-  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md)
+- [ ] **STEP 2.5: Main `Analyzer.tsx` Page & Tab Controller** `[25% Purwarupa]`
+  - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L142-L172)
   - **Action:**
-    - Gantikan `src/pages/Classifier.tsx` dengan `src/pages/Analyzer.tsx`
-    - Implementasikan 4 tab navigasi input: `[ 🔗 URL Berita ]`, `[ 📷 Screenshot OCR ]`, `[ 📝 Teks Langsung ]`, `[ 📁 Batch File ]`
-    - Hubungkan flow: Input → Preprocess → Hybrid Engine → Fact Check → Simpan ke `sessionStorage`
-    - Update rute di `src/App.tsx`
-  - **DoD:** Halaman Analyzer berfungsi penuh untuk ke-4 tipe input.
+    - Buat `src/pages/Analyzer.tsx` (menggantikan halaman Classifier lama yang belum v2)
+    - Integrasikan 4 tab: `[ 🔗 URL Berita ]`, `[ 📸 Screenshot OCR ]`, `[ 📝 Teks Langsung ]`, `[ 📁 Batch File ]`
+    - Hubungkan flow input → AI Engine → Fact Check → Simpan riwayat ke `sessionStorage`
+    - Tambahkan drawer riwayat analisis pada sisi bawah/samping
+  - **DoD:** Halaman Analyzer berfungsi penuh untuk semua mode input tanpa error.
 
-- [ ] **MILESTONE 2 VERIFICATION:**
-  - [ ] Test tab 1: Paste URL berita online.
-  - [ ] Test tab 2: Upload gambar screenshot postingan medsos.
-  - [ ] Test tab 3: Input teks narasi hoaks langsung.
-  - [ ] Test tab 4: Upload CSV multi-teks.
-  - [ ] Pastikan hasil tersimpan di `sessionStorage`.
-  - [ ] Commit: `[FEAT] implement full multi-input analyzer with OCR and fact check display` & push ke GitHub.
+- [ ] **MILESTONE 2 TESTING & AUDIT:**
+  - [ ] Uji input URL berita online.
+  - [ ] Uji upload gambar screenshot medsos via OCR.
+  - [ ] Uji input teks manual hoaks & teks netral.
+  - [ ] Uji batch upload file CSV.
+  - [ ] Commit: `[FEAT] complete multi-input analyzer page with OCR and fact check display` & git push.
 
 ---
 
-### 🛡️ PHASE 3: OPERATIONAL COMMAND & INTELLIGENCE VIEWS
-> **Tujuan:** Menyelaraskan seluruh tampilan operasional: Dashboard Situasional, Nexus Network Graph, Intelligence Report Generator (standar militer), dan Settings.
+### 🛡️ PHASE 3: OPERATIONAL COMMAND & INTELLIGENCE SUITE
+> **Target Bobot:** `[25% Relevansi dan Manfaat]` + `[25% Fungsionalitas Purwarupa]`  
+> **Tujuan:** Menghadirkan command center lengkap: Dashboard Kesadaran Situasional, Visualisasi Graf Jejaring Nexus (D3.js), Pembuat Laporan Intelijen Standar Militer, dan Pengaturan Aplikasi.
 
-- [ ] **STEP 3.1: Command Dashboard Refactor (`Dashboard.tsx`)**
+- [ ] **STEP 3.1: Command Dashboard Situational Awareness (`Dashboard.tsx`)** `[25% Purwarupa]`
   - **Ref:** [PRD_04_dashboard.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_04_dashboard.md)
-  - **Action:** Kembangkan `src/pages/Dashboard.tsx`:
-    - Status Siaga Siber Sosial (DEFCON-style Threat Level Banner: SIAGA 1 / SIAGA 2 / SIAGA 3 / HIJAU)
-    - 4 Metrik Kartu: Total Dianalisis, Ancaman Kritis, Narasi Hoaks Aktif, Entitas Terdeteksi
-    - Threat Trend Chart & Threat Category Radar (Recharts)
-    - Live Cognitive Threat Feed (daftar analisis terbaru dari `sessionStorage`)
-    - Quick Action Button langsung menuju Analyzer
-  - **DoD:** Dashboard mencerminkan situasi nyata dari riwayat analisis pengguna.
+  - **Action:** Rombak total `src/pages/Dashboard.tsx`:
+    - Status Siaga Siber Sosial (DEFCON Alert Banner: SIAGA 1 MERAH / SIAGA 2 KUNING / AMAN)
+    - 4 Metrik Kartu Taktis: Total Konten Dianalisis, Ancaman Kritis, Narasi Hoaks Aktif, Aktor/Buzzer Terlacak
+    - Tren Waktu Eskalasi Ancaman (Recharts Line Chart)
+    - Radar Distribusi Kategori Ancaman (Recharts Donut / Radar)
+    - Live Cognitive Threat Feed: daftar ancaman real-time dari data analisis sesi
+    - Status Modul Sistem (AI Engine 60/40, Fact Check API, OCR Engine)
+  - **DoD:** Dashboard interaktif, bereaksi instan terhadap data analisis baru di sesi tersebut.
 
-- [ ] **STEP 3.2: Nexus Network Graph Refactor (`Nexus.tsx`)**
+- [ ] **STEP 3.2: Nexus Network Graph Visualization (`Nexus.tsx`)** `[25% Inovasi]` `[25% Purwarupa]`
   - **Ref:** [PRD_05_nexus_graph.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_05_nexus_graph.md)
-  - **Action:** Perbarui `src/pages/Nexus.tsx` menggunakan D3.js force-directed graph:
-    - Node terbagi atas 3 entitas: Narasi/Isu, Kanal/Akun, dan Target Diserang (TNI/Pemerintah/Masyarakat)
-    - Link menunjukkan relasi distribusi narasi
-    - Node drag, zoom, pan, dan filter kategori ancaman
-    - Klik node untuk membuka panel rincian intelijen
-    - Menggunakan data relasi yang digenerate dari riwayat analisis sesi
-  - **DoD:** Graph visual interaktif, lancar (smooth 60fps), tidak crash saat interaksi.
+  - **Action:** Bangun `src/pages/Nexus.tsx` menggunakan D3.js Force-Directed Graph:
+    - 3 Tipe Node: Konten Dianalisis (Lingkaran), Klaster Narasi (Hexagon), Sumber/Akun (Diamond)
+    - Algoritma auto-grouping kesamaan kata kunci (similarity > 40%) dan sumber identik
+    - Interaksi: Drag node, Zoom in/out, Pan canvas, Klik node untuk inspeksi detail intelijen di sidebar
+    - Filter berdasarkan tingkat ancaman (Semua, Kritis, Tinggi)
+    - Mode Demo Jaringan Buzzer Terkoordinasi (12 node buzzer mensirkulasikan isu fitnah)
+  - **DoD:** Peta jaringan render lancar tanpa lag, memvisualisasikan koordinasi buzzer dengan memukau.
 
-- [ ] **STEP 3.3: Intelligence Report Generator (`Reports.tsx`)**
+- [ ] **STEP 3.3: Military Intelligence Report Generator (`Reports.tsx`)** `[25% Relevansi & Manfaat]`
   - **Ref:** [PRD_06_intel_report.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_06_intel_report.md)
-  - **Action:** Perbarui `src/pages/Reports.tsx` sesuai format intelijen pertahanan:
-    - Header KOP resmi: `KOMANDO DAERAH MILITER / PUSSIBERAD` dengan klasifikasi `RAHASIA / TERBATAS`
-    - Nomor laporan otomatis: `R-LAP/COGNITIVE/[NOMOR]/[BULAN]/[TAHUN]`
-    - Ringkasan Eksekutif Ancaman Siber Sosial
-    - Matriks Bukti Digital & Temuan Lapangan
-    - Fakta Verifikasi Hasil Cek Fakta (Debunking Fact Sheet)
-    - Rekomendasi Tindakan Militer/Dispenad (Counter-Narrative, Takedown Request, Press Briefing)
-    - Mode Print ramah cetak (CSS `@media print` rapi dengan latar belakang putih, teks hitam formal)
-  - **DoD:** Tombol "Cetak / Export PDF" menghasilkan dokumen intelijen siap komando.
+  - **Action:** Rombak `src/pages/Reports.tsx` sesuai standar format intelijen pertahanan TNI AD:
+    - KOP Surat Resmi Militer: `KOMANDO DAERAH MILITER / SATUAN TUGAS SIBER SOSIAL`
+    - Nomor Registrasi: `R-LAP/KOGNITIF/[NO]/[BULAN]/[TAHUN]` dengan klasifikasi `RAHASIA / TERBATAS`
+    - Bagian I: Ringkasan Eksekutif Situasi Siber Sosial
+    - Bagian II: Tabel Statistik & Distribusi Kategori Ancaman
+    - Bagian III: Matriks Bukti Digital & Temuan Lapangan
+    - Bagian IV: Lembar Verifikasi Fakta (Hasil Cek Fakta Mafindo / TurnBackHoax)
+    - Bagian V: Rekomendasi Taktis Pimpinan (Tindakan Dispenad, Counter-Narrative, Klarifikasi Terbuka)
+    - Lembar tanda tangan Analis & Komandan Satuan
+    - Live Real-Time Document Preview + Ekspor PDF / Mode Cetak Resmi (`@media print` ramah kertas)
+  - **DoD:** Satu klik langsung menghasilkan dokumen laporan intelijen siap cetak untuk pimpinan.
 
-- [ ] **STEP 3.4: Settings & Configuration (`SettingsPage.tsx`)**
+- [ ] **STEP 3.4: Settings, Configuration & Presets (`SettingsPage.tsx`)** `[15% Kelayakan]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L99)
   - **Action:** Kembangkan `src/pages/SettingsPage.tsx`:
-    - Konfigurasi Google Fact Check API Key (tersimpan lokal di localStorage/session)
-    - Identitas Pengguna / Satuan Analis (contoh: PUSSIBERAD Satgas Siber)
-    - Pengaturan bobot engine (slider tuning 60% ML : 40% Rules)
-    - Tombol "Reset Data Sesi" & "Load Skenario Demo"
-  - **DoD:** Konfigurasi tersimpan dan mempengaruhi engine secara dinamis.
+    - Konfigurasi Google Fact Check Tools API Key
+    - Pengaturan Profil Analis (Nama Analis, Pangkat/NRP, Satuan Tugas)
+    - Slider Fine-Tuning Bobot Engine (default 60% ML : 40% Rules)
+    - Tombol "Muat Skenario Demo Siap Uji" (One-Click Demo Seeder)
+    - Tombol "Hapus Riwayat Sesi" (Clean State)
+  - **DoD:** Pengaturan tersimpan secara persisten dan mempengaruhi perilaku aplikasi.
 
-- [ ] **STEP 3.5: App Layout & Navigation Synchronization (`App.tsx`)**
+- [ ] **STEP 3.5: App Layout & Topbar Navigation Synchronization (`App.tsx`)** `[25% Purwarupa]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L79-L81)
   - **Action:**
-    - Perbarui navigasi sidebar: Dashboard, Multi-Input Analyzer, Nexus Network, Intel Reports, Settings
-    - Hapus modul lama yang deprecated (misal manual Profiler yang dikeluhkan user)
-    - Status bar bawah: DEFCON status, AI Engine status (Hybrid ML 60/40 Active), Database CekFakta Online/Offline
-  - **DoD:** Navigasi mulus, konsisten, dan berestetika tinggi.
+    - Perbarui struktur routing: `/` (Dashboard), `/analyzer` (Analyzer), `/nexus` (Nexus Graph), `/reports` (Intel Reports), `/settings` (Settings)
+    - Hapus modul v1 lama yang deprecated (profiler manual)
+    - Topbar taktis dengan jam operasional real-time WIB, status DEFCON, dan indikator mode AI
+  - **DoD:** Navigasi aplikasi konsisten, bersih, dan bertaraf militer.
 
-- [ ] **MILESTONE 3 VERIFICATION:**
-  - [ ] Alur penuh: Analisis 2 berita hoaks di Analyzer → Cek update di Dashboard → Buka Nexus Graph → Generate Intel Report → Uji print view.
-  - [ ] Commit: `[FEAT] complete dashboard, nexus graph, military intel report, and settings` & push ke GitHub.
+- [ ] **MILESTONE 3 TESTING & AUDIT:**
+  - [ ] Jalankan skenario end-to-end: Analisis konten di Analyzer → Lihat lonjakan ancaman di Dashboard → Buka klaster narasi di Nexus → Cetak dokumen di Reports.
+  - [ ] Commit: `[FEAT] complete dashboard, nexus network graph, and military intel report generator` & git push.
 
 ---
 
-### 💻 PHASE 4: ELECTRON SHELL & DESKTOP PACKAGING
-> **Tujuan:** Membungkus aplikasi React ke dalam desktop wrapper Electron, menyediakan native URL fetching (bypass CORS), dan mengonfigurasi build Windows installer (.exe).
+### 💻 PHASE 4: ELECTRON SHELL & DESKTOP PACKAGING (NATIVE FEASIBILITY)
+> **Target Bobot:** `[15% Kelayakan Implementasi]` + `[25% Purwarupa]`  
+> **Tujuan:** Mengintegrasikan desktop shell Electron untuk membuktikan kapabilitas native: bypass CORS web scraping, offline operation, dan installer Windows `.exe` mandiri.
 
-- [ ] **STEP 4.1: Electron Main & Preload Script**
+- [ ] **STEP 4.1: Electron Main Process & Native Preload (`electron/`)** `[15% Kelayakan]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L72-L76)
-  - **Action:** Buat folder `electron/`:
-    - `electron/main.ts`: Inisialisasi window, menu baris militer, security flags
-    - `electron/preload.ts`: Context bridge aman yang mengekspos API desktop ke React
-  - **DoD:** Electron window dapat memuat antarmuka React.
+  - **Action:** Buat direktori `electron/`:
+    - `electron/main.ts`: Konfigurasi jendela aplikasi desktop, menu militer custom, security sandbox
+    - `electron/preload.ts`: ContextBridge aman yang mengekspos API desktop ke React (`window.naradaDesktop`)
+  - **DoD:** Aplikasi dapat berjalan di mode desktop Electron.
 
-- [ ] **STEP 4.2: Native URL Fetcher via IPC Bridge**
+- [ ] **STEP 4.2: Native Background URL Fetcher (Bypass CORS)** `[25% Inovasi Teknis]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L75)
   - **Action:** Buat `electron/url-fetcher.ts`:
-    - Mengambil halaman web secara background tanpa batasan CORS browser
-    - Parsing konten bersih menggunakan Readability dan mengirimkan ke renderer
-  - **DoD:** Renderer dapat meminta fetch URL apapun melalui `window.naradaAPI.fetchURL(url)`.
+    - Memanfaatkan hidden `BrowserWindow` atau Node.js native HTTP client untuk mengambil halaman web tanpa blokir CORS
+    - Meneruskan HTML yang sudah di-render ke Readability parser
+  - **DoD:** URL dari media online manapun dapat di-fetch langsung di aplikasi desktop.
 
-- [ ] **STEP 4.3: Package Scripts & electron-builder Config**
+- [ ] **STEP 4.3: Build Configuration & electron-builder Setup** `[15% Kelayakan]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L183-L200)
   - **Action:**
-    - Buat `electron-builder.yml` untuk target Windows (`nsis`, icon, output `dist/`)
-    - Tambahkan scripts di `package.json`: `electron:dev`, `electron:build`
-    - Pastikan folder `docs/` diabaikan dalam build release
-  - **DoD:** `npm run build` dan skrip build terkonfigurasi benar.
+    - Buat `electron-builder.yml` untuk packaging Windows installer (`nsis`, custom icon, output directory)
+    - Pastikan folder dokumentasi (`docs/`) di-exclude agar ukuran installer tetap ramping (~120MB)
+    - Konfigurasi script `package.json`: `dev`, `electron:dev`, `build`, `electron:build`
+  - **DoD:** Script build packaging terkonfigurasi rapi.
 
-- [ ] **STEP 4.4: Packaging Test & Validation**
+- [ ] **STEP 4.4: Packaging Test & Installer Verification** `[15% Kelayakan]` `[25% Purwarupa]`
   - **Ref:** [RULES.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/RULES.md#L236-L244)
-  - **Action:** Jalankan build release installer dan verifikasi file installer `NARADA-Setup-1.0.0.exe`.
-  - **DoD:** Installer tergenerate tanpa error dan dapat dibuka di Windows.
+  - **Action:** Jalankan build dan verifikasi file installer `NARADA-Setup-1.0.0.exe`.
+  - **DoD:** Installer executable Windows berhasil tercipta dan dapat diinstal di PC Windows mandiri.
 
-- [ ] **MILESTONE 4 VERIFICATION:**
-  - [ ] Aplikasi berjalan normal dalam desktop shell Electron.
-  - [ ] Commit: `[FEAT] integrate electron shell and desktop build configuration` & push ke GitHub.
+- [ ] **MILESTONE 4 TESTING & AUDIT:**
+  - [ ] Uji fungsi URL fetcher native dan performa window desktop.
+  - [ ] Commit: `[FEAT] integrate electron shell and native windows packaging` & git push.
 
 ---
 
 ### 🏆 PHASE 5: POLISH, SCENARIOS & HACKATHON DELIVERABLES
-> **Tujuan:** Memastikan aplikasi bebas bug, menyediakan data skenario demo siap uji, menyusun naskah presentasi, serta menyiapkan materi submission hackathon.
+> **Target Bobot:** `[10% Kualitas Dokumentasi]` + `[25% Relevansi & Manfaat]` + `[25% Purwarupa]`  
+> **Tujuan:** Mengamankan nilai maksimal pada dokumentasi, memastikan demo live memukau juri, dan menyiapkan seluruh berkas submission hackathon.
 
-- [ ] **STEP 5.1: UI/UX Micro-Interactions & Visual Polish**
+- [ ] **STEP 5.1: 1-Click Interactive Hackathon Demo Scenarios** `[25% Purwarupa]` `[25% Relevansi]`
+  - **Ref:** [PRD_00_overview.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_00_overview.md#L45-L65)
+  - **Action:** Sediakan tombol "Muat Data Skenario Hackathon" di Analyzer & Settings yang langsung menyuntikkan 3 kasus nyata TNI AD:
+    - **Skenario 1 (Kritis):** Hoaks Manipulatif Anggaran Alutsista TNI & Kesiapan Tempur (Kategori: HOAKS & DISINFORMASI)
+    - **Skenario 2 (Tinggi):** Agitasi Separatisme & Provokasi Pelanggaran HAM di Wilayah Teritorial (Kategori: PROPAGANDA)
+    - **Skenario 3 (Aman):** Berita Rilis Resmi Latihan Bersama TNI AD dengan Negara Sahabat (Kategori: NETRAL)
+  - **DoD:** Juri dapat menguji seluruh kemampuan NARADA secara instan tanpa perlu repot mengetik atau mencari contoh data.
+
+- [ ] **STEP 5.2: UI/UX Micro-Interactions & Dark Military Aesthetics Polish** `[25% Purwarupa]`
   - **Ref:** [RULES.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/RULES.md#L216-L235)
   - **Action:**
-    - Periksa konsistensi palet warna (`#0a0e1a`, `#C8102E`, `#E2E8F0`)
-    - Periksa font readability (Rajdhani untuk header militer, Inter untuk teks, JetBrains Mono untuk metrik)
-    - Animasi transisi halus antar tab & halaman dengan Framer Motion
-    - Audit konsol browser (pastikan 0 warning dan 0 error)
-  - **DoD:** Aplikasi tampak sangat profesional, taktis, dan "wow factor" terpenuhi.
+    - Audit konsistensi palet warna militer taktis: `#0a0e1a` (Dark Base), `#C8102E` (Military Crimson), `#111827` (Card), `#22C55E` (Radar Green)
+    - Pastikan tipografi militer tegas: Rajdhani untuk header komando, Inter untuk teks deskripsi, JetBrains Mono untuk metrik intelijen
+    - Animasi transisi halus Framer Motion antar halaman dan kartu hasil
+    - Audit responsif pada resolusi standar laptop (1366x768 s.d. 1920x1080)
+  - **DoD:** Tampilan aplikasi memancarkan kesan software intelijen militer kelas dunia yang profesional.
 
-- [ ] **STEP 5.2: Preloaded Demo Scenarios (One-Click Demo)**
-  - **Ref:** [PRD_00_overview.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_00_overview.md#L45-L65)
-  - **Action:** Buat tombol "Muat Data Skenario Hackathon" di Settings / Analyzer:
-    - Skenario 1: Disinformasi Pengadaan Alutsista TNI (Hoaks Tingkat Kritis)
-    - Skenario 2: Agitasi & Provokasi Separatisme Teritorial (Ancaman Kedaulatan)
-    - Skenario 3: Klarifikasi Isu Netral / Berita Resmi Valid (Netral / Aman)
-  - **DoD:** Juri atau penguji dapat langsung melihat kehebatan aplikasi dalam 1 klik tanpa harus mencari contoh teks manual.
+- [ ] **STEP 5.3: Proposal Teknis Komprehensif (`docs/PROPOSAL_TEKNIS.md`)** `[10% Kualitas Dokumentasi]`
+  - **Action:** Susun dokumen proposal teknis resmi hackathon:
+    - Latar Belakang & Urgensi Perang Kognitif bagi Pertahanan Negara (data BSSN & dinamika geopolitik)
+    - Arsitektur Solusi NARADA (Zero-Server, Hybrid AI, Neural OCR, Real Fact-Check)
+    - Analisis Keunggulan Komparatif (dibandingkan tools open-source konvensional)
+    - Rencana Pengembangan Lanjutan (Roadmap implementasi skala batalyon/kodam hingga Mabesad)
+  - **DoD:** Dokumen proposal teknis lengkap, formal, dan siap dilampirkan pada portal hackathon.
 
-- [ ] **STEP 5.3: Pitch Deck & Presentation Guide (`docs/PRESENTASI.md`)**
-  - **Action:** Buat panduan presentasi dan struktur slide:
-    - Problem Statement (Ancaman perang kognitif siber sosial di era modern)
-    - Kelemahan tools monitoring saat ini (hanya analitik sentimen, bukan analisis ancaman kognitif)
-    - Solusi NARADA (Hybrid AI + Multi-Input + Fact-Check Real + Format Intelijen TNI)
-    - Demo walkthrough sequence (alur demo 3 menit yang memikat juri)
-    - Dampak strategis bagi satuan siber TNI AD
-  - **DoD:** File `docs/PRESENTASI.md` selesai dan terstruktur.
+- [ ] **STEP 5.4: Pitch Deck Presentation Outline (`docs/PRESENTASI.md`)** `[10% Kualitas Dokumentasi]`
+  - **Action:** Susun naskah slide presentasi 10-12 slide berbobot tinggi:
+    - Slide 1: Judul & Identitas (NARADA - Penjaga Kedaulatan Kognitif Matra Darat)
+    - Slide 2: Problem Statement (Ancaman Siber Sosial di Ranah Kognitif Prajurit & Masyarakat)
+    - Slide 3: Mengapa Solusi Saat Ini Gagal (Hanya sentimen teks mentah, rentan hoaks berkedok gambar/URL)
+    - Slide 4: Solusi NARADA & 4 Saluran Input
+    - Slide 5: Otak AI Hybrid (TF-IDF + Naive Bayes + Explainable Rule Taxonomy)
+    - Slide 6: Verifikasi Fakta Otomatis (Mafindo / TurnBackHoax API)
+    - Slide 7: Peta Jejaring Narasi Nexus (D3.js Network Graph)
+    - Slide 8: Output Dokumen Laporan Intelijen Militer
+    - Slide 9: Kelayakan Penerapan di Satuan (Zero-Server, Ringan, OPSEC Aman)
+    - Slide 10: Visi Masa Depan Pertahanan Siber Sosial TNI AD
+  - **DoD:** Naskah presentasi memikat dan terarah untuk sesi penjurian.
 
-- [ ] **STEP 5.4: Video Demo Script & Storyboard (`docs/VIDEO_DEMO.md`)**
-  - **Action:** Buat naskah video rekaman demo produk (durasi 2-3 menit):
-    - Detik 0-30: Intro masalah perang kognitif & opening NARADA
-    - Detik 30-90: Demonstrasi Analyzer (URL berita + Screenshot OCR)
-    - Detik 90-130: Demonstrasi Dashboard & Nexus Network Graph
-    - Detik 130-160: Demonstrasi Cetak Laporan Intelijen Militer
-    - Detik 160-180: Closing & visi pertahanan siber kognitif nasional
-  - **DoD:** Panduan perekaman video demo siap dieksekusi oleh Damar.
+- [ ] **STEP 5.5: Video Demo Script & Storyboard (`docs/VIDEO_DEMO.md`)** `[10% Kualitas Dokumentasi]`
+  - **Action:** Buat naskah video rekaman berdurasi 3 menit yang padat dan terstruktur:
+    - Detik 00-30: Hook pembuka (isu perang kognitif) & pengenalan NARADA
+    - Detik 30-90: Demonstrasi Analyzer (Paste URL berita + Drag screenshot medsos dengan Neural OCR)
+    - Detik 90-120: Visualisasi graf relasi narasi di Nexus
+    - Detik 120-150: Pembuatan Laporan Intelijen Standar Militer (ekspor PDF)
+    - Detik 150-180: Penutup & penegasan nilai strategis bagi PUSSIBERAD TNI AD
+  - **DoD:** Naskah video detail per detik siap direkam dan dinarasikan.
 
-- [ ] **STEP 5.5: Final Code Audit & Repository Release Tagging**
+- [ ] **STEP 5.6: Final Code Review, README & GitHub Release v1.0.0** `[10% Dokumentasi]` `[25% Purwarupa]`
   - **Ref:** [RULES.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/RULES.md#L236-L244)
   - **Action:**
-    - Perbarui `README.md` utama dengan badge, screenshot konsep, arsitektur, dan cara menjalankan
-    - Git commit final: `[POLISH] prepare final hackathon release v1.0.0`
-    - Buat git tag `v1.0.0` dan push ke GitHub origin
-  - **DoD:** Repository siap dinilai juri dengan dokumentasi kelas satu.
+    - Perbarui `README.md` utama dengan arsitektur grafis, screenshot, dokumentasi API, dan petunjuk instalasi
+    - Pastikan konsol bebas error (`npm run build` sukses 0 errors)
+    - Buat Git Tag `v1.0.0` dan push seluruh repository ke GitHub
+  - **DoD:** Repositori GitHub rapi, profesional, dan siap dinilai juri secara transparan.
 
 ---
 
-## 4. PROTOKOL KONTROL STATUS (STATE TRACKER)
+## 4. KONTROL STATUS & PROGRESS TRACKER TERKUNCI
 
-| Phase | Total Steps | Selesai | Status |
-|-------|-------------|---------|--------|
-| Phase 0: Foundations | 3 | 0 | 🟡 READY TO START |
-| Phase 1: AI Engine & Fact-Check | 6 | 0 | ⏳ QUEUED |
-| Phase 2: Multi-Input Analyzer | 5 | 0 | ⏳ QUEUED |
-| Phase 3: Operations Suite | 5 | 0 | ⏳ QUEUED |
-| Phase 4: Desktop Shell | 4 | 0 | ⏳ QUEUED |
-| Phase 5: Polish & Deliverables | 5 | 0 | ⏳ QUEUED |
-| **TOTAL** | **28 Steps** | **0/28** | **0% PROGRESS** |
+| Fase | Target Penilaian Terbesar | Total Step | Selesai | Status |
+|------|---------------------------|------------|---------|--------|
+| **Phase 0: Foundations** | Kelayakan (15%) + Relevansi (25%) | 4 | 0 | 🟡 READY TO START |
+| **Phase 1: Hybrid AI & Fact-Check** | Inovasi Teknis (25%) + Purwarupa (25%) | 7 | 0 | ⏳ QUEUED |
+| **Phase 2: Multi-Input Analyzer** | Inovasi (25%) + Purwarupa (25%) | 5 | 0 | ⏳ QUEUED |
+| **Phase 3: Operational Suite** | Relevansi (25%) + Purwarupa (25%) | 5 | 0 | ⏳ QUEUED |
+| **Phase 4: Desktop Shell** | Kelayakan Implementasi (15%) | 4 | 0 | ⏳ QUEUED |
+| **Phase 5: Polish & Deliverables** | Dokumentasi (10%) + All-Round | 6 | 0 | ⏳ QUEUED |
+| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **0/31** | **0% PROGRESS** |
 
 ---
 
-## 5. CARA KITA MENGEKSEKUSI BERSAMA (COMMITMENT)
+## 5. PANDUAN EKSEKUSI BERSAMA (LOCKED COMMITMENT)
 
-1. Kita akan memulai dari **Phase 0: Step 0.1**.
-2. Setiap kali memulai sebuah step, Antigravity akan mengonfirmasi detail tindakan.
-3. Setelah step diimplementasikan, kita lakukan verifikasi build & test.
-4. Jika lolos, checkbox `[x]` pada roadmap ini di-centang, di-commit, dan di-push.
-5. Damar selalu memegang kendali atas persetujuan tiap fase sebelum melangkah lebih jauh.
+1. Kita akan mengeksekusi secara ketat **step-by-step** tanpa melompati fase.
+2. Setiap step yang selesai wajib melewati pengujian di terminal (`npm run build` pass).
+3. Setelah lolos uji, step langsung di-centang `[x]`, di-commit ke Git dengan format konvensi (`[FEAT]`, `[UI]`, `[DOCS]`, `[FIX]`), lalu di-push ke GitHub sebagai backup bertahap.
+4. Damar memiliki kendali penuh atas review tiap milestone sebelum melangkah ke milestone berikutnya.
