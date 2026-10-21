@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Link as LinkIcon,
   Scan,
@@ -12,7 +12,11 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle2,
-  Radar
+  Radar,
+  Zap,
+  Clock,
+  Keyboard,
+  Target
 } from 'lucide-react'
 import URLInput from '../components/URLInput'
 import OCRUploader from '../components/OCRUploader'
@@ -23,9 +27,53 @@ import { analyzeHybrid } from '../engine/combiner'
 import { verifyFactCheck } from '../engine/fact-checker'
 import { saveAnalysis, getStoredAnalyses, clearStoredAnalyses } from '../utils/storage'
 import { getCategoryBadge, getThreatBadge, formatMilitaryDate, truncateText } from '../utils/format'
+import { generateSHA256 } from '../utils/crypto'
 import type { AnalysisResult, InputSourceType } from '../types'
 
 type ActiveTab = 'url' | 'ocr' | 'text' | 'file'
+
+// ─── 4 Preset Simulasi Krisis Operasional TNI AD (1-Click Demo Injector) ───
+const CRISIS_SIMULATION_PRESETS = [
+  {
+    id: 'crisis_alutsista',
+    title: '🎯 Skenario 1: Alutsista Fiktif',
+    targetCategory: 'HOAKS',
+    targetThreat: 'CRITICAL',
+    badgeColor: '#EF4444',
+    text: 'Beredar selebaran dokumen rahasia pembelian 20 unit Tank Tempur dan alutsista fiktif anggaran 24 triliun Kemhan RI. Rezim berupaya keras menutup-nutupi korupsi anggaran pertahanan negara ini. Viralkan sebelum dihapus kominfo!',
+  },
+  {
+    id: 'crisis_papua',
+    title: '🎯 Skenario 2: Agitasi Separatisme',
+    targetCategory: 'PROPAGANDA',
+    targetThreat: 'CRITICAL',
+    badgeColor: '#F97316',
+    text: 'Seruan konsolidasi dan boikot pemilu untuk seluruh kawan di Papua Barat! Rezim militer NKRI adalah penjajah di tanah kami. Rebut kembali hak kedaulatan bangsa Papua dan tuntut referendum kemerdekaan sekarang juga!',
+  },
+  {
+    id: 'crisis_buzzer',
+    title: '🎯 Skenario 3: Buzzer Netralitas TNI',
+    targetCategory: 'BUZZER',
+    targetThreat: 'HIGH',
+    badgeColor: '#F59E0B',
+    text: 'Aparat dituding memihak salah satu paslon dalam pengamanan logistik TPS! Sebarkan serentak malam ini pukul 20.00 WIB kawan-kawan! Kita bikin trending topik nomor satu untuk membongkar kecurangan ini!',
+  },
+  {
+    id: 'crisis_disinfo',
+    title: '🎯 Skenario 4: Disinformasi Konflik',
+    targetCategory: 'DISINFORMASI',
+    targetThreat: 'MEDIUM',
+    badgeColor: '#8B5CF6',
+    text: 'DARURAT! Beredar video kontak tembak di pos pengamanan perbatasan yang sengaja ditutupi media nasional. Warga sekitar ketakutan dan bersiap mengungsi malam ini juga! Jangan percaya bantahan aparat sebelum terlambat!',
+  },
+]
+
+// Kamus Frasa Sensitif untuk Live Pre-Flight Heuristics
+const SENSITIVE_PREFLIGHT_TERMS = [
+  'viralkan', 'darurat', 'rahasia', 'fiktif', 'boikot', 'separatis', 'penjajah',
+  'trending', 'korupsi', 'serang', 'serbuan', 'adu domba', 'palsu', 'menutup-nutupi',
+  'referendum', 'makar', 'habisi', 'bahaya', 'bocor', 'hancurkan'
+]
 
 // ─── Sampel Teks Demo Cepat untuk Tab Teks Langsung ───
 const QUICK_TEXT_SAMPLES = [
@@ -119,7 +167,10 @@ export default function Analyzer() {
       const factCheckResult = await verifyFactCheck(trimmed)
       analysisResult.factCheck = factCheckResult
 
-      // 3. Simpan ke sessionStorage & state aktif
+      // 3. TASK H.3: Hitung SHA-256 Checksum Integritas Forensik
+      analysisResult.forensicHash = await generateSHA256(trimmed)
+
+      // 4. Simpan ke sessionStorage & state aktif
       saveAnalysis(analysisResult)
       setCurrentResult(analysisResult)
       setHistory(getStoredAnalyses())
@@ -147,6 +198,12 @@ export default function Analyzer() {
     setValidationError(null)
   }
 
+  const handleSelectCrisisScenario = (scenarioText: string) => {
+    setActiveTab('text')
+    setDirectText(scenarioText)
+    setValidationError(null)
+  }
+
   const handleClearDirectText = () => {
     setDirectText('')
     setValidationError(null)
@@ -160,7 +217,23 @@ export default function Analyzer() {
     }
   }
 
-  const wordCount = directText.trim() === '' ? 0 : directText.trim().split(/\s+/).length
+  // ─── TASK H.4: Live Pre-Flight Heuristics ───
+  const wordCount = directText.trim() === '' ? 0 : directText.trim().split(/\s+/).filter(Boolean).length
+  const charCount = directText.length
+
+  const estimatedReadTimeSec = useMemo(() => {
+    if (wordCount === 0) return 0
+    return Math.max(1, Math.ceil(wordCount / 3.5))
+  }, [wordCount])
+
+  const detectedRiskTerms = useMemo(() => {
+    if (!directText || directText.length < 5) return []
+    const norm = directText.toLowerCase()
+    return SENSITIVE_PREFLIGHT_TERMS.filter(term => {
+      const regex = new RegExp(`\\b${term}\\b`, 'i')
+      return regex.test(norm)
+    })
+  }, [directText])
 
   return (
     <div className="fade-in" style={{ paddingBottom: '32px' }}>
@@ -199,6 +272,75 @@ export default function Analyzer() {
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
           Penerimaan dan analisis ancaman kognitif melalui 4 modalitas: URL portal berita, Screenshot OCR neural, Naskah teks langsung, dan Berkas batch massal.
         </p>
+      </div>
+
+      {/* ─── TASK H.4: BAR 4 PRESET SIMULASI KRISIS OPERASIONAL TNI AD (1-CLICK INJECTOR) ─── */}
+      <div style={{
+        marginBottom: '18px',
+        padding: '12px 16px',
+        background: 'linear-gradient(90deg, rgba(200, 16, 46, 0.12), rgba(30, 41, 59, 0.4))',
+        border: '1px solid rgba(200, 16, 46, 0.35)',
+        borderRadius: 'var(--radius-md)',
+      }}>
+        <div style={{
+          fontSize: '10px',
+          fontFamily: 'var(--font-mono)',
+          letterSpacing: '1.5px',
+          color: 'var(--narada-red)',
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '6px'
+        }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700' }}>
+            <Target size={12} /> SKENARIO SIMULASI KRISIS OPERASIONAL TNI AD (1-CLICK DEMO INJECTOR)
+          </span>
+          <span style={{ color: 'var(--text-dim)', fontSize: '9px' }}>
+            Siap Uji Langsung untuk Dewan Juri
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '8px' }}>
+          {CRISIS_SIMULATION_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => handleSelectCrisisScenario(preset.text)}
+              style={{
+                justifyContent: 'flex-start',
+                textAlign: 'left',
+                padding: '8px 10px',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--bg-border)',
+                height: 'auto'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                    {preset.title}
+                  </span>
+                  <span style={{
+                    fontSize: '8px',
+                    fontFamily: 'var(--font-mono)',
+                    padding: '1px 5px',
+                    borderRadius: '2px',
+                    background: `${preset.badgeColor}20`,
+                    color: preset.badgeColor,
+                    border: `1px solid ${preset.badgeColor}40`
+                  }}>
+                    {preset.targetCategory}
+                  </span>
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {preset.text}
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ─── 4 Modalitas Tab Navigation ─── */}
@@ -298,7 +440,7 @@ export default function Analyzer() {
                   </div>
                 </div>
 
-                {/* Textarea */}
+                {/* Textarea dengan Hotkey Ctrl+Enter & Escape */}
                 <textarea
                   className="form-control"
                   placeholder="Ketik atau tempel (paste) naskah postingan media sosial, pesan broadcast grup percakapan, atau cuplikan berita di sini...&#10;&#10;Contoh:&#10;• Postingan mencurigakan terkait pertahanan atau personel TNI&#10;• Narasi separatis atau propaganda kedaulatan wilayah&#10;• Pola pesan serentak ajakan aksi demonstrasi buzzer"
@@ -307,9 +449,85 @@ export default function Analyzer() {
                     setDirectText(e.target.value)
                     if (validationError) setValidationError(null)
                   }}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      e.preventDefault()
+                      handleDirectTextSubmit()
+                    }
+                    if (e.key === 'Escape') {
+                      setValidationError(null)
+                    }
+                  }}
                   rows={12}
                   style={{ minHeight: '260px' }}
                 />
+
+                {/* ─── TASK H.4: LIVE PRE-FLIGHT HEURISTICS BAR ─── */}
+                <div style={{
+                  marginTop: '8px',
+                  padding: '8px 12px',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--bg-border)',
+                  fontSize: '11px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                    <span>{wordCount} kata</span>
+                    <span>·</span>
+                    <span>{charCount} karakter</span>
+                    <span>·</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Clock size={11} color="var(--text-dim)" />
+                      ~{estimatedReadTimeSec} detik baca
+                    </span>
+                  </div>
+
+                  {/* Deteksi Dini Frasa Berisiko */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {detectedRiskTerms.length > 0 ? (
+                      <span style={{
+                        color: '#F97316',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '10px'
+                      }}>
+                        <Zap size={11} color="#F97316" />
+                        <strong>{detectedRiskTerms.length} Frasa Berisiko:</strong> {detectedRiskTerms.slice(0, 3).join(', ')}
+                      </span>
+                    ) : wordCount > 5 ? (
+                      <span style={{
+                        color: 'var(--threat-low)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '10px'
+                      }}>
+                        <CheckCircle2 size={11} />
+                        Pra-skrining: Netral
+                      </span>
+                    ) : (
+                      <span style={{
+                        color: 'var(--text-dim)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '10px',
+                        fontFamily: 'var(--font-mono)'
+                      }}>
+                        <Keyboard size={11} />
+                        Ctrl + Enter untuk analisis
+                      </span>
+                    )}
+                  </div>
+                </div>
 
                 {/* Validasi Error jika ada */}
                 {validationError && (
