@@ -1,209 +1,116 @@
-import type { ContentCategory, ThreatLevel, AnalysisResult } from '../types'
+// ─── EXPLAINABLE RULE-BASED ENGINE ───
+// Berdasarkan PRD_02_ai_engine.md & taksonomi militer
 
-// ─── Keyword Dictionaries (Indonesia) ───
-const HOAKS_KEYWORDS = [
-  'hoaks', 'hoax', 'bohong', 'palsu', 'fitnah', 'tidak benar', 'sebarkan', 'viral',
-  'benarkah', 'katanya', 'konon', 'beredar', 'tersebar luas', 'cek fakta',
-  'diragukan', 'perlu diverifikasi', 'isu', 'kabar angin', 'rumor'
-]
+import type { ContentCategory, RuleMatchDetail, ThreatLevel } from '../types'
+import { MILITARY_TAXONOMY, extractMilitaryEntities } from './taxonomy'
 
-const PROPAGANDA_KEYWORDS = [
-  'agenda', 'bangkitkan', 'perjuangan', 'musuh negara', 'pengkhianat', 'asing',
-  'imperialis', 'kolonialis', 'jangan percaya', 'mereka menyembunyikan', 'fakta tersembunyi',
-  'rezim', 'diktator', 'rakyat melawan', 'revolusi', 'bangkitlah', 'lawan', 'hancurkan',
-  'sistem korup', 'elit busuk', 'rakyat dibohongi', 'bongkar', 'ungkap kebenaran'
-]
-
-const BUZZER_KEYWORDS = [
-  'share', 'bagikan', 'retweet', 'rt', 'viralkan', 'sebarkan', 'tag teman',
-  '#', 'trending', 'masif', 'serempak', 'bersama-sama',
-  'kompak', 'solid', 'bersatu', 'gerakan', 'kampanye', 'dukung', 'lawan'
-]
-
-const DISINFORMASI_KEYWORDS = [
-  'manipulasi', 'distorsi', 'diputarbalikkan', 'keluar konteks', 'salah kaprah',
-  'misleading', 'menyesatkan', 'memutarbalik', 'dicabut konteks', 'data palsu',
-  'statistik bohong', 'gambar lama', 'foto editan', 'video dipotong', 'deepfake',
-  'dikutip salah', 'tidak lengkap', 'separuh kebenaran'
-]
-
-const HIGH_RISK_PATTERNS = [
-  'tni', 'militer', 'polisi', 'presiden', 'pemerintah', 'bssn', 'jatuh', 'tumbang',
-  'kudeta', 'makar', 'subversif', 'infiltrasi', 'mata-mata', 'agen asing', 'provokasi',
-  'rusuh', 'kerusuhan', 'chaos', 'anarkis', 'demonstrasi', 'bentrok'
-]
-
-// ─── Threat Level Score Mapping ───
-function scoreToThreatLevel(score: number): ThreatLevel {
-  if (score >= 80) return 'critical'
-  if (score >= 60) return 'high'
-  if (score >= 35) return 'medium'
-  return 'low'
-}
-
-// ─── Keyword Counter ───
-function countKeywords(text: string, keywords: string[]): { count: number; found: string[] } {
-  const lower = text.toLowerCase()
-  const found = keywords.filter(kw => lower.includes(kw.toLowerCase()))
-  return { count: found.length, found }
-}
-
-// ─── Explanation Generator ───
-function generateExplanation(
-  category: ContentCategory,
-  foundKeywords: string[],
-  confidence: number,
-  _text: string
-): string {
-
-  const explanations: Record<ContentCategory, string> = {
-    HOAKS: `Konten ini terdeteksi mengandung pola narasi hoaks dengan confidence ${confidence.toFixed(0)}%. ` +
-      `Indikator yang terdeteksi: penggunaan kata-kata pemicu seperti "${foundKeywords.slice(0, 3).join('", "')}" ` +
-      `yang umum ditemukan dalam konten yang menyebarkan informasi tidak terverifikasi. ` +
-      `Konten cenderung menggunakan gaya bahasa yang mendorong penyebaran masif tanpa verifikasi sumber.`,
-
-    PROPAGANDA: `Konten ini mengandung elemen propaganda dengan pola manipulasi opini publik. ` +
-      `Terdeteksi penggunaan framing emosional tinggi dan kata kunci propagandistik: ` +
-      `"${foundKeywords.slice(0, 3).join('", "')}". ` +
-      `Konten dirancang untuk menciptakan persepsi "kita vs mereka" yang dapat memecah belah masyarakat.`,
-
-    BUZZER: `Pola konten ini mengindikasikan aktivitas buzzer atau koordinasi artifisial. ` +
-      `Terdeteksi seruan masif untuk viralkan/sebarkan dengan kata kunci: "${foundKeywords.slice(0, 3).join('", "')}". ` +
-      `Konten tampaknya dirancang untuk meningkatkan jangkauan secara tidak organik melalui koordinasi akun.`,
-
-    DISINFORMASI: `Konten ini mengandung indikasi disinformasi — informasi yang secara teknis mungkin parsial benar ` +
-      `namun disajikan dengan cara menyesatkan. Kata kunci terdeteksi: "${foundKeywords.slice(0, 3).join('", "')}". ` +
-      `Waspadai penggunaan data/konteks yang dimanipulasi atau dikutip secara tidak lengkap.`,
-
-    NETRAL: `Konten ini tidak menunjukkan indikator ancaman kognitif yang signifikan. ` +
-      `Skor ancaman rendah menunjukkan bahwa konten kemungkinan besar adalah informasi yang sah dan tidak memanipulasi. ` +
-      `Namun tetap disarankan verifikasi lintas sumber untuk konten sensitif.`,
-  }
-
-  return explanations[category]
-}
-
-// ─── Recommendation Generator ───
-function generateRecommendation(category: ContentCategory, threatLevel: ThreatLevel): string {
-  const recs: Record<ContentCategory, Record<ThreatLevel, string>> = {
-    HOAKS: {
-      low: 'Monitor konten ini. Lakukan verifikasi sumber jika diperlukan.',
-      medium: 'Verifikasi segera dengan sumber resmi. Tambahkan ke watchlist pemantauan.',
-      high: 'Laporkan ke unit fact-checking. Blokir penyebaran lebih lanjut di kanal internal.',
-      critical: 'TINDAKAN SEGERA: Eskalasi ke pimpinan siber. Counter-narrative diperlukan dalam 1 jam.'
-    },
-    PROPAGANDA: {
-      low: 'Monitor dan dokumentasikan pola narasi.',
-      medium: 'Analisis lebih lanjut terhadap sumber. Persiapkan counter-narrative.',
-      high: 'Eskalasi ke unit intelijen. Siapkan respons komunikasi strategis.',
-      critical: 'TINDAKAN SEGERA: Koordinasi dengan BSSN dan satuan terkait. Blokir narasi berbahaya.'
-    },
-    BUZZER: {
-      low: 'Pantau koordinasi akun selama 24 jam ke depan.',
-      medium: 'Identifikasi dan mapping jaringan buzzer. Dokumentasi untuk analisis lanjutan.',
-      high: 'Laporkan ke platform terkait. Investigasi koordinator jaringan.',
-      critical: 'TINDAKAN SEGERA: Koordinasi penanggulangan dengan unit cyber ops.'
-    },
-    DISINFORMASI: {
-      low: 'Catat dan monitor. Verifikasi keaslian data yang dikutip.',
-      medium: 'Keluarkan klarifikasi resmi jika menyangkut institusi TNI AD.',
-      high: 'Siapkan tanggapan resmi. Eskalasi ke bagian Penerangan.',
-      critical: 'TINDAKAN SEGERA: Rilis klarifikasi resmi dan lapor ke pimpinan.'
-    },
-    NETRAL: {
-      low: 'Tidak ada tindakan khusus diperlukan. Konten aman.',
-      medium: 'Tidak ada tindakan khusus diperlukan.',
-      high: 'Tidak ada tindakan khusus diperlukan.',
-      critical: 'Tidak ada tindakan khusus diperlukan.'
+/**
+ * Menganalisis teks menggunakan pencocokan pola taksonomi ancaman militer
+ * Menghasilkan skor berbasis aturan dan penjelasan transparan (XAI)
+ */
+export function analyzeWithRules(text: string): RuleMatchDetail {
+  if (!text || typeof text !== 'string') {
+    return {
+      matchedKeywords: [],
+      categoryScores: { HOAKS: 0, PROPAGANDA: 0, BUZZER: 0, DISINFORMASI: 0, NETRAL: 100 },
+      riskLevel: 'low',
+      explanation: 'Tidak ada teks yang dapat dianalisis.',
+      targetedEntities: [],
     }
   }
-  return recs[category][threatLevel]
-}
 
-// ─── Main Classifier Function ───
-export function classifyText(text: string): AnalysisResult {
-  const trimmed = text.trim()
-  
-  // Count keyword matches
-  const hoaksMatch = countKeywords(trimmed, HOAKS_KEYWORDS)
-  const propagandaMatch = countKeywords(trimmed, PROPAGANDA_KEYWORDS)
-  const buzzerMatch = countKeywords(trimmed, BUZZER_KEYWORDS)
-  const disinfoMatch = countKeywords(trimmed, DISINFORMASI_KEYWORDS)
-  const highRiskMatch = countKeywords(trimmed, HIGH_RISK_PATTERNS)
-  
-  const wordCount = trimmed.split(/\s+/).length
-
-  // Raw scores (normalized)
-  const rawScores = {
-    HOAKS: Math.min(100, (hoaksMatch.count / Math.max(wordCount * 0.05, 1)) * 100 + hoaksMatch.count * 8),
-    PROPAGANDA: Math.min(100, (propagandaMatch.count / Math.max(wordCount * 0.05, 1)) * 100 + propagandaMatch.count * 9),
-    BUZZER: Math.min(100, (buzzerMatch.count / Math.max(wordCount * 0.05, 1)) * 100 + buzzerMatch.count * 7),
-    DISINFORMASI: Math.min(100, (disinfoMatch.count / Math.max(wordCount * 0.05, 1)) * 100 + disinfoMatch.count * 8),
+  const normalized = text.toLowerCase()
+  const matchedKeywords: string[] = []
+  const categoryRawScores: Record<ContentCategory, number> = {
+    HOAKS: 0,
+    PROPAGANDA: 0,
+    BUZZER: 0,
+    DISINFORMASI: 0,
+    NETRAL: 10,
   }
 
-  // High risk boost
-  const riskBoost = highRiskMatch.count * 5
+  let totalRiskWeight = 0
+  const explanationPoints: string[] = []
 
-  // Find winning category
-  const maxScore = Math.max(...Object.values(rawScores)) + riskBoost
-  let category: ContentCategory = 'NETRAL'
-  let dominantKeywords: string[] = []
+  // Pencocokan dengan kamus taksonomi ancaman
+  for (const item of MILITARY_TAXONOMY) {
+    // Regex boundary matching untuk menghindari substring false positives
+    const escaped = item.keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(`\\b${escaped}\\b`, 'i')
 
-  if (maxScore < 15) {
-    category = 'NETRAL'
-  } else if (rawScores.PROPAGANDA + riskBoost >= Math.max(rawScores.HOAKS, rawScores.BUZZER, rawScores.DISINFORMASI) + riskBoost) {
-    category = 'PROPAGANDA'
-    dominantKeywords = [...propagandaMatch.found, ...highRiskMatch.found]
-  } else if (rawScores.HOAKS >= Math.max(rawScores.PROPAGANDA, rawScores.BUZZER, rawScores.DISINFORMASI)) {
-    category = 'HOAKS'
-    dominantKeywords = [...hoaksMatch.found, ...highRiskMatch.found]
-  } else if (rawScores.BUZZER >= Math.max(rawScores.HOAKS, rawScores.PROPAGANDA, rawScores.DISINFORMASI)) {
-    category = 'BUZZER'
-    dominantKeywords = [...buzzerMatch.found, ...highRiskMatch.found]
+    if (regex.test(normalized)) {
+      matchedKeywords.push(item.keyword)
+      const scoreAdd = item.weight * 12
+      categoryRawScores[item.category] += scoreAdd
+      totalRiskWeight += item.weight
+
+      if (!explanationPoints.includes(item.explanationTemplate)) {
+        explanationPoints.push(item.explanationTemplate)
+      }
+    }
+  }
+
+  // Ekstraksi entitas strategis/militer yang disebut dalam teks
+  const targetedEntities = extractMilitaryEntities(text)
+
+  // Jika ada entitas militer yang ditargetkan bersamaan dengan narasi provokatif, naikkan multiplier risiko
+  const hasMilitaryEntity = targetedEntities.length > 0
+  if (hasMilitaryEntity && matchedKeywords.length > 0) {
+    totalRiskWeight = Math.round(totalRiskWeight * 1.35)
+  }
+
+  // Tentukan Risk Level
+  let riskLevel: ThreatLevel = 'low'
+  if (totalRiskWeight >= 24) {
+    riskLevel = 'critical'
+  } else if (totalRiskWeight >= 14) {
+    riskLevel = 'high'
+  } else if (totalRiskWeight >= 6) {
+    riskLevel = 'medium'
+  }
+
+  // Normalisasi categoryScores ke skala 0 - 100
+  const maxScore = Math.max(
+    categoryRawScores.HOAKS,
+    categoryRawScores.PROPAGANDA,
+    categoryRawScores.BUZZER,
+    categoryRawScores.DISINFORMASI,
+    categoryRawScores.NETRAL,
+    1
+  )
+
+  const normalizedScores: Record<ContentCategory, number> = {
+    HOAKS: Math.min(100, Math.round((categoryRawScores.HOAKS / maxScore) * 100)),
+    PROPAGANDA: Math.min(100, Math.round((categoryRawScores.PROPAGANDA / maxScore) * 100)),
+    BUZZER: Math.min(100, Math.round((categoryRawScores.BUZZER / maxScore) * 100)),
+    DISINFORMASI: Math.min(100, Math.round((categoryRawScores.DISINFORMASI / maxScore) * 100)),
+    NETRAL: matchedKeywords.length === 0 ? 100 : Math.max(5, 100 - Math.min(95, totalRiskWeight * 4)),
+  }
+
+  // Penyusunan narasi penjelasan (Explainability - XAI)
+  let explanation = ''
+  if (matchedKeywords.length === 0) {
+    explanation = 'Konten tidak memuat indikator leksikal ancaman siber sosial maupun pola agitasi yang mencurigakan. Informasi cenderung berkarakter faktual atau netral.'
   } else {
-    category = 'DISINFORMASI'
-    dominantKeywords = [...disinfoMatch.found, ...highRiskMatch.found]
+    const entityNotice = hasMilitaryEntity
+      ? ` Terdeteksi penyebutan entitas pertahanan: [${targetedEntities.join(', ')}].`
+      : ''
+    const pointsText = explanationPoints.slice(0, 3).join(' ')
+    explanation = `Ditemukan ${matchedKeywords.length} indikator ancaman (${matchedKeywords.slice(0, 5).join(', ')}). ${pointsText}${entityNotice}`
   }
-
-  // Confidence calculation
-  const totalScore = rawScores.HOAKS + rawScores.PROPAGANDA + rawScores.BUZZER + rawScores.DISINFORMASI
-  let confidence = totalScore === 0 ? 5 : Math.min(98, maxScore)
-  if (category === 'NETRAL') confidence = Math.max(70, 100 - maxScore)
-
-  // Normalize all scores for display
-  const normalizedTotal = Math.max(totalScore, 1)
-  const allScores: { label: ContentCategory; score: number }[] = [
-    { label: 'HOAKS', score: totalScore === 0 ? 5 : Math.round((rawScores.HOAKS / normalizedTotal) * 100) },
-    { label: 'PROPAGANDA', score: totalScore === 0 ? 5 : Math.round((rawScores.PROPAGANDA / normalizedTotal) * 100) },
-    { label: 'BUZZER', score: totalScore === 0 ? 5 : Math.round((rawScores.BUZZER / normalizedTotal) * 100) },
-    { label: 'DISINFORMASI', score: totalScore === 0 ? 5 : Math.round((rawScores.DISINFORMASI / normalizedTotal) * 100) },
-    { label: 'NETRAL', score: category === 'NETRAL' ? Math.round(confidence) : Math.max(5, Math.round(100 - confidence)) },
-  ]
-
-  const threatLevel = category === 'NETRAL' ? 'low' : scoreToThreatLevel(confidence + riskBoost)
-  const explanation = generateExplanation(category, dominantKeywords.slice(0, 5), confidence, trimmed)
-  const recommendation = generateRecommendation(category, threatLevel)
 
   return {
-    id: `NRD-${Date.now()}`,
-    timestamp: Date.now(),
-    inputSource: 'text',
-    rawContent: trimmed,
-    input: trimmed,
-    category,
-    threatLevel,
-    confidence: Math.round(confidence),
-    mlScore: 0,
-    ruleScore: Math.round(confidence),
-    scores: allScores,
+    matchedKeywords: [...new Set(matchedKeywords)],
+    categoryScores: normalizedScores,
+    riskLevel,
     explanation,
-    keywords: [...new Set(dominantKeywords)].slice(0, 8),
-    targetedEntities: [],
-    recommendation,
+    targetedEntities,
   }
 }
 
-// ─── Batch Classification ───
-export function classifyBatch(texts: string[]): AnalysisResult[] {
+// Re-export untuk backward compatibility dengan modul yang memanggil classifier lama
+import { classifyText } from './combiner'
+export { classifyText }
+export function classifyBatch(texts: string[]) {
   return texts.map(t => classifyText(t))
 }

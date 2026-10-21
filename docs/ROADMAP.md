@@ -106,7 +106,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 > **Target Bobot:** `[25% Inovasi Teknis]` + `[25% Fungsionalitas Purwarupa]`  
 > **Tujuan:** Membangun mesin analisis sejati: Tokenizer, Vectorizer TF-IDF, Multinomial Naive Bayes (ML nyata), Explainable Rule Engine, Combiner 60/40, dan Google Fact Check integration.
 
-- [ ] **STEP 1.1: Indonesian Preprocessor & Tokenizer (`tokenizer.ts`)** `[25% Inovasi Teknis]`
+- [x] **STEP 1.1: Indonesian Preprocessor & Tokenizer (`tokenizer.ts`)** `[25% Inovasi Teknis]`
   - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L66-L85)
   - **Action:** Buat `src/engine/ml/tokenizer.ts`:
     - Normalisasi teks, cleaning tanda baca & URL
@@ -114,14 +114,14 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Ekstraksi unigram & bigram penting untuk deteksi frase manipulatif
   - **DoD:** Menghasilkan array token bersih dalam waktu <10ms per 500 kata.
 
-- [ ] **STEP 1.2: TF-IDF Vectorizer (`tfidf.ts`)** `[25% Inovasi Teknis]`
+- [x] **STEP 1.2: TF-IDF Vectorizer (`tfidf.ts`)** `[25% Inovasi Teknis]`
   - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L36-L42)
   - **Action:** Buat `src/engine/ml/tfidf.ts`:
     - Implementasi perhitungan Term Frequency (TF) dan Inverse Document Frequency (IDF)
     - Perhitungan bobot vector numerik teks terhadap vocabulary korpus
   - **DoD:** Menghasilkan vector feature numerik yang siap dikonsumsi Naive Bayes.
 
-- [ ] **STEP 1.3: Multinomial Naive Bayes Classifier (`naive-bayes.ts`)** `[25% Inovasi Teknis]`
+- [x] **STEP 1.3: Multinomial Naive Bayes Classifier (`naive-bayes.ts`)** `[25% Inovasi Teknis]`
   - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L73-L85)
   - **Action:** Buat `src/engine/ml/naive-bayes.ts`:
     - Probabilistic inference dengan log-likelihood + Laplace smoothing (mencegah zero-probability)
@@ -129,14 +129,14 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Normalisasi softmax persentase (0-100%)
   - **DoD:** Klasifikasi probabilistik ML murni berjalan di client-side tanpa koneksi server.
 
-- [ ] **STEP 1.4: Pre-Trained Model Weights Dataset (`model.json`)** `[25% Inovasi Teknis]`
+- [x] **STEP 1.4: Pre-Trained Model Weights Dataset (`model.json`)** `[25% Inovasi Teknis]`
   - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L50-L64)
   - **Action:** Buat `src/engine/ml/model.json` (~60-120KB):
     - Berisi vocabulary terindeks, IDF values, class priors, dan word conditional probabilities
     - Dikalibrasi dari data riil ancaman siber sosial Indonesia (kasus hoaks Mafindo, narasi propaganda, berita netral)
   - **DoD:** File JSON tervalidasi dan ter-bundle rapi dalam build.
 
-- [ ] **STEP 1.5: Explainable Rule-Based Engine (`classifier.ts`)** `[25% Relevansi]` `[25% Purwarupa]`
+- [x] **STEP 1.5: Explainable Rule-Based Engine (`classifier.ts`)** `[25% Relevansi]` `[25% Purwarupa]`
   - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L101-L125)
   - **Action:** Tulis ulang `src/engine/classifier.ts` menggunakan taksonomi militer:
     - Pattern matching kontekstual, deteksi frase provokatif, akumulasi skor risiko
@@ -144,7 +144,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Penjelasan narasi ancaman dalam bahasa Indonesia formal
   - **DoD:** Mengembalikan `RuleMatchDetail` dengan transparan dan akurat.
 
-- [ ] **STEP 1.6: Hybrid Combiner Engine (`combiner.ts`)** `[25% Inovasi Teknis]` `[25% Purwarupa]`
+- [x] **STEP 1.6: Hybrid Combiner Engine (`combiner.ts`)** `[25% Inovasi Teknis]` `[25% Purwarupa]`
   - **Ref:** [PRD_02_ai_engine.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_02_ai_engine.md#L128-L160)
   - **Action:** Buat `src/engine/combiner.ts`:
     - Penggabungan bobot: 60% ML Probability + 40% Rule Severity
@@ -152,7 +152,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Penentuan rekomendasi respons taktis militer (e.g. Counter-Narrative Dispenad, Klarifikasi Satgas, Eskalasi Komando)
   - **DoD:** Fungsi `analyzeHybrid(text: string): AnalysisResult` selesai, kecepatan eksekusi <50ms.
 
-- [ ] **STEP 1.7: Real-Time Fact-Check Client (`fact-checker.ts`)** `[25% Inovasi Teknis]` `[25% Relevansi]`
+- [x] **STEP 1.7: Real-Time Fact-Check Client (`fact-checker.ts`)** `[25% Inovasi Teknis]` `[25% Relevansi]`
   - **Ref:** [PRD_03_fact_checker.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_03_fact_checker.md)
   - **Action:** Buat `src/engine/fact-checker.ts`:
     - Otomatis mengekstrak klaim utama dari teks
@@ -160,10 +160,10 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Fallback otomatis: jika offline / tanpa API key, generate direct verified query search URL ke database TurnBackHoax dan Google Fact Check Explorer
   - **DoD:** Verifikasi fakta nyata berjalan otomatis setelah proses analisis.
 
-- [ ] **MILESTONE 1 TESTING & AUDIT:**
-  - [ ] Validasi uji 4 kasus: (1) Hoaks penculikan berlatar TNI, (2) Provokasi separatis Papua, (3) Teks propaganda buzzer, (4) Rilis pers resmi TNI AD (Netral).
-  - [ ] Hasil hybrid logis, confidence score presisi, fact-check terintegrasi.
-  - [ ] Commit: `[FEAT] implement hybrid AI ML engine and real fact checker` & git push.
+- [x] **MILESTONE 1 TESTING & AUDIT:**
+  - [x] Validasi uji 4 kasus: (1) Hoaks penculikan berlatar TNI, (2) Provokasi separatis Papua, (3) Teks propaganda buzzer, (4) Rilis pers resmi TNI AD (Netral).
+  - [x] Hasil hybrid logis, confidence score presisi, fact-check terintegrasi.
+  - [x] Commit: `[FEAT] implement hybrid AI ML engine and real fact checker` & git push.
 
 ---
 
@@ -391,12 +391,12 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 | Fase | Target Penilaian Terbesar | Total Step | Selesai | Status |
 |------|---------------------------|------------|---------|--------|
 | **Phase 0: Foundations** | Kelayakan (15%) + Relevansi (25%) | 4 | 4 | ✅ COMPLETED |
-| **Phase 1: Hybrid AI & Fact-Check** | Inovasi Teknis (25%) + Purwarupa (25%) | 7 | 0 | 🟡 IN PROGRESS |
-| **Phase 2: Multi-Input Analyzer** | Inovasi (25%) + Purwarupa (25%) | 5 | 0 | ⏳ QUEUED |
+| **Phase 1: Hybrid AI & Fact-Check** | Inovasi Teknis (25%) + Purwarupa (25%) | 7 | 7 | ✅ COMPLETED |
+| **Phase 2: Multi-Input Analyzer** | Inovasi (25%) + Purwarupa (25%) | 5 | 0 | 🟡 IN PROGRESS |
 | **Phase 3: Operational Suite** | Relevansi (25%) + Purwarupa (25%) | 5 | 0 | ⏳ QUEUED |
 | **Phase 4: Desktop Shell** | Kelayakan Implementasi (15%) | 4 | 0 | ⏳ QUEUED |
 | **Phase 5: Polish & Deliverables** | Dokumentasi (10%) + All-Round | 6 | 0 | ⏳ QUEUED |
-| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **4/31** | **13% PROGRESS** |
+| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **11/31** | **35% PROGRESS** |
 
 ---
 

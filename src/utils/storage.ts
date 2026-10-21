@@ -22,6 +22,9 @@ export const DEFAULT_SETTINGS: UserSettings = {
  */
 export function getStoredAnalyses(): AnalysisResult[] {
   try {
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
+      return []
+    }
     const raw = sessionStorage.getItem(STORAGE_KEYS.ANALYSES)
     if (!raw) return []
     const parsed = JSON.parse(raw)
@@ -37,6 +40,9 @@ export function getStoredAnalyses(): AnalysisResult[] {
  */
 export function saveAnalysis(analysis: AnalysisResult): void {
   try {
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
+      return
+    }
     const existing = getStoredAnalyses()
     // Hindari duplikasi ID
     const updated = [analysis, ...existing.filter(a => a.id !== analysis.id)]
@@ -52,6 +58,9 @@ export function saveAnalysis(analysis: AnalysisResult): void {
  */
 export function clearStoredAnalyses(): void {
   try {
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
+      return
+    }
     sessionStorage.removeItem(STORAGE_KEYS.ANALYSES)
     window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: [] }))
   } catch (error) {
@@ -64,6 +73,9 @@ export function clearStoredAnalyses(): void {
  */
 export function getUserSettings(): UserSettings {
   try {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return { ...DEFAULT_SETTINGS }
+    }
     const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS)
     if (!raw) return { ...DEFAULT_SETTINGS }
     return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
@@ -78,6 +90,9 @@ export function getUserSettings(): UserSettings {
  */
 export function saveUserSettings(settings: Partial<UserSettings>): UserSettings {
   try {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return { ...DEFAULT_SETTINGS, ...settings }
+    }
     const current = getUserSettings()
     const updated = { ...current, ...settings }
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(updated))
