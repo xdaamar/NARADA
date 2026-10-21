@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { 
   LayoutDashboard, 
@@ -15,6 +16,7 @@ import Profiler from './pages/Profiler'
 import Nexus from './pages/Nexus'
 import Reports from './pages/Reports'
 import SettingsPage from './pages/SettingsPage'
+import { getUserSettings, getStoredAnalyses } from './utils/storage'
 
 // ─── Nav Items Config ───
 const NAV_ITEMS = [
@@ -110,22 +112,66 @@ const PAGE_TITLES: Record<string, string> = {
 function TopBar() {
   const location = useLocation()
   const title = PAGE_TITLES[location.pathname] ?? 'NARADA'
-  const now = new Date()
-  const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+  const [timeStr, setTimeStr] = useState<string>('')
+  const [dateStr, setDateStr] = useState<string>('')
+  const [isOffline, setIsOffline] = useState<boolean>(() => getUserSettings().offlineMode)
+  const [hasCritical, setHasCritical] = useState<boolean>(() => getStoredAnalyses().some(a => a.threatLevel === 'critical'))
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date()
+      setTimeStr(now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+      setDateStr(now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }))
+    }
+    updateTime()
+    const timer = setInterval(updateTime, 1000)
+
+    const handleSettingsUpdate = () => {
+      setIsOffline(getUserSettings().offlineMode)
+    }
+    const handleAnalysesUpdate = () => {
+      setHasCritical(getStoredAnalyses().some(a => a.threatLevel === 'critical'))
+    }
+
+    window.addEventListener('narada:settings-updated', handleSettingsUpdate)
+    window.addEventListener('narada:analyses-updated', handleAnalysesUpdate)
+
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('narada:settings-updated', handleSettingsUpdate)
+      window.removeEventListener('narada:analyses-updated', handleAnalysesUpdate)
+    }
+  }, [])
 
   return (
-    <div className="topbar">
+    <div className="topbar no-print">
       <div className="topbar-title">{title}</div>
       <div className="topbar-actions">
-        <span className="topbar-badge badge-offline">◉ OFFLINE MODE</span>
+        {hasCritical && (
+          <span
+            className="topbar-badge"
+            style={{
+              background: 'rgba(239, 68, 68, 0.2)',
+              color: '#EF4444',
+              border: '1px solid rgba(239, 68, 68, 0.4)',
+              animation: 'pulse-critical 1.5s ease-in-out infinite'
+            }}
+          >
+            ▲ DEFCON 1 ACTIVE
+          </span>
+        )}
+
+        <span className={`topbar-badge ${isOffline ? 'badge-offline' : 'badge-online'}`}>
+          {isOffline ? '◉ OFFLINE AIR-GAPPED' : '● SYSTEM ONLINE'}
+        </span>
+
         <span style={{ 
           fontSize: '11px', 
           fontFamily: 'var(--font-mono)', 
           color: 'var(--text-muted)',
           letterSpacing: '0.5px'
         }}>
-          {dateStr} — {timeStr}
+          {dateStr ? `${dateStr} — ${timeStr} WIB` : 'SIAGA OPERASIONAL'}
         </span>
       </div>
     </div>
