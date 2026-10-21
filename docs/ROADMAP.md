@@ -171,7 +171,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 > **Target Bobot:** `[25% Inovasi Teknis]` + `[25% Fungsionalitas Purwarupa]`  
 > **Tujuan:** Membangun antarmuka utama penerimaan data dari 4 saluran nyata: URL berita/medsos, Screenshot medsos (Neural OCR offline), Teks mentah, dan Batch file CSV/TXT.
 
-- [ ] **STEP 2.1: Neural OCR Extraction Module (`OCRUploader.tsx`)** `[25% Inovasi Teknis]`
+- [x] **STEP 2.1: Neural OCR Extraction Module (`OCRUploader.tsx`)** `[25% Inovasi Teknis]`
   - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L61-L96)
   - **Action:** Buat `src/components/OCRUploader.tsx`:
     - Drag & drop area screenshot postingan medsos (X/Twitter, Instagram, FB, WhatsApp chat)
@@ -180,7 +180,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Tampilan side-by-side preview gambar dan textarea hasil ekstraksi yang bisa dikoreksi/diedit analis
   - **DoD:** Gambar teks postingan medsos terbaca dengan akurasi tinggi dan teksnya dapat diedit sebelum dianalisis.
 
-- [ ] **STEP 2.2: Web Article & Social URL Extractor (`URLInput.tsx`)** `[25% Inovasi Teknis]`
+- [x] **STEP 2.2: Web Article & Social URL Extractor (`URLInput.tsx`)** `[25% Inovasi Teknis]`
   - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L14-L60)
   - **Action:** Buat `src/components/URLInput.tsx`:
     - Input URL berita / link posting publik dengan validasi regex
@@ -188,7 +188,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Ekstraksi judul, nama media, penulis, tanggal rilis, dan teks artikel inti via `@mozilla/readability`
   - **DoD:** Analis cukup paste link berita, NARADA otomatis mengambil artikel dan mengisinya ke area analisis.
 
-- [ ] **STEP 2.3: Batch Comment / Post File Analyzer (`BatchUploader.tsx`)** `[25% Relevansi & Manfaat]`
+- [x] **STEP 2.3: Batch Comment / Post File Analyzer (`BatchUploader.tsx`)** `[25% Relevansi & Manfaat]`
   - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L119-L140)
   - **Action:** Buat `src/components/BatchUploader.tsx`:
     - Upload file `.csv` atau `.txt` berisi puluhan baris narasi/komentar netizen
@@ -196,7 +196,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Rangkuman statistik batch (e.g. "Dari 50 komentar dianalisis: 32 Terindikasi Buzzer, 10 Hoaks, 8 Netral")
   - **DoD:** File CSV komentar medsos terproses cepat dan tersimpan dalam sesi.
 
-- [ ] **STEP 2.4: Tactical Result Card & Fact-Check Panel (`AnalysisResultCard.tsx`)** `[25% Purwarupa]`
+- [x] **STEP 2.4: Tactical Result Card & Fact-Check Panel (`AnalysisResultCard.tsx`)** `[25% Purwarupa]`
   - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L155-L163), [PRD_03_fact_checker.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_03_fact_checker.md#L86-L107)
   - **Action:** Buat `src/components/AnalysisResultCard.tsx` dan `src/components/FactCheckPanel.tsx`:
     - Visual badge tingkat ancaman: `CRITICAL` (Merah), `HIGH` (Oranye), `MEDIUM` (Kuning), `LOW` (Hijau)
@@ -206,7 +206,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Tombol cepat "Kirim ke Nexus Graph" dan "Tambahkan ke Laporan Intelijen"
   - **DoD:** Panel hasil analisis menyajikan intelijen yang padat, jelas, dan siap aksi.
 
-- [ ] **STEP 2.5: Main `Analyzer.tsx` Page & Tab Controller** `[25% Purwarupa]`
+- [x] **STEP 2.5: Main `Analyzer.tsx` Page & Tab Controller** `[25% Purwarupa]`
   - **Ref:** [PRD_01_analyzer.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_01_analyzer.md#L142-L172)
   - **Action:**
     - Buat `src/pages/Analyzer.tsx` (menggantikan halaman Classifier lama yang belum v2)
@@ -215,12 +215,12 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Tambahkan drawer riwayat analisis pada sisi bawah/samping
   - **DoD:** Halaman Analyzer berfungsi penuh untuk semua mode input tanpa error.
 
-- [ ] **MILESTONE 2 TESTING & AUDIT:**
-  - [ ] Uji input URL berita online.
-  - [ ] Uji upload gambar screenshot medsos via OCR.
-  - [ ] Uji input teks manual hoaks & teks netral.
-  - [ ] Uji batch upload file CSV.
-  - [ ] Commit: `[FEAT] complete multi-input analyzer page with OCR and fact check display` & git push.
+- [x] **MILESTONE 2 TESTING & AUDIT:**
+  - [x] Uji input URL berita online.
+  - [x] Uji upload gambar screenshot medsos via OCR.
+  - [x] Uji input teks manual hoaks & teks netral.
+  - [x] Uji batch upload file CSV.
+  - [x] Commit: `[FEAT] complete multi-input analyzer page with OCR and fact check display` & git push.
 
 ---
 
@@ -392,11 +392,11 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 |------|---------------------------|------------|---------|--------|
 | **Phase 0: Foundations** | Kelayakan (15%) + Relevansi (25%) | 4 | 4 | ✅ COMPLETED |
 | **Phase 1: Hybrid AI & Fact-Check** | Inovasi Teknis (25%) + Purwarupa (25%) | 7 | 7 | ✅ COMPLETED |
-| **Phase 2: Multi-Input Analyzer** | Inovasi (25%) + Purwarupa (25%) | 5 | 0 | 🟡 IN PROGRESS |
-| **Phase 3: Operational Suite** | Relevansi (25%) + Purwarupa (25%) | 5 | 0 | ⏳ QUEUED |
+| **Phase 2: Multi-Input Analyzer** | Inovasi (25%) + Purwarupa (25%) | 5 | 5 | ✅ COMPLETED |
+| **Phase 3: Operational Suite** | Relevansi (25%) + Purwarupa (25%) | 5 | 0 | 🟡 IN PROGRESS |
 | **Phase 4: Desktop Shell** | Kelayakan Implementasi (15%) | 4 | 0 | ⏳ QUEUED |
 | **Phase 5: Polish & Deliverables** | Dokumentasi (10%) + All-Round | 6 | 0 | ⏳ QUEUED |
-| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **11/31** | **35% PROGRESS** |
+| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **16/31** | **52% PROGRESS** |
 
 ---
 
