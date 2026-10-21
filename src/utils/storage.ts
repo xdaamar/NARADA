@@ -1,4 +1,5 @@
 import type { AnalysisResult, UserSettings } from '../types'
+import { calculatePsychologyVectors } from '../engine/psychology'
 
 // ─── Storage Keys ───
 export const STORAGE_KEYS = {
@@ -261,12 +262,27 @@ export function seedDemoAnalyses(): AnalysisResult[] {
     },
   ]
 
+  const enhancedItems = demoItems.map((item, idx) => {
+    const hashes = [
+      '7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069',
+      'a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e',
+      'c8b52f36f6d2f317b6299b9cf90b411d7f1d46e16f3933c0ff87d1000632a939',
+      '4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce',
+      '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
+    ]
+    return {
+      ...item,
+      psychology: calculatePsychologyVectors(item.rawContent),
+      forensicHash: hashes[idx] || hashes[0]
+    }
+  })
+
   try {
-    sessionStorage.setItem(STORAGE_KEYS.ANALYSES, JSON.stringify(demoItems))
-    window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: demoItems }))
+    sessionStorage.setItem(STORAGE_KEYS.ANALYSES, JSON.stringify(enhancedItems))
+    window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: enhancedItems }))
   } catch (err) {
     console.error('[NARADA Storage] Gagal men-seed demo analyses:', err)
   }
 
-  return demoItems
+  return enhancedItems
 }

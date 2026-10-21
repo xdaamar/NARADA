@@ -5,6 +5,7 @@ import type { AnalysisResult, ContentCategory, InputSourceType, ThreatLevel } fr
 import { predictNaiveBayes } from './ml/naive-bayes'
 import { analyzeWithRules } from './classifier'
 import { getUserSettings } from '../utils/storage'
+import { calculatePsychologyVectors } from './psychology'
 
 const CATEGORIES: ContentCategory[] = ['HOAKS', 'PROPAGANDA', 'BUZZER', 'DISINFORMASI', 'NETRAL']
 
@@ -131,6 +132,7 @@ export function analyzeHybrid(text: string, options: HybridOptions = {}): Analys
   const ruleScore = ruleResult.categoryScores[winnerCategory] || 0
   const threatLevel = calculateFinalThreatLevel(winnerCategory, confidence, ruleResult.riskLevel)
   const recommendation = generateTacticalRecommendation(winnerCategory, threatLevel)
+  const psychology = calculatePsychologyVectors(trimmed)
 
   const scores = CATEGORIES.map(cat => ({
     label: cat,
@@ -155,6 +157,7 @@ export function analyzeHybrid(text: string, options: HybridOptions = {}): Analys
     keywords: ruleResult.matchedKeywords,
     targetedEntities: ruleResult.targetedEntities,
     recommendation,
+    psychology,
   }
 }
 

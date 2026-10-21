@@ -60,6 +60,13 @@ export interface FactCheckResult {
 }
 
 // ─── AI & ML Engine Types ───
+export interface CognitivePsychologyVectors {
+  rageBaitIndex: number       // 0 - 100: Tingkat agitasi emosi & provokasi kemarahan massa
+  artificialUrgency: number   // 0 - 100: Manipulasi kepanikan ("sebar cepat", "darurat", "sebelum dihapus")
+  socialCleavage: number      // 0 - 100: Polarisasi horizontal/vertikal (SARA, rakyat vs aparat, separatisme)
+  primaryEmotion: 'ANGER' | 'FEAR' | 'CONFUSION' | 'URGENCY' | 'NEUTRAL'
+}
+
 export interface MLPrediction {
   category: ContentCategory
   probabilities: Record<ContentCategory, number>
@@ -98,6 +105,8 @@ export interface AnalysisResult {
   targetedEntities: string[]
   recommendation: string
   factCheck?: FactCheckResult
+  psychology?: CognitivePsychologyVectors
+  forensicHash?: string
 }
 
 // ─── Legacy / Backward-Compatible Aliases ───
