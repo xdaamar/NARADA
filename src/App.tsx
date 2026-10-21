@@ -10,7 +10,7 @@ import {
   Activity
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
-import Classifier from './pages/Classifier'
+import Analyzer from './pages/Analyzer'
 import Profiler from './pages/Profiler'
 import Nexus from './pages/Nexus'
 import Reports from './pages/Reports'
@@ -19,7 +19,7 @@ import SettingsPage from './pages/SettingsPage'
 // ─── Nav Items Config ───
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { to: '/classifier', icon: ScanText, label: 'Classifier' },
+  { to: '/analyzer', icon: ScanText, label: 'Multi-Input Analyzer' },
   { to: '/profiler', icon: UserSearch, label: 'Profiler' },
   { to: '/nexus', icon: Network, label: 'Nexus Graph' },
   { to: '/reports', icon: FileText, label: 'Intel Report' },
@@ -98,7 +98,8 @@ function Sidebar() {
 // ─── Page Title Map ───
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Situational Awareness',
-  '/classifier': 'NARADA Classifier — Analisis Konten',
+  '/analyzer': 'NARADA Multi-Input Analyzer — Sensory Suite',
+  '/classifier': 'NARADA Multi-Input Analyzer — Sensory Suite',
   '/profiler': 'NARADA Profiler — Deteksi Bot & Buzzer',
   '/nexus': 'NARADA Nexus — Peta Jaringan Narasi',
   '/reports': 'NARADA Intel Report — Laporan Intelijen',
@@ -142,7 +143,8 @@ function AppShell() {
         <div className="page-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
-            <Route path="/classifier" element={<Classifier />} />
+            <Route path="/analyzer" element={<Analyzer />} />
+            <Route path="/classifier" element={<Analyzer />} />
             <Route path="/profiler" element={<Profiler />} />
             <Route path="/nexus" element={<Nexus />} />
             <Route path="/reports" element={<Reports />} />
