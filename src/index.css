@@ -874,3 +874,48 @@ textarea.form-control {
 
 .w-full { width: 100%; }
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ─── Print Styles for Military Intel Report ─── */
+@media print {
+  /* Sembunyikan chrome antarmuka aplikasi */
+  .sidebar,
+  .topbar,
+  .hex-bg,
+  .app-layout::before,
+  .report-config-panel,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset layout utama */
+  html, body, #root, .app-layout, .main-content, .page-content {
+    height: auto !important;
+    overflow: visible !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Tampilkan hanya kontainer dokumen militer */
+  #military-report-document {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 15mm 20mm !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #FFFFFF !important;
+    color: #111827 !important;
+    font-size: 11pt !important;
+  }
+
+  #military-report-document table {
+    page-break-inside: auto;
+  }
+
+  #military-report-document tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+}

@@ -1,309 +1,676 @@
-import { useState } from 'react'
-import { FileText, Download, AlertTriangle } from 'lucide-react'
-import type { AnalysisResult } from '../types'
+import { useState, useEffect, useMemo } from 'react'
+import {
+  Printer,
+  RotateCcw,
+  Sparkles,
+  Sliders,
+  CheckSquare,
+  Square,
+  Building,
+  User,
+  Hash,
+  Award
+} from 'lucide-react'
+import type { AnalysisResult, IntelReportConfig, ReportClassification } from '../types'
+import { getStoredAnalyses, getUserSettings, seedDemoAnalyses } from '../utils/storage'
+import { formatMilitaryDate, truncateText } from '../utils/format'
 
-// ─── Get stored analyses ───
-function getStoredAnalyses(): AnalysisResult[] {
-  try { return JSON.parse(sessionStorage.getItem('narada_analyses') || '[]') } catch { return [] }
-}
-
-// ─── Report Config ───
-interface ReportConfig {
-  unit: string
-  analyst: string
-  classification: string
-  includeHistory: boolean
-  reportNumber: string
-}
-
-// ─── Report Preview Component ───
-function ReportPreview({ config, analyses }: { config: ReportConfig; analyses: AnalysisResult[] }) {
-  const now = new Date()
-  const threats = analyses.filter(a => a.category !== 'NETRAL')
-  const criticals = threats.filter(a => a.threatLevel === 'critical')
-  const highs = threats.filter(a => a.threatLevel === 'high')
-
-  const getRecommendedAction = () => {
-    if (criticals.length > 0) return 'ESKALASI SEGERA — Koordinasi dengan BSSN dan pimpinan satuan.'
-    if (highs.length > 0) return 'TINGKATKAN PEMANTAUAN — Siapkan counter-narrative dan lapor ke pimpinan.'
-    if (threats.length > 0) return 'MONITOR BERKELANJUTAN — Dokumentasi dan analisis lanjutan diperlukan.'
-    return 'TIDAK ADA TINDAKAN KHUSUS — Lanjutkan pemantauan rutin.'
-  }
-
-  return (
-    <div id="report-preview" style={{
-      background: 'white', color: '#1a1a2e', padding: '40px',
-      fontFamily: '"Inter", sans-serif', fontSize: '12px', lineHeight: '1.6',
-      minHeight: '800px', borderRadius: '8px',
-    }}>
-      {/* Header */}
-      <div style={{ borderBottom: '3px solid #C8102E', paddingBottom: '16px', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: '10px', letterSpacing: '2px', color: '#666', marginBottom: '4px' }}>
-              TENTARA NASIONAL INDONESIA — ANGKATAN DARAT
-            </div>
-            <div style={{ fontSize: '22px', fontWeight: '900', color: '#C8102E', letterSpacing: '3px', fontFamily: '"Rajdhani", sans-serif' }}>
-              NARADA
-            </div>
-            <div style={{ fontSize: '11px', color: '#444', letterSpacing: '1px' }}>
-              LAPORAN INTELIJEN ANCAMAN KOGNITIF
-            </div>
-          </div>
-          <div style={{ textAlign: 'right', fontSize: '10px', color: '#666' }}>
-            <div style={{ fontWeight: '700', marginBottom: '2px', color: '#1a1a2e' }}>
-              No. {config.reportNumber || 'NRD-2026-001'}
-            </div>
-            <div>{now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-            <div style={{ 
-              marginTop: '4px', padding: '2px 8px', 
-              background: config.classification === 'RAHASIA' ? '#C8102E' : '#F59E0B',
-              color: 'white', borderRadius: '3px', fontSize: '9px', fontWeight: '700', letterSpacing: '1px'
-            }}>
-              {config.classification}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Identitas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '20px', fontSize: '11px' }}>
-        {[
-          { label: 'Satuan', value: config.unit || 'PUSSIBERAD TNI AD' },
-          { label: 'Analis', value: config.analyst || 'Analis Siber' },
-          { label: 'Sistem Analisis', value: 'NARADA AI Engine v1.0' },
-          { label: 'Waktu Analisis', value: now.toLocaleTimeString('id-ID') },
-        ].map(item => (
-          <div key={item.label} style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ color: '#666', width: '120px', flexShrink: 0 }}>{item.label}:</span>
-            <span style={{ fontWeight: '600' }}>{item.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Ringkasan Eksekutif */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ 
-          fontSize: '11px', fontWeight: '800', letterSpacing: '2px', 
-          color: '#C8102E', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px'
-        }}>
-          I. RINGKASAN EKSEKUTIF
-        </div>
-        <p style={{ color: '#333', lineHeight: '1.8' }}>
-          Berdasarkan analisis NARADA AI Engine terhadap <strong>{analyses.length} konten</strong> yang disubmit 
-          pada sesi ini, ditemukan <strong>{threats.length} konten terindikasi ancaman kognitif</strong>{' '}
-          ({criticals.length} kritis, {highs.length} tinggi). 
-          {threats.length > 0 
-            ? ` Ancaman yang terdeteksi mencakup ${[...new Set(threats.map(t => t.category))].join(', ')}.`
-            : ' Tidak ditemukan ancaman kognitif signifikan pada sesi ini.'}
-        </p>
-      </div>
-
-      {/* Statistik */}
-      <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '2px', color: '#C8102E', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>
-          II. STATISTIK ANALISIS
-        </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-          <thead>
-            <tr style={{ background: '#f5f5f5' }}>
-              {['Kategori', 'Jumlah', 'Persentase', 'Level Dominan'].map(h => (
-                <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: '700', color: '#333' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {(['HOAKS', 'PROPAGANDA', 'BUZZER', 'DISINFORMASI', 'NETRAL'] as const).map(cat => {
-              const count = analyses.filter(a => a.category === cat).length
-              const pct = analyses.length > 0 ? ((count / analyses.length) * 100).toFixed(0) : '0'
-              const catThreats = analyses.filter(a => a.category === cat)
-              const levels = catThreats.map(t => t.threatLevel)
-              const dominant = levels.includes('critical') ? 'CRITICAL' : levels.includes('high') ? 'HIGH' : levels.includes('medium') ? 'MEDIUM' : count > 0 ? 'LOW' : '-'
-              return (
-                <tr key={cat} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '6px 10px', fontWeight: '600' }}>{cat}</td>
-                  <td style={{ padding: '6px 10px' }}>{count}</td>
-                  <td style={{ padding: '6px 10px' }}>{pct}%</td>
-                  <td style={{ padding: '6px 10px', color: dominant === 'CRITICAL' ? '#C8102E' : dominant === 'HIGH' ? '#F97316' : '#333' }}>
-                    {dominant}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Detail Temuan */}
-      {config.includeHistory && threats.length > 0 && (
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '2px', color: '#C8102E', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>
-            III. DETAIL TEMUAN ANCAMAN
-          </div>
-          {threats.slice(0, 5).map((t, i) => (
-            <div key={t.id} style={{ marginBottom: '14px', padding: '10px', background: '#f9f9f9', borderLeft: '3px solid #C8102E', borderRadius: '0 4px 4px 0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ fontWeight: '700', fontSize: '11px' }}>[{i + 1}] Kategori: {t.category}</span>
-                <span style={{ fontSize: '10px', color: '#666' }}>{new Date(t.timestamp).toLocaleString('id-ID')}</span>
-              </div>
-              <div style={{ marginBottom: '4px', fontSize: '11px', color: '#444' }}>
-                <strong>Level Ancaman:</strong> {t.threatLevel.toUpperCase()} | <strong>Confidence:</strong> {t.confidence}%
-              </div>
-              <div style={{ fontSize: '11px', color: '#555', marginBottom: '6px' }}>
-                <strong>Konten:</strong> "{t.input.substring(0, 100)}{t.input.length > 100 ? '...' : ''}"
-              </div>
-              <div style={{ fontSize: '11px', color: '#444' }}>
-                <strong>Rekomendasi:</strong> {t.recommendation}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Rekomendasi */}
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '2px', color: '#C8102E', marginBottom: '8px', borderBottom: '1px solid #eee', paddingBottom: '4px' }}>
-          {config.includeHistory ? 'IV' : 'III'}. REKOMENDASI TINDAKAN
-        </div>
-        <div style={{ padding: '12px', background: criticals.length > 0 ? '#fef2f2' : '#f0fdf4', border: `1px solid ${criticals.length > 0 ? '#fecaca' : '#bbf7d0'}`, borderRadius: '4px' }}>
-          <p style={{ fontWeight: '600', color: criticals.length > 0 ? '#C8102E' : '#15803d', marginBottom: '4px' }}>
-            {getRecommendedAction()}
-          </p>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div style={{ borderTop: '2px solid #eee', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#999' }}>
-        <span>Laporan dibuat otomatis oleh NARADA AI Engine v1.0 | {now.toLocaleString('id-ID')}</span>
-        <span>Halaman 1 dari 1 | Klasifikasi: {config.classification}</span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Reports Page ───
 export default function Reports() {
-  const [analyses] = useState<AnalysisResult[]>(getStoredAnalyses)
-  const [config, setConfig] = useState<ReportConfig>({
-    unit: 'PUSSIBERAD TNI AD',
-    analyst: '',
-    classification: 'TERBATAS',
-    includeHistory: true,
-    reportNumber: `NRD-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')}`,
+  const [analyses, setAnalyses] = useState<AnalysisResult[]>(() => getStoredAnalyses())
+  const userSettings = useMemo(() => getUserSettings(), [])
+
+  // Auto-generate nomor laporan standar dinas militer
+  const generatedReportNumber = useMemo(() => {
+    const year = 2026
+    const monthsRomawi = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
+    const month = monthsRomawi[9] // Oktober = X
+    return `NRD-LAP/KOGNITIF/${year}/${month}/001`
+  }, [])
+
+  const [config, setConfig] = useState<IntelReportConfig>({
+    unitName: userSettings.defaultUnit || 'PUSSIBERAD TNI AD',
+    analystName: userSettings.analystName || 'Sertu Damar / Analis Madya',
+    analystNrp: userSettings.analystNrp || '21260408',
+    reportNumber: generatedReportNumber,
+    classification: 'RAHASIA',
+    date: '21 Oktober 2026',
+    includeFindingsDetail: true,
+    includeFactCheck: true,
+    includeRecommendations: true,
   })
-  const [isPrinting, setIsPrinting] = useState(false)
+
+  // Sinkronisasi data analisis
+  useEffect(() => {
+    const handleUpdate = () => {
+      setAnalyses(getStoredAnalyses())
+    }
+    window.addEventListener('narada:analyses-updated', handleUpdate)
+    return () => window.removeEventListener('narada:analyses-updated', handleUpdate)
+  }, [])
+
+  // Perhitungan metrik laporan
+  const totalAnalyses = analyses.length
+  const threats = useMemo(() => analyses.filter(a => a.category !== 'NETRAL'), [analyses])
+  const criticals = useMemo(() => analyses.filter(a => a.threatLevel === 'critical'), [analyses])
+  const highs = useMemo(() => analyses.filter(a => a.threatLevel === 'high'), [analyses])
+  const mediums = useMemo(() => analyses.filter(a => a.threatLevel === 'medium'), [analyses])
+
+  // Rekapitulasi per kategori
+  const categoryStats = useMemo(() => {
+    const cats = ['HOAKS', 'PROPAGANDA', 'BUZZER', 'DISINFORMASI', 'NETRAL'] as const
+    return cats.map(cat => {
+      const matched = analyses.filter(a => a.category === cat)
+      const count = matched.length
+      const pct = totalAnalyses > 0 ? Math.round((count / totalAnalyses) * 100) : 0
+      const avgMl = count > 0 ? Math.round(matched.reduce((acc, c) => acc + c.mlScore, 0) / count) : 0
+      return {
+        category: cat,
+        count,
+        pct,
+        avgMl,
+        severity: cat === 'HOAKS' || cat === 'PROPAGANDA' ? 'TINGGI / KRITIS' : cat === 'BUZZER' ? 'SEDANG / KOORDINASI' : cat === 'DISINFORMASI' ? 'SEDANG' : 'RENDAH (AMAN)'
+      }
+    })
+  }, [analyses, totalAnalyses])
+
+  // Temuan dengan Cek Fakta
+  const factCheckedItems = useMemo(() => {
+    return analyses.filter(a => a.factCheck && a.factCheck.claims && a.factCheck.claims.length > 0)
+  }, [analyses])
 
   const handlePrint = () => {
-    setIsPrinting(true)
-    setTimeout(() => {
-      window.print()
-      setIsPrinting(false)
-    }, 300)
+    window.print()
+  }
+
+  const handleSeedDemo = () => {
+    seedDemoAnalyses()
+  }
+
+  const handleResetConfig = () => {
+    setConfig({
+      unitName: 'PUSSIBERAD TNI AD',
+      analystName: 'Sertu Damar / Analis Madya',
+      analystNrp: '21260408',
+      reportNumber: generatedReportNumber,
+      classification: 'RAHASIA',
+      date: '21 Oktober 2026',
+      includeFindingsDetail: true,
+      includeFactCheck: true,
+      includeRecommendations: true,
+    })
   }
 
   return (
-    <div className="fade-in">
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '24px', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '6px' }}>
-          NARADA Intel Report
+    <div className="fade-in" style={{ paddingBottom: '32px' }}>
+      {/* ─── Header Operasional ─── */}
+      <div className="no-print" style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <span style={{
+            fontSize: '10px',
+            fontFamily: 'var(--font-mono)',
+            padding: '2px 8px',
+            borderRadius: '3px',
+            background: 'var(--narada-red-subtle)',
+            color: 'var(--narada-red)',
+            border: '1px solid rgba(200, 16, 46, 0.3)',
+            letterSpacing: '1.5px',
+            textTransform: 'uppercase'
+          }}>
+            INTELLIGENCE REPORT GENERATOR
+          </span>
+          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+            FORMAT DOKUMEN DINAS MILITER TNI AD
+          </span>
+        </div>
+
+        <h1 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '24px',
+          fontWeight: '800',
+          letterSpacing: '2px',
+          textTransform: 'uppercase',
+          color: 'var(--text-primary)'
+        }}>
+          Laporan Intelijen Ancaman Kognitif & Siber
         </h1>
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Generate laporan intelijen ancaman kognitif — siap cetak dan dilaporkan ke pimpinan
+          Penyusunan berkas produk intelijen resmi standar militer siap cetak dan siap dilaporkan ke pimpinan komando.
         </p>
       </div>
 
-      {analyses.length === 0 && (
-        <div className="alert-banner alert-warning mb-4">
-          <AlertTriangle size={16} />
-          <span>Belum ada data analisis. Jalankan analisis di modul <strong>Classifier</strong> terlebih dahulu untuk mengisi laporan dengan data nyata.</span>
-        </div>
-      )}
-
-      <div className="grid-2" style={{ gridTemplateColumns: '320px 1fr', alignItems: 'start', gap: '20px' }}>
-        {/* Config Panel */}
-        <div>
-          <div className="card">
+      {/* ─── Layout 2 Kolom: Kiri Panel Konfigurasi, Kanan Pratinjau Kertas Resmi ─── */}
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+        {/* ─── KOLOM KIRI: Panel Konfigurasi Laporan (Disembunyikan saat cetak) ─── */}
+        <div className="report-config-panel no-print" style={{ width: '340px', flexShrink: 0 }}>
+          <div className="card" style={{ marginBottom: '16px' }}>
             <div className="card-header">
-              <div className="card-title">
-                <FileText size={12} style={{ display: 'inline', marginRight: '6px' }} />
-                Konfigurasi Laporan
+              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sliders size={13} color="var(--narada-red)" />
+                KONFIGURASI PRODUK INTELIJEN
               </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={handleResetConfig}
+                title="Atur Ulang Pengaturan Default"
+              >
+                <RotateCcw size={12} />
+              </button>
             </div>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Nama Satuan */}
               <div className="form-group">
-                <label className="form-label" htmlFor="unit">Nama Satuan</label>
-                <input id="unit" className="form-control" value={config.unit} onChange={e => setConfig(p => ({ ...p, unit: e.target.value }))} />
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Building size={11} /> NAMA SATUAN / KOTAMA
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={config.unitName}
+                  onChange={e => setConfig({ ...config, unitName: e.target.value })}
+                />
               </div>
+
+              {/* Nama Analis & NRP */}
               <div className="form-group">
-                <label className="form-label" htmlFor="analyst">Nama Analis</label>
-                <input id="analyst" className="form-control" placeholder="Nama lengkap dan pangkat" value={config.analyst} onChange={e => setConfig(p => ({ ...p, analyst: e.target.value }))} />
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <User size={11} /> NAMA ANALIS & PANGKAT
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={config.analystName}
+                  onChange={e => setConfig({ ...config, analystName: e.target.value })}
+                />
               </div>
+
               <div className="form-group">
-                <label className="form-label" htmlFor="report-num">Nomor Laporan</label>
-                <input id="report-num" className="form-control" value={config.reportNumber} onChange={e => setConfig(p => ({ ...p, reportNumber: e.target.value }))} />
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Award size={11} /> NRP / NIP ANALIS
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={config.analystNrp || ''}
+                  onChange={e => setConfig({ ...config, analystNrp: e.target.value })}
+                />
               </div>
+
+              {/* Nomor Laporan */}
               <div className="form-group">
-                <label className="form-label" htmlFor="classification">Klasifikasi</label>
-                <select id="classification" className="form-control" value={config.classification} onChange={e => setConfig(p => ({ ...p, classification: e.target.value }))}>
-                  <option>TERBATAS</option>
-                  <option>RAHASIA</option>
-                  <option>SANGAT RAHASIA</option>
-                  <option>BIASA</option>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Hash size={11} /> NOMOR LAPORAN DINAS
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={config.reportNumber}
+                  onChange={e => setConfig({ ...config, reportNumber: e.target.value })}
+                />
+              </div>
+
+              {/* Klasifikasi Keamanan */}
+              <div className="form-group">
+                <label className="form-label">KLASIFIKASI KEAMANAN</label>
+                <select
+                  className="form-control"
+                  value={config.classification}
+                  onChange={e => setConfig({ ...config, classification: e.target.value as ReportClassification })}
+                  style={{ background: 'var(--bg-elevated)', cursor: 'pointer' }}
+                >
+                  <option value="RAHASIA">RAHASIA (Merah Militer)</option>
+                  <option value="TERBATAS">TERBATAS (Kuning/Oranye)</option>
+                  <option value="BIASA">BIASA (Netral)</option>
                 </select>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+              {/* Tanggal Laporan */}
+              <div className="form-group">
+                <label className="form-label">TANGGAL LAPORAN</label>
                 <input
-                  type="checkbox"
-                  id="include-history"
-                  checked={config.includeHistory}
-                  onChange={e => setConfig(p => ({ ...p, includeHistory: e.target.checked }))}
-                  style={{ width: '16px', height: '16px', accentColor: 'var(--narada-red)' }}
+                  type="text"
+                  className="form-control"
+                  value={config.date}
+                  onChange={e => setConfig({ ...config, date: e.target.value })}
                 />
-                <label htmlFor="include-history" style={{ fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                  Sertakan detail temuan ancaman
-                </label>
               </div>
 
-              <div className="divider" />
+              {/* Pilihan Komponen Laporan (Checkboxes) */}
+              <div style={{
+                padding: '12px',
+                background: 'var(--bg-elevated)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--bg-border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  BAGIAN DOKUMEN YANG DISERTAKAN:
+                </div>
 
-              <button className="btn btn-primary" onClick={handlePrint} disabled={isPrinting}>
-                <Download size={14} />
-                {isPrinting ? 'Menyiapkan...' : 'Cetak / Export PDF'}
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}
+                  onClick={() => setConfig({ ...config, includeFindingsDetail: !config.includeFindingsDetail })}
+                >
+                  {config.includeFindingsDetail ? <CheckSquare size={14} color="var(--narada-red)" /> : <Square size={14} color="var(--text-muted)" />}
+                  <span>Matriks Bukti Digital & Temuan</span>
+                </div>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}
+                  onClick={() => setConfig({ ...config, includeFactCheck: !config.includeFactCheck })}
+                >
+                  {config.includeFactCheck ? <CheckSquare size={14} color="var(--narada-red)" /> : <Square size={14} color="var(--text-muted)" />}
+                  <span>Lembar Verifikasi Fakta (Mafindo)</span>
+                </div>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}
+                  onClick={() => setConfig({ ...config, includeRecommendations: !config.includeRecommendations })}
+                >
+                  {config.includeRecommendations ? <CheckSquare size={14} color="var(--narada-red)" /> : <Square size={14} color="var(--text-muted)" />}
+                  <span>Rekomendasi Respons Komando</span>
+                </div>
+              </div>
+
+              {/* Tombol Cetak / PDF */}
+              <button
+                type="button"
+                className="btn btn-primary btn-lg"
+                onClick={handlePrint}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <Printer size={16} />
+                Cetak / Simpan PDF Resmi
               </button>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="card" style={{ marginTop: '16px' }}>
-            <div className="card-header">
-              <div className="card-title">Data Laporan</div>
+          {/* Banner Sampel Demo jika data kosong */}
+          {totalAnalyses === 0 && (
+            <div className="card" style={{ padding: '14px', background: 'var(--bg-elevated)', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                Belum ada data analisis pada sesi ini.
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleSeedDemo}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <Sparkles size={12} color="#EF4444" /> Muat Skenario Demo Siap Pantau
+              </button>
             </div>
-            <div className="card-body">
-              {[
-                { label: 'Total Analisis', value: analyses.length },
-                { label: 'Ancaman Terdeteksi', value: analyses.filter(a => a.category !== 'NETRAL').length },
-                { label: 'Level Kritis', value: analyses.filter(a => a.threatLevel === 'critical').length },
-              ].map(s => (
-                <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--bg-border)' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{s.label}</span>
-                  <span style={{ fontSize: '16px', fontFamily: 'var(--font-display)', fontWeight: '700' }}>{s.value}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Preview */}
-        <div>
-          <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', letterSpacing: '1.5px', color: 'var(--text-muted)' }}>
-              PREVIEW LAPORAN
+        {/* ─── KOLOM KANAN: LIVE DOCUMENT PREVIEW (Kertas Putih Standar Militer) ─── */}
+        <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
+          <div
+            id="military-report-document"
+            style={{
+              background: '#FFFFFF',
+              color: '#111827',
+              padding: '48px 56px',
+              fontFamily: '"Inter", sans-serif',
+              fontSize: '12px',
+              lineHeight: '1.6',
+              borderRadius: 'var(--radius-lg)',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
+              minHeight: '840px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            {/* ─── KOP SURAT RESMI MILITER TNI AD ─── */}
+            <div style={{ borderBottom: '3px solid #C8102E', paddingBottom: '16px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{
+                    fontSize: '11px',
+                    fontFamily: '"Inter", sans-serif',
+                    fontWeight: '800',
+                    letterSpacing: '2px',
+                    color: '#4B5563',
+                    textTransform: 'uppercase'
+                  }}>
+                    TENTARA NASIONAL INDONESIA — ANGKATAN DARAT
+                  </div>
+                  <div style={{
+                    fontSize: '13px',
+                    fontFamily: '"Rajdhani", sans-serif',
+                    fontWeight: '700',
+                    letterSpacing: '1.5px',
+                    color: '#111827',
+                    marginTop: '2px',
+                    textTransform: 'uppercase'
+                  }}>
+                    {config.unitName}
+                  </div>
+                  <div style={{
+                    fontSize: '24px',
+                    fontWeight: '900',
+                    color: '#C8102E',
+                    letterSpacing: '3px',
+                    fontFamily: '"Rajdhani", sans-serif',
+                    lineHeight: '1.2',
+                    marginTop: '4px'
+                  }}>
+                    NARADA INTEL REPORT
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#374151', letterSpacing: '1px', fontWeight: '600' }}>
+                    PRODUK LAPORAN INTELIJEN ANCAMAN KOGNITIF & SIBER SOSIAL
+                  </div>
+                </div>
+
+                {/* Badge Klasifikasi & Nomor */}
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '4px 14px',
+                    background: config.classification === 'RAHASIA' ? '#C8102E' : config.classification === 'TERBATAS' ? '#D97706' : '#2563EB',
+                    color: '#FFFFFF',
+                    borderRadius: '3px',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    letterSpacing: '2px',
+                    marginBottom: '8px'
+                  }}>
+                    {config.classification}
+                  </div>
+                  <div style={{ fontSize: '11px', fontFamily: '"JetBrains Mono", monospace', fontWeight: '700', color: '#111827' }}>
+                    Nomor: {config.reportNumber}
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#6B7280', marginTop: '2px' }}>
+                    Tanggal: {config.date}
+                  </div>
+                </div>
+              </div>
             </div>
-            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-              Update otomatis saat konfigurasi berubah
-            </span>
+
+            {/* ─── TABEL IDENTITAS DOKUMEN ─── */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '6px 20px',
+              padding: '12px 16px',
+              background: '#F9FAFB',
+              border: '1px solid #E5E7EB',
+              borderRadius: '4px',
+              marginBottom: '24px',
+              fontSize: '11px'
+            }}>
+              <div><strong style={{ color: '#4B5563' }}>Satuan Pelapor:</strong> {config.unitName}</div>
+              <div><strong style={{ color: '#4B5563' }}>Klasifikasi:</strong> {config.classification}</div>
+              <div><strong style={{ color: '#4B5563' }}>Analis Intelijen:</strong> {config.analystName} {config.analystNrp ? `(NRP: ${config.analystNrp})` : ''}</div>
+              <div><strong style={{ color: '#4B5563' }}>Engine Pemroses:</strong> NARADA AI Hybrid (TF-IDF + NB 60% / Rules 40%)</div>
+            </div>
+
+            {/* ─── BAGIAN I: RINGKASAN EKSEKUTIF ─── */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: '800',
+                letterSpacing: '1.5px',
+                color: '#C8102E',
+                marginBottom: '8px',
+                borderBottom: '1.5px solid #E5E7EB',
+                paddingBottom: '4px'
+              }}>
+                I. RINGKASAN EKSEKUTIF (EXECUTIVE SUMMARY)
+              </div>
+              <p style={{ color: '#1F2937', lineHeight: '1.8', textAlign: 'justify' }}>
+                Berdasarkan operasi pemantauan dan analisis kognitif pada sesi ini, satuan telah memproses sebanyak{' '}
+                <strong>{totalAnalyses} konten informasi digital</strong> dari berbagai modalitas sumber (URL portal berita, tangkapan layar media sosial, teks langsung, dan berkas batch). Dari total tersebut, terdeteksi{' '}
+                <strong>{threats.length} konten berindikasi ancaman kognitif aktif</strong>, dengan rincian:{' '}
+                <strong style={{ color: '#DC2626' }}>{criticals.length} berstatus Kritis (CRITICAL)</strong>,{' '}
+                <strong style={{ color: '#D97706' }}>{highs.length} berstatus Tinggi (HIGH)</strong>, dan{' '}
+                <strong style={{ color: '#B45309' }}>{mediums.length} berstatus Sedang (MEDIUM)</strong>.
+              </p>
+              {criticals.length > 0 && (
+                <div style={{
+                  marginTop: '10px',
+                  padding: '10px 14px',
+                  background: '#FEF2F2',
+                  borderLeft: '4px solid #DC2626',
+                  color: '#991B1B',
+                  fontSize: '11px',
+                  lineHeight: '1.6'
+                }}>
+                  <strong>PERHATIAN KOMANDO:</strong> Teridentifikasi serangan informasi terstruktur yang menargetkan reputasi pengadaan alutsista serta narasi provokasi separatis wilayah. Disarankan pelibatan counter-narrative resmi Dispenad dan eskalasi koordinasi BSSN.
+                </div>
+              )}
+            </div>
+
+            {/* ─── BAGIAN II: STATISTIK & DISTRIBUSI ANCAMAN ─── */}
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                fontSize: '12px',
+                fontWeight: '800',
+                letterSpacing: '1.5px',
+                color: '#C8102E',
+                marginBottom: '8px',
+                borderBottom: '1.5px solid #E5E7EB',
+                paddingBottom: '4px'
+              }}>
+                II. REKAPITULASI STATISTIK ANCAMAN KOGNITIF
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#F3F4F6', borderBottom: '2px solid #D1D5DB' }}>
+                    <th style={{ padding: '8px 10px', color: '#374151' }}>KATEGORI KOGNITIF</th>
+                    <th style={{ padding: '8px 10px', color: '#374151', textAlign: 'center' }}>JUMLAH KASUS</th>
+                    <th style={{ padding: '8px 10px', color: '#374151', textAlign: 'center' }}>PERSENTASE</th>
+                    <th style={{ padding: '8px 10px', color: '#374151', textAlign: 'center' }}>RATA-RATA ML</th>
+                    <th style={{ padding: '8px 10px', color: '#374151' }}>TINGKAT RISIKO KEAMANAN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categoryStats.map((st, i) => (
+                    <tr key={st.category} style={{ borderBottom: '1px solid #E5E7EB', background: i % 2 === 1 ? '#F9FAFB' : '#FFFFFF' }}>
+                      <td style={{ padding: '8px 10px', fontWeight: '700', color: st.category === 'HOAKS' ? '#DC2626' : st.category === 'PROPAGANDA' ? '#D97706' : '#111827' }}>
+                        {st.category}
+                      </td>
+                      <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: '"JetBrains Mono", monospace' }}>{st.count}</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: '"JetBrains Mono", monospace' }}>{st.pct}%</td>
+                      <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: '"JetBrains Mono", monospace' }}>{st.avgMl}%</td>
+                      <td style={{ padding: '8px 10px', fontSize: '10px', color: '#4B5563' }}>{st.severity}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ─── BAGIAN III: MATRIKS BUKTI DIGITAL & TEMUAN (OPSIONAL) ─── */}
+            {config.includeFindingsDetail && (
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  letterSpacing: '1.5px',
+                  color: '#C8102E',
+                  marginBottom: '8px',
+                  borderBottom: '1.5px solid #E5E7EB',
+                  paddingBottom: '4px'
+                }}>
+                  III. MATRIKS BUKTI DIGITAL & TEMUAN LAPANGAN
+                </div>
+                {threats.length === 0 ? (
+                  <div style={{ padding: '12px', background: '#F9FAFB', border: '1px dashed #D1D5DB', textAlign: 'center', color: '#6B7280', fontSize: '11px' }}>
+                    Tidak ditemukan konten ancaman kognitif dalam sesi ini.
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#F3F4F6', borderBottom: '2px solid #D1D5DB' }}>
+                        <th style={{ padding: '6px 8px', width: '30px' }}>#</th>
+                        <th style={{ padding: '6px 8px', width: '90px' }}>WAKTU / ID</th>
+                        <th style={{ padding: '6px 8px', width: '85px' }}>KATEGORI</th>
+                        <th style={{ padding: '6px 8px' }}>BUKTI NASKAH KONTEN / INDIKATOR</th>
+                        <th style={{ padding: '6px 8px', width: '120px' }}>SASARAN ENTITAS</th>
+                        <th style={{ padding: '6px 8px', width: '60px', textAlign: 'right' }}>KEYAKINAN</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {threats.slice(0, 10).map((t, idx) => (
+                        <tr key={t.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                          <td style={{ padding: '6px 8px', verticalAlign: 'top', color: '#6B7280' }}>{idx + 1}</td>
+                          <td style={{ padding: '6px 8px', verticalAlign: 'top', fontFamily: '"JetBrains Mono", monospace' }}>
+                            {formatMilitaryDate(t.timestamp).split(' ')[0]}<br />
+                            <span style={{ fontSize: '9px', color: '#6B7280' }}>{t.id.split('-').slice(-1)[0]}</span>
+                          </td>
+                          <td style={{ padding: '6px 8px', verticalAlign: 'top', fontWeight: '700' }}>
+                            <span style={{ color: t.threatLevel === 'critical' ? '#DC2626' : t.threatLevel === 'high' ? '#D97706' : '#2563EB' }}>
+                              {t.category}
+                            </span>
+                            <br />
+                            <span style={{ fontSize: '9px', color: '#6B7280' }}>[{t.threatLevel.toUpperCase()}]</span>
+                          </td>
+                          <td style={{ padding: '6px 8px', verticalAlign: 'top', lineHeight: '1.5' }}>
+                            "{truncateText(t.input || t.rawContent, 120)}"
+                            {t.keywords.length > 0 && (
+                              <div style={{ marginTop: '2px', color: '#4B5563', fontSize: '9px' }}>
+                                Kata Kunci: {t.keywords.join(', ')}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ padding: '6px 8px', verticalAlign: 'top', color: '#374151' }}>
+                            {t.targetedEntities && t.targetedEntities.length > 0 ? t.targetedEntities.join(', ') : 'Umum / Publik'}
+                          </td>
+                          <td style={{ padding: '6px 8px', verticalAlign: 'top', textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontWeight: '700' }}>
+                            {t.confidence}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {/* ─── BAGIAN IV: HASIL VERIFIKASI FAKTA (DEBUNKING SHEET) ─── */}
+            {config.includeFactCheck && factCheckedItems.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  letterSpacing: '1.5px',
+                  color: '#C8102E',
+                  marginBottom: '8px',
+                  borderBottom: '1.5px solid #E5E7EB',
+                  paddingBottom: '4px'
+                }}>
+                  IV. HASIL VERIFIKASI FAKTA (DEBUNKING CROSS-REFERENCE SHEET)
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {factCheckedItems.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: '10px 12px',
+                        background: '#F9FAFB',
+                        border: '1px solid #E5E7EB',
+                        borderRadius: '4px',
+                        fontSize: '11px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: '700', color: '#111827' }}>
+                          Klaim Terverifikasi: "{truncateText(item.factCheck?.claims[0]?.claimText || item.input, 90)}"
+                        </span>
+                        <span style={{
+                          fontWeight: '800',
+                          fontSize: '10px',
+                          color: item.factCheck?.claims[0]?.ratingColor || '#DC2626',
+                          border: `1px solid ${item.factCheck?.claims[0]?.ratingColor || '#DC2626'}40`,
+                          padding: '1px 6px',
+                          borderRadius: '2px'
+                        }}>
+                          {item.factCheck?.claims[0]?.rating}
+                        </span>
+                      </div>
+                      <div style={{ color: '#4B5563', fontSize: '10px' }}>
+                        Sumber Debunking: <strong>{item.factCheck?.claims[0]?.publisherName}</strong> ({item.factCheck?.claims[0]?.publisherSite}) ·{' '}
+                        Artikel: {item.factCheck?.claims[0]?.articleTitle}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ─── BAGIAN V: REKOMENDASI TAKTIS KOMANDO ─── */}
+            {config.includeRecommendations && (
+              <div style={{ marginBottom: '32px' }}>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  letterSpacing: '1.5px',
+                  color: '#C8102E',
+                  marginBottom: '8px',
+                  borderBottom: '1.5px solid #E5E7EB',
+                  paddingBottom: '4px'
+                }}>
+                  V. REKOMENDASI TINDAKAN TAKTIS KOMANDO
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', color: '#1F2937', lineHeight: '1.7' }}>
+                  <div>
+                    <strong>1. Penerangan TNI AD (Dispenad):</strong> Segera rilis lembar klarifikasi resmi (press fact sheet) dan siapkan video pendek infografis pembanding untuk menangkal disinformasi alutsista serta manipulasi konteks penugasan wilayah.
+                  </div>
+                  <div>
+                    <strong>2. Asintel / Pussiberad:</strong> Lakukan pelacakan jejak digital simpul awal akun penyebar (seed account) pada Nexus Network Graph serta pantau pola botnet astroturfing yang mengamplifikasi tagar provokatif.
+                  </div>
+                  <div>
+                    <strong>3. Satuan Teritorial Terdampak:</strong> Tingkatkan pendekatan komunikasi sosial (komsos) bersama tokoh masyarakat dan pemuda setempat guna meredam dampak psikologis narasi separatis.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ─── KOLOM TANDA TANGAN DINAS MILITER ─── */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              marginTop: '40px',
+              paddingTop: '16px',
+              borderTop: '1px solid #E5E7EB',
+              fontSize: '11px'
+            }}>
+              <div>
+                <div style={{ color: '#6B7280', marginBottom: '4px' }}>Mengetahui,</div>
+                <div style={{ fontWeight: '700', color: '#111827' }}>Komandan Satgas Intelijen Siber</div>
+                <div style={{ marginTop: '54px', fontWeight: '700', textDecoration: 'underline' }}>
+                  HERLAMBANG, S.I.P., M.Han.
+                </div>
+                <div style={{ color: '#4B5563', fontSize: '10px' }}>Kolonel Inf. NRP 1102003891</div>
+              </div>
+
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ color: '#6B7280', marginBottom: '4px' }}>Jakarta, {config.date}</div>
+                <div style={{ fontWeight: '700', color: '#111827' }}>Analis Intelijen Siber Pelapor</div>
+                <div style={{ marginTop: '54px', fontWeight: '700', textDecoration: 'underline' }}>
+                  {config.analystName.toUpperCase()}
+                </div>
+                <div style={{ color: '#4B5563', fontSize: '10px' }}>NRP. {config.analystNrp || '21260408'}</div>
+              </div>
+            </div>
+
+            {/* Footer Dokumen */}
+            <div style={{
+              marginTop: '28px',
+              paddingTop: '8px',
+              borderTop: '1px solid #F3F4F6',
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '9px',
+              fontFamily: '"JetBrains Mono", monospace',
+              color: '#9CA3AF'
+            }}>
+              <span>PRODUK INTELIJEN OTOMATIS · NARADA v1.0.0</span>
+              <span>KLASIFIKASI: {config.classification} · HALAMAN 1 DARI 1</span>
+            </div>
           </div>
-          <ReportPreview config={config} analyses={analyses} />
         </div>
       </div>
     </div>
