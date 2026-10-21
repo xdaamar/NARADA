@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   ShieldAlert,
   Brain,
@@ -11,10 +13,19 @@ import {
   Scan,
   FileSpreadsheet,
   FileText,
-  ExternalLink
+  ExternalLink,
+  Copy,
+  Check,
+  Flame,
+  Zap,
+  Users2,
+  FileDown,
+  UserSearch,
+  Radio
 } from 'lucide-react'
 import type { AnalysisResult } from '../types'
 import { getThreatBadge, getCategoryBadge, formatMilitaryDate } from '../utils/format'
+import { generateSHA256 } from '../utils/crypto'
 
 interface AnalysisResultCardProps {
   result: AnalysisResult
@@ -72,9 +83,188 @@ function HighlightedContent({
   )
 }
 
+// ─── Generator Draf Kontranarasi Taktis Dispenad ───
+interface CounterNarrativeVariants {
+  pressRelease: string
+  babinsaWa: string
+  socialMedia: string
+}
+
+function generateCounterNarrative(result: AnalysisResult): CounterNarrativeVariants {
+  const rawText = result.input || result.rawContent || ''
+  const contentSnippet = rawText.length > 100 ? rawText.slice(0, 100).trim() + '...' : rawText
+  const entityStr = result.targetedEntities && result.targetedEntities.length > 0
+    ? result.targetedEntities.join(', ')
+    : 'TNI Angkatan Darat & Stabilitas Kedaulatan'
+
+  const primaryKeyword = result.keywords && result.keywords[0] ? result.keywords[0] : 'isu provokatif'
+
+  // Varian A: Siaran Pers Resmi Penerangan TNI AD (Format Kedinasan)
+  const pressRelease = `SIARAN PERS RESMI PENERANGAN TNI ANGKATAN DARAT (DISPENAD)
+Nomor: SP-KOGNITIF/TNI-AD/2026/X/08
+
+KLARIFIKASI RESMI TERKAIT BEREDARNYA NARASI MENYESATKAN MENGENAI ${entityStr.toUpperCase()}
+
+Jakarta — Penerangan Angkatan Darat (Dispenad) menegaskan bahwa informasi yang beredar luas di media digital terkait "${contentSnippet}" adalah TIDAK BENAR / HOAKS dan memuat unsur manipulasi kognitif yang sengaja diproduksi untuk mendegradasi kepercayaan publik.
+
+Hasil investigasi intelijen siber kognitif NARADA PUSSIBERAD mengonfirmasi:
+1. Tidak terdapat fakta legalitas maupun operasional terkait klaim "${primaryKeyword}".
+2. Seluruh prajurit dan satuan jajaran TNI AD senantiasa menjunjung tinggi Sapta Marga, Sumpah Prajurit, dan taat pada koridor konstitusi NKRI.
+3. Konten terindikasi bermotif agitasi terstruktur dengan klasifikasi ancaman ${result.threatLevel.toUpperCase()}.
+
+Dispenad mengimbau masyarakat untuk tidak mempercayai maupun menyebarluaskan selebaran gelap atau naskah provokatif, serta senantiasa merujuk pada saluran informasi resmi Penerangan TNI AD.
+
+PENERANGAN TNI ANGKATAN DARAT
+Mabesad, Jakarta Pusat`
+
+  // Varian B: Panduan Komunikasi Lapangan / WhatsApp Babinsa
+  const babinsaWa = `PANDUAN KOMUNIKASI LAPANGAN BABINSA KORAMIL
+(Untuk disebarkan ke grup WhatsApp RT/RW, Tokoh Masyarakat, & Warga Binaan)
+
+Bapak/Ibu warga binaan yang terhormat,
+Selamat pagi/siang, salam sejahtera untuk kita semua.
+
+Menanggapi pesan berantai yang ramai beredar baru-baru ini mengenai "${contentSnippet}", kami dari Koramil/Babinsa mengimbau warga agar tetap tenang dan bijak.
+
+Faktanya, kabar tersebut adalah HOAKS / KABAR BOHONG yang sengaja disebar oknum tidak bertanggung jawab untuk memicu kepanikan dan mengadu domba kita. TNI bersama rakyat selalu kompak menjaga ketenteraman wilayah.
+
+Langkah bijak dari Babinsa:
+• Saring sebelum sharing — cek kebenarannya
+• Jangan teruskan pesan yang bernada panik atau menjelekkan aparat/warga
+• Bila ragu, tanyakan langsung ke Babinsa atau aparat desa setempat
+
+Mari kita jaga kerukunan dan persaudaraan di lingkungan kita. Terima kasih atas kerja sama Bapak/Ibu sekalian.
+
+Salam hormat,
+Babinsa Koramil Setempat`
+
+  // Varian C: Klarifikasi Kilat Media Sosial (X & Instagram)
+  const socialMedia = `[KLARIFIKASI RESMI DISPENAD] 📢
+
+Waspada! Beredar narasi menyesatkan mengenai ${entityStr}: "${contentSnippet}".
+
+Kami tegaskan narasi tersebut adalah ${result.category} / TIDAK BENAR! Seluruh prosedur operasional dan penugasan satuan berjalan profesional sesuai ketentuan hukum. Jangan biarkan ruang digital kita dikotori manipulasi dan adu domba.
+
+Saring sebelum sharing! Kedaulatan dan persatuan NKRI adalah kehormatan kita bersama. 🇮🇩
+
+#TNIBersamaRakyat #TangkalDisinformasi #KedaulatanNKRI #TNIAD #CekFakta #StopHoaks`
+
+  return { pressRelease, babinsaWa, socialMedia }
+}
+
 export default function AnalysisResultCard({ result }: AnalysisResultCardProps) {
+  const navigate = useNavigate()
   const threatBadge = getThreatBadge(result.threatLevel)
   const catBadge = getCategoryBadge(result.category)
+
+  // State untuk hash kriptografis SHA-256
+  const [sha256Hash, setSha256Hash] = useState<string>(result.forensicHash || '')
+  const [copiedHash, setCopiedHash] = useState<boolean>(false)
+
+  // State untuk generator kontranarasi
+  const [activeNarrativeTab, setActiveNarrativeTab] = useState<'press' | 'babinsa' | 'social'>('press')
+  const [copiedNarrative, setCopiedNarrative] = useState<boolean>(false)
+
+  // Hitung hash secara asynchronous jika belum tersedia
+  useEffect(() => {
+    let isMounted = true
+    const computeHash = async () => {
+      if (result.forensicHash) {
+        setSha256Hash(result.forensicHash)
+      } else {
+        const text = result.input || result.rawContent || ''
+        const h = await generateSHA256(text)
+        if (isMounted) setSha256Hash(h)
+      }
+    }
+    computeHash()
+    return () => { isMounted = false }
+  }, [result])
+
+  const narratives = generateCounterNarrative(result)
+
+  const handleCopyHash = () => {
+    if (!sha256Hash) return
+    navigator.clipboard.writeText(sha256Hash)
+    setCopiedHash(true)
+    setTimeout(() => setCopiedHash(false), 2000)
+  }
+
+  const handleCopyNarrative = () => {
+    const textToCopy =
+      activeNarrativeTab === 'press' ? narratives.pressRelease :
+      activeNarrativeTab === 'babinsa' ? narratives.babinsaWa :
+      narratives.socialMedia
+
+    navigator.clipboard.writeText(textToCopy)
+    setCopiedNarrative(true)
+    setTimeout(() => setCopiedNarrative(false), 2000)
+  }
+
+  // Ekspor Berkas Bukti Forensik Resmi (JSON)
+  const handleExportForensicJson = () => {
+    const packageData = {
+      forensicPackageId: `NARADA-EVID-${result.id}`,
+      generatedAt: new Date(result.timestamp).toISOString(),
+      verifiedBy: 'NARADA COGNITIVE THREAT DEFENSE SYSTEM - PUSSIBERAD TNI AD',
+      analystClassification: 'RAHASIA / OPERASIONAL SIBER',
+      rawEvidenceText: result.input || result.rawContent,
+      sha256Checksum: sha256Hash || 'CALCULATING',
+      threatAssessment: {
+        winnerCategory: result.category,
+        threatLevel: result.threatLevel,
+        overallConfidencePercent: result.confidence,
+        machineLearningScore: result.mlScore,
+        ruleSeverityScore: result.ruleScore,
+        categoryScoresDistribution: result.scores,
+      },
+      ruleEngineEvidence: {
+        matchedKeywords: result.keywords,
+        targetedDefenseEntities: result.targetedEntities,
+        ruleExplanation: result.explanation,
+      },
+      cognitivePsychologyVectors: result.psychology || {
+        rageBaitIndex: 0,
+        artificialUrgency: 0,
+        socialCleavage: 0,
+        primaryEmotion: 'NEUTRAL',
+      },
+      factCheckingReport: result.factCheck ? {
+        available: result.factCheck.available,
+        query: result.factCheck.query,
+        verifiedClaimsCount: result.factCheck.claims.length,
+        claims: result.factCheck.claims,
+      } : null,
+      tacticalRecommendation: result.recommendation,
+      counterNarrativeDrafts: narratives,
+    }
+
+    const blob = new Blob([JSON.stringify(packageData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `NARADA-EVIDENCE-${result.id}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  // Ekstraksi username untuk profiler jika ada
+  const authorOrUsername = result.sourceMeta?.author ||
+    (result.input.match(/@([a-zA-Z0-9_]{3,25})/)?.[1] ? `@${result.input.match(/@([a-zA-Z0-9_]{3,25})/)?.[1]}` : null)
+
+  const handleInvestigateProfile = () => {
+    if (authorOrUsername) {
+      navigate(`/profiler?username=${encodeURIComponent(authorOrUsername)}`)
+    } else {
+      navigate('/profiler')
+    }
+  }
+
+  const handleCreateReport = () => {
+    navigate('/reports')
+  }
 
   // Ikon sumber input
   const renderSourceIcon = () => {
@@ -433,6 +623,108 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
           </div>
         )}
 
+        {/* ─── 4B. TASK H.1: TIGA VEKTOR PSIKOLOGIS KOGNITIF ─── */}
+        {result.psychology && (
+          <div style={{
+            marginBottom: '18px',
+            padding: '14px 16px',
+            background: 'var(--bg-elevated)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--bg-border)'
+          }}>
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: '1.5px',
+              color: 'var(--text-muted)',
+              marginBottom: '12px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '6px'
+            }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Brain size={13} color="var(--accent-blue)" />
+                3 VEKTOR MANIPULASI PSIKOLOGIS KOGNITIF
+              </span>
+              <span style={{
+                fontSize: '10px',
+                padding: '2px 8px',
+                borderRadius: '3px',
+                background: result.psychology.primaryEmotion === 'ANGER' ? 'rgba(239, 68, 68, 0.2)' :
+                            result.psychology.primaryEmotion === 'URGENCY' ? 'rgba(245, 158, 11, 0.2)' :
+                            result.psychology.primaryEmotion === 'FEAR' ? 'rgba(139, 92, 246, 0.2)' :
+                            'rgba(34, 197, 94, 0.15)',
+                color: result.psychology.primaryEmotion === 'ANGER' ? '#EF4444' :
+                       result.psychology.primaryEmotion === 'URGENCY' ? '#F59E0B' :
+                       result.psychology.primaryEmotion === 'FEAR' ? '#A78BFA' :
+                       '#22C55E',
+                fontWeight: '700',
+                fontFamily: 'var(--font-mono)'
+              }}>
+                EMOSI TARGET: {result.psychology.primaryEmotion}
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+              {/* 1. Rage Bait Index */}
+              <div style={{ background: 'var(--bg-card)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--bg-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Flame size={12} color="#EF4444" /> Rage-Bait Index
+                  </span>
+                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: '700', color: result.psychology.rageBaitIndex > 50 ? '#EF4444' : '#F59E0B' }}>
+                    {result.psychology.rageBaitIndex}%
+                  </span>
+                </div>
+                <div className="progress-bar" style={{ height: '5px' }}>
+                  <div className="progress-fill" style={{ width: `${result.psychology.rageBaitIndex}%`, background: 'linear-gradient(90deg, #F59E0B, #EF4444)' }} />
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--text-dim)', marginTop: '4px' }}>
+                  {result.psychology.rageBaitIndex > 60 ? 'Agitasi kemarahan ekstrem' : result.psychology.rageBaitIndex > 25 ? 'Indikasi provokasi emosi' : 'Agitasi minim'}
+                </div>
+              </div>
+
+              {/* 2. Artificial Urgency */}
+              <div style={{ background: 'var(--bg-card)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--bg-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Zap size={12} color="#F59E0B" /> Urgensi Palsu
+                  </span>
+                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: '700', color: result.psychology.artificialUrgency > 50 ? '#F59E0B' : '#EAB308' }}>
+                    {result.psychology.artificialUrgency}%
+                  </span>
+                </div>
+                <div className="progress-bar" style={{ height: '5px' }}>
+                  <div className="progress-fill" style={{ width: `${result.psychology.artificialUrgency}%`, background: 'linear-gradient(90deg, #EAB308, #F97316)' }} />
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--text-dim)', marginTop: '4px' }}>
+                  {result.psychology.artificialUrgency > 60 ? 'Manipulasi kepanikan/viralitas' : result.psychology.artificialUrgency > 25 ? 'Desakan sebar cepat' : 'Urgensi wajar'}
+                </div>
+              </div>
+
+              {/* 3. Social Cleavage */}
+              <div style={{ background: 'var(--bg-card)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--bg-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Users2 size={12} color="#A78BFA" /> Polarisasi Sosial
+                  </span>
+                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: '700', color: result.psychology.socialCleavage > 50 ? '#EF4444' : '#A78BFA' }}>
+                    {result.psychology.socialCleavage}%
+                  </span>
+                </div>
+                <div className="progress-bar" style={{ height: '5px' }}>
+                  <div className="progress-fill" style={{ width: `${result.psychology.socialCleavage}%`, background: 'linear-gradient(90deg, #8B5CF6, #EF4444)' }} />
+                </div>
+                <div style={{ fontSize: '9px', color: 'var(--text-dim)', marginTop: '4px' }}>
+                  {result.psychology.socialCleavage > 60 ? 'Pembelahan horizontal/vertikal' : result.psychology.socialCleavage > 25 ? 'Gesekan sentimen identitas' : 'Polarisasi rendah'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ─── 5. Distribusi Probabilitas 5 Kategori ─── */}
         <div style={{ marginBottom: '18px' }}>
           <div style={{
@@ -525,7 +817,8 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                       result.threatLevel === 'high' ? 'rgba(249,115,22,0.1)' :
                       'rgba(34,197,94,0.08)',
           borderRadius: 'var(--radius-md)',
-          border: `1px solid ${threatBadge.borderColor}`
+          border: `1px solid ${threatBadge.borderColor}`,
+          marginBottom: '18px'
         }}>
           <div style={{
             fontSize: '10px',
@@ -542,6 +835,207 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.7' }}>
             {result.recommendation}
+          </div>
+        </div>
+
+        {/* ─── 7B. TASK H.2: GENERATOR DRAF KONTRANARASI TAKTIS DISPENAD ─── */}
+        {result.category !== 'NETRAL' && (
+          <div style={{
+            marginBottom: '18px',
+            background: 'var(--bg-elevated)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid rgba(200, 16, 46, 0.3)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '12px 16px',
+              background: 'linear-gradient(90deg, rgba(200, 16, 46, 0.15), rgba(200, 16, 46, 0.05))',
+              borderBottom: '1px solid var(--bg-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div style={{
+                fontSize: '11px',
+                fontFamily: 'var(--font-display)',
+                fontWeight: '700',
+                letterSpacing: '1.5px',
+                color: 'var(--narada-red)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                textTransform: 'uppercase'
+              }}>
+                <Radio size={14} /> DRAF KONTRANARASI TAKTIS DISPENAD (3 VARIAN PESAN)
+              </div>
+
+              {/* Tab Selector Varian */}
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${activeNarrativeTab === 'press' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setActiveNarrativeTab('press')}
+                  style={{ fontSize: '10px', padding: '3px 8px' }}
+                >
+                  📢 Siaran Pers Kedinasan
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${activeNarrativeTab === 'babinsa' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setActiveNarrativeTab('babinsa')}
+                  style={{ fontSize: '10px', padding: '3px 8px' }}
+                >
+                  💬 WA Babinsa Warga
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${activeNarrativeTab === 'social' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setActiveNarrativeTab('social')}
+                  style={{ fontSize: '10px', padding: '3px 8px' }}
+                >
+                  📱 Kilat Medsos (X/IG)
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: '14px 16px' }}>
+              <pre style={{
+                background: 'var(--bg-base)',
+                padding: '14px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--bg-border)',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '11px',
+                lineHeight: '1.6',
+                color: 'var(--text-secondary)',
+                whiteSpace: 'pre-wrap',
+                maxHeight: '220px',
+                overflowY: 'auto',
+                marginBottom: '12px'
+              }}>
+                {activeNarrativeTab === 'press' && narratives.pressRelease}
+                {activeNarrativeTab === 'babinsa' && narratives.babinsaWa}
+                {activeNarrativeTab === 'social' && narratives.socialMedia}
+              </pre>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={handleCopyNarrative}
+                >
+                  {copiedNarrative ? (
+                    <>
+                      <Check size={13} color="#22C55E" />
+                      ✓ Naskah Berhasil Disalin ke Clipboard
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} />
+                      Salin Naskah Kontranarasi
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── 7C. TASK H.3: PAKET BUKTI FORENSIK KRIPTOGRAFIS SHA-256 ─── */}
+        <div style={{
+          marginBottom: '18px',
+          padding: '12px 16px',
+          background: 'var(--bg-elevated)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--bg-border)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div>
+            <div style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              letterSpacing: '1px',
+              color: 'var(--text-muted)',
+              marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <Fingerprint size={12} color="var(--threat-low)" />
+              RANTAI INTEGRITAS BUKTI (SHA-256 CHAIN OF CUSTODY):
+            </div>
+            <div style={{
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--text-primary)',
+              wordBreak: 'break-all'
+            }}>
+              {sha256Hash || 'Menghitung checksum kriptografis...'}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleCopyHash}
+              title="Salin Hash SHA-256"
+            >
+              {copiedHash ? <Check size={12} color="#22C55E" /> : <Copy size={12} />}
+              {copiedHash ? 'Tersalin' : 'Salin Hash'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleExportForensicJson}
+            >
+              <FileDown size={12} color="var(--accent-blue)" />
+              📦 Ekspor Berkas Forensik (.JSON)
+            </button>
+          </div>
+        </div>
+
+        {/* ─── 7D. TASK H.6: CROSS-TOOL QUICK ACTIONS ─── */}
+        <div style={{
+          padding: '10px 14px',
+          background: 'var(--bg-base)',
+          borderRadius: 'var(--radius-sm)',
+          border: '1px solid var(--bg-border)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px',
+          marginBottom: '16px'
+        }}>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            PIPELINE LINTAS-ALAT INTELIJEN:
+          </span>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={handleInvestigateProfile}
+              style={{ fontSize: '11px' }}
+            >
+              <UserSearch size={12} />
+              👤 Selidiki Akun di Profiler {authorOrUsername ? `(${authorOrUsername})` : ''}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={handleCreateReport}
+              style={{ fontSize: '11px' }}
+            >
+              <FileText size={12} />
+              📄 Buat Laporan Intelijen A4
+            </button>
           </div>
         </div>
 
