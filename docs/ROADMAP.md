@@ -228,7 +228,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 > **Target Bobot:** `[25% Relevansi dan Manfaat]` + `[25% Fungsionalitas Purwarupa]`  
 > **Tujuan:** Menghadirkan command center lengkap: Dashboard Kesadaran Situasional, Visualisasi Graf Jejaring Nexus (D3.js), Pembuat Laporan Intelijen Standar Militer, dan Pengaturan Aplikasi.
 
-- [ ] **STEP 3.1: Command Dashboard Situational Awareness (`Dashboard.tsx`)** `[25% Purwarupa]`
+- [x] **STEP 3.1: Command Dashboard Situational Awareness (`Dashboard.tsx`)** `[25% Purwarupa]`
   - **Ref:** [PRD_04_dashboard.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_04_dashboard.md)
   - **Action:** Rombak total `src/pages/Dashboard.tsx`:
     - Status Siaga Siber Sosial (DEFCON Alert Banner: SIAGA 1 MERAH / SIAGA 2 KUNING / AMAN)
@@ -239,7 +239,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Status Modul Sistem (AI Engine 60/40, Fact Check API, OCR Engine)
   - **DoD:** Dashboard interaktif, bereaksi instan terhadap data analisis baru di sesi tersebut.
 
-- [ ] **STEP 3.2: Nexus Network Graph Visualization (`Nexus.tsx`)** `[25% Inovasi]` `[25% Purwarupa]`
+- [x] **STEP 3.2: Nexus Network Graph Visualization (`Nexus.tsx`)** `[25% Inovasi]` `[25% Purwarupa]`
   - **Ref:** [PRD_05_nexus_graph.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_05_nexus_graph.md)
   - **Action:** Bangun `src/pages/Nexus.tsx` menggunakan D3.js Force-Directed Graph:
     - 3 Tipe Node: Konten Dianalisis (Lingkaran), Klaster Narasi (Hexagon), Sumber/Akun (Diamond)
@@ -249,7 +249,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Mode Demo Jaringan Buzzer Terkoordinasi (12 node buzzer mensirkulasikan isu fitnah)
   - **DoD:** Peta jaringan render lancar tanpa lag, memvisualisasikan koordinasi buzzer dengan memukau.
 
-- [ ] **STEP 3.3: Military Intelligence Report Generator (`Reports.tsx`)** `[25% Relevansi & Manfaat]`
+- [x] **STEP 3.3: Military Intelligence Report Generator (`Reports.tsx`)** `[25% Relevansi & Manfaat]`
   - **Ref:** [PRD_06_intel_report.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/PRD_06_intel_report.md)
   - **Action:** Rombak `src/pages/Reports.tsx` sesuai standar format intelijen pertahanan TNI AD:
     - KOP Surat Resmi Militer: `KOMANDO DAERAH MILITER / SATUAN TUGAS SIBER SOSIAL`
@@ -263,7 +263,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Live Real-Time Document Preview + Ekspor PDF / Mode Cetak Resmi (`@media print` ramah kertas)
   - **DoD:** Satu klik langsung menghasilkan dokumen laporan intelijen siap cetak untuk pimpinan.
 
-- [ ] **STEP 3.4: Settings, Configuration & Presets (`SettingsPage.tsx`)** `[15% Kelayakan]`
+- [x] **STEP 3.4: Settings, Configuration & Presets (`SettingsPage.tsx`)** `[15% Kelayakan]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L99)
   - **Action:** Kembangkan `src/pages/SettingsPage.tsx`:
     - Konfigurasi Google Fact Check Tools API Key
@@ -273,7 +273,7 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Tombol "Hapus Riwayat Sesi" (Clean State)
   - **DoD:** Pengaturan tersimpan secara persisten dan mempengaruhi perilaku aplikasi.
 
-- [ ] **STEP 3.5: App Layout & Topbar Navigation Synchronization (`App.tsx`)** `[25% Purwarupa]`
+- [x] **STEP 3.5: App Layout & Topbar Navigation Synchronization (`App.tsx`)** `[25% Purwarupa]`
   - **Ref:** [BLUEPRINT.md](file:///c:/Users/Damar/Documents/LOMBA/KARTIKA_CYBER_HACKTHON/narada/docs/BLUEPRINT.md#L79-L81)
   - **Action:**
     - Perbarui struktur routing: `/` (Dashboard), `/analyzer` (Analyzer), `/nexus` (Nexus Graph), `/reports` (Intel Reports), `/settings` (Settings)
@@ -281,9 +281,9 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
     - Topbar taktis dengan jam operasional real-time WIB, status DEFCON, dan indikator mode AI
   - **DoD:** Navigasi aplikasi konsisten, bersih, dan bertaraf militer.
 
-- [ ] **MILESTONE 3 TESTING & AUDIT:**
-  - [ ] Jalankan skenario end-to-end: Analisis konten di Analyzer → Lihat lonjakan ancaman di Dashboard → Buka klaster narasi di Nexus → Cetak dokumen di Reports.
-  - [ ] Commit: `[FEAT] complete dashboard, nexus network graph, and military intel report generator` & git push.
+- [x] **MILESTONE 3 TESTING & AUDIT:**
+  - [x] Jalankan skenario end-to-end: Analisis konten di Analyzer → Lihat lonjakan ancaman di Dashboard → Buka klaster narasi di Nexus → Cetak dokumen di Reports.
+  - [x] Commit: `[FEAT] complete dashboard, nexus network graph, and military intel report generator` & git push.
 
 ---
 
@@ -393,10 +393,10 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 | **Phase 0: Foundations** | Kelayakan (15%) + Relevansi (25%) | 4 | 4 | ✅ COMPLETED |
 | **Phase 1: Hybrid AI & Fact-Check** | Inovasi Teknis (25%) + Purwarupa (25%) | 7 | 7 | ✅ COMPLETED |
 | **Phase 2: Multi-Input Analyzer** | Inovasi (25%) + Purwarupa (25%) | 5 | 5 | ✅ COMPLETED |
-| **Phase 3: Operational Suite** | Relevansi (25%) + Purwarupa (25%) | 5 | 0 | 🟡 IN PROGRESS |
+| **Phase 3: Operational Suite** | Relevansi (25%) + Purwarupa (25%) | 5 | 5 | ✅ COMPLETED |
 | **Phase 4: Desktop Shell** | Kelayakan Implementasi (15%) | 4 | 0 | ⏳ QUEUED |
 | **Phase 5: Polish & Deliverables** | Dokumentasi (10%) + All-Round | 6 | 0 | ⏳ QUEUED |
-| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **16/31** | **52% PROGRESS** |
+| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **21/31** | **68% PROGRESS** |
 
 ---
 
