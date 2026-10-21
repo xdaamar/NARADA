@@ -617,6 +617,27 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
                   )}
                 </div>
 
+                {/* TASK H.5: OCR Edge Case Guard (Kualitas Citra Rendah / Teks Terlalu Pendek) */}
+                {extractedData && (editedText.trim().length < 20 || extractedData.confidence < 45) && (
+                  <div style={{
+                    marginBottom: '8px',
+                    padding: '8px 12px',
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.35)',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '11px',
+                    color: '#FCD34D'
+                  }}>
+                    <AlertTriangle size={14} color="#F59E0B" style={{ flexShrink: 0 }} />
+                    <span>
+                      <strong>Peringatan Kualitas Citra Rendah:</strong> Teks hasil ekstraksi terindikasi buram atau terlalu singkat (&lt;20 karakter / keyakinan &lt;45%). Pastikan Anda memeriksa dan mengoreksi teks pada editor sebelum eksekusi analisis.
+                    </span>
+                  </div>
+                )}
+
                 <textarea
                   className="form-control"
                   value={editedText}

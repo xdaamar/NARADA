@@ -9,7 +9,8 @@ import {
   AlertTriangle,
   Eye,
   CheckCircle,
-  BarChart3
+  BarChart3,
+  Download
 } from 'lucide-react'
 import { analyzeHybrid } from '../engine/combiner'
 import { saveAnalysis } from '../utils/storage'
@@ -35,6 +36,35 @@ const SAMPLE_CSV_CONTENT = `content
 "Panglima TNI memimpin upacara serah terima jabatan Danjen Kopassus di Markas Cijantung Jakarta Timur."
 "Beredar selebaran gelap klaim vaksinasi personel TNI mengandung zat berbahaya pengendali pikiran buatan asing."
 "Komando Teritorial Kodam Diponegoro menyelenggarakan program Manunggal Membangun Desa (TMMD) membuka jalan desa 12 KM."
+`
+
+// ─── TASK H.5: Uji Stres 25 Komentar Buzzer Ekstrem ───
+const STRESS_TEST_CSV_CONTENT = `content
+"DARURAT! Beredar info intelijen bahwa markas komando militer akan memberlakukan jam malam nasional mulai malam ini. Sebarkan ke seluruh grup WA!"
+"Pemberontak OPM berhasil memukul mundur satuan TNI di Nduga dan menguasai bandara perintis setempat. Boikot NKRI!"
+"Ayo retweet serentak! Tagar #DukungAksiRakyat trendingkan sekarang juga! Jangan sampai isu ini tenggelam kawan-kawan!"
+"Kemenhan diam-diam tandatangani kesepakatan pangkalan militer asing di pulau terluar Indonesia. Rezim ini pengkhianat kedaulatan bangsa!"
+"TNI Angkatan Darat menyalurkan bantuan logistik darurat kepada korban banjir bandang di wilayah Luwu Utara."
+"VIRAL! Video ini sengaja dihapus media! Bukti oknum aparat melakukan penyiksaan warga sipil tak berdosa di desa terpencil!"
+"Kopassus berhasil mengevakuasi 45 warga sipil yang terisolasi akibat tanah longsor di kawasan pegunungan terjal."
+"Serukan pemogokan umum nasional! Rezim militeristik ini harus tumbang demi kemerdekaan sejati rakyat tertindas!"
+"RT dan like postingan ini biar FYP! Semua relawan wajib ramaikan kolom komentar akun resmi pemerintah serempak pukul 19.00 WIB!"
+"Panglima TNI memimpin upacara serah terima jabatan Danjen Kopassus di Markas Cijantung Jakarta Timur."
+"Beredar selebaran gelap klaim vaksinasi personel TNI mengandung zat berbahaya pengendali pikiran buatan asing."
+"Komando Teritorial Kodam Diponegoro menyelenggarakan program Manunggal Membangun Desa (TMMD) membuka jalan desa 12 KM."
+"Aparat intelijen menyusup ke kampus-kampus dan memasang alat penyadap pada ponsel aktivis mahasiswa!"
+"Jangan percaya media arus utama! Ribuan pasukan asing bersenjata lengkap sudah mendarat di pangkalan militer rahasia!"
+"Tagar #TolakMiliterisasi trendingkan sekarang! Semua akun botnet aktifkan script auto-retweet serempak!"
+"Prajurit Yonif Raider 514 berhasil membebaskan sandera warga sipil tanpa letusan senjata di pedalaman Papua."
+"Bocoran dokumen rahasia menyebutkan anggaran panser Anoa dikorupsi hingga 80 persen oleh pejabat kementerian!"
+"Seluruh rakyat wajib bersatu dan memboikot pemilu serta melawan intimidasi aparat di setiap TPS!"
+"Penerangan Kodam Jaya merilis klarifikasi resmi membantah isu bentrok antar satuan di wilayah Jakarta Timur."
+"Akun-akun bayaran rezim mulai menyerang kolom komentar kita! Balas dengan serbuan link petisi sekarang juga!"
+"Satgas Pamtas RI-PNG Yonif 122 mengamankan 45 kg ganja kering di jalur tikus perbatasan Skouw Jayapura."
+"Waspada! Beredar panggilan tugas palsu mencatut nama Kasad untuk meminta sejumlah uang kepada keluarga calon prajurit."
+"Serukan referendum penentuan nasib sendiri! Kami menolak segala bentuk aneksasi militer di tanah leluhur kami!"
+"Tim medis TNI AD menggelar operasi katarak gratis bagi 500 lansia di perbatasan Pulau Sebatik Kalimantan Utara."
+"Kompak tweet serentak pukul 21.00 WIB: Bongkar manipulasi data pertahanan nasional! Viralkan tagar #RakyatMenggugat!"
 `
 
 /**
@@ -140,7 +170,7 @@ export default function BatchUploader({ onSelectResult }: BatchUploaderProps) {
   }
 
   /**
-   * Muat data sampel instan
+   * Muat data sampel instan (12 baris)
    */
   const handleLoadSample = () => {
     setFileName('sampel_patroli_siber_12_post.csv')
@@ -151,7 +181,18 @@ export default function BatchUploader({ onSelectResult }: BatchUploaderProps) {
   }
 
   /**
-   * Eksekusi Batch Analysis secara berurutan
+   * TASK H.5: Muat Uji Stres Ekstrem (25 baris)
+   */
+  const handleLoadStressTest = () => {
+    setFileName('uji_stres_25_komentar_buzzer_ekstrem.csv')
+    setErrorMessage(null)
+    setProcessedResults([])
+    const parsed = parseCsvLines(STRESS_TEST_CSV_CONTENT)
+    setItemsToProcess(parsed)
+  }
+
+  /**
+   * TASK H.5: Eksekusi Batch Analysis Non-Blocking Chunking (5 baris per frame)
    */
   const handleStartBatchAnalysis = async () => {
     if (itemsToProcess.length === 0) return
@@ -162,27 +203,65 @@ export default function BatchUploader({ onSelectResult }: BatchUploaderProps) {
     setErrorMessage(null)
 
     const results: AnalysisResult[] = []
+    const CHUNK_SIZE = 5
 
-    for (let i = 0; i < itemsToProcess.length; i++) {
-      setCurrentIndex(i + 1)
-      const text = itemsToProcess[i]
+    for (let i = 0; i < itemsToProcess.length; i += CHUNK_SIZE) {
+      const chunk = itemsToProcess.slice(i, i + CHUNK_SIZE)
 
-      // Analisis hybrid ML + Rules
-      const res = analyzeHybrid(text, {
-        inputSource: 'file',
-        title: `Batch #${i + 1} (${fileName})`,
-      })
+      for (let j = 0; j < chunk.length; j++) {
+        const currentItemIdx = i + j
+        setCurrentIndex(currentItemIdx + 1)
+        const text = chunk[j]
 
-      // Simpan ke sessionStorage
-      saveAnalysis(res)
-      results.push(res)
+        // Analisis hybrid ML + Rules
+        const res = analyzeHybrid(text, {
+          inputSource: 'file',
+          title: `Batch #${currentItemIdx + 1} (${fileName})`,
+        })
+
+        // Simpan ke sessionStorage
+        saveAnalysis(res)
+        results.push(res)
+      }
+
       setProcessedResults([...results])
 
-      // Jeda kecil agar progress bar terlihat halus dan UI reaktif
-      await new Promise(resolve => setTimeout(resolve, 80))
+      // Non-blocking yield to allow browser 60fps repainting
+      await new Promise(resolve => setTimeout(resolve, 25))
     }
 
     setIsProcessing(false)
+  }
+
+  /**
+   * TASK H.5: Export Rekap Analisis Batch (CSV)
+   */
+  const handleExportCsv = () => {
+    if (processedResults.length === 0) return
+
+    const headers = ['ID', 'Kategori', 'Tingkat Ancaman', 'Keyakinan AI (%)', 'Skor ML (%)', 'Skor Rules (%)', 'Indikator Keywords', 'Entitas Sasaran', 'Teks Konten']
+    const rows = processedResults.map(r => [
+      r.id,
+      r.category,
+      r.threatLevel,
+      r.confidence,
+      r.mlScore,
+      r.ruleScore,
+      `"${(r.keywords || []).join('; ')}"`,
+      `"${(r.targetedEntities || []).join('; ')}"`,
+      `"${(r.input || r.rawContent || '').replace(/"/g, '""')}"`
+    ])
+
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `NARADA-BATCH-ANALYSIS-${Date.now()}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   const handleReset = () => {
@@ -237,14 +316,24 @@ export default function BatchUploader({ onSelectResult }: BatchUploaderProps) {
             }}>
               DATASET SAMPEL SIAP UJI
             </div>
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleLoadSample}
-            >
-              <Sparkles size={12} color="#EF4444" />
-              Muat Berkas Sampel CSV (12 Baris Postingan Medsos & Buzzer)
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleLoadSample}
+              >
+                <Sparkles size={12} color="#EF4444" />
+                Muat Berkas Sampel CSV (12 Baris)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleLoadStressTest}
+              >
+                <Sparkles size={12} color="#F97316" />
+                ⚡ Muat Uji Stres: 25 Komentar Buzzer Ekstrem
+              </button>
+            </div>
           </div>
         )}
 
@@ -467,16 +556,27 @@ export default function BatchUploader({ onSelectResult }: BatchUploaderProps) {
               </div>
 
               {!isProcessing && (
-                <span style={{
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  color: 'var(--threat-low)',
-                  background: 'rgba(34, 197, 94, 0.12)',
-                  padding: '3px 8px',
-                  borderRadius: '3px'
-                }}>
-                  Tersimpan di Session Storage
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleExportCsv}
+                    style={{ fontSize: '11px' }}
+                  >
+                    <Download size={12} color="var(--accent-blue)" />
+                    Ekspor Rekap Batch (.CSV)
+                  </button>
+                  <span style={{
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--threat-low)',
+                    background: 'rgba(34, 197, 94, 0.12)',
+                    padding: '3px 8px',
+                    borderRadius: '3px'
+                  }}>
+                    Tersimpan di Session Storage
+                  </span>
+                </div>
               )}
             </div>
 
