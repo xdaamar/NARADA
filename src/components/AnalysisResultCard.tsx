@@ -21,14 +21,34 @@ import {
   Users2,
   FileDown,
   UserSearch,
-  Radio
+  Radio,
+  CheckCircle2
 } from 'lucide-react'
-import type { AnalysisResult } from '../types'
+import type { AnalysisResult, ThreatSpectrumCluster } from '../types'
 import { getThreatBadge, getCategoryBadge, formatMilitaryDate } from '../utils/format'
 import { generateSHA256 } from '../utils/crypto'
 
 interface AnalysisResultCardProps {
   result: AnalysisResult
+}
+
+// ─── Helper Badge Klaster Spektrum Ganda ───
+function getClusterBadge(cluster?: ThreatSpectrumCluster) {
+  switch (cluster) {
+    case 'POLITIK_NEGARA':
+      return { label: 'POLITIK & SUKSESI NEGARA', icon: '🏛️', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.12)' }
+    case 'BENCANA_DARURAT':
+      return { label: 'KEBENCANAAN & DARURAT ALAM', icon: '🌊', color: '#06B6D4', bgColor: 'rgba(6, 182, 212, 0.12)' }
+    case 'PENIPUAN_BANSOS':
+      return { label: 'PENIPUAN SOSIAL & BANSOS', icon: '💸', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.12)' }
+    case 'KESEHATAN_PANGAN':
+      return { label: 'KESEHATAN & PANGAN PUBLIK', icon: '💊', color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.12)' }
+    case 'KEDAULATAN_MILITER':
+      return { label: 'KEDAULATAN & PERTAHANAN', icon: '🛡️', color: '#DC2626', bgColor: 'rgba(220, 38, 38, 0.12)' }
+    case 'UMUM_NETRAL':
+    default:
+      return { label: 'INFORMASI UMUM / FAKTUAL', icon: '📄', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.12)' }
+  }
 }
 
 // ─── Sub-Component: Highlight Keyword Pada Teks ───
@@ -83,87 +103,91 @@ function HighlightedContent({
   )
 }
 
-// ─── Generator Draf Kontranarasi Taktis Dispenad ───
+// ─── Generator Draf Kontranarasi Spektrum Ganda (Warga, Babinsa, Kedinasan, Medsos) ───
 interface CounterNarrativeVariants {
-  pressRelease: string
+  civilianWa: string
   babinsaWa: string
+  pressRelease: string
   socialMedia: string
 }
 
 function generateCounterNarrative(result: AnalysisResult): CounterNarrativeVariants {
   const rawText = result.input || result.rawContent || ''
-  const contentSnippet = rawText.length > 100 ? rawText.slice(0, 100).trim() + '...' : rawText
+  const contentSnippet = rawText.length > 90 ? rawText.slice(0, 90).trim() + '...' : rawText
   const entityStr = result.targetedEntities && result.targetedEntities.length > 0
     ? result.targetedEntities.join(', ')
-    : 'TNI Angkatan Darat & Stabilitas Kedaulatan'
+    : 'Stabilitas & Ketenteraman Publik'
 
-  const primaryKeyword = result.keywords && result.keywords[0] ? result.keywords[0] : 'isu provokatif'
+  // Varian 1: Pesan Klarifikasi Warga (Grup WhatsApp RT / RW / Keluarga)
+  const civilianWa = result.debunkMatch?.tacticalResponseCivilian ||
+    `Bapak/Ibu tetangga dan keluarga sekalian, mohon jangan ikut menyebarkan kabar tentang "${contentSnippet}". Setelah diverifikasi bersama otoritas resmi, informasi ini TIDAK BENAR / HOAKS. Faktanya: ${result.debunkMatch?.clarification || result.logicAnomaly?.explanation || result.explanation}. Mari kita tetap tenang dan saring informasi sebelum membagikan.`
 
-  // Varian A: Siaran Pers Resmi Penerangan TNI AD (Format Kedinasan)
-  const pressRelease = `SIARAN PERS RESMI PENERANGAN TNI ANGKATAN DARAT (DISPENAD)
-Nomor: SP-KOGNITIF/TNI-AD/2026/X/08
-
-KLARIFIKASI RESMI TERKAIT BEREDARNYA NARASI MENYESATKAN MENGENAI ${entityStr.toUpperCase()}
-
-Jakarta — Penerangan Angkatan Darat (Dispenad) menegaskan bahwa informasi yang beredar luas di media digital terkait "${contentSnippet}" adalah TIDAK BENAR / HOAKS dan memuat unsur manipulasi kognitif yang sengaja diproduksi untuk mendegradasi kepercayaan publik.
-
-Hasil investigasi intelijen siber kognitif NARADA PUSSIBERAD mengonfirmasi:
-1. Tidak terdapat fakta legalitas maupun operasional terkait klaim "${primaryKeyword}".
-2. Seluruh prajurit dan satuan jajaran TNI AD senantiasa menjunjung tinggi Sapta Marga, Sumpah Prajurit, dan taat pada koridor konstitusi NKRI.
-3. Konten terindikasi bermotif agitasi terstruktur dengan klasifikasi ancaman ${result.threatLevel.toUpperCase()}.
-
-Dispenad mengimbau masyarakat untuk tidak mempercayai maupun menyebarluaskan selebaran gelap atau naskah provokatif, serta senantiasa merujuk pada saluran informasi resmi Penerangan TNI AD.
-
-PENERANGAN TNI ANGKATAN DARAT
-Mabesad, Jakarta Pusat`
-
-  // Varian B: Panduan Komunikasi Lapangan / WhatsApp Babinsa
-  const babinsaWa = `PANDUAN KOMUNIKASI LAPANGAN BABINSA KORAMIL
+  // Varian 2: Panduan Lapangan / WhatsApp Babinsa Koramil
+  const babinsaWa = result.debunkMatch?.tacticalResponseMilitary ||
+    `PANDUAN KOMUNIKASI LAPANGAN BABINSA KORAMIL
 (Untuk disebarkan ke grup WhatsApp RT/RW, Tokoh Masyarakat, & Warga Binaan)
 
 Bapak/Ibu warga binaan yang terhormat,
-Selamat pagi/siang, salam sejahtera untuk kita semua.
+Menanggapi pesan berantai yang ramai mengenai "${contentSnippet}", kami dari Koramil/Babinsa mengimbau warga agar tetap tenang dan bijak.
 
-Menanggapi pesan berantai yang ramai beredar baru-baru ini mengenai "${contentSnippet}", kami dari Koramil/Babinsa mengimbau warga agar tetap tenang dan bijak.
-
-Faktanya, kabar tersebut adalah HOAKS / KABAR BOHONG yang sengaja disebar oknum tidak bertanggung jawab untuk memicu kepanikan dan mengadu domba kita. TNI bersama rakyat selalu kompak menjaga ketenteraman wilayah.
+Faktanya, kabar tersebut adalah HOAKS / KABAR BOHONG yang sengaja disebar oknum tidak bertanggung jawab.
+Penjelasan Resmi:
+${result.debunkMatch?.clarification || result.logicAnomaly?.explanation || result.explanation}
 
 Langkah bijak dari Babinsa:
 • Saring sebelum sharing — cek kebenarannya
 • Jangan teruskan pesan yang bernada panik atau menjelekkan aparat/warga
-• Bila ragu, tanyakan langsung ke Babinsa atau aparat desa setempat
-
-Mari kita jaga kerukunan dan persaudaraan di lingkungan kita. Terima kasih atas kerja sama Bapak/Ibu sekalian.
+• Bila ragu, hubungi Babinsa setempat atau posko kelurahan.
 
 Salam hormat,
 Babinsa Koramil Setempat`
 
-  // Varian C: Klarifikasi Kilat Media Sosial (X & Instagram)
-  const socialMedia = `[KLARIFIKASI RESMI DISPENAD] 📢
+  // Varian 3: Siaran Pers Resmi Kedinasan / Dispenad
+  const pressRelease = `SIARAN PERS RESMI PENERANGAN DINAS MILITER / KEDINASAN
+Nomor: SP-KOGNITIF/TNI-AD/2026/X/08
+
+KLARIFIKASI RESMI TERKAIT BEREDARNYA NARASI MENYESATKAN MENGENAI ${entityStr.toUpperCase()}
+
+Jakarta — Menanggapi informasi yang beredar di ruang digital terkait "${contentSnippet}", kami menegaskan bahwa narasi tersebut adalah ${result.category.toUpperCase()} / TIDAK BENAR dan memuat unsur manipulasi informasi.
+
+Hasil investigasi intelijen siber kognitif NARADA PUSSIBERAD mengonfirmasi:
+1. Tidak terdapat fakta legalitas maupun operasional terkait klaim tersebut.
+2. Penelusuran otoritas resmi: ${result.debunkMatch?.clarification || result.logicAnomaly?.explanation || result.explanation}
+3. Rujukan verifikasi: ${result.debunkMatch?.officialSource || 'Satgas Pussiberad & Cek Fakta Mafindo'}.
+
+Masyarakat diimbau untuk tidak menyebarluaskan narasi spekulatif dan senantiasa merujuk pada saluran informasi resmi kementerian/lembaga terkait.
+
+PENERANGAN SATUAN / DISPENAD
+Mabesad, Jakarta Pusat`
+
+  // Varian 4: Klarifikasi Kilat Media Sosial (X / IG / TikTok)
+  const socialMedia = `[KLARIFIKASI RESMI] 📢
 
 Waspada! Beredar narasi menyesatkan mengenai ${entityStr}: "${contentSnippet}".
 
-Kami tegaskan narasi tersebut adalah ${result.category} / TIDAK BENAR! Seluruh prosedur operasional dan penugasan satuan berjalan profesional sesuai ketentuan hukum. Jangan biarkan ruang digital kita dikotori manipulasi dan adu domba.
+Kami tegaskan narasi tersebut adalah ${result.category} / TIDAK BENAR!
+Fakta: ${result.debunkMatch?.clarification ? result.debunkMatch.clarification.slice(0, 160) + '...' : 'Informasi tersebut telah dibantah resmi oleh instansi berwenang.'}
 
-Saring sebelum sharing! Kedaulatan dan persatuan NKRI adalah kehormatan kita bersama. 🇮🇩
+Saring sebelum sharing! Jaga ruang digital yang sehat dan damai. 🇮🇩
+#TangkalDisinformasi #CekFakta #StopHoaks #KedaulatanInformasi #TNIAD #PUSSIBERAD`
 
-#TNIBersamaRakyat #TangkalDisinformasi #KedaulatanNKRI #TNIAD #CekFakta #StopHoaks`
-
-  return { pressRelease, babinsaWa, socialMedia }
+  return { civilianWa, babinsaWa, pressRelease, socialMedia }
 }
 
 export default function AnalysisResultCard({ result }: AnalysisResultCardProps) {
   const navigate = useNavigate()
   const threatBadge = getThreatBadge(result.threatLevel)
   const catBadge = getCategoryBadge(result.category)
+  const clusterBadge = getClusterBadge(result.spectrumCluster)
 
   // State untuk hash kriptografis SHA-256
   const [sha256Hash, setSha256Hash] = useState<string>(result.forensicHash || '')
   const [copiedHash, setCopiedHash] = useState<boolean>(false)
 
-  // State untuk generator kontranarasi
-  const [activeNarrativeTab, setActiveNarrativeTab] = useState<'press' | 'babinsa' | 'social'>('press')
+  // State untuk generator kontranarasi (4 varian)
+  const [activeNarrativeTab, setActiveNarrativeTab] = useState<'civilian' | 'babinsa' | 'press' | 'social'>('civilian')
   const [copiedNarrative, setCopiedNarrative] = useState<boolean>(false)
+  const [copiedType, setCopiedType] = useState<string | null>(null)
 
   // Hitung hash secara asynchronous jika belum tersedia
   useEffect(() => {
@@ -192,13 +216,20 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
 
   const handleCopyNarrative = () => {
     const textToCopy =
-      activeNarrativeTab === 'press' ? narratives.pressRelease :
+      activeNarrativeTab === 'civilian' ? narratives.civilianWa :
       activeNarrativeTab === 'babinsa' ? narratives.babinsaWa :
+      activeNarrativeTab === 'press' ? narratives.pressRelease :
       narratives.socialMedia
 
     navigator.clipboard.writeText(textToCopy)
     setCopiedNarrative(true)
     setTimeout(() => setCopiedNarrative(false), 2000)
+  }
+
+  const handleCopyDirect = (text: string, type: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedType(type)
+    setTimeout(() => setCopiedType(null), 2000)
   }
 
   // Ekspor Berkas Bukti Forensik Resmi (JSON)
@@ -331,6 +362,55 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
           }}>
             {result.category}
           </div>
+
+          {/* Badge Klaster Spektrum Ganda & Validasi Cek Fakta */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              background: clusterBadge.bgColor,
+              color: clusterBadge.color,
+              border: `1px solid ${clusterBadge.color}40`,
+              fontWeight: '700',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <span>{clusterBadge.icon}</span> KLASTER: {clusterBadge.label}
+            </span>
+
+            {result.debunkMatch && (
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#F87171',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                fontWeight: '700'
+              }}>
+                ✓ TERVERIFIKASI MAFINDO / CEK FAKTA
+              </span>
+            )}
+
+            {result.logicAnomaly?.detected && (
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                padding: '2px 8px',
+                borderRadius: '4px',
+                background: 'rgba(245, 158, 11, 0.15)',
+                color: '#FBBF24',
+                border: '1px solid rgba(245, 158, 11, 0.3)',
+                fontWeight: '700'
+              }}>
+                ⚡ ANOMALI LOGIKA STRUKTURAL
+              </span>
+            )}
+          </div>
         </div>
 
         <div style={{ textAlign: 'right' }}>
@@ -368,6 +448,76 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
       </div>
 
       <div className="card-body">
+        {/* ─── KOTAK PERBANDINGAN: KLAIM VS FAKTA SEBENARNYA (DEBUNK COMPARISON SHEET) ─── */}
+        {(result.debunkMatch || result.logicAnomaly?.detected || result.category === 'HOAKS' || result.category === 'DISINFORMASI') && (
+          <div style={{
+            background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.08), rgba(15, 23, 42, 0.4))',
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            borderRadius: 'var(--radius-md)',
+            padding: '16px',
+            marginBottom: '18px',
+          }}>
+            <div style={{
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: '700',
+              letterSpacing: '1px',
+              color: '#EF4444',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '12px',
+              textTransform: 'uppercase'
+            }}>
+              <CheckCircle2 size={14} color="#EF4444" /> LEMBAR PENELUSURAN FAKTA (DEBUNK COMPARISON SHEET)
+            </div>
+
+            {/* Baris Klaim */}
+            <div style={{ marginBottom: '12px', padding: '10px 12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#FCA5A5', fontWeight: '700', marginBottom: '4px' }}>
+                📌 KLAIM YANG BEREDAR (VIRAL / OCR):
+              </div>
+              <div style={{ fontSize: '13px', color: '#FEE2E2', fontStyle: 'italic', lineHeight: '1.5' }}>
+                "{result.debunkMatch?.claim || result.input}"
+              </div>
+            </div>
+
+            {/* Baris Fakta Sebenarnya */}
+            <div style={{ marginBottom: '12px', padding: '12px 14px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
+              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#4ADE80', fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                ✅ FAKTA SEBENARNYA (PENELUSURAN RESMI):
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.6' }}>
+                {result.debunkMatch?.clarification || result.logicAnomaly?.explanation || result.explanation}
+              </div>
+            </div>
+
+            {/* Baris Sumber Rujukan */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '11px', paddingTop: '4px' }}>
+              <span style={{ color: 'var(--text-muted)' }}>
+                Rujukan Otoritas: <strong style={{ color: 'var(--text-primary)' }}>{result.debunkMatch?.officialSource || 'TurnBackHoax.ID / Satgas Pussiberad'}</strong>
+              </span>
+              {result.debunkMatch?.sourceUrl && (
+                <a
+                  href={result.debunkMatch.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: '#60A5FA',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '11px',
+                    textDecoration: 'none'
+                  }}
+                >
+                  <ExternalLink size={12} />
+                  Buka Artikel Sumber Rujukan ↗
+                </a>
+              )}
+            </div>
+          </div>
+        )}
         {/* Pratinjau Metadata URL / OCR jika tersedia */}
         {result.sourceMeta && (
           <div style={{
@@ -868,18 +1018,18 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                 gap: '6px',
                 textTransform: 'uppercase'
               }}>
-                <Radio size={14} /> DRAF KONTRANARASI TAKTIS DISPENAD (3 VARIAN PESAN)
+                <Radio size={14} /> DRAF KONTRANARASI TAKTIS & KLARIFIKASI PUBLIK (4 VARIAN)
               </div>
 
               {/* Tab Selector Varian */}
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 <button
                   type="button"
-                  className={`btn btn-sm ${activeNarrativeTab === 'press' ? 'btn-primary' : 'btn-ghost'}`}
-                  onClick={() => setActiveNarrativeTab('press')}
+                  className={`btn btn-sm ${activeNarrativeTab === 'civilian' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setActiveNarrativeTab('civilian')}
                   style={{ fontSize: '10px', padding: '3px 8px' }}
                 >
-                  📢 Siaran Pers Kedinasan
+                  💬 Klarifikasi Warga (WA RT)
                 </button>
                 <button
                   type="button"
@@ -887,7 +1037,15 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                   onClick={() => setActiveNarrativeTab('babinsa')}
                   style={{ fontSize: '10px', padding: '3px 8px' }}
                 >
-                  💬 WA Babinsa Warga
+                  🛡️ Jukrah Babinsa Lapangan
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${activeNarrativeTab === 'press' ? 'btn-primary' : 'btn-ghost'}`}
+                  onClick={() => setActiveNarrativeTab('press')}
+                  style={{ fontSize: '10px', padding: '3px 8px' }}
+                >
+                  📢 Siaran Pers Kedinasan
                 </button>
                 <button
                   type="button"
@@ -913,14 +1071,78 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                 whiteSpace: 'pre-wrap',
                 maxHeight: '220px',
                 overflowY: 'auto',
-                marginBottom: '12px'
+                marginBottom: '14px'
               }}>
-                {activeNarrativeTab === 'press' && narratives.pressRelease}
+                {activeNarrativeTab === 'civilian' && narratives.civilianWa}
                 {activeNarrativeTab === 'babinsa' && narratives.babinsaWa}
+                {activeNarrativeTab === 'press' && narratives.pressRelease}
                 {activeNarrativeTab === 'social' && narratives.socialMedia}
               </pre>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              {/* Tombol Aksi Taktis Cepat */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{
+                      background: 'rgba(34, 197, 94, 0.15)',
+                      color: '#22c55e',
+                      border: '1px solid rgba(34, 197, 94, 0.35)',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                    onClick={() => handleCopyDirect(narratives.civilianWa, 'civilian')}
+                  >
+                    {copiedType === 'civilian' ? (
+                      <>
+                        <Check size={12} color="#22c55e" />
+                        ✓ Klarifikasi Warga Disalin!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        💬 Salin Klarifikasi Warga (Grup WA RT)
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.15)',
+                      color: '#60a5fa',
+                      border: '1px solid rgba(59, 130, 246, 0.35)',
+                      fontSize: '11px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}
+                    onClick={() => handleCopyDirect(narratives.babinsaWa, 'babinsa')}
+                  >
+                    {copiedType === 'babinsa' ? (
+                      <>
+                        <Check size={12} color="#60a5fa" />
+                        ✓ Jukrah Babinsa Disalin!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} />
+                        🛡️ Salin Jukrah Babinsa Lapangan
+                      </>
+                    )}
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
@@ -929,12 +1151,12 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                   {copiedNarrative ? (
                     <>
                       <Check size={13} color="#22C55E" />
-                      ✓ Naskah Berhasil Disalin ke Clipboard
+                      ✓ Varian Aktif Disalin
                     </>
                   ) : (
                     <>
                       <Copy size={13} />
-                      Salin Naskah Kontranarasi
+                      Salin Teks Tab Aktif
                     </>
                   )}
                 </button>
