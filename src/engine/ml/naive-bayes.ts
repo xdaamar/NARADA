@@ -77,11 +77,11 @@ export function predictNaiveBayes(text: string): MLPrediction {
     return {
       category: 'NETRAL',
       probabilities: {
-        HOAKS: 0.15,
-        PROPAGANDA: 0.15,
-        BUZZER: 0.15,
-        DISINFORMASI: 0.15,
-        NETRAL: 0.40,
+        HOAKS: 0.20,
+        PROPAGANDA: 0.20,
+        BUZZER: 0.20,
+        DISINFORMASI: 0.20,
+        NETRAL: 0.20,
       },
       tokens,
     }
