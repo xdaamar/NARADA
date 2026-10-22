@@ -287,6 +287,43 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 
 ---
 
+### ⚡ SPRINT KHUSUS: ULTIMATE HARDENING & OVERPOWERING CAPABILITIES
+> **Target Bobot:** `[25% Inovasi Teknis]` + `[25% Fungsionalitas Purwarupa]` + `[25% Relevansi dan Manfaat]`  
+> **Tujuan:** Pengujian ekstrem zero-failure di seluruh modul dan penambahan fitur militer overpowered berdaya saing juara lomba.
+
+- [x] **TASK H.1: 3 Vektor Psikologis Kognitif (`src/engine/psychology.ts` & `src/types.ts`)** `[25% Inovasi]`
+  - Kalkulasi *Rage-Bait Index* (0-100%), *Artificial Urgency* (0-100%), *Social Cleavage / Polarisasi* (0-100%), dan emosi primer sasaran.
+  - Tampilan visual radar card adaptif di `AnalysisResultCard.tsx`.
+
+- [x] **TASK H.2: Generator Draf Kontranarasi Taktis Dispenad (`AnalysisResultCard.tsx`)** `[25% Relevansi]`
+  - Otomatis memproduksi 3 varian pesan: Varian A (Siaran Pers Kedinasan Formal), Varian B (Panduan Lapangan WA Babinsa Warga), Varian C (Klarifikasi Kilat Medsos X/IG).
+  - Tombol interaktif salin clipboard dengan toast notifikasi instan.
+
+- [x] **TASK H.3: Paket Bukti Forensik Kriptografis SHA-256 (`src/utils/crypto.ts`)** `[25% Purwarupa]`
+  - Kalkulasi hash SHA-256 via Web Crypto API + software fallback.
+  - Unduh berkas digital `.json` berintegritas tinggi memuat rantai bukti hukum (Chain of Custody).
+
+- [x] **TASK H.4: 4 Skenario Simulasi Krisis TNI AD & Live Pre-Flight Heuristics (`Analyzer.tsx`)** `[25% Purwarupa]`
+  - 4 Tombol preset demo 1-klik untuk presentasi juri (Alutsista Fiktif, Separatisme Papua, Buzzer Pemilu, Disinformasi Konflik).
+  - Indikator live pre-flight saat mengetik (kata, karakter, estimasi waktu baca, skrining frasa berisiko).
+
+- [x] **TASK H.5: Hardening Multi-Input (Batch CSV Non-Blocking & OCR Warning)** `[25% Purwarupa]`
+  - Batch chunked streaming (5 baris/frame) 60fps tanpa membekukan browser untuk 50+ baris data.
+  - OCR quality guardrail alert saat citra buram atau teks terlampau singkat (<20 karakter).
+
+- [x] **TASK H.6: Profiler & Pipeline Lintas-Alat (`Profiler.tsx`, `Nexus.tsx`, `Reports.tsx`)** `[25% Inovasi]`
+  - Investigasi akun langsung dari Analyzer ke Profiler (`/profiler?username=...`).
+  - Tactical Node Inspector pada Nexus Graph (drawer detail + entitas pertahanan + tombol aksi buat laporan).
+  - Ekspor klaster akun bot dari Profiler ke Nexus Graph.
+
+- [x] **TASK H.7: DEFCON Real-Time Sync, Quick Launchpad & Hotkeys** `[25% Purwarupa]`
+  - Status DEFCON 1–5 Dashboard beradaptasi otomatis terhadap ancaman tertinggi sesi.
+  - Tactical Quick Launchpad pada Dashboard.
+  - Hotkeys `Ctrl + Enter` (analisis instan) & `Escape` (tutup modal/drawer).
+  - Laporan Intelijen A4 memuat draf kontranarasi dan stempel hash SHA-256.
+
+---
+
 ### 💻 PHASE 4: ELECTRON SHELL & DESKTOP PACKAGING (NATIVE FEASIBILITY)
 > **Target Bobot:** `[15% Kelayakan Implementasi]` + `[25% Purwarupa]`  
 > **Tujuan:** Mengintegrasikan desktop shell Electron untuk membuktikan kapabilitas native: bypass CORS web scraping, offline operation, dan installer Windows `.exe` mandiri.
@@ -394,9 +431,10 @@ Berdasarkan lembar rubrik penilaian resmi lomba:
 | **Phase 1: Hybrid AI & Fact-Check** | Inovasi Teknis (25%) + Purwarupa (25%) | 7 | 7 | ✅ COMPLETED |
 | **Phase 2: Multi-Input Analyzer** | Inovasi (25%) + Purwarupa (25%) | 5 | 5 | ✅ COMPLETED |
 | **Phase 3: Operational Suite** | Relevansi (25%) + Purwarupa (25%) | 5 | 5 | ✅ COMPLETED |
+| **Sprint: Hardening & Overpower** | Inovasi (25%) + Purwarupa (25%) + Relevansi (25%) | 7 | 7 | ✅ COMPLETED |
 | **Phase 4: Desktop Shell** | Kelayakan Implementasi (15%) | 4 | 0 | ⏳ QUEUED |
-| **Phase 5: Polish & Deliverables** | Dokumentasi (10%) + All-Round | 6 | 0 | ⏳ QUEUED |
-| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **31 Steps** | **21/31** | **68% PROGRESS** |
+| **Phase 5: Polish & Deliverables** | Dokumentasi (10%) + All-Round | 6 | 2 | 🟡 IN PROGRESS |
+| **TOTAL KESELURUHAN** | **100% Bobot Rubrik Terpenuhi** | **38 Steps** | **30/38** | **79% PROGRESS** |
 
 ---
 
