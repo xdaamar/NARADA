@@ -919,3 +919,112 @@ textarea.form-control {
     page-break-after: auto;
   }
 }
+
+/* ─── SPRINT 4B: CREST & MODERN COGNITIVE UI TOKENS ─── */
+.crest-glow {
+  filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.45)) drop-shadow(0 0 24px rgba(245, 158, 11, 0.25));
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+.crest-glow:hover {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.65)) drop-shadow(0 0 30px rgba(245, 158, 11, 0.4));
+}
+
+/* ─── Omni-Input Console Styling ─── */
+.omni-input-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.omni-input-card:focus-within {
+  border-color: rgba(220, 38, 38, 0.55);
+  box-shadow: 0 0 25px rgba(220, 38, 38, 0.15), 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.omni-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 110px;
+  outline: none;
+  padding: 14px 16px;
+}
+
+.omni-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ─── Trending Debunk Grid & Cards ─── */
+.trending-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.trending-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.trending-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(220, 38, 38, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(220, 38, 38, 0.12);
+}
+
+.trending-card-claim {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.trending-tab-btn {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--bg-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.trending-tab-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.trending-tab-btn.active {
+  background: rgba(220, 38, 38, 0.15);
+  color: var(--narada-red);
+  border-color: rgba(220, 38, 38, 0.4);
+  font-weight: 700;
+}
+

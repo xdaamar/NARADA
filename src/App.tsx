@@ -7,7 +7,6 @@ import {
   Network, 
   FileText, 
   Settings,
-  Shield,
   Activity
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
@@ -33,8 +32,13 @@ function Sidebar() {
     <aside className="sidebar">
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">
-          <Shield size={18} color="white" />
+        <div className="sidebar-logo-icon" style={{ background: 'transparent', padding: 0 }}>
+          <img 
+            src="/image/Electrified%20Golden%20Globe%20Crest.png" 
+            alt="NARADA Crest" 
+            className="crest-glow"
+            style={{ width: '38px', height: '38px', objectFit: 'contain' }} 
+          />
         </div>
         <div>
           <div className="sidebar-logo-text">NARADA</div>
