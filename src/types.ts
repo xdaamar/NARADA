@@ -59,6 +59,37 @@ export interface FactCheckResult {
   checkedAt: number
 }
 
+// ─── Dual-Spectrum & Fact-Checking Knowledge Types ───
+export type ThreatSpectrumCluster =
+  | 'POLITIK_NEGARA'       // Suksesi presiden, kudeta, pilpres, suap pejabat
+  | 'BENCANA_DARURAT'      // Gempa megathrust, bendungan jebol, tsunami, letusan
+  | 'PENIPUAN_BANSOS'      // Bansos kemensos 5jt, link kuota, apk tilang
+  | 'KESEHATAN_PANGAN'     // Beras plastik, vaksin racun, penculikan organ
+  | 'KEDAULATAN_MILITER'   // Separatis OPM, alutsista rongsokan, sabotase
+  | 'UMUM_NETRAL'          // Berita faktual kedinasan/sosial
+
+export interface DebunkKnowledgeEntry {
+  id: string
+  claim: string
+  normalizedQuery: string
+  cluster: ThreatSpectrumCluster
+  verdict: 'HOAKS' | 'DISINFORMASI' | 'PROPAGANDA'
+  threatLevel: ThreatLevel
+  clarification: string
+  officialSource: string
+  sourceUrl: string
+  keywords: string[]
+  tacticalResponseCivilian: string
+  tacticalResponseMilitary: string
+}
+
+export interface InstitutionalLogicAnomaly {
+  detected: boolean
+  anomalyType?: 'CONSTITUTIONAL_VIOLATION' | 'DISASTER_PREDICTION_FRAUD' | 'FINANCIAL_SCAM_PHISHING' | 'HEALTH_HOAX'
+  explanation?: string
+  confidenceImpact: number
+}
+
 // ─── AI & ML Engine Types ───
 export interface CognitivePsychologyVectors {
   rageBaitIndex: number       // 0 - 100: Tingkat agitasi emosi & provokasi kemarahan massa
@@ -107,6 +138,9 @@ export interface AnalysisResult {
   factCheck?: FactCheckResult
   psychology?: CognitivePsychologyVectors
   forensicHash?: string
+  spectrumCluster?: ThreatSpectrumCluster
+  debunkMatch?: DebunkKnowledgeEntry
+  logicAnomaly?: InstitutionalLogicAnomaly
 }
 
 // ─── Legacy / Backward-Compatible Aliases ───
