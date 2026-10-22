@@ -1,36 +1,26 @@
-// ─── FACT-CHECK CLIENT (GOOGLE FACT CHECK API + MAFINDO) ───
-// Berdasarkan PRD_03_fact_checker.md
+// ─── FACT-CHECK CLIENT (TURNBACKHOAX.ID REST API + LOCAL DEBUNK DATABASE FALLBACK) ───
+// Berdasarkan Master Sprint 4A: Dual-Spectrum Cognitive Reasoning Engine
 
 import type { FactCheckClaim, FactCheckResult } from '../types'
 import { getUserSettings } from '../utils/storage'
-import { tokenizeIndonesian } from './ml/tokenizer'
+import { searchLocalDebunk } from './data/debunk-service'
 
-interface GoogleClaimReview {
-  publisher?: {
-    name?: string
-    site?: string
+interface TurnBackHoaxPost {
+  id: number
+  date: string
+  link: string
+  title: {
+    rendered: string
   }
-  url?: string
-  title?: string
-  textualRating?: string
-  reviewDate?: string
-}
-
-interface GoogleClaimItem {
-  text?: string
-  claimant?: string
-  claimDate?: string
-  claimReview?: GoogleClaimReview[]
-}
-
-interface GoogleFactCheckApiResponse {
-  claims?: GoogleClaimItem[]
+  excerpt?: {
+    rendered: string
+  }
 }
 
 /**
  * Menentukan warna badge status kebenaran berdasarkan teks rating
  */
-function resolveRatingColor(ratingText: string): string {
+export function resolveRatingColor(ratingText: string): string {
   const normalized = (ratingText || '').toLowerCase()
 
   if (
@@ -50,7 +40,8 @@ function resolveRatingColor(ratingText: string): string {
     normalized.includes('disinformasi') ||
     normalized.includes('sebagian') ||
     normalized.includes('konteks') ||
-    normalized.includes('manipulasi')
+    normalized.includes('manipulasi') ||
+    normalized.includes('propaganda')
   ) {
     return '#F59E0B' // Kuning / Oranye
   }
@@ -67,118 +58,169 @@ function resolveRatingColor(ratingText: string): string {
 }
 
 /**
- * Mengekstrak query pencarian klaim dari teks input (mengambil 3-6 kata kunci utama)
+ * Pembersih HTML string sederhana dari respons WordPress
+ */
+function cleanHtml(html: string): string {
+  if (!html) return ''
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&#8211;/g, '–')
+    .replace(/&#8212;/g, '—')
+    .replace(/&#8216;/g, "'")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8220;/g, '"')
+    .replace(/&#8221;/g, '"')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Mengekstrak kata kunci pencarian yang relevan untuk query Fact-Check
  */
 export function extractClaimQuery(text: string): string {
   if (!text) return ''
 
-  // Ambil kalimat pertama atau 100 karakter pertama
-  const firstSentence = text.split(/[.\n!?]/)[0] || text
-  const tokens = tokenizeIndonesian(firstSentence, false)
+  // Hapus karakter prefix seperti [SALAH], [HOAKS] jika ada pada teks OCR
+  const cleanPrefix = text.replace(/^\[(salah|hoaks|disinformasi|klarifikasi)\]/i, '').trim()
+  const firstSentence = cleanPrefix.split(/[.\n!?]/)[0] || cleanPrefix
 
-  if (tokens.length === 0) {
-    return text.substring(0, 50).trim()
+  // Ambil kata-kata penting (panjang >= 3 huruf)
+  const words = firstSentence
+    .replace(/[=—|»«‘'"`~!@#$%^&*()_+={}\[\]:;<>?\/\\.,-]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 3 && !['yang', 'untuk', 'dengan', 'dari', 'pada', 'atau', 'ini', 'itu', 'adalah'].includes(w.toLowerCase()))
+
+  if (words.length === 0) {
+    return cleanPrefix.substring(0, 40).trim()
   }
 
-  // Batasi query hingga 5 kata kunci terpenting agar pencarian API presisi
-  return tokens.slice(0, 5).join(' ')
+  return words.slice(0, 4).join(' ')
 }
 
 /**
- * Menjalankan cross-reference ke Google Fact Check Tools API (Mafindo, Tempo CekFakta, dll.)
- * @param text - Teks konten yang dianalisis
- * @param overrideApiKey - Opsional API key untuk testing/override
+ * Menjalankan cross-reference ke TurnBackHoax.ID WP-JSON REST API dengan fallback instan ke Local Debunk Database
  */
-export async function verifyFactCheck(text: string, overrideApiKey?: string): Promise<FactCheckResult> {
+export async function verifyFactCheck(text: string, _overrideApiKey?: string): Promise<FactCheckResult> {
   const query = extractClaimQuery(text)
   const settings = getUserSettings()
-  const apiKey = overrideApiKey || settings.googleFactCheckApiKey
 
-  const manualSearchUrl = `https://search.turnbackhoax.id/?q=${encodeURIComponent(query)}`
+  const manualSearchUrl = `https://turnbackhoax.id/?s=${encodeURIComponent(query)}`
   const explorerUrl = `https://toolbox.google.com/factcheck/explorer/search/${encodeURIComponent(query)};hl=id`
 
-  // Jika aplikasi dalam mode offline paksa atau tidak ada query
-  if (settings.offlineMode || !query) {
+  // 1. Cek Basis Data Lokal Terlebih Dahulu (Offline-First / Zero Latency Guarantee)
+  const localMatch = searchLocalDebunk(text)
+  let localClaim: FactCheckClaim | null = null
+
+  if (localMatch.matched && localMatch.entry) {
+    const entry = localMatch.entry
+    localClaim = {
+      claimText: entry.claim,
+      claimant: 'Media Sosial / Pesan Berantai Viral',
+      publisherName: entry.officialSource,
+      publisherSite: 'turnbackhoax.id',
+      articleUrl: entry.sourceUrl,
+      articleTitle: `[${entry.verdict}] ${entry.claim}`,
+      rating: entry.verdict === 'HOAKS' ? 'Salah (Hoaks)' : entry.verdict,
+      ratingColor: resolveRatingColor(entry.verdict),
+      reviewDate: 'Terverifikasi Tim Narada & Mafindo',
+    }
+  }
+
+  // Jika mode offline dipaksa oleh pengguna
+  if (settings.offlineMode) {
     return {
-      available: false,
+      available: !!localClaim,
       query,
-      claims: [],
+      claims: localClaim ? [localClaim] : [],
       manualSearchUrl,
       explorerUrl,
       checkedAt: Date.now(),
     }
   }
 
-  // Jika tanpa API key, arahkan user ke link manual TurnBackHoax & Google Explorer
-  if (!apiKey) {
-    return {
-      available: true,
-      query,
-      claims: [],
-      manualSearchUrl,
-      explorerUrl,
-      checkedAt: Date.now(),
-    }
-  }
+  // 2. Query Live REST API TurnBackHoax.ID (Bebas API Key)
+  const abortController = new AbortController()
+  const timeoutId = setTimeout(() => abortController.abort(), 3500) // 3.5 detik timeout
 
   try {
-    const endpoint = `https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(query)}&languageCode=id&pageSize=4&key=${apiKey}`
-    const response = await fetch(endpoint)
+    const searchUrl = `https://turnbackhoax.id/wp-json/wp/v2/posts?search=${encodeURIComponent(query)}&per_page=4`
+    const response = await fetch(searchUrl, {
+      signal: abortController.signal,
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
 
-    if (!response.ok) {
-      console.warn(`[NARADA FactCheck] API responded with status ${response.status}`)
+    clearTimeout(timeoutId)
+
+    if (response.ok) {
+      const posts = (await response.json()) as TurnBackHoaxPost[]
+      const liveClaims: FactCheckClaim[] = []
+
+      if (Array.isArray(posts) && posts.length > 0) {
+        for (const post of posts) {
+          const rawTitle = cleanHtml(post.title?.rendered || '')
+          const excerpt = cleanHtml(post.excerpt?.rendered || '')
+
+          let rating = 'Diperiksa'
+          if (rawTitle.includes('[SALAH]') || rawTitle.includes('[HOAKS]')) {
+            rating = 'Salah (Hoaks)'
+          } else if (rawTitle.includes('[DISINFORMASI]') || rawTitle.includes('[MANIPULASI]')) {
+            rating = 'Disinformasi'
+          } else if (rawTitle.includes('[KLARIFIKASI]')) {
+            rating = 'Klarifikasi Fakta'
+          }
+
+          liveClaims.push({
+            claimText: excerpt || rawTitle,
+            claimant: 'Media Sosial / Platform Digital',
+            publisherName: 'TurnBackHoax.ID (Mafindo)',
+            publisherSite: 'turnbackhoax.id',
+            articleUrl: post.link,
+            articleTitle: rawTitle,
+            rating,
+            ratingColor: resolveRatingColor(rating),
+            reviewDate: post.date ? new Date(post.date).toLocaleDateString('id-ID') : undefined,
+          })
+        }
+      }
+
+      // Gabungkan hasil live dengan hasil lokal (utamakan lokal jika kecocokan tinggi)
+      const combinedClaims: FactCheckClaim[] = []
+      if (localClaim) {
+        combinedClaims.push(localClaim)
+      }
+      liveClaims.forEach(lc => {
+        if (!combinedClaims.some(c => c.articleUrl === lc.articleUrl)) {
+          combinedClaims.push(lc)
+        }
+      })
+
       return {
-        available: true,
+        available: combinedClaims.length > 0,
         query,
-        claims: [],
+        claims: combinedClaims.slice(0, 4),
         manualSearchUrl,
         explorerUrl,
         checkedAt: Date.now(),
       }
     }
-
-    const data = (await response.json()) as GoogleFactCheckApiResponse
-    const rawClaims = data.claims || []
-    const mappedClaims: FactCheckClaim[] = []
-
-    for (const item of rawClaims) {
-      const claimText = item.text || 'Klaim tidak spesifik'
-      const claimant = item.claimant || 'Media Sosial'
-
-      if (item.claimReview && item.claimReview.length > 0) {
-        for (const review of item.claimReview) {
-          mappedClaims.push({
-            claimText,
-            claimant,
-            publisherName: review.publisher?.name || 'Cek Fakta Independen',
-            publisherSite: review.publisher?.site || 'turnbackhoax.id',
-            articleUrl: review.url || manualSearchUrl,
-            articleTitle: review.title || claimText,
-            rating: review.textualRating || 'Diperiksa',
-            ratingColor: resolveRatingColor(review.textualRating || ''),
-            reviewDate: review.reviewDate,
-          })
-        }
-      }
-    }
-
-    return {
-      available: true,
-      query,
-      claims: mappedClaims,
-      manualSearchUrl,
-      explorerUrl,
-      checkedAt: Date.now(),
-    }
   } catch (error) {
-    console.error('[NARADA FactCheck] Request gagal (kemungkinan offline atau CORS):', error)
-    return {
-      available: false,
-      query,
-      claims: [],
-      manualSearchUrl,
-      explorerUrl,
-      checkedAt: Date.now(),
-    }
+    // Timeout atau CORS error / offline
+    clearTimeout(timeoutId)
+    // console.warn('[NARADA FactCheck] Live REST API fallback to local:', error)
+  }
+
+  // 3. Graceful Fallback ke Database Lokal jika Live Fetch Gagal / Timeout
+  return {
+    available: !!localClaim,
+    query,
+    claims: localClaim ? [localClaim] : [],
+    manualSearchUrl,
+    explorerUrl,
+    checkedAt: Date.now(),
   }
 }
