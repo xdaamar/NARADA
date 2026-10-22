@@ -1,26 +1,14 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
-  Link as LinkIcon,
-  Scan,
-  FileText,
-  FileSpreadsheet,
-  RotateCcw,
-  Sparkles,
-  ChevronDown,
-  ChevronUp,
   History,
   Trash2,
-  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
-  Radar,
-  Zap,
-  Clock,
-  Keyboard,
-  Target
+  AlertTriangle
 } from 'lucide-react'
-import URLInput from '../components/URLInput'
-import OCRUploader from '../components/OCRUploader'
-import BatchUploader from '../components/BatchUploader'
+import OmniInputConsole from '../components/OmniInputConsole'
+import TrendingDebunkGrid from '../components/TrendingDebunkGrid'
 import AnalysisResultCard from '../components/AnalysisResultCard'
 import FactCheckPanel from '../components/FactCheckPanel'
 import { analyzeHybrid } from '../engine/combiner'
@@ -28,91 +16,19 @@ import { verifyFactCheck } from '../engine/fact-checker'
 import { saveAnalysis, getStoredAnalyses, clearStoredAnalyses } from '../utils/storage'
 import { getCategoryBadge, getThreatBadge, formatMilitaryDate, truncateText } from '../utils/format'
 import { generateSHA256 } from '../utils/crypto'
-import type { AnalysisResult, InputSourceType } from '../types'
-
-type ActiveTab = 'url' | 'ocr' | 'text' | 'file'
-
-// ─── 4 Preset Simulasi Krisis Operasional TNI AD (1-Click Demo Injector) ───
-const CRISIS_SIMULATION_PRESETS = [
-  {
-    id: 'crisis_alutsista',
-    title: '🎯 Skenario 1: Alutsista Fiktif',
-    targetCategory: 'HOAKS',
-    targetThreat: 'CRITICAL',
-    badgeColor: '#EF4444',
-    text: 'Beredar selebaran dokumen rahasia pembelian 20 unit Tank Tempur dan alutsista fiktif anggaran 24 triliun Kemhan RI. Rezim berupaya keras menutup-nutupi korupsi anggaran pertahanan negara ini. Viralkan sebelum dihapus kominfo!',
-  },
-  {
-    id: 'crisis_papua',
-    title: '🎯 Skenario 2: Agitasi Separatisme',
-    targetCategory: 'PROPAGANDA',
-    targetThreat: 'CRITICAL',
-    badgeColor: '#F97316',
-    text: 'Seruan konsolidasi dan boikot pemilu untuk seluruh kawan di Papua Barat! Rezim militer NKRI adalah penjajah di tanah kami. Rebut kembali hak kedaulatan bangsa Papua dan tuntut referendum kemerdekaan sekarang juga!',
-  },
-  {
-    id: 'crisis_buzzer',
-    title: '🎯 Skenario 3: Buzzer Netralitas TNI',
-    targetCategory: 'BUZZER',
-    targetThreat: 'HIGH',
-    badgeColor: '#F59E0B',
-    text: 'Aparat dituding memihak salah satu paslon dalam pengamanan logistik TPS! Sebarkan serentak malam ini pukul 20.00 WIB kawan-kawan! Kita bikin trending topik nomor satu untuk membongkar kecurangan ini!',
-  },
-  {
-    id: 'crisis_disinfo',
-    title: '🎯 Skenario 4: Disinformasi Konflik',
-    targetCategory: 'DISINFORMASI',
-    targetThreat: 'MEDIUM',
-    badgeColor: '#8B5CF6',
-    text: 'DARURAT! Beredar video kontak tembak di pos pengamanan perbatasan yang sengaja ditutupi media nasional. Warga sekitar ketakutan dan bersiap mengungsi malam ini juga! Jangan percaya bantahan aparat sebelum terlambat!',
-  },
-]
-
-// Kamus Frasa Sensitif untuk Live Pre-Flight Heuristics
-const SENSITIVE_PREFLIGHT_TERMS = [
-  'viralkan', 'darurat', 'rahasia', 'fiktif', 'boikot', 'separatis', 'penjajah',
-  'trending', 'korupsi', 'serang', 'serbuan', 'adu domba', 'palsu', 'menutup-nutupi',
-  'referendum', 'makar', 'habisi', 'bahaya', 'bocor', 'hancurkan'
-]
-
-// ─── Sampel Teks Demo Cepat untuk Tab Teks Langsung ───
-const QUICK_TEXT_SAMPLES = [
-  {
-    label: 'Contoh: Hoaks TNI',
-    category: 'HOAKS',
-    color: '#EF4444',
-    text: 'BAHAYA!! Beredar kabar bahwa TNI AD berencana memberlakukan operasi rahasia dan mengambil alih logistik sipil secara paksa. Segera SEBARKAN dan VIRALKAN ke semua grup WhatsApp! Jangan percaya bantahan pemerintah yang selama ini membohongi rakyat!'
-  },
-  {
-    label: 'Contoh: Propaganda',
-    category: 'PROPAGANDA',
-    color: '#F97316',
-    text: 'Rezim militer NKRI adalah penjajah di tanah kami! Bangkitlah kawan-kawan pejuang kemerdekaan Papua Barat, boikot seluruh pos komando Kodam dan rebut kembali hak kedaulatan adat kita! Merdeka atau mati melawan penindas!'
-  },
-  {
-    label: 'Contoh: Buzzer Koordinasi',
-    category: 'BUZZER',
-    color: '#F59E0B',
-    text: 'Ayo kawan-kawan relawan, retweet dan share postingan ini serentak malam ini pukul 20.00 WIB! Tag 10 akun teman kalian! Kita harus kompak dan solid viralkan narasi ini agar trending topik nomor satu di Indonesia!'
-  },
-  {
-    label: 'Contoh: Berita Netral',
-    category: 'NETRAL',
-    color: '#22C55E',
-    text: 'Prajurit TNI Angkatan Darat dari Kodim 0734 bersama warga masyarakat menggelar program bakti sosial gotong royong pembersihan aliran sungai dan perbaikan saluran drainase untuk mencegah risiko bencana hidrometeorologi di wilayah Yogyakarta.'
-  }
-]
+import type { AnalysisResult, InputSourceType, ThreatSpectrumCluster } from '../types'
 
 export default function Analyzer() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('text')
-  const [directText, setDirectText] = useState<string>('')
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
   const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null)
   const [history, setHistory] = useState<AnalysisResult[]>(() => getStoredAnalyses())
-  const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(true)
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(false)
+  const [injectedText, setInjectedText] = useState<string>('')
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  // Dengarkan perubahan reaktif dari sessionStorage
+  const resultContainerRef = useRef<HTMLDivElement>(null)
+
+  // Sinkronisasi riwayat analisis sessionStorage
   useEffect(() => {
     const handleStorageUpdate = (e: Event) => {
       const customEvent = e as CustomEvent<AnalysisResult[]>
@@ -130,7 +46,7 @@ export default function Analyzer() {
   }, [])
 
   /**
-   * Menjalankan Analisis Hybrid & Fact-Checking Terpadu
+   * Menjalankan Analisis Kognitif Terpadu (Truth Priority Architecture)
    */
   const executeAnalysis = async (
     textToAnalyze: string,
@@ -145,35 +61,40 @@ export default function Analyzer() {
   ) => {
     const trimmed = textToAnalyze.trim()
     if (trimmed.length < 10) {
-      setValidationError('Teks terlalu pendek. Minimal 10 karakter untuk dianalisis oleh AI Engine.')
+      setValidationError('Teks terlalu pendek. Minimal 10 karakter untuk dianalisis oleh Reasoning Engine.')
       return
     }
 
     setValidationError(null)
     setIsAnalyzing(true)
 
-    // Simulasi delay mikro pemrosesan taktis militer
-    await new Promise(resolve => setTimeout(resolve, 400))
+    // Simulasi delay mikro pemrosesan taktis militer (350ms)
+    await new Promise(resolve => setTimeout(resolve, 350))
 
     try {
-      // 1. Eksekusi AI Hybrid Combiner (ML + Rules)
+      // 1. Eksekusi Hybrid Combiner (Truth Priority: Cek Fakta -> Knowledge Graph -> Hybrid ML)
       const analysisResult = analyzeHybrid(trimmed, {
         inputSource: source,
         title,
         sourceMeta,
       })
 
-      // 2. Jalankan Fact-Check verifier secara terintegrasi
+      // 2. Cross-reference ke TurnBackHoax.ID REST API / Fallback Offline
       const factCheckResult = await verifyFactCheck(trimmed)
       analysisResult.factCheck = factCheckResult
 
-      // 3. TASK H.3: Hitung SHA-256 Checksum Integritas Forensik
+      // 3. Hitung SHA-256 Checksum Integritas Forensik
       analysisResult.forensicHash = await generateSHA256(trimmed)
 
-      // 4. Simpan ke sessionStorage & state aktif
+      // 4. Simpan ke sessionStorage & update state
       saveAnalysis(analysisResult)
       setCurrentResult(analysisResult)
       setHistory(getStoredAnalyses())
+
+      // Auto scroll ke hasil analisis
+      setTimeout(() => {
+        resultContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
     } catch (error) {
       console.error('[NARADA Analyzer] Eksekusi analisis gagal:', error)
       setValidationError('Terjadi kesalahan saat memproses analisis kognitif.')
@@ -183,30 +104,11 @@ export default function Analyzer() {
   }
 
   /**
-   * Handler untuk input teks manual
+   * Handler saat isu trending diklik
    */
-  const handleDirectTextSubmit = () => {
-    if (!directText.trim()) {
-      setValidationError('Harap masukkan teks postingan atau komentar terlebih dahulu.')
-      return
-    }
-    executeAnalysis(directText, 'text', 'Analisis Naskah Teks')
-  }
-
-  const handleSelectSample = (sampleText: string) => {
-    setDirectText(sampleText)
-    setValidationError(null)
-  }
-
-  const handleSelectCrisisScenario = (scenarioText: string) => {
-    setActiveTab('text')
-    setDirectText(scenarioText)
-    setValidationError(null)
-  }
-
-  const handleClearDirectText = () => {
-    setDirectText('')
-    setValidationError(null)
+  const handleSelectTrending = (debunkText: string, _cluster: ThreatSpectrumCluster) => {
+    setInjectedText(debunkText)
+    executeAnalysis(debunkText, 'text', `Isu Viral: ${truncateText(debunkText, 45)}`)
   }
 
   const handleClearHistory = () => {
@@ -217,437 +119,147 @@ export default function Analyzer() {
     }
   }
 
-  // ─── TASK H.4: Live Pre-Flight Heuristics ───
-  const wordCount = directText.trim() === '' ? 0 : directText.trim().split(/\s+/).filter(Boolean).length
-  const charCount = directText.length
-
-  const estimatedReadTimeSec = useMemo(() => {
-    if (wordCount === 0) return 0
-    return Math.max(1, Math.ceil(wordCount / 3.5))
-  }, [wordCount])
-
-  const detectedRiskTerms = useMemo(() => {
-    if (!directText || directText.length < 5) return []
-    const norm = directText.toLowerCase()
-    return SENSITIVE_PREFLIGHT_TERMS.filter(term => {
-      const regex = new RegExp(`\\b${term}\\b`, 'i')
-      return regex.test(norm)
-    })
-  }, [directText])
-
   return (
-    <div className="fade-in" style={{ paddingBottom: '32px' }}>
-      {/* ─── Page Title Header ─── */}
-      <div style={{ marginBottom: '22px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <span style={{
-            fontSize: '10px',
-            fontFamily: 'var(--font-mono)',
-            padding: '2px 8px',
-            borderRadius: '3px',
-            background: 'var(--narada-red-subtle)',
-            color: 'var(--narada-red)',
-            border: '1px solid rgba(200, 16, 46, 0.3)',
+    <div className="fade-in" style={{ paddingBottom: '36px' }}>
+      {/* ─── Page Title Header (Filosofi "Bersepeda": Bersih & Proporsional) ─── */}
+      <div style={{
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              padding: '2px 8px',
+              borderRadius: '3px',
+              background: 'var(--narada-red-subtle)',
+              color: 'var(--narada-red)',
+              border: '1px solid rgba(200, 16, 46, 0.3)',
+              letterSpacing: '1.5px',
+              textTransform: 'uppercase',
+              fontWeight: '700'
+            }}>
+              DUAL-SPECTRUM COGNITIVE REASONING ENGINE
+            </span>
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+              PUSSIBERAD TNI AD × KARTIKA CYBER
+            </span>
+          </div>
+
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '24px',
+            fontWeight: '800',
             letterSpacing: '1.5px',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            marginBottom: '4px',
+            color: 'var(--text-primary)'
           }}>
-            FASE 2 · MULTI-INPUT SENSORY SUITE
-          </span>
-          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-            PUSSIBERAD TNI AD
-          </span>
+            Cognitive Threat & Viral Hoax Analyzer
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '780px' }}>
+            Konsol intelijen kognitif cerdas untuk memverifikasi hoaks militer/politik serta disinformasi publik (bencana alam BMKG, penipuan bansos, dan kesehatan) tanpa friksi modalitas.
+          </p>
         </div>
 
-        <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '24px',
-          fontWeight: '800',
-          letterSpacing: '2px',
-          textTransform: 'uppercase',
-          marginBottom: '6px',
-          color: 'var(--text-primary)'
-        }}>
-          Multi-Input Cognitive Threat Analyzer
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Penerimaan dan analisis ancaman kognitif melalui 4 modalitas: URL portal berita, Screenshot OCR neural, Naskah teks langsung, dan Berkas batch massal.
-        </p>
-      </div>
-
-      {/* ─── TASK H.4: BAR 4 PRESET SIMULASI KRISIS OPERASIONAL TNI AD (1-CLICK INJECTOR) ─── */}
-      <div style={{
-        marginBottom: '18px',
-        padding: '12px 16px',
-        background: 'linear-gradient(90deg, rgba(200, 16, 46, 0.12), rgba(30, 41, 59, 0.4))',
-        border: '1px solid rgba(200, 16, 46, 0.35)',
-        borderRadius: 'var(--radius-md)',
-      }}>
+        {/* Status Live Engine Badge */}
         <div style={{
-          fontSize: '10px',
-          fontFamily: 'var(--font-mono)',
-          letterSpacing: '1.5px',
-          color: 'var(--narada-red)',
-          marginBottom: '8px',
+          background: 'var(--bg-elevated)',
+          padding: '8px 14px',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--bg-border)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '6px'
+          gap: '10px'
         }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '700' }}>
-            <Target size={12} /> SKENARIO SIMULASI KRISIS OPERASIONAL TNI AD (1-CLICK DEMO INJECTOR)
-          </span>
-          <span style={{ color: 'var(--text-dim)', fontSize: '9px' }}>
-            Siap Uji Langsung untuk Dewan Juri
-          </span>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '8px' }}>
-          {CRISIS_SIMULATION_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => handleSelectCrisisScenario(preset.text)}
-              style={{
-                justifyContent: 'flex-start',
-                textAlign: 'left',
-                padding: '8px 10px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--bg-border)',
-                height: 'auto'
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                    {preset.title}
-                  </span>
-                  <span style={{
-                    fontSize: '8px',
-                    fontFamily: 'var(--font-mono)',
-                    padding: '1px 5px',
-                    borderRadius: '2px',
-                    background: `${preset.badgeColor}20`,
-                    color: preset.badgeColor,
-                    border: `1px solid ${preset.badgeColor}40`
-                  }}>
-                    {preset.targetCategory}
-                  </span>
-                </div>
-                <div style={{ fontSize: '9px', color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {preset.text}
-                </div>
-              </div>
-            </button>
-          ))}
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#22C55E',
+            boxShadow: '0 0 10px #22C55E'
+          }} />
+          <div>
+            <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', lineHeight: '1' }}>
+              REASONING STATUS
+            </div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: '#22C55E', marginTop: '2px' }}>
+              TRUTH PRIORITY ACTIVE
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ─── 4 Modalitas Tab Navigation ─── */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
-        marginBottom: '18px',
-        borderBottom: '1px solid var(--bg-border)',
-        paddingBottom: '12px',
-        flexWrap: 'wrap'
-      }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('text')}
-          className={`btn ${activeTab === 'text' ? 'btn-primary' : 'btn-secondary'}`}
-        >
-          <FileText size={14} />
-          📝 Teks Langsung
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('url')}
-          className={`btn ${activeTab === 'url' ? 'btn-primary' : 'btn-secondary'}`}
-        >
-          <LinkIcon size={14} />
-          🔗 URL Berita & Medsos
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('ocr')}
-          className={`btn ${activeTab === 'ocr' ? 'btn-primary' : 'btn-secondary'}`}
-        >
-          <Scan size={14} />
-          📸 Screenshot OCR (Tesseract)
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('file')}
-          className={`btn ${activeTab === 'file' ? 'btn-primary' : 'btn-secondary'}`}
-        >
-          <FileSpreadsheet size={14} />
-          📁 Batch File (.CSV / .TXT)
-        </button>
-      </div>
-
-      {/* ─── 2 Kolom Layout: Input di Kiri, Result di Kanan ─── */}
-      <div className="grid-2" style={{ gridTemplateColumns: '1.05fr 0.95fr', alignItems: 'start', gap: '20px' }}>
-        {/* Kolom Kiri: Panel Input Sesuai Tab Aktif */}
-        <div>
-          {/* TAB 1: TEKS LANGSUNG */}
-          {activeTab === 'text' && (
-            <div className="card fade-in">
-              <div className="card-header">
-                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <FileText size={14} color="var(--narada-red)" />
-                  INPUT TEKS KONTEN LANGSUNG
-                </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                    {wordCount} kata · {directText.length} karakter
-                  </span>
-                  {directText && (
-                    <button className="btn btn-ghost btn-sm" onClick={handleClearDirectText} title="Bersihkan Teks">
-                      <RotateCcw size={12} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="card-body">
-                {/* Tombol Sampel Cepat */}
-                <div style={{ marginBottom: '14px' }}>
-                  <div style={{
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    letterSpacing: '1.5px',
-                    color: 'var(--text-muted)',
-                    marginBottom: '8px'
-                  }}>
-                    SAMPEL DEMO SKENARIO INTELIJEN
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {QUICK_TEXT_SAMPLES.map(sample => (
-                      <button
-                        key={sample.label}
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleSelectSample(sample.text)}
-                      >
-                        <Sparkles size={11} color={sample.color} />
-                        {sample.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Textarea dengan Hotkey Ctrl+Enter & Escape */}
-                <textarea
-                  className="form-control"
-                  placeholder="Ketik atau tempel (paste) naskah postingan media sosial, pesan broadcast grup percakapan, atau cuplikan berita di sini...&#10;&#10;Contoh:&#10;• Postingan mencurigakan terkait pertahanan atau personel TNI&#10;• Narasi separatis atau propaganda kedaulatan wilayah&#10;• Pola pesan serentak ajakan aksi demonstrasi buzzer"
-                  value={directText}
-                  onChange={(e) => {
-                    setDirectText(e.target.value)
-                    if (validationError) setValidationError(null)
-                  }}
-                  onKeyDown={(e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                      e.preventDefault()
-                      handleDirectTextSubmit()
-                    }
-                    if (e.key === 'Escape') {
-                      setValidationError(null)
-                    }
-                  }}
-                  rows={12}
-                  style={{ minHeight: '260px' }}
-                />
-
-                {/* ─── TASK H.4: LIVE PRE-FLIGHT HEURISTICS BAR ─── */}
-                <div style={{
-                  marginTop: '8px',
-                  padding: '8px 12px',
-                  background: 'var(--bg-elevated)',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--bg-border)',
-                  fontSize: '11px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '8px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                    <span>{wordCount} kata</span>
-                    <span>·</span>
-                    <span>{charCount} karakter</span>
-                    <span>·</span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Clock size={11} color="var(--text-dim)" />
-                      ~{estimatedReadTimeSec} detik baca
-                    </span>
-                  </div>
-
-                  {/* Deteksi Dini Frasa Berisiko */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {detectedRiskTerms.length > 0 ? (
-                      <span style={{
-                        color: '#F97316',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '10px'
-                      }}>
-                        <Zap size={11} color="#F97316" />
-                        <strong>{detectedRiskTerms.length} Frasa Berisiko:</strong> {detectedRiskTerms.slice(0, 3).join(', ')}
-                      </span>
-                    ) : wordCount > 5 ? (
-                      <span style={{
-                        color: 'var(--threat-low)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '10px'
-                      }}>
-                        <CheckCircle2 size={11} />
-                        Pra-skrining: Netral
-                      </span>
-                    ) : (
-                      <span style={{
-                        color: 'var(--text-dim)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '10px',
-                        fontFamily: 'var(--font-mono)'
-                      }}>
-                        <Keyboard size={11} />
-                        Ctrl + Enter untuk analisis
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Validasi Error jika ada */}
-                {validationError && (
-                  <div style={{
-                    marginTop: '10px',
-                    padding: '10px 12px',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: 'var(--radius-sm)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '12px',
-                    color: '#FCA5A5'
-                  }}>
-                    <AlertTriangle size={14} color="#EF4444" style={{ flexShrink: 0 }} />
-                    {validationError}
-                  </div>
-                )}
-
-                {/* Tombol Eksekusi Analisis */}
-                <div style={{ marginTop: '14px', display: 'flex', gap: '10px' }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-lg"
-                    onClick={handleDirectTextSubmit}
-                    disabled={isAnalyzing || !directText.trim()}
-                    style={{ flex: 1 }}
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <div className="loading-dots">
-                          <span /><span /><span />
-                        </div>
-                        Menganalisis Kognitif...
-                      </>
-                    ) : (
-                      <>
-                        <Scan size={16} />
-                        Jalankan Analisis Kognitif Instan
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: URL ANALYZER */}
-          {activeTab === 'url' && (
-            <URLInput
-              isAnalyzing={isAnalyzing}
-              onAnalyze={({ text, source, title, sourceMeta }) => {
-                executeAnalysis(text, source, title, sourceMeta)
-              }}
-            />
-          )}
-
-          {/* TAB 3: OCR ANALYZER */}
-          {activeTab === 'ocr' && (
-            <OCRUploader
-              isAnalyzing={isAnalyzing}
-              onAnalyze={({ text, source, title, imagePreview }) => {
-                executeAnalysis(text, source, title, { imagePreview })
-              }}
-            />
-          )}
-
-          {/* TAB 4: BATCH ANALYZER */}
-          {activeTab === 'file' && (
-            <BatchUploader
-              isGlobalAnalyzing={isAnalyzing}
-              onSelectResult={(selected) => {
-                setCurrentResult(selected)
-              }}
-            />
-          )}
+      {/* Validation Error Alert jika ada */}
+      {validationError && (
+        <div style={{
+          padding: '10px 14px',
+          background: 'rgba(239, 68, 68, 0.12)',
+          border: '1px solid rgba(239, 68, 68, 0.35)',
+          borderRadius: 'var(--radius-sm)',
+          color: '#EF4444',
+          fontSize: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          marginBottom: '16px'
+        }}>
+          <AlertTriangle size={15} />
+          <span>{validationError}</span>
         </div>
+      )}
 
-        {/* Kolom Kanan: Panel Hasil Analisis & Fact-Check */}
-        <div>
-          {/* Keadaan 1: Belum Ada Analisis & Sedang Tidak Memproses */}
-          {!currentResult && !isAnalyzing && (
-            <div className="card">
-              <div className="empty-state" style={{ padding: '80px 24px' }}>
-                <Radar size={48} className="empty-icon" color="var(--narada-red)" style={{ opacity: 0.35 }} />
-                <div className="empty-title" style={{ color: 'var(--text-primary)' }}>
-                  PANEL INTELIJEN SIAP MEMINDAI
-                </div>
-                <div className="empty-desc" style={{ maxWidth: '320px', color: 'var(--text-muted)' }}>
-                  Pilih salah satu modalitas di panel kiri (Teks Langsung, Tautan URL Berita, Screenshot OCR, atau Berkas CSV) lalu jalankan analisis kognitif.
-                </div>
-              </div>
+      {/* ─── 1. SMART OMNI-INPUT CONSOLE (ZERO-FRICTION INGESTION) ─── */}
+      <OmniInputConsole
+        isAnalyzing={isAnalyzing}
+        initialText={injectedText}
+        onAnalyze={(payload) => {
+          executeAnalysis(payload.text, payload.source, payload.title, payload.sourceMeta)
+        }}
+        onSelectBatchResult={(selected) => {
+          setCurrentResult(selected)
+          setTimeout(() => {
+            resultContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }, 100)
+        }}
+      />
+
+      {/* ─── 2. HASIL ANALISIS KOGNITIF (JIKA TERSEDIA) ─── */}
+      <div ref={resultContainerRef} style={{ marginTop: '20px' }}>
+        {/* Loading Spinner State */}
+        {isAnalyzing && (
+          <div className="card fade-in" style={{ padding: '60px 24px', textAlign: 'center' }}>
+            <div className="loading-dots" style={{ marginBottom: '16px' }}>
+              <span /><span /><span />
             </div>
-          )}
-
-          {/* Keadaan 2: Sedang Memproses Analisis */}
-          {isAnalyzing && (
-            <div className="card">
-              <div className="empty-state" style={{ padding: '80px 24px' }}>
-                <div className="loading-dots" style={{ marginBottom: '16px' }}>
-                  <span /><span /><span />
-                </div>
-                <div className="empty-title" style={{ color: 'var(--narada-red)' }}>
-                  AI ENGINE KOGNITIF AKTIF
-                </div>
-                <div className="empty-desc" style={{ color: 'var(--text-secondary)' }}>
-                  Memproses klasifikasi hibrida (60% Machine Learning + 40% Military Rules) dan memvalidasi ke database Cek Fakta...
-                </div>
-              </div>
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '16px',
+              fontWeight: '700',
+              letterSpacing: '1px',
+              color: 'var(--narada-red)',
+              marginBottom: '6px'
+            }}>
+              MENGEVALUASI HIERARKI KEBENARAN & ANOMALI LOGIKA
             </div>
-          )}
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '460px', margin: '0 auto' }}>
+              Mencocokkan terhadap 40+ basis data riil Mafindo, menguji hukum konstitusi UUD 1945, sains geofisika BMKG, dan mengklasifikasikan klaster spektrum ancaman...
+            </div>
+          </div>
+        )}
 
-          {/* Keadaan 3: Hasil Tersedia */}
-          {currentResult && !isAnalyzing && (
-            <div className="fade-in">
-              {/* Kartu Hasil Analisis Kognitif */}
-              <AnalysisResultCard result={currentResult} />
+        {/* Hasil Analisis Kartu Komparasi Fakta & Draf Taktis */}
+        {currentResult && !isAnalyzing && (
+          <div className="fade-in">
+            <AnalysisResultCard result={currentResult} />
 
-              {/* Panel Verifikasi Fakta Google & Mafindo */}
+            {/* Fact Check Panel Verifikasi Terintegrasi */}
+            <div style={{ marginTop: '16px' }}>
               <FactCheckPanel
                 text={currentResult.input || currentResult.rawContent}
                 initialFactCheck={currentResult.factCheck}
@@ -658,11 +270,17 @@ export default function Analyzer() {
                 }}
               />
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* ─── Drawer Collapsible: Riwayat Analisis Sesi ─── */}
+      {/* ─── 3. LIVE TRENDING INTELLIGENCE GRID ─── */}
+      <TrendingDebunkGrid
+        disabled={isAnalyzing}
+        onSelectDebunk={handleSelectTrending}
+      />
+
+      {/* ─── 4. DRAWER RIWAYAT ANALISIS SESI INI ─── */}
       <div className="card" style={{ marginTop: '24px' }}>
         <div
           className="card-header"
@@ -695,7 +313,7 @@ export default function Analyzer() {
                   handleClearHistory()
                 }}
                 title="Hapus Semua Riwayat Sesi"
-                style={{ color: '#EF4444' }}
+                style={{ color: '#EF4444', fontSize: '11px' }}
               >
                 <Trash2 size={12} /> Bersihkan Sesi
               </button>
@@ -723,7 +341,12 @@ export default function Analyzer() {
                   return (
                     <div
                       key={item.id}
-                      onClick={() => setCurrentResult(item)}
+                      onClick={() => {
+                        setCurrentResult(item)
+                        setTimeout(() => {
+                          resultContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        }, 100)
+                      }}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
