@@ -81,6 +81,8 @@ export interface DebunkKnowledgeEntry {
   keywords: string[]
   tacticalResponseCivilian: string
   tacticalResponseMilitary: string
+  isLive?: boolean
+  publishedDate?: string
 }
 
 export interface InstitutionalLogicAnomaly {

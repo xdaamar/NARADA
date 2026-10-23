@@ -1,7 +1,49 @@
 import type { DebunkKnowledgeEntry } from '../../types'
 import databaseJson from './debunk-database.json'
 
-const DEBUNK_ENTRIES: DebunkKnowledgeEntry[] = databaseJson as DebunkKnowledgeEntry[]
+const LOCAL_ARCHIVE_ENTRIES: DebunkKnowledgeEntry[] = (databaseJson as DebunkKnowledgeEntry[]).map(e => ({
+  ...e,
+  isLive: false,
+}))
+
+let activeDebunkDatabase: DebunkKnowledgeEntry[] = [...LOCAL_ARCHIVE_ENTRIES]
+
+/**
+ * Mendaftarkan entri debunk baru hasil streaming live API ke dalam in-memory knowledge pool aktif
+ */
+export function registerLiveDebunks(liveEntries: DebunkKnowledgeEntry[]): void {
+  if (!liveEntries || liveEntries.length === 0) return
+
+  const existingIds = new Set(activeDebunkDatabase.map(e => e.id))
+  const newItems: DebunkKnowledgeEntry[] = []
+
+  for (const entry of liveEntries) {
+    if (!existingIds.has(entry.id)) {
+      existingIds.add(entry.id)
+      newItems.push({
+        ...entry,
+        isLive: true,
+      })
+    }
+  }
+
+  // Letakkan entri live teranyar di urutan terdepan
+  activeDebunkDatabase = [...newItems, ...activeDebunkDatabase]
+}
+
+/**
+ * Mengambil seluruh data debunk aktif (live stream + arsip lokal)
+ */
+export function getActiveDebunks(): DebunkKnowledgeEntry[] {
+  return [...activeDebunkDatabase]
+}
+
+/**
+ * Mengambil hanya data arsip lokal terkurasi PUSSIBERAD (40 entri terverifikasi)
+ */
+export function getCuratedArchiveDebunks(): DebunkKnowledgeEntry[] {
+  return [...LOCAL_ARCHIVE_ENTRIES]
+}
 
 /**
  * Normalisasi teks: membersihkan karakter hasil OCR, tanda baca liar, dan spasi berlebih
@@ -231,7 +273,7 @@ export function searchLocalDebunk(inputText: string): DebunkSearchResult {
     }
 
     if (matchedGroupCount >= rule.minGroupsMatched) {
-      const foundEntry = DEBUNK_ENTRIES.find(e => e.id === rule.targetEntryId)
+      const foundEntry = activeDebunkDatabase.find(e => e.id === rule.targetEntryId)
       if (foundEntry) {
         return {
           matched: true,
@@ -248,7 +290,7 @@ export function searchLocalDebunk(inputText: string): DebunkSearchResult {
   let bestEntry: DebunkKnowledgeEntry | null = null
   let maxSimilarity = 0
 
-  for (const entry of DEBUNK_ENTRIES) {
+  for (const entry of activeDebunkDatabase) {
     // Kumpulkan seluruh token representasi dari entri
     const claimTokens = tokenizeClean(entry.claim)
     const queryTokens = tokenizeClean(entry.normalizedQuery)
