@@ -10,5 +10,12 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    proxy: {
+      '/api/turnbackhoax': {
+        target: 'https://turnbackhoax.id/wp-json/wp/v2',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/turnbackhoax/, '')
+      }
+    }
   }
 })
