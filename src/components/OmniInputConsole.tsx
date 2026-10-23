@@ -184,10 +184,20 @@ export default function OmniInputConsole({
         const reader = new Readability(doc)
         const article = reader.parse()
 
-        const title = article?.title || doc.querySelector('title')?.textContent || 'Artikel Berita'
-        const content = article?.textContent ? article.textContent.trim() : (doc.body?.textContent || '').trim()
+        // Ekstrak OpenGraph metadata untuk platform media sosial (Instagram, TikTok, X/Twitter)
+        const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') ||
+                        doc.querySelector('meta[name="twitter:title"]')?.getAttribute('content') || ''
+        const ogDesc = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
+                       doc.querySelector('meta[name="description"]')?.getAttribute('content') ||
+                       doc.querySelector('meta[name="twitter:description"]')?.getAttribute('content') || ''
+
+        const title = (article?.title || ogTitle || doc.querySelector('title')?.textContent || 'Artikel Media Sosial / Berita').trim()
+        const content = (article?.textContent && article.textContent.trim().length > 50)
+          ? article.textContent.trim()
+          : (ogDesc || doc.body?.textContent || '').trim()
+
         const meta = {
-          title: title.trim(),
+          title,
           siteName: article?.siteName || hostName,
           author: article?.byline || null,
           url: targetUrl
