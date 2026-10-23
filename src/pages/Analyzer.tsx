@@ -8,7 +8,8 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import OmniInputConsole from '../components/OmniInputConsole'
-import TrendingDebunkGrid from '../components/TrendingDebunkGrid'
+import NetworkTelemetryBanner from '../components/NetworkTelemetryBanner'
+import CompactTacticalHorizon from '../components/CompactTacticalHorizon'
 import AnalysisResultCard from '../components/AnalysisResultCard'
 import FactCheckPanel from '../components/FactCheckPanel'
 import { analyzeHybrid } from '../engine/combiner'
@@ -16,7 +17,10 @@ import { verifyFactCheck } from '../engine/fact-checker'
 import { saveAnalysis, getStoredAnalyses, clearStoredAnalyses } from '../utils/storage'
 import { getCategoryBadge, getThreatBadge, formatMilitaryDate, truncateText } from '../utils/format'
 import { generateSHA256 } from '../utils/crypto'
-import type { AnalysisResult, InputSourceType, ThreatSpectrumCluster } from '../types'
+import { fetchLiveRadarDebunks } from '../engine/data/live-radar-service'
+import { checkNetworkStatus, subscribeNetworkChanges, type NetworkTelemetryInfo } from '../utils/network'
+import { getCuratedArchiveDebunks } from '../engine/data/debunk-service'
+import type { AnalysisResult, InputSourceType, ThreatSpectrumCluster, DebunkKnowledgeEntry } from '../types'
 
 export default function Analyzer() {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
@@ -25,6 +29,16 @@ export default function Analyzer() {
   const [isHistoryExpanded, setIsHistoryExpanded] = useState<boolean>(false)
   const [injectedText, setInjectedText] = useState<string>('')
   const [validationError, setValidationError] = useState<string | null>(null)
+
+  // ─── Telemetri Jaringan & Ingestion Live Radar State ───
+  const [telemetry, setTelemetry] = useState<NetworkTelemetryInfo>({
+    status: 'ONLINE',
+    latencyMs: 0,
+    lastChecked: Date.now(),
+    isUsingProxy: false,
+  })
+  const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => getCuratedArchiveDebunks())
+  const [isSyncingLive, setIsSyncingLive] = useState<boolean>(false)
 
   const resultContainerRef = useRef<HTMLDivElement>(null)
 
@@ -44,6 +58,51 @@ export default function Analyzer() {
       window.removeEventListener('narada:analyses-updated', handleStorageUpdate)
     }
   }, [])
+
+  // Inisialisasi telemetri & penarikan live radar saat komponen mount
+  useEffect(() => {
+    let isMounted = true
+
+    const initRadar = async () => {
+      setIsSyncingLive(true)
+      const net = await checkNetworkStatus()
+      if (isMounted) setTelemetry(net)
+
+      const result = await fetchLiveRadarDebunks()
+      if (isMounted) {
+        setDebunkItems(result.entries)
+        if (result.sourceChannel === 'LOCAL_ARCHIVE' && net.status === 'ONLINE') {
+          setTelemetry(prev => ({ ...prev, status: 'DEGRADED' }))
+        }
+        setIsSyncingLive(false)
+      }
+    }
+
+    initRadar()
+
+    const unsubscribe = subscribeNetworkChanges(netInfo => {
+      if (isMounted) setTelemetry(netInfo)
+    })
+
+    return () => {
+      isMounted = false
+      unsubscribe()
+    }
+  }, [])
+
+  // Manual trigger sinkronisasi live radar
+  const handleManualSync = async () => {
+    setIsSyncingLive(true)
+    const net = await checkNetworkStatus()
+    setTelemetry(net)
+
+    const result = await fetchLiveRadarDebunks()
+    setDebunkItems(result.entries)
+    if (result.sourceChannel === 'LOCAL_ARCHIVE' && net.status === 'ONLINE') {
+      setTelemetry(prev => ({ ...prev, status: 'DEGRADED' }))
+    }
+    setIsSyncingLive(false)
+  }
 
   /**
    * Menjalankan Analisis Kognitif Terpadu (Truth Priority Architecture)
@@ -72,7 +131,7 @@ export default function Analyzer() {
     await new Promise(resolve => setTimeout(resolve, 350))
 
     try {
-      // 1. Eksekusi Hybrid Combiner (Truth Priority: Cek Fakta -> Knowledge Graph -> Hybrid ML)
+      // 1. Eksekusi Hybrid Combiner (Truth Priority: Cek Fakta Live/Lokal -> Knowledge Graph -> Hybrid ML)
       const analysisResult = analyzeHybrid(trimmed, {
         inputSource: source,
         title,
@@ -104,11 +163,11 @@ export default function Analyzer() {
   }
 
   /**
-   * Handler saat isu trending diklik
+   * Handler saat kartu isu Compact Tactical Horizon diklik
    */
   const handleSelectTrending = (debunkText: string, _cluster: ThreatSpectrumCluster) => {
     setInjectedText(debunkText)
-    executeAnalysis(debunkText, 'text', `Isu Viral: ${truncateText(debunkText, 45)}`)
+    executeAnalysis(debunkText, 'text', `Isu Radar: ${truncateText(debunkText, 45)}`)
   }
 
   const handleClearHistory = () => {
@@ -123,7 +182,7 @@ export default function Analyzer() {
     <div className="fade-in" style={{ paddingBottom: '36px' }}>
       {/* ─── Page Title Header (Filosofi "Bersepeda": Bersih & Proporsional) ─── */}
       <div style={{
-        marginBottom: '20px',
+        marginBottom: '16px',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
@@ -229,7 +288,25 @@ export default function Analyzer() {
         }}
       />
 
-      {/* ─── 2. HASIL ANALISIS KOGNITIF (JIKA TERSEDIA) ─── */}
+      {/* ─── 2. NETWORK TELEMETRY BANNER (RADICAL HONESTY) ─── */}
+      <div style={{ marginTop: '16px' }}>
+        <NetworkTelemetryBanner
+          telemetry={telemetry}
+          itemCount={debunkItems.length}
+          isSyncing={isSyncingLive}
+          onSync={handleManualSync}
+        />
+      </div>
+
+      {/* ─── 3. COMPACT TACTICAL HORIZON (HORIZONTAL STREAMING TRACK) ─── */}
+      <CompactTacticalHorizon
+        entries={debunkItems}
+        isLiveStream={telemetry.status === 'ONLINE'}
+        disabled={isAnalyzing}
+        onSelectDebunk={handleSelectTrending}
+      />
+
+      {/* ─── 4. HASIL ANALISIS KOGNITIF (JIKA TERSEDIA) ─── */}
       <div ref={resultContainerRef} style={{ marginTop: '20px' }}>
         {/* Loading Spinner State */}
         {isAnalyzing && (
@@ -248,7 +325,7 @@ export default function Analyzer() {
               MENGEVALUASI HIERARKI KEBENARAN & ANOMALI LOGIKA
             </div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '460px', margin: '0 auto' }}>
-              Mencocokkan terhadap 40+ basis data riil Mafindo, menguji hukum konstitusi UUD 1945, sains geofisika BMKG, dan mengklasifikasikan klaster spektrum ancaman...
+              Mencocokkan terhadap basis data aktif Mafindo, menguji hukum konstitusi UUD 1945, sains geofisika BMKG, dan mengklasifikasikan klaster spektrum ancaman...
             </div>
           </div>
         )}
@@ -274,13 +351,7 @@ export default function Analyzer() {
         )}
       </div>
 
-      {/* ─── 3. LIVE TRENDING INTELLIGENCE GRID ─── */}
-      <TrendingDebunkGrid
-        disabled={isAnalyzing}
-        onSelectDebunk={handleSelectTrending}
-      />
-
-      {/* ─── 4. DRAWER RIWAYAT ANALISIS SESI INI ─── */}
+      {/* ─── 5. DRAWER RIWAYAT ANALISIS SESI INI ─── */}
       <div className="card" style={{ marginTop: '24px' }}>
         <div
           className="card-header"

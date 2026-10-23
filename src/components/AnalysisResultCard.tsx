@@ -485,7 +485,21 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
             {/* Baris Fakta Sebenarnya */}
             <div style={{ marginBottom: '12px', padding: '12px 14px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
               <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#4ADE80', fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                ✅ FAKTA SEBENARNYA (PENELUSURAN RESMI):
+                {result.debunkMatch?.isLive ? (
+                  <>
+                    <span style={{ padding: '1px 5px', borderRadius: '2px', background: 'rgba(34, 197, 94, 0.25)', color: '#22C55E' }}>
+                      [LIVE]
+                    </span>
+                    ✅ FAKTA SEBENARNYA — SUMBER LIVE STREAM MAFINDO / TURNBACKHOAX:
+                  </>
+                ) : (
+                  <>
+                    <span style={{ padding: '1px 5px', borderRadius: '2px', background: 'rgba(148, 163, 184, 0.2)', color: '#94A3B8' }}>
+                      [ARSIP]
+                    </span>
+                    📁 FAKTA SEBENARNYA — ARSIP KOGNITIF LOKAL PUSSIBERAD (CACHED):
+                  </>
+                )}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.6' }}>
                 {result.debunkMatch?.clarification || result.logicAnomaly?.explanation || result.explanation}
@@ -496,6 +510,11 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '11px', paddingTop: '4px' }}>
               <span style={{ color: 'var(--text-muted)' }}>
                 Rujukan Otoritas: <strong style={{ color: 'var(--text-primary)' }}>{result.debunkMatch?.officialSource || 'TurnBackHoax.ID / Satgas Pussiberad'}</strong>
+                {result.debunkMatch?.publishedDate && (
+                  <span style={{ marginLeft: '6px', fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                    · Terbit: {new Date(result.debunkMatch.publishedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                )}
               </span>
               {result.debunkMatch?.sourceUrl && (
                 <a
