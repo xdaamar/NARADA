@@ -1,55 +1,59 @@
 import { useState, useEffect } from 'react'
-import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
+  Radio,
   ScanText, 
-  UserSearch, 
-  Network, 
+  MessageSquareQuote, 
   FileText, 
   Settings,
-  Activity
+  Activity,
+  ShieldAlert
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
+import LiveRadar from './pages/LiveRadar'
 import Analyzer from './pages/Analyzer'
-import Profiler from './pages/Profiler'
-import Nexus from './pages/Nexus'
+import SocialForensic from './pages/SocialForensic'
 import Reports from './pages/Reports'
 import SettingsPage from './pages/SettingsPage'
 import { getUserSettings, getStoredAnalyses } from './utils/storage'
 
-// ─── Nav Items Config ───
+// ─── Nav Items Config dengan Keyboard Hotkeys ───
 const NAV_ITEMS = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-  { to: '/analyzer', icon: ScanText, label: 'Multi-Input Analyzer' },
-  { to: '/profiler', icon: UserSearch, label: 'Profiler' },
-  { to: '/nexus', icon: Network, label: 'Nexus Graph' },
-  { to: '/reports', icon: FileText, label: 'Intel Report' },
+  { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
+  { to: '/radar', icon: Radio, label: 'Radar Berita Viral', exact: true, hotkey: 'Alt+2' },
+  { to: '/analyzer', icon: ScanText, label: 'Multi-Input Analyzer', hotkey: 'Alt+3' },
+  { to: '/social-forensic', icon: MessageSquareQuote, label: 'Forensik Medsos & Buzzer', hotkey: 'Alt+4' },
+  { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]
 
 // ─── Sidebar Component ───
 function Sidebar() {
   return (
     <aside className="sidebar">
-      {/* Logo */}
+      {/* Header: Crest Garuda Kognitif (40x40px), NARADA, KOGNITIF AI - V1.0 */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon" style={{ background: 'transparent', padding: 0 }}>
           <img 
             src="/image/Electrified%20Golden%20Globe%20Crest.png" 
             alt="NARADA Crest" 
             className="crest-glow"
-            style={{ width: '38px', height: '38px', objectFit: 'contain' }} 
+            style={{ width: '40px', height: '40px', objectFit: 'contain' }} 
           />
         </div>
         <div>
           <div className="sidebar-logo-text">NARADA</div>
-          <div className="sidebar-logo-sub">KOGNITIF AI · v1.0</div>
+          <div className="sidebar-logo-sub">KOGNITIF AI - V1.0</div>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        <div className="nav-section-label">MODUL UTAMA</div>
-        {NAV_ITEMS.map(({ to, icon: Icon, label, exact }) => (
+        <div className="nav-section-label">
+          <span>MODUL UTAMA</span>
+          <span style={{ color: 'var(--accent-gold)', fontSize: '10px', letterSpacing: '1px' }}>///</span>
+        </div>
+        {NAV_ITEMS.map(({ to, icon: Icon, label, exact, hotkey }) => (
           <NavLink
             key={to}
             to={to}
@@ -57,11 +61,26 @@ function Sidebar() {
             className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
           >
             <Icon size={16} className="nav-item-icon" />
-            {label}
+            <span style={{ flex: 1 }}>{label}</span>
+            <span style={{ 
+              fontSize: '8px', 
+              fontFamily: 'var(--font-mono)', 
+              color: 'var(--text-tertiary)', 
+              opacity: 0.8,
+              border: '1px solid var(--border-subtle)',
+              padding: '1px 4px',
+              borderRadius: '3px',
+              lineHeight: 1
+            }}>
+              {hotkey}
+            </span>
           </NavLink>
         ))}
 
-        <div className="nav-section-label" style={{ marginTop: '8px' }}>SISTEM</div>
+        <div className="nav-section-label" style={{ marginTop: '12px' }}>
+          <span>SISTEM</span>
+          <span style={{ color: 'var(--accent-gold)', fontSize: '10px', letterSpacing: '1px' }}>///</span>
+        </div>
         <NavLink
           to="/settings"
           className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
@@ -71,30 +90,17 @@ function Sidebar() {
         </NavLink>
       </nav>
 
-      {/* Footer Status */}
+      {/* Footer Sidebar */}
       <div className="sidebar-footer">
-        <div className="system-status">
+        <div className="system-status" style={{ background: '#090C10', border: '1px solid #1C2430' }}>
           <div className="status-dot" />
           <div>
-            <div className="status-text">SISTEM AKTIF</div>
-            <div className="status-text" style={{ color: 'var(--text-dim)', marginTop: '1px' }}>
+            <div className="status-text" style={{ fontWeight: 700, color: '#F1F5F9' }}>SISTEM AKTIF</div>
+            <div className="status-text" style={{ color: '#64748B', marginTop: '1px', fontSize: '10px' }}>
               AI ENGINE ONLINE
             </div>
           </div>
-          <Activity size={14} style={{ marginLeft: 'auto', color: 'var(--text-muted)', opacity: 0.6 }} />
-        </div>
-
-        <div style={{ marginTop: '8px', padding: '0 2px' }}>
-          <div style={{ 
-            fontSize: '9px', 
-            fontFamily: 'var(--font-mono)', 
-            color: 'var(--text-dim)',
-            letterSpacing: '0.5px',
-            lineHeight: '1.5'
-          }}>
-            PUSSIBERAD TNI AD<br/>
-            <span style={{ color: 'var(--narada-red)', opacity: 0.7 }}>CLASSIFICATION: INTERNAL</span>
-          </div>
+          <Activity size={15} style={{ marginLeft: 'auto', color: '#10B981', opacity: 0.85 }} />
         </div>
       </div>
     </aside>
@@ -104,18 +110,20 @@ function Sidebar() {
 // ─── Page Title Map ───
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Situational Awareness',
-  '/analyzer': 'NARADA Multi-Input Analyzer — Sensory Suite',
-  '/classifier': 'NARADA Multi-Input Analyzer — Sensory Suite',
-  '/profiler': 'NARADA Profiler — Deteksi Bot & Buzzer',
-  '/nexus': 'NARADA Nexus — Peta Jaringan Narasi',
-  '/reports': 'NARADA Intel Report — Laporan Intelijen',
+  '/radar': 'Live OSINT Debunk Radar',
+  '/analyzer': 'Multi-Input Threat Analyzer',
+  '/classifier': 'Multi-Input Threat Analyzer',
+  '/social-forensic': 'Forensik Postingan Medsos & Buzzer',
+  '/profiler': 'Forensik Postingan Medsos & Buzzer',
+  '/nexus': 'Live OSINT Debunk Radar',
+  '/reports': 'Produk Intelijen A4',
   '/settings': 'Pengaturan Sistem',
 }
 
 // ─── TopBar Component ───
 function TopBar() {
   const location = useLocation()
-  const title = PAGE_TITLES[location.pathname] ?? 'NARADA'
+  const title = PAGE_TITLES[location.pathname] ?? 'Situational Awareness'
   const [timeStr, setTimeStr] = useState<string>('')
   const [dateStr, setDateStr] = useState<string>('')
   const [isOffline, setIsOffline] = useState<boolean>(() => getUserSettings().offlineMode)
@@ -148,59 +156,117 @@ function TopBar() {
   }, [])
 
   return (
-    <div className="topbar no-print">
-      <div className="topbar-title">{title}</div>
+    <header className="topbar no-print">
+      <div className="topbar-title-wrap">
+        <span className="tactical-slashes">///</span>
+        <div>
+          <div className="topbar-title">{title}</div>
+          <div style={{ 
+            fontSize: '10px', 
+            fontFamily: 'var(--font-mono)', 
+            color: '#64748B', 
+            letterSpacing: '0.8px',
+            lineHeight: 1
+          }}>
+            ANALISIS | DETEKSI | VERIFIKASI | LINDUNGI INFORMASI
+          </div>
+        </div>
+      </div>
+
       <div className="topbar-actions">
         {hasCritical && (
           <span
             className="topbar-badge"
             style={{
-              background: 'rgba(239, 68, 68, 0.2)',
-              color: '#EF4444',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
+              background: 'rgba(239, 68, 68, 0.20)',
+              color: '#F87171',
+              border: '1px solid rgba(239, 68, 68, 0.45)',
               animation: 'pulse-critical 1.5s ease-in-out infinite'
             }}
           >
-            ▲ DEFCON 1 ACTIVE
+            <ShieldAlert size={12} />
+            DEFCON 1 ACTIVE
           </span>
         )}
 
         <span className={`topbar-badge ${isOffline ? 'badge-offline' : 'badge-online'}`}>
-          {isOffline ? '◉ OFFLINE AIR-GAPPED' : '● SYSTEM ONLINE'}
+          <span style={{ 
+            width: '6px', 
+            height: '6px', 
+            borderRadius: '50%', 
+            background: isOffline ? '#EF4444' : '#10B981', 
+            boxShadow: isOffline ? '0 0 6px #EF4444' : '0 0 6px #10B981',
+            display: 'inline-block' 
+          }} />
+          {isOffline ? 'OFFLINE AIR-GAPPED' : 'SYSTEM ONLINE'}
         </span>
 
         <span style={{ 
           fontSize: '11px', 
           fontFamily: 'var(--font-mono)', 
-          color: 'var(--text-muted)',
-          letterSpacing: '0.5px'
+          color: '#94A3B8',
+          letterSpacing: '0.5px',
+          fontWeight: 600
         }}>
           {dateStr ? `${dateStr} — ${timeStr} WIB` : 'SIAGA OPERASIONAL'}
         </span>
       </div>
-    </div>
+    </header>
   )
 }
 
-// ─── App Shell ───
+// ─── App Shell dengan Hotkey Alt+1 s/d Alt+5 ───
 function AppShell() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Periksa apakah pengguna sedang mengetik di input / textarea
+      const target = e.target as HTMLElement | null
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+
+      if (e.altKey && !isInput) {
+        if (e.key === '1') {
+          e.preventDefault()
+          navigate('/')
+        } else if (e.key === '2') {
+          e.preventDefault()
+          navigate('/radar')
+        } else if (e.key === '3') {
+          e.preventDefault()
+          navigate('/analyzer')
+        } else if (e.key === '4') {
+          e.preventDefault()
+          navigate('/social-forensic')
+        } else if (e.key === '5') {
+          e.preventDefault()
+          navigate('/reports')
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [navigate])
+
   return (
     <div className="app-layout">
-      <div className="hex-bg" />
       <Sidebar />
       <div className="main-content">
         <TopBar />
-        <div className="page-content">
+        <main className="page-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/radar" element={<LiveRadar />} />
             <Route path="/analyzer" element={<Analyzer />} />
             <Route path="/classifier" element={<Analyzer />} />
-            <Route path="/profiler" element={<Profiler />} />
-            <Route path="/nexus" element={<Nexus />} />
+            <Route path="/social-forensic" element={<SocialForensic />} />
+            <Route path="/profiler" element={<SocialForensic />} />
+            <Route path="/nexus" element={<LiveRadar />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
-        </div>
+        </main>
       </div>
     </div>
   )

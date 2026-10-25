@@ -22,7 +22,15 @@ import {
   FileDown,
   UserSearch,
   Radio,
-  CheckCircle2
+  CheckCircle2,
+  Landmark,
+  Waves,
+  Banknote,
+  Pill,
+  Pin,
+  MessageSquare,
+  Megaphone,
+  Share2
 } from 'lucide-react'
 import type { AnalysisResult, ThreatSpectrumCluster } from '../types'
 import { getThreatBadge, getCategoryBadge, formatMilitaryDate } from '../utils/format'
@@ -36,18 +44,18 @@ interface AnalysisResultCardProps {
 function getClusterBadge(cluster?: ThreatSpectrumCluster) {
   switch (cluster) {
     case 'POLITIK_NEGARA':
-      return { label: 'POLITIK & SUKSESI NEGARA', icon: '🏛️', color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.12)' }
+      return { label: 'POLITIK & SUKSESI NEGARA', IconComponent: Landmark, color: '#EF4444', bgColor: 'rgba(239, 68, 68, 0.12)' }
     case 'BENCANA_DARURAT':
-      return { label: 'KEBENCANAAN & DARURAT ALAM', icon: '🌊', color: '#06B6D4', bgColor: 'rgba(6, 182, 212, 0.12)' }
+      return { label: 'KEBENCANAAN & DARURAT ALAM', IconComponent: Waves, color: '#06B6D4', bgColor: 'rgba(6, 182, 212, 0.12)' }
     case 'PENIPUAN_BANSOS':
-      return { label: 'PENIPUAN SOSIAL & BANSOS', icon: '💸', color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.12)' }
+      return { label: 'PENIPUAN SOSIAL & BANSOS', IconComponent: Banknote, color: '#F59E0B', bgColor: 'rgba(245, 158, 11, 0.12)' }
     case 'KESEHATAN_PANGAN':
-      return { label: 'KESEHATAN & PANGAN PUBLIK', icon: '💊', color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.12)' }
+      return { label: 'KESEHATAN & PANGAN PUBLIK', IconComponent: Pill, color: '#8B5CF6', bgColor: 'rgba(139, 92, 246, 0.12)' }
     case 'KEDAULATAN_MILITER':
-      return { label: 'KEDAULATAN & PERTAHANAN', icon: '🛡️', color: '#DC2626', bgColor: 'rgba(220, 38, 38, 0.12)' }
+      return { label: 'KEDAULATAN & PERTAHANAN', IconComponent: ShieldAlert, color: '#DC2626', bgColor: 'rgba(220, 38, 38, 0.12)' }
     case 'UMUM_NETRAL':
     default:
-      return { label: 'INFORMASI UMUM / FAKTUAL', icon: '📄', color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.12)' }
+      return { label: 'INFORMASI UMUM / FAKTUAL', IconComponent: FileText, color: '#22C55E', bgColor: 'rgba(34, 197, 94, 0.12)' }
   }
 }
 
@@ -161,7 +169,7 @@ PENERANGAN SATUAN / DISPENAD
 Mabesad, Jakarta Pusat`
 
   // Varian 4: Klarifikasi Kilat Media Sosial (X / IG / TikTok)
-  const socialMedia = `[KLARIFIKASI RESMI] 📢
+  const socialMedia = `[KLARIFIKASI RESMI]
 
 Waspada! Beredar narasi menyesatkan mengenai ${entityStr}: "${contentSnippet}".
 
@@ -281,16 +289,12 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
     URL.revokeObjectURL(url)
   }
 
-  // Ekstraksi username untuk profiler jika ada
+  // Ekstraksi username / URL untuk forensik medsos jika ada
   const authorOrUsername = result.sourceMeta?.author ||
     (result.input.match(/@([a-zA-Z0-9_]{3,25})/)?.[1] ? `@${result.input.match(/@([a-zA-Z0-9_]{3,25})/)?.[1]}` : null)
 
   const handleInvestigateProfile = () => {
-    if (authorOrUsername) {
-      navigate(`/profiler?username=${encodeURIComponent(authorOrUsername)}`)
-    } else {
-      navigate('/profiler')
-    }
+    navigate('/social-forensic')
   }
 
   const handleCreateReport = () => {
@@ -378,7 +382,7 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
               alignItems: 'center',
               gap: '5px'
             }}>
-              <span>{clusterBadge.icon}</span> KLASTER: {clusterBadge.label}
+              <clusterBadge.IconComponent size={12} /> KLASTER: {clusterBadge.label}
             </span>
 
             {result.debunkMatch && (
@@ -387,12 +391,15 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                 fontFamily: 'var(--font-mono)',
                 padding: '2px 8px',
                 borderRadius: '4px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#F87171',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
-                fontWeight: '700'
+                background: '#FEF2F2',
+                color: '#991B1B',
+                border: '1px solid #FCA5A5',
+                fontWeight: '700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
               }}>
-                ✓ TERVERIFIKASI MAFINDO / CEK FAKTA
+                <Check size={11} color="#991B1B" /> TERVERIFIKASI MAFINDO / CEK FAKTA
               </span>
             )}
 
@@ -407,7 +414,7 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                 border: '1px solid rgba(245, 158, 11, 0.3)',
                 fontWeight: '700'
               }}>
-                ⚡ ANOMALI LOGIKA STRUKTURAL
+                <Zap size={10} style={{ display: 'inline', marginRight: '4px' }} /> ANOMALI LOGIKA STRUKTURAL
               </span>
             )}
           </div>
@@ -451,67 +458,105 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
         {/* ─── KOTAK PERBANDINGAN: KLAIM VS FAKTA SEBENARNYA (DEBUNK COMPARISON SHEET) ─── */}
         {(result.debunkMatch || result.logicAnomaly?.detected || result.category === 'HOAKS' || result.category === 'DISINFORMASI') && (
           <div style={{
-            background: 'linear-gradient(180deg, rgba(239, 68, 68, 0.08), rgba(15, 23, 42, 0.4))',
-            border: '1px solid rgba(239, 68, 68, 0.35)',
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
             borderRadius: 'var(--radius-md)',
             padding: '16px',
             marginBottom: '18px',
+            boxShadow: 'var(--shadow-sm)'
           }}>
             <div style={{
               fontSize: '11px',
               fontFamily: 'var(--font-mono)',
               fontWeight: '700',
               letterSpacing: '1px',
-              color: '#EF4444',
+              color: 'var(--brand-red)',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               marginBottom: '12px',
               textTransform: 'uppercase'
             }}>
-              <CheckCircle2 size={14} color="#EF4444" /> LEMBAR PENELUSURAN FAKTA (DEBUNK COMPARISON SHEET)
+              <CheckCircle2 size={14} color="var(--brand-red)" /> LEMBAR PENELUSURAN FAKTA (DEBUNK COMPARISON SHEET)
             </div>
 
             {/* Baris Klaim */}
-            <div style={{ marginBottom: '12px', padding: '10px 12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#FCA5A5', fontWeight: '700', marginBottom: '4px' }}>
-                📌 KLAIM YANG BEREDAR (VIRAL / OCR):
+            <div style={{ 
+              marginBottom: '12px', 
+              padding: '12px 14px', 
+              background: '#FEF2F2', 
+              borderRadius: 'var(--radius-sm)', 
+              border: '1px solid #FCA5A5' 
+            }}>
+              <div style={{ 
+                fontSize: '10px', 
+                fontFamily: 'var(--font-mono)', 
+                color: '#991B1B', 
+                fontWeight: '700', 
+                marginBottom: '4px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '4px' 
+              }}>
+                <Pin size={11} color="#DC2626" /> KLAIM YANG BEREDAR (VIRAL / OCR):
               </div>
-              <div style={{ fontSize: '13px', color: '#FEE2E2', fontStyle: 'italic', lineHeight: '1.5' }}>
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#991B1B', 
+                textDecoration: 'line-through',
+                textDecorationColor: '#DC2626',
+                lineHeight: '1.5',
+                fontWeight: 500
+              }}>
                 "{result.debunkMatch?.claim || result.input}"
               </div>
             </div>
 
             {/* Baris Fakta Sebenarnya */}
-            <div style={{ marginBottom: '12px', padding: '12px 14px', background: 'rgba(34, 197, 94, 0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(34, 197, 94, 0.25)' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#4ADE80', fontWeight: '700', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div style={{ 
+              marginBottom: '12px', 
+              padding: '12px 14px', 
+              background: '#ECFDF5', 
+              borderRadius: 'var(--radius-sm)', 
+              border: '1px solid #6EE7B7' 
+            }}>
+              <div style={{ 
+                fontSize: '10px', 
+                fontFamily: 'var(--font-mono)', 
+                color: '#065F46', 
+                fontWeight: '700', 
+                marginBottom: '4px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '5px' 
+              }}>
                 {result.debunkMatch?.isLive ? (
                   <>
-                    <span style={{ padding: '1px 5px', borderRadius: '2px', background: 'rgba(34, 197, 94, 0.25)', color: '#22C55E' }}>
+                    <span style={{ padding: '1px 5px', borderRadius: '2px', background: '#D1FAE5', color: '#065F46', fontWeight: 700 }}>
                       [LIVE]
                     </span>
-                    ✅ FAKTA SEBENARNYA — SUMBER LIVE STREAM MAFINDO / TURNBACKHOAX:
+                    <CheckCircle2 size={12} color="#059669" /> FAKTA SEBENARNYA — SUMBER LIVE STREAM MAFINDO / TURNBACKHOAX:
                   </>
                 ) : (
                   <>
-                    <span style={{ padding: '1px 5px', borderRadius: '2px', background: 'rgba(148, 163, 184, 0.2)', color: '#94A3B8' }}>
+                    <span style={{ padding: '1px 5px', borderRadius: '2px', background: '#F1F5F9', color: '#475569', fontWeight: 700 }}>
                       [ARSIP]
                     </span>
-                    📁 FAKTA SEBENARNYA — ARSIP KOGNITIF LOKAL PUSSIBERAD (CACHED):
+                    <FileText size={12} color="#059669" /> FAKTA SEBENARNYA — ARSIP KOGNITIF LOKAL PUSSIBERAD (CACHED):
                   </>
                 )}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.6' }}>
+              <div style={{ fontSize: '13px', color: '#065F46', lineHeight: '1.6', fontWeight: 500 }}>
                 {result.debunkMatch?.clarification || result.logicAnomaly?.explanation || result.explanation}
               </div>
             </div>
 
             {/* Baris Sumber Rujukan */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '11px', paddingTop: '4px' }}>
-              <span style={{ color: 'var(--text-muted)' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>
                 Rujukan Otoritas: <strong style={{ color: 'var(--text-primary)' }}>{result.debunkMatch?.officialSource || 'TurnBackHoax.ID / Satgas Pussiberad'}</strong>
                 {result.debunkMatch?.publishedDate && (
-                  <span style={{ marginLeft: '6px', fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-dim)' }}>
+                  <span style={{ marginLeft: '6px', fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
                     · Terbit: {new Date(result.debunkMatch.publishedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                 )}
@@ -522,12 +567,13 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    color: '#60A5FA',
+                    color: '#2563EB',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '4px',
                     fontSize: '11px',
-                    textDecoration: 'none'
+                    textDecoration: 'none',
+                    fontWeight: 600
                   }}
                 >
                   <ExternalLink size={12} />
@@ -1046,33 +1092,33 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                   type="button"
                   className={`btn btn-sm ${activeNarrativeTab === 'civilian' ? 'btn-primary' : 'btn-ghost'}`}
                   onClick={() => setActiveNarrativeTab('civilian')}
-                  style={{ fontSize: '10px', padding: '3px 8px' }}
+                  style={{ fontSize: '10px', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  💬 Klarifikasi Warga (WA RT)
+                  <MessageSquare size={11} /> Klarifikasi Warga (WA RT)
                 </button>
                 <button
                   type="button"
                   className={`btn btn-sm ${activeNarrativeTab === 'babinsa' ? 'btn-primary' : 'btn-ghost'}`}
                   onClick={() => setActiveNarrativeTab('babinsa')}
-                  style={{ fontSize: '10px', padding: '3px 8px' }}
+                  style={{ fontSize: '10px', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  🛡️ Jukrah Babinsa Lapangan
+                  <ShieldAlert size={11} /> Jukrah Babinsa Lapangan
                 </button>
                 <button
                   type="button"
                   className={`btn btn-sm ${activeNarrativeTab === 'press' ? 'btn-primary' : 'btn-ghost'}`}
                   onClick={() => setActiveNarrativeTab('press')}
-                  style={{ fontSize: '10px', padding: '3px 8px' }}
+                  style={{ fontSize: '10px', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  📢 Siaran Pers Kedinasan
+                  <Megaphone size={11} /> Siaran Pers Kedinasan
                 </button>
                 <button
                   type="button"
                   className={`btn btn-sm ${activeNarrativeTab === 'social' ? 'btn-primary' : 'btn-ghost'}`}
                   onClick={() => setActiveNarrativeTab('social')}
-                  style={{ fontSize: '10px', padding: '3px 8px' }}
+                  style={{ fontSize: '10px', padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                 >
-                  📱 Kilat Medsos (X/IG)
+                  <Share2 size={11} /> Kilat Medsos (X/IG)
                 </button>
               </div>
             </div>
@@ -1111,25 +1157,26 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                     type="button"
                     className="btn btn-sm"
                     style={{
-                      background: 'rgba(34, 197, 94, 0.15)',
-                      color: '#22c55e',
-                      border: '1px solid rgba(34, 197, 94, 0.35)',
+                      background: '#ECFDF5',
+                      color: '#059669',
+                      border: '1px solid #A7F3D0',
                       fontSize: '11px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px'
+                      gap: '5px',
+                      fontWeight: 600
                     }}
                     onClick={() => handleCopyDirect(narratives.civilianWa, 'civilian')}
                   >
                     {copiedType === 'civilian' ? (
                       <>
-                        <Check size={12} color="#22c55e" />
-                        ✓ Klarifikasi Warga Disalin!
+                        <Check size={12} color="#059669" />
+                        Klarifikasi Warga Disalin!
                       </>
                     ) : (
                       <>
                         <Copy size={12} />
-                        💬 Salin Klarifikasi Warga (Grup WA RT)
+                        Salin Klarifikasi Warga (Grup WA RT)
                       </>
                     )}
                   </button>
@@ -1138,25 +1185,26 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                     type="button"
                     className="btn btn-sm"
                     style={{
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      color: '#60a5fa',
-                      border: '1px solid rgba(59, 130, 246, 0.35)',
+                      background: '#EFF6FF',
+                      color: '#2563EB',
+                      border: '1px solid #BFDBFE',
                       fontSize: '11px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px'
+                      gap: '5px',
+                      fontWeight: 600
                     }}
                     onClick={() => handleCopyDirect(narratives.babinsaWa, 'babinsa')}
                   >
                     {copiedType === 'babinsa' ? (
                       <>
-                        <Check size={12} color="#60a5fa" />
-                        ✓ Jukrah Babinsa Disalin!
+                        <Check size={12} color="#2563EB" />
+                        Jukrah Babinsa Disalin!
                       </>
                     ) : (
                       <>
                         <Copy size={12} />
-                        🛡️ Salin Jukrah Babinsa Lapangan
+                        Salin Jukrah Babinsa Lapangan
                       </>
                     )}
                   </button>
@@ -1169,8 +1217,8 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
                 >
                   {copiedNarrative ? (
                     <>
-                      <Check size={13} color="#22C55E" />
-                      ✓ Varian Aktif Disalin
+                      <Check size={13} color="#FFFFFF" />
+                      Varian Aktif Disalin
                     </>
                   ) : (
                     <>
@@ -1237,7 +1285,7 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
               onClick={handleExportForensicJson}
             >
               <FileDown size={12} color="var(--accent-blue)" />
-              📦 Ekspor Berkas Forensik (.JSON)
+              Ekspor Berkas Forensik (.JSON)
             </button>
           </div>
         </div>
@@ -1266,7 +1314,7 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
               style={{ fontSize: '11px' }}
             >
               <UserSearch size={12} />
-              👤 Selidiki Akun di Profiler {authorOrUsername ? `(${authorOrUsername})` : ''}
+              Bedah Forensik Medsos & Buzzer {authorOrUsername ? `(${authorOrUsername})` : ''}
             </button>
             <button
               type="button"
@@ -1275,7 +1323,7 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
               style={{ fontSize: '11px' }}
             >
               <FileText size={12} />
-              📄 Buat Laporan Intelijen A4
+              Buat Laporan Intelijen A4
             </button>
           </div>
         </div>
