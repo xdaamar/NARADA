@@ -10,11 +10,15 @@ import {
   BookOpen,
   User,
   Clock,
-  ClipboardPaste
+  ClipboardPaste,
+  ShieldCheck,
+  Zap,
+  Server
 } from 'lucide-react'
 import { Readability } from '@mozilla/readability'
 import ResilientIngestionBanner from './ResilientIngestionBanner'
 import type { URLAnalysisInput } from '../types'
+import { fetchArticleContent, type ArticleFetchResult } from '../engine/ingest/content-fetcher'
 
 interface URLInputProps {
   onAnalyze: (payload: {
@@ -103,6 +107,7 @@ export default function URLInput({ onAnalyze, isAnalyzing = false }: URLInputPro
   const [urlInput, setUrlInput] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [extractedArticle, setExtractedArticle] = useState<URLAnalysisInput | null>(null)
+  const [ingestionResult, setIngestionResult] = useState<ArticleFetchResult | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [corsFallbackActive, setCorsFallbackActive] = useState<boolean>(false)
   const [fallbackText, setFallbackText] = useState<string>('')
@@ -152,7 +157,7 @@ export default function URLInput({ onAnalyze, isAnalyzing = false }: URLInputPro
   }
 
   /**
-   * Fetch konten halaman URL dengan timeout & fallback CORS proxy
+   * Fetch konten halaman URL melalui 5-tier resilient content-fetcher
    */
   const handleFetchUrl = async () => {
     const trimmed = urlInput.trim()
@@ -169,62 +174,30 @@ export default function URLInput({ onAnalyze, isAnalyzing = false }: URLInputPro
     setIsLoading(true)
     setErrorMessage(null)
     setExtractedArticle(null)
+    setIngestionResult(null)
     setCorsFallbackActive(false)
 
-    // Coba Fetch Langsung (Direct Fetch)
     try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 4000)
+      const result = await fetchArticleContent(trimmed, 4000)
+      setIngestionResult(result)
+      setExtractedArticle(result.data)
 
-      const response = await fetch(trimmed, {
-        signal: controller.signal,
-        headers: { Accept: 'text/html,application/xhtml+xml' },
-      })
-      clearTimeout(timeoutId)
-
-      if (response.ok) {
-        const html = await response.text()
-        const article = parseHtmlWithReadability(html, trimmed)
-        if (article.content.length < 50) {
-          throw new Error('Konten teks artikel terlalu pendek atau terproteksi paywall/login.')
-        }
-        setExtractedArticle(article)
-        setIsLoading(false)
-        return
+      if (result.isAirGapFallback) {
+        setCorsFallbackActive(true)
+        if (result.warning) setErrorMessage(result.warning)
+      } else {
+        setCorsFallbackActive(false)
+        setErrorMessage(null)
       }
-    } catch {
-      // Direct fetch gagal (biasanya karena browser CORS protection pada news portal)
-      console.warn('[NARADA URL Extractor] Direct fetch blocked by CORS or network, trying CORS proxy fallback...')
+    } catch (err) {
+      console.error('[NARADA URL Extractor] Ingesti gagal total:', err)
+      setCorsFallbackActive(true)
+      setErrorMessage(
+        'Koneksi peramban langsung ke tautan ini dibatasi oleh kebijakan CORS portal berita tersebut. Anda dapat menggunakan tombol "Salin Cepat Konten Berita" di bawah, atau pilih contoh demo.'
+      )
+    } finally {
+      setIsLoading(false)
     }
-
-    // Coba Jalur Cadangan (Public CORS Proxy)
-    try {
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(trimmed)}`
-      const proxyController = new AbortController()
-      const proxyTimeout = setTimeout(() => proxyController.abort(), 6000)
-
-      const proxyResp = await fetch(proxyUrl, { signal: proxyController.signal })
-      clearTimeout(proxyTimeout)
-
-      if (proxyResp.ok) {
-        const html = await proxyResp.text()
-        const article = parseHtmlWithReadability(html, trimmed)
-        if (article.content.length > 50) {
-          setExtractedArticle(article)
-          setIsLoading(false)
-          return
-        }
-      }
-    } catch {
-      console.warn('[NARADA URL Extractor] CORS proxy failed or timed out.')
-    }
-
-    // Jika direct fetch & proxy keduanya diblokir CORS browser
-    setIsLoading(false)
-    setCorsFallbackActive(true)
-    setErrorMessage(
-      'Koneksi browser langsung ke tautan ini dibatasi oleh kebijakan CORS portal berita tersebut. Anda dapat menggunakan tombol "Salin Cepat Konten Berita" di bawah, atau pilih contoh demo.'
-    )
   }
 
   /**
@@ -514,7 +487,7 @@ export default function URLInput({ onAnalyze, isAnalyzing = false }: URLInputPro
               flexWrap: 'wrap',
               gap: '8px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <span style={{
                   fontSize: '10px',
                   fontFamily: 'var(--font-mono)',
@@ -526,6 +499,52 @@ export default function URLInput({ onAnalyze, isAnalyzing = false }: URLInputPro
                 }}>
                   {extractedArticle.siteName || 'Portal Berita'}
                 </span>
+
+                {/* Ingestion Tier Badge */}
+                {ingestionResult && (
+                  <span style={{
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    padding: '2px 8px',
+                    borderRadius: '3px',
+                    background:
+                      ingestionResult.tierUsed === 'ELECTRON_IPC'
+                        ? 'rgba(34, 197, 94, 0.15)'
+                        : ingestionResult.tierUsed === 'DIRECT_FETCH'
+                        ? 'rgba(6, 182, 212, 0.15)'
+                        : ingestionResult.tierUsed === 'AIRGAP_DEMO_FALLBACK'
+                        ? 'rgba(239, 68, 68, 0.15)'
+                        : 'rgba(245, 158, 11, 0.15)',
+                    color:
+                      ingestionResult.tierUsed === 'ELECTRON_IPC'
+                        ? '#22C55E'
+                        : ingestionResult.tierUsed === 'DIRECT_FETCH'
+                        ? '#06B6D4'
+                        : ingestionResult.tierUsed === 'AIRGAP_DEMO_FALLBACK'
+                        ? '#EF4444'
+                        : '#F59E0B',
+                    border: `1px solid ${
+                      ingestionResult.tierUsed === 'ELECTRON_IPC'
+                        ? 'rgba(34, 197, 94, 0.3)'
+                        : ingestionResult.tierUsed === 'DIRECT_FETCH'
+                        ? 'rgba(6, 182, 212, 0.3)'
+                        : ingestionResult.tierUsed === 'AIRGAP_DEMO_FALLBACK'
+                        ? 'rgba(239, 68, 68, 0.3)'
+                        : 'rgba(245, 158, 11, 0.3)'
+                    }`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    <Server size={10} />
+                    {ingestionResult.tierUsed === 'ELECTRON_IPC' && 'TIER 1 (ELECTRON IPC NATIVE)'}
+                    {ingestionResult.tierUsed === 'DIRECT_FETCH' && 'TIER 2 (DIRECT HTTP GET)'}
+                    {ingestionResult.tierUsed === 'CORS_PROXY_ALLORIGINS' && 'TIER 3A (PROXY ALLORIGINS)'}
+                    {ingestionResult.tierUsed === 'CORS_PROXY_CORSIO' && 'TIER 3B (PROXY CORSPROXY.IO)'}
+                    {ingestionResult.tierUsed === 'AIRGAP_DEMO_FALLBACK' && 'TIER 5 (AIR-GAP FALLBACK)'}
+                  </span>
+                )}
+
                 {extractedArticle.author && (
                   <span style={{
                     fontSize: '11px',
@@ -539,16 +558,30 @@ export default function URLInput({ onAnalyze, isAnalyzing = false }: URLInputPro
                 )}
               </div>
 
-              <span style={{
-                fontSize: '10px',
-                fontFamily: 'var(--font-mono)',
-                color: 'var(--text-dim)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <Clock size={11} /> {new Date(extractedArticle.fetchedAt).toLocaleTimeString('id-ID')}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {ingestionResult && (
+                  <span style={{
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--threat-low)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px'
+                  }}>
+                    <Zap size={10} /> {ingestionResult.latencyMs}ms
+                  </span>
+                )}
+                <span style={{
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--text-dim)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  <Clock size={11} /> {new Date(extractedArticle.fetchedAt).toLocaleTimeString('id-ID')}
+                </span>
+              </div>
             </div>
 
             {/* Title */}

@@ -8,10 +8,16 @@ import {
   Scan,
   Sparkles,
   Eye,
-  Edit3
+  Edit3,
+  Contrast,
+  Layers,
+  Cpu,
+  Sliders
 } from 'lucide-react'
 import { createWorker } from 'tesseract.js'
 import type { OCRAnalysisInput } from '../types'
+import { preprocessImageWithOtsu, type OtsuBinarizerResult } from '../engine/vision/otsu-binarizer'
+import { saveImageToDB } from '../utils/db-adapter'
 
 interface OCRUploaderProps {
   onAnalyze: (payload: {
@@ -35,6 +41,10 @@ const SUPPORTED_FORMATS = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
 
 export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploaderProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [binarizedPreview, setBinarizedPreview] = useState<string | null>(null)
+  const [activePreviewMode, setActivePreviewMode] = useState<'original' | 'otsu'>('otsu')
+  const [otsuResult, setOtsuResult] = useState<OtsuBinarizerResult | null>(null)
+  const [useOtsuForOCR, setUseOtsuForOCR] = useState<boolean>(true)
   const [imageName, setImageName] = useState<string>('')
   const [extractedData, setExtractedData] = useState<OCRAnalysisInput | null>(null)
   const [editedText, setEditedText] = useState<string>('')
@@ -55,18 +65,47 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
       if (imagePreview && imagePreview.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreview)
       }
+      if (binarizedPreview && binarizedPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(binarizedPreview)
+      }
     }
-  }, [imagePreview])
+  }, [imagePreview, binarizedPreview])
 
   /**
-   * Menjalankan Tesseract OCR worker dengan bahasa Indonesia + Inggris
+   * Menjalankan Tesseract OCR worker dengan bahasa Indonesia + Inggris didahului Pra-pemrosesan Otsu
    */
   const processImageWithOCR = async (imageSrc: string, name: string) => {
     setIsOcrProcessing(true)
     setErrorMessage(null)
+
+    // ─── TAHAP 1: PRA-PEMROSESAN CITRA OTSU ADAPTIVE BINARIZER ───
+    let targetOcrSource = imageSrc
+    try {
+      setProgressState({
+        statusText: 'Menerapkan Filter Binarisasi Adaptif Otsu & Inversi Latar...',
+        progress: 15,
+        stage: 'loading_model',
+      })
+
+      const binarized = await preprocessImageWithOtsu(imageSrc)
+      setOtsuResult(binarized)
+      setBinarizedPreview(binarized.binarizedDataUrl)
+
+      if (useOtsuForOCR) {
+        targetOcrSource = binarized.binarizedDataUrl
+      }
+
+      // Persistensi ke IndexedDB tanpa membebani thread
+      saveImageToDB(`OCR-${Date.now()}`, imageSrc, binarized.binarizedDataUrl).catch((err) => {
+        console.warn('[OCRUploader] Gagal menyimpan citra ke IndexedDB:', err)
+      })
+    } catch (otsuErr) {
+      console.warn('[OCRUploader] Pra-pemrosesan Otsu dilewati (menggunakan citra asli):', otsuErr)
+    }
+
     setProgressState({
       statusText: 'Inisialisasi Neural OCR Worker (ind + eng)...',
-      progress: 10,
+      progress: 30,
       stage: 'loading_model',
     })
 
@@ -87,7 +126,7 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
 
             setProgressState({
               statusText: statusLabel,
-              progress: Math.min(95, Math.max(15, pct)),
+              progress: Math.min(95, Math.max(35, pct)),
               stage: 'recognizing',
             })
           }
@@ -95,12 +134,12 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
       })
 
       setProgressState({
-        statusText: 'Menganalisis Karakter & Layout Citra...',
+        statusText: 'Menganalisis Karakter & Layout Citra Binarisasi...',
         progress: 75,
         stage: 'recognizing',
       })
 
-      const result = await worker.recognize(imageSrc)
+      const result = await worker.recognize(targetOcrSource)
       const rawText = result.data.text ? result.data.text.trim() : ''
       const confidence = Math.round(result.data.confidence || 0)
 
@@ -515,7 +554,7 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
         {imagePreview && (
           <div style={{ marginTop: '16px' }}>
             <div className="grid-2" style={{ alignItems: 'stretch' }}>
-              {/* Kolom Kiri: Pratinjau Citra */}
+              {/* Kolom Kiri: Pratinjau Citra & Filter Binarisasi Otsu */}
               <div style={{
                 background: 'var(--bg-elevated)',
                 border: '1px solid var(--bg-border)',
@@ -530,21 +569,71 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
                   alignItems: 'center',
                   marginBottom: '8px'
                 }}>
-                  <span style={{
-                    fontSize: '11px',
-                    fontFamily: 'var(--font-mono)',
-                    color: 'var(--text-muted)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}>
-                    <Eye size={12} /> PRATINJAU CITRA
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Eye size={12} color="var(--text-muted)" />
+                    {/* Toggle Selector Citra Asli vs Binarisasi Otsu */}
+                    {binarizedPreview ? (
+                      <div style={{
+                        display: 'inline-flex',
+                        background: 'var(--bg-base)',
+                        padding: '2px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--bg-border)'
+                      }}>
+                        <button
+                          type="button"
+                          onClick={() => setActivePreviewMode('original')}
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '10px',
+                            fontFamily: 'var(--font-mono)',
+                            borderRadius: '2px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: activePreviewMode === 'original' ? 'var(--bg-border-bright)' : 'transparent',
+                            color: activePreviewMode === 'original' ? '#FFFFFF' : 'var(--text-muted)',
+                            fontWeight: activePreviewMode === 'original' ? '700' : '400',
+                          }}
+                        >
+                          ASLI
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActivePreviewMode('otsu')}
+                          style={{
+                            padding: '3px 8px',
+                            fontSize: '10px',
+                            fontFamily: 'var(--font-mono)',
+                            borderRadius: '2px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            background: activePreviewMode === 'otsu' ? '#D97706' : 'transparent',
+                            color: activePreviewMode === 'otsu' ? '#000000' : '#D97706',
+                            fontWeight: activePreviewMode === 'otsu' ? '700' : '400',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Contrast size={10} /> OTSU B/W
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)',
+                        color: 'var(--text-muted)'
+                      }}>
+                        PRATINJAU CITRA
+                      </span>
+                    )}
+                  </div>
+
                   <span style={{
                     fontSize: '10px',
                     fontFamily: 'var(--font-mono)',
                     color: 'var(--text-dim)',
-                    maxWidth: '160px',
+                    maxWidth: '140px',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
@@ -552,19 +641,23 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
                     {imageName}
                   </span>
                 </div>
+
+                {/* Display Frame Citra */}
                 <div style={{
                   flex: 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: 'var(--bg-base)',
+                  background: '#070A0E',
                   borderRadius: 'var(--radius-sm)',
                   overflow: 'hidden',
                   minHeight: '260px',
-                  maxHeight: '340px'
+                  maxHeight: '340px',
+                  position: 'relative',
+                  border: '1px solid rgba(255,255,255,0.06)'
                 }}>
                   <img
-                    src={imagePreview}
+                    src={activePreviewMode === 'otsu' && binarizedPreview ? binarizedPreview : imagePreview}
                     alt="Preview Screenshot"
                     style={{
                       maxWidth: '100%',
@@ -573,7 +666,55 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
                       display: 'block'
                     }}
                   />
+
+                  {/* Badge Mode Aktif di Sudut Gambar */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '8px',
+                    left: '8px',
+                    fontSize: '9px',
+                    fontFamily: 'var(--font-mono)',
+                    padding: '2px 6px',
+                    borderRadius: '2px',
+                    background: 'rgba(12, 16, 22, 0.85)',
+                    border: '1px solid rgba(217, 119, 6, 0.4)',
+                    color: activePreviewMode === 'otsu' ? '#D97706' : '#94A3B8',
+                    letterSpacing: '0.5px'
+                  }}>
+                    {activePreviewMode === 'otsu' ? 'FILTER: OTSU ADAPTIVE BINARIZED' : 'FILTER: CITRA RAW ORIGINAL'}
+                  </div>
                 </div>
+
+                {/* HUD Telemetri Vision Otsu */}
+                {otsuResult && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '6px 10px',
+                    background: 'rgba(12, 16, 22, 0.95)',
+                    border: '1px solid rgba(217, 119, 6, 0.25)',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    gap: '6px'
+                  }}>
+                    <span style={{ color: '#D97706', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Sliders size={11} /> Ambang T*: <strong>{otsuResult.threshold}</strong>
+                    </span>
+                    <span style={{ color: otsuResult.isDarkMode ? '#38BDF8' : '#FBBF24' }}>
+                      {otsuResult.isDarkMode ? '🌙 Dark Mode (Inverted)' : '☀️ Light Mode'}
+                    </span>
+                    <span style={{ color: 'var(--text-dim)' }}>
+                      Tepi: {otsuResult.metrics.borderAverageLuminance} | σ_B²: {otsuResult.metrics.betweenClassVariance}
+                    </span>
+                    <span style={{ color: 'var(--threat-low)' }}>
+                      ⚡ {otsuResult.processingLatencyMs}ms
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Kolom Kanan: Area Teks Ter-ekstrak (Bisa Dikoreksi Analis) */}

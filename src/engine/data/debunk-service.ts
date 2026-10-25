@@ -39,7 +39,7 @@ export function getActiveDebunks(): DebunkKnowledgeEntry[] {
 }
 
 /**
- * Mengambil hanya data arsip lokal terkurasi PUSSIBERAD (40 entri terverifikasi)
+ * Mengambil hanya data arsip lokal terkurasi PUSSIBERAD (200+ entri terverifikasi)
  */
 export function getCuratedArchiveDebunks(): DebunkKnowledgeEntry[] {
   return [...LOCAL_ARCHIVE_ENTRIES]
@@ -135,34 +135,34 @@ const SIGNATURE_RULES: SignatureRule[] = [
     targetEntryId: 'TBH-BEN-002',
     boostConfidence: 96
   },
-  // Bencana: Gempa megathrust waktu spesifik / jam 23.00
+  // Bencana: Gempa megathrust waktu spesifik / lusa malam
   {
     requiredKeywords: [
       ['gempa', 'megathrust', 'seismik'],
-      ['malam ini', 'jam 23', '23.00', 'besok pagi', 'jam 02', 'keluar rumah', 'segera lari']
+      ['lusa malam', 'malam ini', 'jam 23', '23.00', 'besok pagi', 'keluar rumah']
     ],
     minGroupsMatched: 2,
     targetEntryId: 'TBH-BEN-001',
     boostConfidence: 96
   },
-  // Bencana: Tsunami Pelabuhan Ratu
+  // Bencana: Tsunami Pesisir Selatan Jawa
   {
     requiredKeywords: [
-      ['tsunami', 'gelombang tinggi'],
-      ['pelabuhan ratu', 'sukabumi', 'sirine']
+      ['tsunami', 'gelombang tinggi', 'peringatan dini tsunami'],
+      ['selatan jawa', 'pantai selatan', '20 meter']
     ],
     minGroupsMatched: 2,
-    targetEntryId: 'TBH-BEN-003',
+    targetEntryId: 'TBH-BEN-004',
     boostConfidence: 95
   },
-  // Bansos: Kemensos 5 juta
+  // Bansos: Kemensos BLT El Nino
   {
     requiredKeywords: [
-      ['bansos', 'blt', 'bantuan tunai'],
-      ['5 juta', 'lima juta', 'kemensos', 'bit ly', 's id']
+      ['bansos', 'blt', 'bantuan tunai', 'el nino'],
+      ['2.4 juta', 'telegram', 'whatsapp', 'kemensos', 'bit ly', 's id']
     ],
     minGroupsMatched: 2,
-    targetEntryId: 'TBH-SCAM-001',
+    targetEntryId: 'TBH-BAN-001',
     boostConfidence: 96
   },
   // Bansos: Surat tilang APK
@@ -172,17 +172,17 @@ const SIGNATURE_RULES: SignatureRule[] = [
       ['apk', 'file apk', 'kurir', 'whatsapp']
     ],
     minGroupsMatched: 2,
-    targetEntryId: 'TBH-SCAM-003',
+    targetEntryId: 'TBH-BAN-002',
     boostConfidence: 96
   },
   // Bansos: Kuota gratis Kemendikbud
   {
     requiredKeywords: [
-      ['kuota', 'internet gratis', '50 gb'],
-      ['kemendikbud', 'guru siswa', 's id']
+      ['kuota', 'internet gratis', '100gb', '100 gb'],
+      ['kemendikbud', 'guru siswa', 'pelajar']
     ],
     minGroupsMatched: 2,
-    targetEntryId: 'TBH-SCAM-002',
+    targetEntryId: 'TBH-BAN-003',
     boostConfidence: 94
   },
   // Kesehatan: Beras plastik
@@ -195,20 +195,20 @@ const SIGNATURE_RULES: SignatureRule[] = [
     targetEntryId: 'TBH-KES-001',
     boostConfidence: 95
   },
-  // Kesehatan: Penculikan anak mobil putih
+  // Kesehatan: Anggur Shine Muscat pestisida
   {
     requiredKeywords: [
-      ['penculikan anak', 'culik anak'],
-      ['mobil putih', 'organ tubuh', 'sekolah']
+      ['anggur', 'shine muscat'],
+      ['pestisida', 'beracun', 'residu', 'bpom']
     ],
     minGroupsMatched: 2,
     targetEntryId: 'TBH-KES-002',
     boostConfidence: 95
   },
-  // Militer: Tank fiktif 24 triliun
+  // Militer: Alutsista fiktif 24 triliun
   {
     requiredKeywords: [
-      ['tank', 'alutsista', 'pembelian'],
+      ['tank', 'alutsista', 'pembelian', 'radar'],
       ['24 triliun', '24t', 'fiktif', 'kemhan']
     ],
     minGroupsMatched: 2,
@@ -218,21 +218,21 @@ const SIGNATURE_RULES: SignatureRule[] = [
   // Militer: Tentara asing Morowali
   {
     requiredKeywords: [
-      ['tentara asing', 'berseragam tni', 'pasukan asing'],
-      ['morowali', 'mendarat']
+      ['tentara asing', 'berseragam militer', 'pekerja tambang'],
+      ['morowali', 'sulawesi tengah']
     ],
     minGroupsMatched: 2,
-    targetEntryId: 'TBH-MIL-002',
+    targetEntryId: 'TBH-MIL-012',
     boostConfidence: 95
   },
   // Militer: Kedaulatan Natuna diserahkan
   {
     requiredKeywords: [
-      ['natuna', 'pulau natuna'],
-      ['diserahkan', 'kedaulatan', 'secara rahasia', 'dijual']
+      ['natuna', 'pulau natuna', 'pangkalan militer asing'],
+      ['diserahkan', 'pangkalan asing', 'secara rahasia', 'dijual']
     ],
     minGroupsMatched: 2,
-    targetEntryId: 'TBH-MIL-004',
+    targetEntryId: 'TBH-MIL-003',
     boostConfidence: 95
   }
 ]

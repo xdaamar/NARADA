@@ -18,10 +18,51 @@ export const DEFAULT_SETTINGS: UserSettings = {
   offlineMode: false,
 }
 
+import {
+  saveAnalysisToDB,
+  getAnalysesFromDB,
+  clearAnalysesFromDB,
+  initDB
+} from './db-adapter'
+
+// ─── Dual-Layer Memory Cache ───
+let memoryCacheAnalyses: AnalysisResult[] | null = null
+let isInitializedFromDB = false
+
 /**
- * Mengambil daftar seluruh hasil analisis yang tersimpan di sesi saat ini
+ * Inisialisasi latar belakang sinkronisasi dari IndexedDB ke Memory Cache
+ */
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    getAnalysesFromDB()
+      .then((dbList) => {
+        if (dbList && dbList.length > 0) {
+          const current = memoryCacheAnalyses || getStoredAnalyses()
+          const idMap = new Map<string, AnalysisResult>()
+          // Masukkan DB list terlebih dahulu
+          dbList.forEach(a => idMap.set(a.id, a))
+          // Override dengan memory/session jika ada perubahan terbaru
+          current.forEach(a => idMap.set(a.id, a))
+          const merged = Array.from(idMap.values()).sort((a, b) => b.timestamp - a.timestamp)
+          memoryCacheAnalyses = merged
+          isInitializedFromDB = true
+          window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: merged }))
+        }
+      })
+      .catch((e) => {
+        console.warn('[NARADA Storage] Init dari IndexedDB:', e)
+      })
+  }, 50)
+}
+
+/**
+ * Mengambil daftar seluruh hasil analisis yang tersimpan (Dual-Layer: Memory Cache + Fallback)
  */
 export function getStoredAnalyses(): AnalysisResult[] {
+  if (memoryCacheAnalyses !== null) {
+    return [...memoryCacheAnalyses]
+  }
+
   try {
     if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
       return []
@@ -29,7 +70,9 @@ export function getStoredAnalyses(): AnalysisResult[] {
     const raw = sessionStorage.getItem(STORAGE_KEYS.ANALYSES)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    const list = Array.isArray(parsed) ? parsed : []
+    memoryCacheAnalyses = list
+    return list
   } catch (error) {
     console.error('[NARADA Storage] Gagal membaca sessionStorage analyses:', error)
     return []
@@ -37,35 +80,56 @@ export function getStoredAnalyses(): AnalysisResult[] {
 }
 
 /**
- * Menyimpan hasil analisis baru ke sessionStorage dan memicu custom event untuk reactivity
+ * Menyimpan hasil analisis baru: Simpan langsung ke Memory & Async IndexedDB
  */
 export function saveAnalysis(analysis: AnalysisResult): void {
   try {
-    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
-      return
-    }
     const existing = getStoredAnalyses()
     // Hindari duplikasi ID
     const updated = [analysis, ...existing.filter(a => a.id !== analysis.id)]
-    sessionStorage.setItem(STORAGE_KEYS.ANALYSES, JSON.stringify(updated))
-    window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: updated }))
+    memoryCacheAnalyses = updated
+
+    // Coba simpan ke sessionStorage (aman terhadap QuotaExceededError)
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      try {
+        sessionStorage.setItem(STORAGE_KEYS.ANALYSES, JSON.stringify(updated))
+      } catch (quotaErr) {
+        console.warn('[NARADA Storage] Kuota sessionStorage penuh, persistensi dialihkan 100% ke IndexedDB:', quotaErr)
+      }
+    }
+
+    // Persistensi ke IndexedDB berkapasitas tinggi
+    saveAnalysisToDB(analysis).catch((err) => {
+      console.warn('[NARADA Storage] Gagal persistensi ke IndexedDB:', err)
+    })
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: updated }))
+    }
   } catch (error) {
     console.error('[NARADA Storage] Gagal menyimpan analysis:', error)
   }
 }
 
 /**
- * Menghapus seluruh riwayat analisis pada sesi ini
+ * Menghapus seluruh riwayat analisis pada sesi dan IndexedDB
  */
 export function clearStoredAnalyses(): void {
   try {
-    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
-      return
+    memoryCacheAnalyses = []
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(STORAGE_KEYS.ANALYSES)
     }
-    sessionStorage.removeItem(STORAGE_KEYS.ANALYSES)
-    window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: [] }))
+
+    clearAnalysesFromDB().catch((err) => {
+      console.warn('[NARADA Storage] Gagal menghapus riwayat di IndexedDB:', err)
+    })
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: [] }))
+    }
   } catch (error) {
-    console.error('[NARADA Storage] Gagal membersihkan sessionStorage:', error)
+    console.error('[NARADA Storage] Gagal membersihkan storage:', error)
   }
 }
 

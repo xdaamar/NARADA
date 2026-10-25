@@ -11,12 +11,16 @@ import {
   Clock,
   Filter,
   CheckCircle2,
-  Calendar
+  Calendar,
+  Database,
+  Layers
 } from 'lucide-react'
 import { fetchLiveRadarDebunks, type LiveRadarFetchResult } from '../engine/data/live-radar-service'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network'
 import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../types'
+import { radarScheduler } from '../engine/scheduler/radar-scheduler'
+import { getCachedRadarItems, cacheRadarItems } from '../utils/db-adapter'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterFilterOption {
@@ -52,50 +56,59 @@ export default function LiveRadar() {
   })
   const [sourceChannel, setSourceChannel] = useState<'API_PROXY' | 'API_DIRECT' | 'API_CORS_PROXY' | 'LOCAL_ARCHIVE'>('LOCAL_ARCHIVE')
 
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // Fungsi penarikan data radar
+  // Fungsi sinkronisasi radar via RadarScheduler
   const triggerSync = async () => {
     setIsSyncing(true)
     const net = await checkNetworkStatus()
     setTelemetry(net)
 
     try {
-      const result: LiveRadarFetchResult = await fetchLiveRadarDebunks()
-      setDebunkItems(result.entries)
-      setSourceChannel(result.sourceChannel)
-      const now = new Date(result.fetchedAt || Date.now())
+      const entries = await radarScheduler.triggerNow()
+      if (entries && entries.length > 0) {
+        setDebunkItems(entries)
+      }
+      const status = radarScheduler.getStatus()
+      setSourceChannel(status.lastSyncSource as typeof sourceChannel || 'LOCAL_ARCHIVE')
+      const now = new Date(status.lastSyncTimestamp || Date.now())
       setLastSyncTime(
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
       )
     } catch (err) {
-      console.error('[LiveRadar] Gagal sinkronisasi feed:', err)
+      console.error('[LiveRadar] Gagal sinkronisasi feed radar:', err)
     } finally {
       setIsSyncing(false)
     }
   }
 
-  // Inisialisasi awal saat mount
+  // Muat cache lokal IndexedDB saat awal buka
   useEffect(() => {
+    getCachedRadarItems()
+      .then((cached) => {
+        if (cached && cached.length > 0) {
+          setDebunkItems(cached)
+        }
+      })
+      .catch((e) => {
+        console.warn('[LiveRadar] Gagal membaca IndexedDB cache:', e)
+      })
+
     triggerSync()
   }, [])
 
-  // Auto-Sync Scheduler berdasarkan selector (minimal 1 Jam)
+  // Hubungkan RadarScheduler interval dan subscribe ke event siaran
   useEffect(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
+    radarScheduler.setIntervalHours(syncIntervalHours)
 
-    if (syncIntervalHours > 0) {
-      const intervalMs = syncIntervalHours * 60 * 60 * 1000
-      timerRef.current = setInterval(() => {
-        triggerSync()
-      }, intervalMs)
-    }
+    const unsubscribe = radarScheduler.addListener((newEntries) => {
+      setDebunkItems(newEntries)
+      const now = new Date()
+      setLastSyncTime(
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
+      )
+    })
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
+      unsubscribe()
     }
   }, [syncIntervalHours])
 
@@ -181,32 +194,49 @@ export default function LiveRadar() {
           </p>
         </div>
 
-        {/* Telemetri Live Status Strip */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '8px 14px',
-          background: '#121822',
-          border: '1px solid #1E2734',
-          borderRadius: 'var(--radius-pill)',
-          boxShadow: 'var(--shadow-steel-plate)'
-        }}>
-          <span style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B',
-            boxShadow: `0 0 8px ${telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B'}`,
-            display: 'inline-block'
-          }} />
-          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9' }}>
-            {sourceChannel === 'API_PROXY' ? 'MAFINDO STREAM CONNECTED' : 'LOCAL THREAT KNOWLEDGE SYNCED'}
-          </span>
-          <span style={{ color: '#2D3848' }}>│</span>
-          <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-            SYNC: {lastSyncTime}
-          </span>
+        {/* Telemetri Live Status Strip & 200+ Counter Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            background: 'rgba(217, 119, 6, 0.12)',
+            border: '1px solid rgba(217, 119, 6, 0.35)',
+            borderRadius: 'var(--radius-pill)',
+          }}>
+            <Database size={13} color="#D97706" />
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#FBBF24' }}>
+              {debunkItems.length >= 200 ? '200+ KASUS KLARIFIKASI AKTIF (OFFLINE AIR-GAP READY)' : `${debunkItems.length} KASUS KLARIFIKASI AKTIF (OFFLINE AIR-GAP READY)`}
+            </span>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 14px',
+            background: '#121822',
+            border: '1px solid #1E2734',
+            borderRadius: 'var(--radius-pill)',
+            boxShadow: 'var(--shadow-steel-plate)'
+          }}>
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B',
+              boxShadow: `0 0 8px ${telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B'}`,
+              display: 'inline-block'
+            }} />
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9' }}>
+              {sourceChannel === 'API_PROXY' ? 'MAFINDO STREAM CONNECTED' : 'LOCAL THREAT KNOWLEDGE SYNCED'}
+            </span>
+            <span style={{ color: '#2D3848' }}>│</span>
+            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+              SYNC: {lastSyncTime}
+            </span>
+          </div>
         </div>
       </div>
 
