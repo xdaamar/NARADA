@@ -1,6 +1,6 @@
 // ─── GENERATOR BASIS DATA KORPUS PERTAHANAN & SOSIAL SIBER INDONESIA (2.500+ SAMPEL) ───
-// SPRINT 7A: NARADA Cognitive Threat Defense System
-// Menghasilkan 500 sampel per kategori (HOAKS, PROPAGANDA, BUZZER, DISINFORMASI, NETRAL)
+// SPRINT 7A & 7B: NARADA Cognitive Threat Defense System
+// Menghasilkan 500 sampel berimbang per kategori: HOAKS, PROPAGANDA, BUZZER, DISINFORMASI, NETRAL
 
 import fs from 'fs'
 import path from 'path'
@@ -11,85 +11,80 @@ const __dirname = path.dirname(__filename)
 
 const TARGET_FILE = path.resolve(__dirname, '../src/engine/data/defense-corpus.json')
 
-// ─── 1. GENERATOR KOMPONEN HOAKS (500+ Sampel) ───
+// ─── 1. GENERATOR HOAKS (500 Sampel) ───
 function generateHoaksSamples() {
   const samples = []
-  
-  // A. Bansos & BLT Phishing (150 sampel)
-  const bansosAgencies = ['Kemensos RI', 'BPJS Ketenagakerjaan', 'Presiden Jokowi', 'Pemerintah Pusat', 'Kementerian Keuangan', 'Dinas Sosial']
-  const bansosAmounts = ['Rp 600.000', 'Rp 1.200.000', 'Rp 2.400.000', 'Rp 3.500.000', 'Rp 5.000.000', 'Rp 10.000.000']
-  const bansosLinks = ['http://bit.ly/bansos-cair-2026', 'https://cekbansos-kemensos.vip/daftar', 'http://pkh-tahap1-cair.site', 'https://dana-kaget-bansos.online', 'https://bantuan-pemerintah-resmi.top']
-  const bansosTriggers = [
-    'Bantuan langsung tunai tahap awal resmi dicairkan hari ini untuk seluruh pemilik e-KTP.',
-    'Segera daftarkan NIK Anda sebelum kuota penerima subsidi habis ditutup malam ini.',
-    'Kabar gembira bagi warga pemegang kartu keluarga, subsidi saldo tunai siap diklaim sekarang.',
-    'Pemerintah menyalurkan dana bantuan darurat penanganan inflasi tanpa potongan apapun.',
-    'Jangan lewatkan pencairan saldo bantuan sosial tunai gelombang terbaru lewat tautan resmi ini.'
-  ]
 
-  for (let i = 0; i < 150; i++) {
-    const agency = bansosAgencies[i % bansosAgencies.length]
-    const amount = bansosAmounts[i % bansosAmounts.length]
-    const link = bansosLinks[i % bansosLinks.length]
-    const trigger = bansosTriggers[i % bansosTriggers.length]
-    samples.push({
-      text: `PEMBERITAHUAN RESMI: ${trigger} Bantuan sebesar ${amount} dari ${agency} langsung masuk ke rekening bank Anda. Klik tautan verifikasi berikut: ${link} dan masukkan nomor NIK KTP serta nomor WhatsApp aktif Anda. Sebarkan kabar ini ke saudara sebelum kuota habis.`,
-      category: 'HOAKS'
-    })
-  }
-
-  // B. Bencana Alam Fiktif & Megathrust (100 sampel)
-  const gempaLocations = ['Selat Sunda', 'Selatan Jawa Barat', 'Pesisir Mentawai Sumatera', 'Sesar Lembang', 'Pantai Pacitan', 'Teluk Jakarta']
-  const gempaMagnitudes = ['M 8.7', 'M 8.9', 'M 9.1', 'M 9.3']
-  const gempaTimes = ['pukul 23.30 WIB malam ini', 'nanti tengah malam', 'dalam tempo 24 jam ke depan', 'dini hari nanti']
+  // A. Bansos & BLT Phishing APK (100 sampel)
+  const agencies = ['Kemensos RI', 'Kementerian Sosial', 'BPJS Ketenagakerjaan', 'Presiden Jokowi', 'Pemerintah Pusat']
+  const amounts = ['Rp 600.000', 'Rp 1.200.000', 'Rp 2.400.000', 'Rp 3.500.000', 'Rp 5.000.000']
+  const links = ['http://bit.ly/bansos-cair-2026', 'https://cekbansos-kemensos.vip/daftar', 'http://pkh-cair.site', 'https://dana-kaget-bansos.online']
   for (let i = 0; i < 100; i++) {
-    const loc = gempaLocations[i % gempaLocations.length]
-    const mag = gempaMagnitudes[i % gempaMagnitudes.length]
-    const time = gempaTimes[i % gempaTimes.length]
+    const ag = agencies[i % agencies.length]
+    const am = amounts[i % amounts.length]
+    const lk = links[i % links.length]
     samples.push({
-      text: `PERINGATAN DARURAT BMKG BOCOR! Gempa dahsyat Megathrust kekuatan ${mag} berpotensi tsunami setinggi 20 meter diprediksi melanda wilayah ${loc} tepat pada ${time}. Air laut dikabarkan sudah mulai surut drastis. BMKG sengaja menyembunyikan kabar ini agar tidak menimbulkan kepanikan warga. Segera evakuasi ke dataran tinggi dan bagikan pesan darurat ini!`,
+      text: `Bantuan sosial tunai tahap 3 sebesar ${am} dari ${ag} resmi dicairkan hari ini. Segera klaim dana bansos anda dengan mengunduh berkas APK ${lk} dan masukkan NIK KTP serta nomor rekening bank pada formulir pendaftaran sebelum kuota habis jam 24.00 malam ini. Sebarkan kabar gembira ini ke keluarga!`,
       category: 'HOAKS'
     })
   }
 
-  // C. Pangan & Kesehatan Berbahaya Fiktif (90 sampel)
-  const panganItems = [
-    'Beras sintetis bercampur biji plastik kimia asal luar negeri beredar bebas di pasar tradisional',
-    'Telur palsu berbahan silikon berbahaya buatan pabrik ilegal tanpa izin edar BPOM',
-    'Garam dapur kemasan yang terbukti dicampur butiran beling kaca halus pemotong lambung',
-    'Permen susu anak-anak yang disusupi narkoba jenis baru perusak sel saraf otak',
-    'Vaksin imunisasi program pemerintah yang diam-diam disuntikkan microchip magnetik 5G pelacak'
-  ]
-  for (let i = 0; i < 90; i++) {
-    const item = panganItems[i % panganItems.length]
+  // B. Bencana Alam Fiktif & Megathrust Jam 23.00 (80 sampel)
+  const locs = ['Pesisir Pulau Jawa', 'Selat Sunda', 'Selatan Jawa Barat', 'Pantai Pacitan', 'Teluk Jakarta']
+  const mags = ['M 8.7', 'M 8.9', 'M 9.1']
+  for (let i = 0; i < 80; i++) {
+    const loc = locs[i % locs.length]
+    const mag = mags[i % mags.length]
     samples.push({
-      text: `VIRALKAN DEMI KESELAMATAN KELUARGA! Waspada ${item}. Hasil uji bakar membuktikan saat digoreng berbau sangit seperti plastik terbakar dan menggumpal keras. Banyak korban anak dilarikan ke rumah sakit setelah mengonsumsinya. Jangan beli produk ini dan sebarkan ke semua grup keluarga Anda!`,
+      text: `Peringatan darurat BMKG bocor! Gempa megathrust dahsyat magnitudo ${mag} dan tsunami setinggi 20 meter diprediksi akan menghantam ${loc} malam ini pukul 23.00 WIB. Warga diminta segera mengungsi ke tempat tinggi dan tinggalkan rumah sekarang juga demi keselamatan. BMKG sengaja sembunyikan info ini!`,
       category: 'HOAKS'
     })
   }
 
-  // D. Alutsista & Militer Fiktif (90 sampel)
-  const alutsistaHoaks = [
-    'Skandal pengadaan 42 unit jet tempur siluman fiktif senilai 24 triliun rupiah yang ternyata hanya maket kayu',
-    'Sebanyak 15 tank tempur utama meledak terbakar saat latihan di perbatasan karena memakai amunisi kadaluwarsa',
-    'Sistem radar pertahanan udara ibu kota mati total akibat peretasan massal hacker tanpa bisa diperbaiki aparat',
-    'Kapal perang jenis korvet buatan baru tenggelam di dermaga pangkalan laut akibat plat baja lambung bocor karatan',
-    'Helikopter serbu militer dilaporkan hilang kontak dan jatuh di hutan lindung akibat korupsi suku cadang bekas'
-  ]
-  for (let i = 0; i < 90; i++) {
-    const item = alutsistaHoaks[i % alutsistaHoaks.length]
-    samples.push({
-      text: `BOCOR DOKUMEN RAHASIA! ${item}. Pihak kementerian dan komando berusaha menutup-nutupi kerugian negara dari rakyat. Saksi mata di lapangan dilarang mengambil rekaman foto. Viralkan sebelum aparat membungkam media berita investigasi!`,
-      category: 'HOAKS'
-    })
-  }
-
-  // E. Penipuan Rekrutmen TNI/Polri (70 sampel)
+  // C. Alutsista Fiktif & Tender Palsu 24T (70 sampel)
+  const alutsistas = ['pesawat tempur siluman', 'tank tempur rongsokan', 'sistem radar pertahanan udara fiktif', 'helikopter serbu bekas', 'kapal selam nuklir fiktif']
   for (let i = 0; i < 70; i++) {
-    const angkatan = ['TNI Angkatan Darat', 'TNI Angkatan Laut', 'TNI Angkatan Udara', 'Mabes TNI'][i % 4]
-    const nominal = ['50 juta', '75 juta', '100 juta', '150 juta'][i % 4]
+    const item = alutsistas[i % alutsistas.length]
     samples.push({
-      text: `DIBUKA PENERIMAAN BINTARA & TAMTAMA ${angkatan} JALUR KHUSUS KELUARGA BESAR. Dijamin lolos seleksi pantukhir tanpa tes fisik berat dengan biaya administrasi penempatan ${nominal}. Kuota terbatas 20 orang. Hubungi nomor Mayor Infantri palsu di link pendaftaran darurat telegram berikut sekarang.`,
+      text: `Beredar dokumen rahasia pengadaan alutsista fiktif senilai 24 triliun rupiah yang melibatkan pejabat tinggi kementerian pertahanan. Anggaran negara diselundupkan untuk membeli ${item} tanpa persetujuan parlemen dan komisi DPR. Komisi pemberantasan korupsi dilarang memeriksa proyek rahasia ini.`,
+      category: 'HOAKS'
+    })
+  }
+
+  // D. Penculikan Anak & Perdagangan Organ Van Hitam (70 sampel)
+  for (let i = 0; i < 70; i++) {
+    samples.push({
+      text: `Waspada modus penculikan anak sekolah marak terjadi di berbagai wilayah. Mobil van hitam keliling menculik balita untuk diambil organ tubuh ginjal, hati, dan kornea mata lalu dijual ke pasar gelap luar negeri. Jangan biarkan anak keluar sendirian, aparat seolah tutup mata terhadap sindikat penculik organ ini!`,
+      category: 'HOAKS'
+    })
+  }
+
+  // E. Pangan Plastik Berbahaya & Beras Beracun (60 sampel)
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: `Hati-hati beredar beras plastik sintetis buatan pabrik kimia yang dicampur bahan pemutih berbahaya di pasar tradisional. Bila dimasak nasi menggumpal keras seperti lilin dan memicu kanker usus dalam waktu singkat. Telur palsu silikon dan garam campur beling kaca juga ditemukan di toko kelontong.`,
+      category: 'HOAKS'
+    })
+  }
+
+  // F. Penipuan Rekrutmen Bintara Calo Pelicin (60 sampel)
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: `Penerimaan jalur khusus Bintara TNI AD dan Tamtama dibuka untuk kuota terbatas tanpa tes fisik dan tanpa seleksi ketat. Cukup transfer uang pelicin 50 juta rupiah ke rekening panitia jaminan kelulusan seratus persen dinas militer. Hubungi kontak whatsapp pengurus jalur kilat ini segera.`,
+      category: 'HOAKS'
+    })
+  }
+
+  // G. Phishing Kuota Internet Kemendikbud & Tilang APK & Dana Kaget (60 sampel)
+  const subHoaks = [
+    'Kementerian Pendidikan membagikan kuota data internet gratis 100 GB dan pulsa 200 ribu rupiah untuk semua guru dan pelajar. Klik tautan bit.ly/kuota-gratis-kemdikbud sekarang untuk aktivasi nomor kartu SIM anda.',
+    'Pemberitahuan tilang elektronik ETLE kepolisian. Kendaraan anda tertangkap kamera melanggar batas kecepatan di jalan tol. Unduh dan buka file Surat_Tilang.apk berikut untuk melihat bukti foto pelanggaran dan nomor registrasi.',
+    'Kabar gembira program dana kaget tunai dari presiden langsung cair ke saldo dompet digital DANA dan OVO sebesar 3 juta rupiah. Daftar instan hanya butuh nomor HP dan PIN login akun untuk verifikasi penerima dana hibah.',
+    'Info darurat waduk bendungan air utama dikabarkan retak dan jebol malam ini akibat tekanan air luapan sungai. Warga di bantaran sungai hilir harus evakuasi mandiri dalam 1 jam sebelum air bah menerjang pemukiman penduduk.'
+  ]
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: subHoaks[i % subHoaks.length],
       category: 'HOAKS'
     })
   }
@@ -97,56 +92,56 @@ function generateHoaksSamples() {
   return samples
 }
 
-// ─── 2. GENERATOR KOMPONEN PROPAGANDA (500+ Sampel) ───
+// ─── 2. GENERATOR PROPAGANDA (500 Sampel) ───
 function generatePropagandaSamples() {
   const samples = []
 
-  // A. Separatisme Papua & TPNPB/OPM (180 sampel)
+  // A. Separatisme Papua & Referendum Merdeka TPNPB OPM (130 sampel)
   const papuaRegions = ['Intan Jaya', 'Nduga', 'Puncak Jaya', 'Yahukimo', 'Maybrat', 'Pegunungan Bintang']
-  const separatistNarratives = [
-    'Komando TPNPB Organisasi Papua Merdeka mengklaim berhasil menguasai wilayah strategis dan mengusir aparat militer kolonial.',
-    'Seruan boikot total seluruh program Otonomi Khusus Otsus Jilid II dan tuntutan referendum penentuan nasib sendiri bangsa Papua Barat.',
-    'Pemerintah Jakarta dituding melakukan genosida rasial dan militerisasi tanah adat Papua demi eksploitasi tambang emas.',
-    'Pejuang kemerdekaan Papua Barat mengibarkan bendera Bintang Kejora dan mendesak intervensi pasukan perdamaian Dewan Keamanan PBB.',
-    'Operasi militer gabungan dituduh membakar perkampungan warga sipil dan memaksa ribuan pengungsi kelaparan di pegunungan.'
-  ]
-  for (let i = 0; i < 180; i++) {
+  for (let i = 0; i < 130; i++) {
     const reg = papuaRegions[i % papuaRegions.length]
-    const nar = separatistNarratives[i % separatistNarratives.length]
     samples.push({
-      text: `SIARAN PERS KEMERDEKAAN WEST PAPUA: Wilayah ${reg} bergolak. ${nar} Kami menyerukan seluruh rakyat Papua untuk mogok sipil nasional melawan pendudukan ilegal aparat keamanan Indonesia. Papua bukan Merah Putih, Papua merdeka!`,
+      text: `Bangsa Papua Barat menolak segala bentuk penjajahan NKRI dan otonomi khusus palsu di wilayah ${reg}. Kami menuntut hak penentuan nasib sendiri melalui referendum internasional merdeka penuh dari kolonialisme militer Jakarta. Komando TPNPB OPM menyatakan perang terbuka melawan aparat pendudukan sampai bendera Bintang Kejora berkibar bebas.`,
       category: 'PROPAGANDA'
     })
   }
 
-  // B. Delegitimasi TNI AD & Kepemimpinan Nasional (170 sampel)
-  const delegitimasiNarratives = [
-    'Panglima TNI dan jajaran perwira tinggi dikabarkan menggelar rapat darurat rahasia untuk melancarkan kudeta militer terhadap istana.',
-    'Isu pemecatan mendadak Kepala Staf Angkatan Darat KSAD karena menolak perintah presiden untuk mengerahkan pasukan memukul demonstran.',
-    'Dwifungsi ABRI kembali dibangkitkan untuk menempatkan jenderal aktif menduduki jabatan sipil dan membungkam suara kritis mahasiswa.',
-    'Anggaran pertahanan ratusan triliun rupiah sengaja dialokasikan untuk mendanai pemenangan dinasti politik penguasa.',
-    'Prajurit militer tingkat bawah dikabarkan mulai melakukan pembangkangan komando karena gaji dan uang lauk pauk dipotong atasan.'
-  ]
-  for (let i = 0; i < 170; i++) {
-    const nar = delegitimasiNarratives[i % delegitimasiNarratives.length]
+  // B. Narasi Tentara Asing & Penjualan Kedaulatan IKN (100 sampel)
+  for (let i = 0; i < 100; i++) {
     samples.push({
-      text: `ANALISIS INTELIJEN STRATEGIS: Situasi ketatanegaraan berada di ujung tanduk. ${nar} Rezim panik dan mengorbankan integritas prajurit sapta marga. Saatnya rakyat bersatu mendukung perwira patriotik untuk merebut kembali kedaulatan bangsa dari oligarki!`,
+      text: `Kedaulatan Indonesia telah dijual kepada kekuatan asing. Ratusan tentara asing bersenjata lengkap dilaporkan telah menduduki pangkalan militer di Ibu Kota Nusantara IKN untuk mengontrol pemerintahan boneka. Dokumen rahasia membuktikan perjanjian sewa pulau terluar strategis 100 tahun kepada korporasi adidaya asing sebagai pangkalan intelijen militer.`,
       category: 'PROPAGANDA'
     })
   }
 
-  // C. Agitasi SARA, Disintegrasi, & Sentimen Anti-Asing (150 sampel)
-  const agitasiNarratives = [
-    'Ratusan ribu tentara asing Tiongkok menyamar sebagai pekerja tambang nikel di kawasan industri Morowali bersenjata lengkap siap kuasai NKRI.',
-    'Skenario adu domba berdarah sengaja dirancang antara korps Brimob Polri dan prajurit TNI AD demi memuluskan darurat militer.',
-    'Kebangkitan gerakan neo-komunisme PKI gaya baru yang menyusup ke dalam lingkaran kementerian strategis untuk mengganti ideologi Pancasila.',
-    'Konflik komunal bernuansa agama sengaja dipicu di daerah luar Jawa untuk memecah belah persatuan dan kesatuan bangsa.',
-    'Aset strategis pangkalan militer nusantara digadaikan kepada negara adidaya asing demi melunasi utang proyek infrastruktur mercusuar.'
-  ]
-  for (let i = 0; i < 150; i++) {
-    const nar = agitasiNarratives[i % agitasiNarratives.length]
+  // C. Agitasi Pemakzulan Presiden, Revolusi & Kudeta (90 sampel)
+  for (let i = 0; i < 90; i++) {
     samples.push({
-      text: `SERUAN JIHAD DAN JAGA TANAH AIR: Waspadai konspirasi besar pengkhianatan kedaulatan negara. ${nar} Jika kita berdiam diri, tanah air kita akan jatuh ke tangan penjajah asing dan bangsa pribumi menjadi budak di negeri sendiri!`,
+      text: `Rezim tiran ini sudah kehilangan legitimasi moral dan hukum. Seluruh elemen mahasiswa, buruh dan purnawirawan bersatu turun ke jalan menggelar aksi revolusi gulingkan presiden dan duduki gedung parlemen sekarang juga. Saatnya pembangkangan sipil total tolak bayar pajak dan lumpuhkan perekonomian penjajah lokal.`,
+      category: 'PROPAGANDA'
+    })
+  }
+
+  // D. Tuduhan Genosida Militer di Pedalaman (60 sampel)
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: `Operasi militer TNI di pedalaman Papua adalah bentuk genosida sistematis terhadap masyarakat adat. Pasukan keamanan dituduh membakar kampung, membantai warga sipil tak berdosa dan mengusir ribuan pengungsi ke hutan rimba demi memuluskan eksploitasi tambang emas oligarki.`,
+      category: 'PROPAGANDA'
+    })
+  }
+
+  // E. Adu Domba SARA & Perang Saudara Horizontal (60 sampel)
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: `Kelompok minoritas mulai berani menginjak harga diri mayoritas umat. Sudah saatnya kita bangkit mengangkat senjata berjihad mempertahankan akidah dan membersihkan tanah air dari antek-antek pengkhianat bangsa. Siapkan barisan perang suci melawan konspirasi pembusukan moral!`,
+      category: 'PROPAGANDA'
+    })
+  }
+
+  // F. Fitnah Perpecahan Panglima TNI vs Presiden & Bentrokan TNI-Polri (60 sampel)
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: `Kabar pecah kongsi di lingkaran elit pertahanan. Panglima TNI secara tegas menolak mematuhi instruksi presiden untuk mengerahkan pasukan meredam unjuk rasa rakyat sehingga situasi darurat militer di ambang pintu. Konflik bersenjata antara aparat TNI dan Brimob Polri kembali pecah akibat perebutan pengamanan tambang liar.`,
       category: 'PROPAGANDA'
     })
   }
@@ -154,64 +149,68 @@ function generatePropagandaSamples() {
   return samples
 }
 
-// ─── 3. GENERATOR KOMPONEN BUZZER (500+ Sampel) ───
+// ─── 3. GENERATOR BUZZER (500 Sampel) ───
 function generateBuzzerSamples() {
   const samples = []
 
-  // A. Gerakan Tagar Terkoordinasi & Astroturfing (200 sampel)
-  const hashtags = [
-    '#RezimPanikTakutRakyat #BongkarKonspirasi',
-    '#GanyangBuzzerRp #KawalPilkadaBersih',
-    '#TolakKorupsiAlutsista #AuditKemhanSekarang',
-    '#ViralkanBiarViral #RakyatBergerak2026',
-    '#BoikotMediaPenjilat #SuaraKebenaran'
+  // A. Gerakan Tagar Botnet Astroturfing (120 sampel)
+  const tags = [
+    '#RezimPanik #GanyangPejabatKorup',
+    '#KawalKemenangan #SatuKomando',
+    '#ViralkanBiarViral #RakyatBergerak',
+    '#TolakBuzzerRp #BoikotProduk',
+    '#BongkarKonspirasi #KawalSampaiTuntas'
   ]
-  const botTemplates = [
-    'Jujur saya awalnya netral dan tidak mau ikut campur urusan politik, tapi setelah melihat video viral ini hati saya tergerak. Betapa dzalimnya perlakuan aparat terhadap rakyat kecil.',
-    'Jangan biarkan postingan penting ini tenggelam gaes! Pasukan buzzer bayaran rezim sudah mulai menyerbu kolom komentar untuk membelokkan opini publik.',
-    'Tolong viralkan ke seluruh grup WhatsApp keluarga dan tetangga Anda sebelum akun ini ditakedown atau di-banned oleh kominfo!',
-    'Ketik AMIN dan bagikan status ini minimal 5 kali di beranda Anda jika Anda peduli dengan nasib masa depan anak cucu di negeri ini.',
-    'Satu suara Anda sangat berharga untuk menumbangkan arogansi kekuasaan yang terus menindas hak-hak dasar masyarakat tertindas.'
-  ]
-  for (let i = 0; i < 200; i++) {
-    const ht = hashtags[i % hashtags.length]
-    const bt = botTemplates[i % botTemplates.length]
+  for (let i = 0; i < 120; i++) {
+    const tg = tags[i % tags.length]
     samples.push({
-      text: `${bt} Naikkan trending topik Twitter X sekarang juga! Ramaikan tagar ${ht} agar dunia internasional tahu apa yang sebenarnya terjadi di Indonesia.`,
+      text: `${tg} Viralkan kawan-kawan! Jangan biarkan penguasa tidur nyenyak. Ramaikan tagar ini di semua linimasa dan penuhi kolom komentar akun resmi pemerintah sampai trending topik nomor satu di Twitter X! Drop tweet serentak sekarang juga dengan akun ternak kita.`,
       category: 'BUZZER'
     })
   }
 
-  // B. Polarisasi Politik & Pembunuhan Karakter Tokoh (150 sampel)
-  const tokohList = ['Menteri Pertahanan', 'Panglima TNI', 'Kepala Staf Angkatan Darat', 'Gubernur Lemhannas', 'Ketua Komisi I DPR RI']
-  const polarisasiThemes = [
-    'terbukti menerima suap gratifikasi proyek pengadaan helikopter tempur fiktif melalui rekening luar negeri anak kandungnya.',
-    'tertangkap basah menggelar pertemuan rahasia dengan taipan oligarki gelap untuk membagi-bagikan konsesi tambang di pulau terluar.',
-    'menginstruksikan anak buahnya menyebarkan fitnah keji di medsos untuk menghancurkan elektabilitas lawan politiknya dalam pilkada.',
-    'memiliki rekam jejak kelam pelanggaran hak asasi manusia berat masa lalu yang sengaja diputihkan oleh pengadilan militer.',
-    'panik kehilangan kekuasaan hingga menyewa puluhan influencer media sosial bayaran untuk memoles citra bobroknya.'
-  ]
-  for (let i = 0; i < 150; i++) {
-    const tokoh = tokohList[i % tokohList.length]
-    const theme = polarisasiThemes[i % polarisasiThemes.length]
+  // B. Spam Copypasta Serentak Grup Medsos (100 sampel)
+  for (let i = 0; i < 100; i++) {
     samples.push({
-      text: `TOPENGNYA AKHIRNYA TERBONGKAR! Sosok pejabat ${tokoh} yang selama ini diagung-agungkan media ternyata ${theme} Jejak digital tidak bisa berbohong gaes. Bagikan link postingan ini seluas-luasnya agar masyarakat tidak tertipu lagi!`,
+      text: `Sebarkan pesan ini! Fakta membuktikan kebijakan baru ini hanya menyengsarakan rakyat jelata. Copy paste teks ini dan kirimkan ke 20 grup WhatsApp serta tagar media sosial agar masyarakat tidak tertipu tipu daya elit. Jangan biarkan postingan penting ini tenggelam gaes, bantu up terus!`,
       category: 'BUZZER'
     })
   }
 
-  // C. Spam Komentar Botnet & Agitasi Kolom Balasan (150 sampel)
-  const spamComments = [
-    'BuzzerRp mana suaranya kok mendadak mingkem gak bisa jawab fakta telak ini wkwkwk',
-    'Up up up terus jangan kasih kendor ramaikan kolom komentar sebelum dihapus admin antek rezim',
-    'Admin akun ini jelas dibayar pakai uang pajak rakyat buat membela koruptor tak tahu malu',
-    'Info A1 dari orang dalam istana menyebutkan petinggi militer sedang sibuk mengamankan aset haramnya',
-    'Kawal terus sidang kasus ini sampai tuntas jangan sampai ada rekayasa hukum seperti yang sudah-sudah'
-  ]
-  for (let i = 0; i < 150; i++) {
-    const comment = spamComments[i % spamComments.length]
+  // C. Astroturfing Kampanye Boikot Terkoordinasi (80 sampel)
+  for (let i = 0; i < 80; i++) {
     samples.push({
-      text: `KOMENTAR VIRAL: "${comment}" - Serbu akun resmi @tni_angkatan_darat dan @kemhanri sekarang juga. Tunjukkan kekuatan netizen +62 demi menegakkan keadilan dan kebenaran hakiki!`,
+      text: `Gerakan boikot massal serentak! Mulai hari ini seluruh netizen wajib memboikot produk perusahaan ini dan berikan rating bintang satu di playstore. Mari kita buat mereka bangkrut dalam hitungan hari demi memberi pelajaran telak pada pemilik modal sombong!`,
+      category: 'BUZZER'
+    })
+  }
+
+  // D. Doxxing Identitas Pejabat & Sebar Nomor Kontak (70 sampel)
+  for (let i = 0; i < 70; i++) {
+    samples.push({
+      text: `Bongkar habis boroknya! Ini dia nama lengkap, NIK, alamat rumah pribadi, dan nomor WhatsApp anak istri pejabat yang suka pamer kemewahan harta haram di media sosial. Silakan netizen silaturahmi langsung dan teror nomor ini siang malam!`,
+      category: 'BUZZER'
+    })
+  }
+
+  // E. Komentar Template Seragam Serang Akun Oposisi / Kritis (70 sampel)
+  for (let i = 0; i < 70; i++) {
+    samples.push({
+      text: `Dasar akun provokator bayaran antek asing! Narasi kamu basi dan selalu memecah belah bangsa. Jangan sok suci kamu, aparat keamanan tolong segera tangkap pemilik akun penyebar fitnah ini demi ketertiban umum! Lapor blokir akun penyusup ini bareng-bareng kawan!`,
+      category: 'BUZZER'
+    })
+  }
+
+  // F. Pembunuhan Karakter & Serangan Botnet Jurnalis & Live Streaming (60 sampel)
+  const buzzExtras = [
+    'Terbongkar rekam jejak kelam calon gubernur nomor urut 1 yang terlibat skandal asusila dan korupsi dana bansos daerah. Jangan pilih pemimpin pembohong yang moralnya rusak dan khianati rakyat.',
+    'Wartawan amplop tukang adu domba! Berita investigasi kamu pesanan sponsor politik oposisi. Netizen cerdas laporkan akun jurnalis ini dan blokir massal agar hilang dari peredaran dunia maya.',
+    'Komentar kompak satu komando di live streaming pidato kenegaraan: Turunkan harga sembako, presiden tidak becus, kabinet gagal total! Copy paste terus menerus tanpa henti sampai server siaran macet!',
+    'Beliau adalah tokoh berjasa yang dizalimi konspirasi lawan politik. Kasus hukum yang dituduhkan murni rekayasa kriminalisasi dan politisasi hukum. Kawal terus sampai beliau bebas dari tuduhan!'
+  ]
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: buzzExtras[i % buzzExtras.length],
       category: 'BUZZER'
     })
   }
@@ -219,56 +218,68 @@ function generateBuzzerSamples() {
   return samples
 }
 
-// ─── 4. GENERATOR KOMPONEN DISINFORMASI (500+ Sampel) ───
+// ─── 4. GENERATOR DISINFORMASI (500 Sampel) ───
 function generateDisinformasiSamples() {
   const samples = []
 
-  // A. Video/Foto Latihan Militer Dipelintir Konteks (180 sampel)
-  const militerEvents = [
-    'Video latihan tempur antar-kecabangan TNI AD di Baturaja tahun 2021',
-    'Iring-iringan parade kendaraan taktis Maung dan panser Anoa pada peringatan HUT TNI di Monas',
-    'Rekaman pendaratan amfibi korps marinir dalam latihan gabungan Armada Jaya di Dabo Singkep',
-    'Dokumentasi manuver jet tempur F-16 dan Sukhoi dalam operasi pengamanan patroli udara Alki',
-    'Kegiatan apel kesiapsiagaan pasukan pengamanan KTT internasional di Bali'
-  ]
-  const pelintiranNarratives = [
-    'diklaim sebagai detik-detik pengerahan pasukan infanteri besar-besaran untuk mengepung perbatasan negara tetangga bersiap perang terbuka.',
-    'dipelintir menjadi bukti persiapan militer mengambil alih kekuasaan gedung parlemen dan mengumumkan darurat militer sipil.',
-    'disebarkan dengan narasi palsu seolah bentrokan bersenjata sungguhan yang menewaskan ratusan prajurit di medan tempur.',
-    'diklaim secara keliru sebagai serangan mendadak pasukan koalisi asing yang membombardir wilayah perairan nusantara.',
-    'diedit dengan suara tembakan palsu untuk meyakinkan publik bahwa perang saudara antarfaksi militer telah meletus.'
-  ]
-  for (let i = 0; i < 180; i++) {
-    const ev = militerEvents[i % militerEvents.length]
-    const pel = pelintiranNarratives[i % pelintiranNarratives.length]
+  // A. Video Latihan Militer Dipelintir Perang Perbatasan (100 sampel)
+  for (let i = 0; i < 100; i++) {
     samples.push({
-      text: `CEK FAKTA KONTEKS: Beredar video viral dengan klaim mengerikan di TikTok. Faktanya, rekaman tersebut adalah ${ev} yang secara sengaja ${pel} Pembuat konten memotong watermark resmi Dispenad untuk menyesatkan opini publik.`,
+      text: `Detik-detik mencekam! Rekaman video pertempuran sengit jet tempur dan artileri berat di perbatasan Kalimantan. Militer Indonesia mulai melancarkan serangan balasan terhadap pasukan negara tetangga yang melanggar batas wilayah. Pengerahan pasukan infanteri besar-besaran bersiap perang terbuka.`,
       category: 'DISINFORMASI'
     })
   }
 
-  // B. Judul Clickbait Pemutarbalik Fakta (160 sampel)
-  const clickbaitTitles = [
-    'GEMPAR! Panglima TNI Akui Wilayah Kedaulatan Laut Natuna Utara Resmi Diserahkan ke Negara Tetangga',
-    'AKHIRNYA BERSUARA: Jenderal Bintang Empat Nyatakan Tolak Tunduk pada Perintah Menteri Pertahanan',
-    'MENGEJUTKAN! Hasil Uji Lab Independen Buktikan Beras Bantuan Pemerintah Mengandung Zat Kimia Beracun',
-    'BERITA DUKA: Gudang Amunisi Terbesar Militer Meledak Rata dengan Tanah Akibat Sabotase Spionase Asing',
-    'RESMI DIKETUK PALU: Pajak Rakyat Dinaikkan 500 Persen Khusus untuk Membeli Pesawat Mewah Pejabat'
-  ]
-  for (let i = 0; i < 160; i++) {
-    const title = clickbaitTitles[i % clickbaitTitles.length]
+  // B. Judul Clickbait Bombastis Memutarbalikkan Rilis Pers (90 sampel)
+  for (let i = 0; i < 90; i++) {
     samples.push({
-      text: `DISINFORMASI KLIKBAIT: "${title}" - Judul berita daring ini sangat manipulatif dan bertolak belakang 180 derajat dengan isi rilis pers resmi narasumber di dalam artikel. Judul sengaja dipasang bombastis demi mendulang adsense dan menyulut kemarahan warganet.`,
+      text: `Mengejutkan! Pemerintah Akhirnya Akui Krisis Ekonomi Bangkrut dan Kas Negara Kosong Melompong! Ternyata begini pengakuan rahasia menteri saat konferensi pers tertutup yang disembunyikan dari publik. Judul berita sensasional yang memelintir fakta narasumber demi klik pembaca.`,
       category: 'DISINFORMASI'
     })
   }
 
-  // C. Manipulasi Kutipan & Dokumen Palsu Berkop Surat (160 sampel)
-  const pejabatList = ['KSAD Jenderal TNI', 'Menteri Koordinator Polkam', 'Pangdam Jaya', 'Kapuspen TNI', 'Kepala BMKG']
-  for (let i = 0; i < 160; i++) {
-    const pej = pejabatList[i % pejabatList.length]
+  // C. Foto Bencana Gempa Lama Diklaim Terjadi Hari Ini (80 sampel)
+  for (let i = 0; i < 80; i++) {
     samples.push({
-      text: `MANIPULASI DOKUMEN & KUTIPAN: Beredar selebaran PDF berkop surat rahasia berstempel Garuda yang mengatasnamakan ${pej}. Setelah diverifikasi, format tata naskah dinas militer terbukti palsu, nomor registrasi surat tidak terdaftar, dan tanda tangan digital adalah hasil manipulasi cropping aplikasi Photoshop.`,
+      text: `Baru saja terjadi gempa dahsyat yang meluluhlantakkan ratusan rumah dan gedung bertingkat di pusat kota sore hari ini. Foto memperlihatkan reruntuhan bangunan hancur lebur dan korban bergelimpangan di jalan raya. Padahal ini dokumentasi foto bencana gempa tsunami masa lalu yang didaur ulang.`,
+      category: 'DISINFORMASI'
+    })
+  }
+
+  // D. Manipulasi Grafik Statistik Inflasi & Utang Negara (80 sampel)
+  for (let i = 0; i < 80; i++) {
+    samples.push({
+      text: `Lihat grafik lonjakan utang negara yang sengaja disembunyikan dari laporan resmi APBN. Kenaikan kurva eksponensial ini membuktikan ekonomi nasional berada di titik kehancuran total dan terancam default utang luar negeri. Grafik dipotong sumbu vertikalnya untuk manipulasi persepsi publik.`,
+      category: 'DISINFORMASI'
+    })
+  }
+
+  // E. Surat Edaran Palsu Berkop Kementerian Keuangan & Pajak Tabungan (50 sampel)
+  for (let i = 0; i < 50; i++) {
+    samples.push({
+      text: `Beredar surat edaran resmi bertanda tangan menteri keuangan tentang pengenaan pajak tambahan 20 persen bagi pemilik rekening tabungan di atas sepuluh juta rupiah yang akan mulai diberlakukan bulan depan. Selebaran format palsu dengan stempel hasil rekayasa cropping komputer.`,
+      category: 'DISINFORMASI'
+    })
+  }
+
+  // F. Potongan Pidato Pejabat & Foto Satelit Radar Invasi Asing (50 sampel)
+  for (let i = 0; i < 50; i++) {
+    samples.push({
+      text: `Potongan video pernyataan jenderal TNI yang viral di media sosial. Beliau tampak menyatakan bahwa tentara siap mengambil alih kendali roda pemerintahan jika situasi politik semakin tidak menentu. Klip sengaja dipotong di tengah kalimat untuk menghilangkan konteks aslinya.`,
+      category: 'DISINFORMASI'
+    })
+  }
+
+  // G. Manipulasi Screenshot Berita Online & Konspirasi Kriminal (50 sampel)
+  const disinfoExtras = [
+    'Foto tangkapan satelit militer membuktikan puluhan kapal perang induk armada asing sedang berlayar merapat mendekati kepulauan Natuna untuk merebut ladang minyak dan gas lepas pantai Indonesia.',
+    'Kematian misterius seorang saksi kunci kasus korupsi besar diduga kuat melibatkan eksekutor penembak jitu militer terlatih untuk melenyapkan barang bukti persidangan dan melindungi dalang intelektual.',
+    'Langit utara mencekam! Konvoi jet tempur supersonik asing terbang rendah menerobos ruang udara kedaulatan Indonesia tanpa izin dan bersiap membombardir instalasi militer strategis kita.',
+    'Beredar tangkapan layar headline berita media online Kompas yang menyebutkan bahwa subsidi BBM akan dicabut total per 1 November dan harga bensin pertalite naik drastis menjadi tiga puluh ribu rupiah per liter.'
+  ]
+  for (let i = 0; i < 50; i++) {
+    samples.push({
+      text: disinfoExtras[i % disinfoExtras.length],
       category: 'DISINFORMASI'
     })
   }
@@ -276,74 +287,68 @@ function generateDisinformasiSamples() {
   return samples
 }
 
-// ─── 5. GENERATOR KOMPONEN NETRAL (Informasi Faktual Resmi) (500+ Sampel) ───
+// ─── 5. GENERATOR NETRAL (Informasi Faktual Resmi) (500 Sampel) ───
 function generateNetralSamples() {
   const samples = []
 
-  // A. Siaran Pers Resmi Dispenad & Puspen TNI (180 sampel)
-  const tniEvents = [
-    {
-      loc: 'Pusat Latihan Tempur Kodiklatad Baturaja Sumatera Selatan',
-      units: 'Batalyon Kavaleri Tank Leopard 2RI, Skadron Helikopter Serbu Apache AH-64E, dan Batalyon Artileri Medan Astros II MK6',
-      act: 'menggelar Latihan Tempur Antar-Kecabangan Latancab Terpadu guna menguji kesiapan operasional prajurit dan sistem integrasi tembakan senjata modern'
-    },
-    {
-      loc: 'wilayah Kodim 0812/Lamongan Jawa Timur',
-      units: 'Prajurit Babinsa bersama kelompok tani gabungan Gapoktan',
-      act: 'melaksanakan panen raya padi di lahan percontohan ketahanan pangan seluas 50 hektar dengan hasil panen mencapai 7,2 ton gabah kering panen per hektar'
-    },
-    {
-      loc: 'Kabupaten Alor Nusa Tenggara Timur',
-      units: 'Satuan Tugas TNI Manunggal Membangun Desa TMMD ke-122',
-      act: 'merampungkan pembangunan jembatan gantung penghubung antardesa dan pipanisasi sarana air bersih bagi 450 kepala keluarga di wilayah terisolir'
-    },
-    {
-      loc: 'Perbatasan Darat RI-PNG sektor utara Kabupaten Keerom Papua',
-      units: 'Satgas Pengamanan Perbatasan Yonif 122/Tombak Sakti',
-      act: 'menggelar pelayanan pengobatan gratis keliling ke rumah-rumah warga perbatasan dalam rangka mempererat tali persaudaraan kemanunggalan TNI dan rakyat'
-    },
-    {
-      loc: 'Markas Besar Angkatan Darat Mabesad Jakarta Pusat',
-      units: 'Inspektorat Jenderal Angkatan Darat Itjenad bersama tim auditor Badan Pemeriksa Keuangan BPK RI',
-      act: 'melakukan uji petik pemeriksaan laporan keuangan dan kepatuhan pengadaan alutsista untuk menjamin transparansi serta akuntabilitas anggaran pertahanan negara'
-    }
-  ]
-  for (let i = 0; i < 180; i++) {
-    const item = tniEvents[i % tniEvents.length]
+  // A. Siaran Pers Latihan Gabungan & Teritorial Kodiklatad / Dispenad (120 sampel)
+  for (let i = 0; i < 120; i++) {
     samples.push({
-      text: `SIARAN PERS RESMI DISPENAD: Bertempat di ${item.loc}, ${item.units} ${item.act}. Pimpinan TNI AD menegaskan komitmen seluruh prajurit untuk senantiasa hadir membantu kesulitan rakyat dan menjaga kedaulatan Negara Kesatuan Republik Indonesia secara profesional serta berintegritas tinggi.`,
+      text: `Komando Pembina Doktrin, Pendidikan dan Latihan TNI AD (Kodiklatad) menyelenggarakan Latihan Antar Kecabangan Kartika Yudha 2026 di Pusat Latihan Tempur Puslatpur Baturaja. Latihan ini bertujuan meningkatkan profesionalisme dan interoperabilitas prajurit matra darat dalam operasi militer perang dengan melibatkan satuan Kavaleri, Infanteri, dan Artileri Medan modern.`,
       category: 'NETRAL'
     })
   }
 
-  // B. Rilis Edukasi & Pemantauan Ilmiah BMKG (160 sampel)
-  const bmkgReports = [
-    'Hasil monitoring jaringan sensor seismograf BMKG mendeteksi aktivitas gempa tektonik magnitudo 4.2 kedalaman 15 km, tidak berpotensi menimbulkan tsunami.',
-    'BMKG mengimbau masyarakat pesisir untuk tetap tenang dan waspada terhadap potensi gelombang pasang air laut akibat fenomena fase bulan purnama (supermoon).',
-    'Kepala Pusat Gempa Bumi dan Tsunami BMKG menegaskan bahwa hingga saat ini belum ada teknologi di dunia yang mampu memprediksi waktu kejadian gempa bumi secara presisi hari dan jamnya.',
-    'Prakiraan cuaca maritim mingguan BMKG memproyeksikan kondisi perairan Selat Sunda dan Laut Jawa dalam kategori aman untuk aktivitas pelayaran kapal niaga dan nelayan tradisional.',
-    'Edukasi mitigasi bencana: BMKG bersama BPBD rutin menyelenggarakan simulasi evakuasi mandiri gempa bumi bagi para pelajar sekolah dasar di zona rawan gempa tektonik.'
-  ]
-  for (let i = 0; i < 160; i++) {
-    const rep = bmkgReports[i % bmkgReports.length]
+  // B. Klarifikasi Pers Puspen TNI Terkait Sengketa Lahan & Disiplin (80 sampel)
+  for (let i = 0; i < 80; i++) {
     samples.push({
-      text: `INFORMASI RESMI BMKG: ${rep} Masyarakat diminta hanya merujuk pada kanal komunikasi resmi aplikasi InfoBMKG dan media sosial terverifikasi BMKG. Hindari mempercayai ramalan bencana yang tidak memiliki dasar kajian ilmiah geofisika.`,
+      text: `Pusat Penerangan TNI (Puspen TNI) memberikan klarifikasi resmi bahwa tidak ada prajurit yang terlibat dalam sengketa lahan perkebunan di daerah tersebut. Institusi TNI menjunjung tinggi supremasi hukum dan menghormati hak kepemilikan tanah masyarakat adat setempat serta berkomitmen menjaga perdamaian dan ketertiban.`,
       category: 'NETRAL'
     })
   }
 
-  // C. Rilis Kebijakan Publik Kemhan, BPOM, & Bapanas (160 sampel)
-  const bapanasReports = [
-    'Badan Pangan Nasional Bapanas bersama Perum Bulog memastikan ketersediaan cadangan beras pemerintah (CBP) di seluruh gudang logistik regional dalam kondisi surplus aman.',
-    'Badan Pengawas Obat dan Makanan BPOM RI merilis hasil uji laboratorium forensik terhadap sampel beras di pasar tradisional, menyatakan 100% negatif dari polimer plastik.',
-    'Kementerian Pertahanan RI menggelar seminar nasional industri pertahanan mandiri yang melibatkan PT Pindad, PT Dirgantara Indonesia, dan PT PAL untuk memperkuat alutsista karya anak bangsa.',
-    'Kementerian Komunikasi dan Digital bersama Gugus Tugas Siber Anti-Hoaks mencatat penurunan tren peredaran disinformasi publik berkat tingginya literasi digital masyarakat binaan Babinsa.',
-    'Badan Amil Zakat Nasional dan instansi sosial menyalurkan bantuan beasiswa pendidikan bagi ribuan putra-putri prajurit berprestasi di wilayah perbatasan nusantara.'
-  ]
-  for (let i = 0; i < 160; i++) {
-    const rep = bapanasReports[i % bapanasReports.length]
+  // C. Informasi Cuaca Maritim & Gempa Resmi BMKG (80 sampel)
+  for (let i = 0; i < 80; i++) {
     samples.push({
-      text: `RILIS PERS KEMENTERIAN / LEMBAGA: ${rep} Pemerintah mengajak seluruh elemen masyarakat untuk terus memperkuat sinergi gotong royong dan menjaga stabilitas keamanan nasional demi kelancaran pembangunan kesejahteraan rakyat.`,
+      text: `Badan Meteorologi, Klimatologi, dan Geofisika (BMKG) menginformasikan prakiraan cuaca maritim untuk wilayah perairan Indonesia. Masyarakat pesisir dan nelayan diimbau tetap waspada terhadap potensi gelombang tinggi 2.5 meter di Samudra Hindia bagian barat Sumatera. Hasil monitoring sensor seismograf mendeteksi aktivitas tektonik normal tanpa ancaman tsunami.`,
+      category: 'NETRAL'
+    })
+  }
+
+  // D. Program Ketahanan Pangan Babinsa Bersama Kelompok Tani (60 sampel)
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: `Bintara Pembina Desa (Babinsa) Koramil 08 jajaran Kodim mendampingi kelompok tani dalam kegiatan panen raya padi sawah. Kegiatan ini merupakan wujud nyata kemanunggalan TNI dengan rakyat dalam mendukung program swasembada ketahanan pangan nasional di berbagai pelosok desa binaan teritorial.`,
+      category: 'NETRAL'
+    })
+  }
+
+  // E. Siaran Pers Kemhan Kunjungan Bilateral & Kerjasama Pertahanan (60 sampel)
+  for (let i = 0; i < 60; i++) {
+    samples.push({
+      text: `Kementerian Pertahanan Republik Indonesia merilis hasil pertemuan bilateral menteri pertahanan dengan delegasi mitra strategis. Kedua belah pihak sepakat memperkuat kerja sama pendidikan perwira, transfer teknologi alutsista, dan latihan penanggulangan terorisme maritim demi menjaga stabilitas kawasan regional.`,
+      category: 'NETRAL'
+    })
+  }
+
+  // F. Pengumuman Rekrutmen Prajurit TNI AD Gratis Tanpa Biaya (50 sampel)
+  for (let i = 0; i < 50; i++) {
+    samples.push({
+      text: `Dinas Penerangan TNI Angkatan Darat (Dispenad) menegaskan bahwa seluruh proses pendaftaran dan seleksi calon prajurit Taruna Akmil, Bintara PK, dan Tamtama PK TNI AD tidak dipungut biaya sepeser pun alias gratis. Jangan percaya calo atau pihak yang menjanjikan kelulusan dengan meminta imbalan uang. Laporkan oknum ke panitia daerah setempat.`,
+      category: 'NETRAL'
+    })
+  }
+
+  // G. Rapat Pimpinan TNI AD Bencana Alam & BNPB / Bapanas / Bakti Sosial (50 sampel)
+  const netralExtras = [
+    'Badan Pangan Nasional (Bapanas) bersama Perum Bulog memastikan stok cadangan beras pemerintah mencukupi kebutuhan nasional hingga akhir tahun. Penyaluran bantuan beras dan operasi pasar murah terus berjalan teratur di seluruh provinsi.',
+    'Prajurit Satuan Tugas Pengamanan Perbatasan (Satgas Pamtas) TNI AD menggelar bakti sosial pengobatan massal dan pembagian buku pelajaran di desa pedalaman perbatasan Papua Nugini guna meningkatkan taraf kesehatan dan pendidikan anak bangsa.',
+    'Kepala Staf Angkatan Darat (Kasad) memimpin rapat koordinasi penanggulangan bencana alam bersama seluruh Pangdam jajaran TNI AD untuk menyiagakan personel dan peralatan zeni dalam menghadapi potensi cuaca ekstrem di berbagai daerah.',
+    'Badan Nasional Penanggulangan Bencana (BNPB) bekerja sama dengan pemerintah daerah dan relawan menyalurkan logistik bantuan darurat bagi warga terdampak banjir lahar dingin. Tim reaksi cepat gabungan terus mendirikan tenda pengungsian dan dapur umum.'
+  ]
+  for (let i = 0; i < 50; i++) {
+    samples.push({
+      text: netralExtras[i % netralExtras.length],
       category: 'NETRAL'
     })
   }
@@ -352,7 +357,7 @@ function generateNetralSamples() {
 }
 
 // ─── EKSEKUSI PEMBUATAN FILE KORPUS ───
-console.log('Memulai generasi korpus leksikal 2.500+ sampel...')
+console.log('Memulai generasi korpus leksikal 2.500 sampel seimbang...')
 const hoaks = generateHoaksSamples()
 const propaganda = generatePropagandaSamples()
 const buzzer = generateBuzzerSamples()

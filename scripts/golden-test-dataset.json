@@ -1,0 +1,352 @@
+[
+  {
+    "id": "TC-01",
+    "category": "HOAKS",
+    "scenario": "Phishing Bansos Tunai Kemensos via APK",
+    "text": "Bantuan sosial tunai tahap 3 sebesar 5 juta rupiah dari Kemensos resmi dicairkan hari ini. Segera klaim dana bansos anda dengan mengunduh berkas APK dan masukkan NIK KTP serta nomor rekening bank pada formulir pendaftaran sebelum kuota habis jam 24.00 malam ini.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-02",
+    "category": "HOAKS",
+    "scenario": "Hoaks Gempa Megathrust Jam 23.00 BMKG",
+    "text": "Peringatan darurat BMKG bocor! Gempa megathrust magnitudo 8.9 dan tsunami setinggi 20 meter diprediksi akan menghantam pesisir pulau Jawa malam ini pukul 23.00 WIB. Warga diminta segera mengungsi ke tempat tinggi dan tinggalkan rumah sekarang juga demi keselamatan.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-03",
+    "category": "HOAKS",
+    "scenario": "Dokumen Pengadaan Alutsista Fiktif 24T",
+    "text": "Beredar dokumen rahasia pengadaan alutsista fiktif senilai 24 triliun rupiah yang melibatkan pejabat tinggi kementerian. Anggaran negara diselundupkan untuk membeli pesawat tempur dan tank rongsokan bekas tanpa persetujuan parlemen.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-04",
+    "category": "HOAKS",
+    "scenario": "Isu Penculikan Anak dan Perdagangan Organ",
+    "text": "Waspada modus penculikan anak sekolah marak terjadi di berbagai wilayah. Mobil van hitam keliling menculik balita untuk diambil organ tubuh ginjal dan kornea mata dan dijual ke pasar gelap luar negeri. Jangan biarkan anak keluar sendirian.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-05",
+    "category": "HOAKS",
+    "scenario": "Beras Plastik Sintetis Beracun di Pasar",
+    "text": "Hati-hati beredar beras plastik sintetis buatan pabrik yang dicampur bahan kimia pemutih berbahaya. Bila dimasak nasi menggumpal seperti lilin dan memicu kanker usus dalam waktu singkat. Sebarkan info ini ke keluarga.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-06",
+    "category": "HOAKS",
+    "scenario": "Penipuan Rekrutmen Bintara TNI Bayar Puluhan Juta",
+    "text": "Penerimaan jalur khusus Bintara TNI AD dibuka untuk kuota terbatas tanpa tes fisik dan tanpa seleksi ketat. Cukup transfer uang pelicin 50 juta rupiah ke rekening panitia jaminan kelulusan seratus persen dinas militer.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-07",
+    "category": "HOAKS",
+    "scenario": "Kuota Internet Gratis Kemendikbud Phishing",
+    "text": "Kementerian Pendidikan membagikan kuota data internet gratis 100 GB dan pulsa 200 ribu rupiah untuk semua guru, pelajar dan masyarakat. Klik tautan bit.ly/kuota-gratis-kemdikbud sekarang untuk aktivasi nomor kartu SIM anda.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-08",
+    "category": "HOAKS",
+    "scenario": "Surat Tilang Elektronik APK WhatsApp",
+    "text": "Pemberitahuan tilang elektronik ETLE kepolisian. Kendaraan anda tertangkap kamera melanggar batas kecepatan di jalan tol. Unduh dan buka file Surat_Tilang.apk berikut untuk melihat bukti foto pelanggaran dan nomor registrasi.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-09",
+    "category": "HOAKS",
+    "scenario": "Dana Kaget Presiden Cair Jutaan Rupiah",
+    "text": "Kabar gembira program dana kaget tunai dari presiden langsung cair ke saldo dompet digital DANA dan OVO sebesar 3 juta rupiah. Daftar instan hanya butuh nomor HP dan PIN login akun untuk verifikasi penerima dana hibah.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-10",
+    "category": "HOAKS",
+    "scenario": "Tanggul Waduk Jebol Banjir Bandang Malam Ini",
+    "text": "Info darurat waduk bendungan air utama dikabarkan retak dan jebol malam ini akibat tekanan air luapan sungai. Warga di bantaran sungai hilir harus evakuasi mandiri dalam 1 jam sebelum air bah menerjang pemukiman penduduk.",
+    "expectedCategory": "HOAKS"
+  },
+  {
+    "id": "TC-11",
+    "category": "PROPAGANDA",
+    "scenario": "Separatisme & Referendum Papua Merdeka",
+    "text": "Bangsa Papua Barat menolak segala bentuk penjajahan NKRI dan otonomi khusus palsu. Kami menuntut hak penentuan nasib sendiri melalui referendum internasional merdeka penuh dari kolonialisme militer Jakarta.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-12",
+    "category": "PROPAGANDA",
+    "scenario": "Narasi Tentara Asing Kuasai Pangkalan IKN",
+    "text": "Kedaulatan Indonesia telah dijual kepada kekuatan asing. Ratusan tentara asing bersenjata lengkap dilaporkan telah menduduki pangkalan militer di Ibu Kota Nusantara IKN untuk mengontrol pemerintahan boneka.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-13",
+    "category": "PROPAGANDA",
+    "scenario": "Agitasi Pemakzulan Presiden Inkonstitusional",
+    "text": "Rezim tiran ini sudah kehilangan legitimasi moral dan hukum. Seluruh elemen mahasiswa, buruh dan purnawirawan bersatu turun ke jalan menggelar aksi revolusi gulingkan presiden dan duduki gedung parlemen sekarang juga.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-14",
+    "category": "PROPAGANDA",
+    "scenario": "Tuduhan Genosida Militer di Pedalaman",
+    "text": "Operasi militer TNI di pedalaman Papua adalah bentuk genosida sistematis terhadap masyarakat adat. Pasukan keamanan dituduh membakar kampung, membantai warga sipil tak berdosa dan mengusir ribuan pengungsi ke hutan.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-15",
+    "category": "PROPAGANDA",
+    "scenario": "Adu Domba SARA Perang Saudara",
+    "text": "Kelompok minoritas mulai berani menginjak harga diri mayoritas umat. Sudah saatnya kita bangkit mengangkat senjata berjihad mempertahankan akidah dan membersihkan tanah air dari antek-antek pengkhianat bangsa.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-16",
+    "category": "PROPAGANDA",
+    "scenario": "Fitnah Panglima TNI Menolak Perintah Presiden",
+    "text": "Kabar pecah kongsi di lingkaran elit pertahanan. Panglima TNI secara tegas menolak mematuhi instruksi presiden untuk mengerahkan pasukan meredam unjuk rasa rakyat sehingga situasi darurat militer di ambang pintu.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-17",
+    "category": "PROPAGANDA",
+    "scenario": "Hasutan Bentrokan TNI versus Polri",
+    "text": "Konflik bersenjata antara aparat TNI dan Polri kembali pecah di perbatasan wilayah. Rivalitas perebutan lahan bisnis pengamanan memicu baku tembak dan saling serang markas kepolisian dan pos komando tentara.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-18",
+    "category": "PROPAGANDA",
+    "scenario": "Narasi Konspirasi Penjualan Pulau Terluar",
+    "text": "Dokumen bocor membuktikan pemerintah diam-diam telah menandatangani perjanjian sewa pulau terluar strategis selama 100 tahun kepada perusahaan multinasional asing yang dijadikan pangkalan intelijen militer rahasia.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-19",
+    "category": "PROPAGANDA",
+    "scenario": "Seruan Pembangkangan Sipil Tolak Bayar Pajak",
+    "text": "Mari kobarkan gerakan mogok massal nasional dan tolak bayar pajak kepada pemerintah yang korup dan menindas rakyat jelata. Boikot semua produk BUMN dan lumpuhkan urat nadi ekonomi penjajah lokal.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-20",
+    "category": "PROPAGANDA",
+    "scenario": "Propaganda Perlawanan Bersenjata TPNPB-OPM",
+    "text": "Komando TPNPB Organisasi Papua Merdeka menyatakan perang terbuka melawan aparat pendudukan TNI-Polri. Kami tidak akan pernah berunding sampai bendera Bintang Kejora berkibar bebas di atas tanah leluhur kami.",
+    "expectedCategory": "PROPAGANDA"
+  },
+  {
+    "id": "TC-21",
+    "category": "BUZZER",
+    "scenario": "Amplifikasi Tagar Botnet Rezim Panik",
+    "text": "#RezimPanik #GanyangPejabatKorup Viralkan kawan-kawan! Jangan biarkan penguasa tidur nyenyak. Ramaikan tagar ini di semua linimasa dan penuhi kolom komentar akun resmi pemerintah sampai trending nomor satu!",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-22",
+    "category": "BUZZER",
+    "scenario": "Spam Copypasta Serentak Akun Anonim",
+    "text": "Sebarkan pesan ini! Fakta membuktikan kebijakan baru ini hanya menyengsarakan rakyat jelata. Copy paste teks ini dan kirimkan ke 20 grup WhatsApp serta tagar media sosial agar masyarakat tidak tertipu tipu daya elit.",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-23",
+    "category": "BUZZER",
+    "scenario": "Astroturfing Kampanye Boikot Terkoordinasi",
+    "text": "Gerakan boikot massal serentak! Mulai hari ini seluruh netizen wajib memboikot produk perusahaan ini dan berikan rating bintang satu di playstore. Mari kita buat mereka bangkrut dalam hitungan hari!",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-24",
+    "category": "BUZZER",
+    "scenario": "Doxxing Identitas Keluarga Pejabat Publik",
+    "text": "Bongkar habis boroknya! Ini dia nama lengkap, NIK, alamat rumah pribadi, dan nomor WhatsApp anak istri pejabat yang suka pamer kemewahan harta haram di media sosial. Silakan netizen silaturahmi langsung!",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-25",
+    "category": "BUZZER",
+    "scenario": "Komentar Template Buzzer Seragam Serang Akun Kritis",
+    "text": "Dasar akun provokator bayaran antek asing! Narasi kamu basi dan selalu memecah belah bangsa. Jangan sok suci kamu, aparat keamanan tolong segera tangkap pemilik akun penyebar fitnah ini demi ketertiban umum!",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-26",
+    "category": "BUZZER",
+    "scenario": "Manipulasi Trending Topic X dengan Akun Ternak",
+    "text": "Drop tweet sekarang serentak jam 19.00 WIB! Pasang hashtag #KawalKemenangan dan mention akun-akun influencer kita. Target minimal 100 ribu cuitan sebelum tengah malam untuk dominasi linimasa media sosial.",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-27",
+    "category": "BUZZER",
+    "scenario": "Pembunuhan Karakter Calon Pimpinan Daerah",
+    "text": "Terbongkar rekam jejak kelam calon gubernur nomor urut 1 yang terlibat skandal asusila dan korupsi dana bansos daerah. Jangan pilih pemimpin pembohong yang moralnya rusak dan khianati rakyat.",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-28",
+    "category": "BUZZER",
+    "scenario": "Serangan Massal Botnet Terhadap Jurnalis Investigasi",
+    "text": "Wartawan amplop tukang adu domba! Berita investigasi kamu pesanan sponsor politik oposisi. Netizen cerdas laporkan akun jurnalis ini dan blokir massal agar hilang dari peredaran dunia maya.",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-29",
+    "category": "BUZZER",
+    "scenario": "Spamming Ribuan Komentar Seragam Live Streaming",
+    "text": "Komentar kompak satu komando di live streaming pidato kenegaraan: Turunkan harga sembako, presiden tidak becus, kabinet gagal total! Copy paste terus menerus tanpa henti sampai server siaran macet!",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-30",
+    "category": "BUZZER",
+    "scenario": "Mobilisasi Buzzer Pembelaan Koruptor",
+    "text": "Beliau adalah tokoh berjasa yang dizalimi konspirasi lawan politik. Kasus hukum yang dituduhkan murni rekayasa kriminalisasi dan politisasi hukum. Kawal terus sampai beliau bebas dari tuduhan!",
+    "expectedCategory": "BUZZER"
+  },
+  {
+    "id": "TC-31",
+    "category": "DISINFORMASI",
+    "scenario": "Video Latihan Militer Dipelintir Perang Perbatasan",
+    "text": "Detik-detik mencekam! Rekaman video pertempuran sengit jet tempur dan artileri berat di perbatasan Kalimantan. Militer Indonesia mulai melancarkan serangan balasan terhadap pasukan negara tetangga yang melanggar batas wilayah.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-32",
+    "category": "DISINFORMASI",
+    "scenario": "Judul Clickbait Memutarbalikkan Rilis Pers",
+    "text": "Mengejutkan! Pemerintah Akhirnya Akui Krisis Ekonomi Bangkrut dan Kas Negara Kosong Melompong! Ternyata begini pengakuan rahasia menteri saat konferensi pers tertutup yang disembunyikan dari publik.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-33",
+    "category": "DISINFORMASI",
+    "scenario": "Foto Bencana Gempa Lama Diklaim Terjadi Hari Ini",
+    "text": "Baru saja terjadi gempa dahsyat yang meluluhlantakkan ratusan rumah dan gedung bertingkat di pusat kota sore hari ini. Foto memperlihatkan reruntuhan bangunan hancur lebur dan korban bergelimpangan di jalan raya.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-34",
+    "category": "DISINFORMASI",
+    "scenario": "Manipulasi Grafik Statistik Inflasi dan Utang",
+    "text": "Lihat grafik lonjakan utang negara yang sengaja disembunyikan dari laporan resmi APBN. Kenaikan kurva eksponensial ini membuktikan ekonomi nasional berada di titik kehancuran total dan terancam default utang luar negeri.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-35",
+    "category": "DISINFORMASI",
+    "scenario": "Surat Edaran Palsu Berkop Kementerian Keuangan",
+    "text": "Beredar surat edaran resmi bertanda tangan menteri keuangan tentang pengenaan pajak tambahan 20 persen bagi pemilik rekening tabungan di atas sepuluh juta rupiah yang akan mulai diberlakukan bulan depan.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-36",
+    "category": "DISINFORMASI",
+    "scenario": "Klip Pidato Pimpinan Militer Dipotong Mengubah Makna",
+    "text": "Potongan video pernyataan jenderal TNI yang viral di media sosial. Beliau tampak menyatakan bahwa tentara siap mengambil alih kendali roda pemerintahan jika situasi politik semakin tidak menentu.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-37",
+    "category": "DISINFORMASI",
+    "scenario": "Foto Satelit Radar Diklaim Persiapan Invasi Asing",
+    "text": "Foto tangkapan satelit militer membuktikan puluhan kapal perang induk armada asing sedang berlayar merapat mendekati kepulauan Natuna untuk merebut ladang minyak dan gas lepas pantai Indonesia.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-38",
+    "category": "DISINFORMASI",
+    "scenario": "Pengalihan Isu Kriminalitas Menjadi Konspirasi Militer",
+    "text": "Kematian misterius seorang saksi kunci kasus korupsi besar diduga kuat melibatkan eksekutor penembak jitu militer terlatih untuk melenyapkan barang bukti persidangan dan melindungi dalang intelektual.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-39",
+    "category": "DISINFORMASI",
+    "scenario": "Parade Militer Negara Tetangga Diklaim Serangan Udara",
+    "text": "Langit utara mencekam! Konvoi jet tempur supersonik asing terbang rendah menerobos ruang udara kedaulatan Indonesia tanpa izin dan bersiap membombardir instalasi militer strategis kita.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-40",
+    "category": "DISINFORMASI",
+    "scenario": "Tangkapan Layar Berita Media Online Diedit Tipuan",
+    "text": "Beredar tangkapan layar headline berita media online Kompas yang menyebutkan bahwa subsidi BBM akan dicabut total per 1 November dan harga bensin pertalite naik drastis menjadi tiga puluh ribu rupiah per liter.",
+    "expectedCategory": "DISINFORMASI"
+  },
+  {
+    "id": "TC-41",
+    "category": "NETRAL",
+    "scenario": "Rilis Resmi Latihan Gabungan Kodiklatad di Baturaja",
+    "text": "Komando Pembina Doktrin, Pendidikan dan Latihan TNI AD (Kodiklatad) menyelenggarakan Latihan Antar Kecabangan Kartika Yudha 2026 di Pusat Latihan Tempur Puslatpur Baturaja. Latihan ini bertujuan meningkatkan profesionalisme dan interoperabilitas prajurit matra darat dalam operasi militer perang.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-42",
+    "category": "NETRAL",
+    "scenario": "Klarifikasi Pers Puspen TNI Terkait Sengketa Lahan",
+    "text": "Pusat Penerangan TNI (Puspen TNI) memberikan klarifikasi resmi bahwa tidak ada prajurit yang terlibat dalam sengketa lahan perkebunan di daerah tersebut. Institusi TNI menjunjung tinggi supremasi hukum dan menghormati hak kepemilikan tanah masyarakat adat setempat.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-43",
+    "category": "NETRAL",
+    "scenario": "Informasi Prakiraan Cuaca dan Gempa Resmi BMKG",
+    "text": "Badan Meteorologi, Klimatologi, dan Geofisika (BMKG) menginformasikan prakiraan cuaca maritim untuk wilayah perairan Indonesia. Masyarakat pesisir dan nelayan diimbau tetap waspada terhadap potensi gelombang tinggi 2.5 meter di Samudra Hindia bagian barat Sumatera.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-44",
+    "category": "NETRAL",
+    "scenario": "Program Ketahanan Pangan Babinsa Bersama Petani",
+    "text": "Bintara Pembina Desa (Babinsa) Koramil 08 jajaran Kodim mendampingi kelompok tani dalam kegiatan panen raya padi sawah. Kegiatan ini merupakan wujud nyata kemanunggalan TNI dengan rakyat dalam mendukung ketahanan pangan nasional.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-45",
+    "category": "NETRAL",
+    "scenario": "Siaran Pers Kemhan Kunjungan Bilateral Menhan",
+    "text": "Kementerian Pertahanan Republik Indonesia merilis hasil pertemuan bilateral menteri pertahanan dengan delegasi mitra strategis. Kedua belah pihak sepakat memperkuat kerja sama pendidikan perwira, transfer teknologi alutsista, dan latihan penanggulangan terorisme maritim.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-46",
+    "category": "NETRAL",
+    "scenario": "Pengumuman Resmi Rekrutmen Prajurit TNI AD Gratis",
+    "text": "Dinas Penerangan TNI Angkatan Darat (Dispenad) menegaskan bahwa seluruh proses pendaftaran dan seleksi calon prajurit Taruna Akmil, Bintara PK, dan Tamtama PK TNI AD tidak dipungut biaya sepeser pun alias gratis. Jangan percaya calo atau pihak yang menjanjikan kelulusan.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-47",
+    "category": "NETRAL",
+    "scenario": "Laporan Badan Pangan Nasional Stabilitas Beras",
+    "text": "Badan Pangan Nasional (Bapanas) bersama Perum Bulog memastikan stok cadangan beras pemerintah mencukupi kebutuhan nasional hingga akhir tahun. Penyaluran bantuan beras dan operasi pasar murah terus berjalan teratur di seluruh provinsi.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-48",
+    "category": "NETRAL",
+    "scenario": "Bakti Sosial Satgas Pamtas Pelayanan Medis Gratis",
+    "text": "Prajurit Satuan Tugas Pengamanan Perbatasan (Satgas Pamtas) TNI AD menggelar bakti sosial pengobatan massal dan pembagian buku pelajaran di desa pedalaman perbatasan Papua Nugini guna meningkatkan taraf kesehatan dan pendidikan anak bangsa.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-49",
+    "category": "NETRAL",
+    "scenario": "Rapat Pimpinan TNI AD Kesiapsiagaan Tanggap Bencana",
+    "text": "Kepala Staf Angkatan Darat (Kasad) memimpin rapat koordinasi penanggulangan bencana alam bersama seluruh Pangdam jajaran TNI AD untuk menyiagakan personel dan peralatan zeni dalam menghadapi potensi cuaca ekstrem di berbagai daerah.",
+    "expectedCategory": "NETRAL"
+  },
+  {
+    "id": "TC-50",
+    "category": "NETRAL",
+    "scenario": "Konferensi Pers Bersama BNPB Penanganan Bencana",
+    "text": "Badan Nasional Penanggulangan Bencana (BNPB) bekerja sama dengan pemerintah daerah dan relawan menyalurkan logistik bantuan darurat bagi warga terdampak banjir lahar dingin. Tim reaksi cepat gabungan terus mendirikan tenda pengungsian dan dapur umum.",
+    "expectedCategory": "NETRAL"
+  }
+]
