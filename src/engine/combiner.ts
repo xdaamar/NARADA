@@ -253,6 +253,8 @@ export function analyzeHybrid(text: string, options: HybridOptions = {}): Analys
     spectrumCluster,
     debunkMatch: matchedDebunkEntry,
     logicAnomaly: detectedLogicAnomaly,
+    salienceTokens: mlResult.salienceTokens,
+    inferenceLatencyMs: mlResult.inferenceLatencyMs,
   }
 }
 

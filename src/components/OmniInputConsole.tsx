@@ -258,6 +258,28 @@ export default function OmniInputConsole({
     }
   }
 
+  // Listener untuk event global paste (Ctrl+V) screenshot dari mana saja di app
+  useEffect(() => {
+    const handleClipboardPasteEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ file: File }>
+      if (customEvent.detail?.file) {
+        handleImageProcess(customEvent.detail.file)
+      }
+    }
+    const handleSwitchModeEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ mode: string }>
+      if (customEvent.detail?.mode === 'image' && fileInputRef.current) {
+        fileInputRef.current.click()
+      }
+    }
+    window.addEventListener('narada:clipboard-image-pasted', handleClipboardPasteEvent)
+    window.addEventListener('narada:switch-input-mode', handleSwitchModeEvent)
+    return () => {
+      window.removeEventListener('narada:clipboard-image-pasted', handleClipboardPasteEvent)
+      window.removeEventListener('narada:switch-input-mode', handleSwitchModeEvent)
+    }
+  }, [])
+
   // Drag and Drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()

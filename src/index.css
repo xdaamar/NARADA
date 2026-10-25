@@ -268,29 +268,68 @@ body, #root, .app-layout {
   z-index: 0;
 }
 
-/* ─── SIDEBAR (Bilah Samping Militer) ─── */
+/* ─── SIDEBAR (Bilah Samping Militer - Flat Tactical Steel Plate) ─── */
 .sidebar {
   width: var(--sidebar-width);
   min-width: var(--sidebar-width);
-  background: var(--bg-surface);
-  border-right: 1px solid var(--border-subtle);
+  margin: 0;
+  height: 100vh;
+  border-radius: 0;
+  background: #0E131A;
+  background-image: linear-gradient(180deg, #131A24 0%, #0D1219 50%, #0A0E15 100%);
+  border: none;
+  border-right: 1px solid #1C2534;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   position: relative;
-  z-index: 20;
+  z-index: 25;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), min-width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
+/* Collapsed state (Slim Rail Mode) */
+.sidebar.collapsed {
+  width: 72px;
+  min-width: 72px;
+}
+
+/* Header Sidebar: Menempel Rapi & Rata dengan Tab / TopBar */
 .sidebar-logo {
-  padding: 16px 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  height: var(--topbar-height, 56px);
+  min-height: var(--topbar-height, 56px);
+  padding: 0 16px;
+  border-bottom: 1px solid #1C2534;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 10px;
+  position: relative;
+  background: rgba(10, 14, 20, 0.95);
+}
+
+.sidebar.collapsed .sidebar-logo {
+  padding: 0;
+  justify-content: center;
+}
+
+.sidebar-logo-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.sidebar.collapsed .sidebar-logo-text-wrap {
+  display: none;
+  opacity: 0;
+  width: 0;
 }
 
 .sidebar-logo-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -300,54 +339,103 @@ body, #root, .app-layout {
 
 .sidebar-logo-text {
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 800;
   letter-spacing: 2px;
-  color: var(--text-primary);
+  color: #F8FAFC;
   line-height: 1;
 }
 
 .sidebar-logo-sub {
-  font-size: 10px;
+  font-size: 9px;
   font-family: var(--font-mono);
   color: #64748B;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   line-height: 1;
   margin-top: 4px;
+  font-weight: 600;
 }
 
+/* Tombol Toggle Bilah Samping */
+.sidebar-toggle-btn {
+  background: #141C26;
+  border: 1px solid #283749;
+  border-radius: 4px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: #1F2C3D;
+  color: #F8FAFC;
+  border-color: #3E526B;
+  transform: scale(1.08);
+}
+
+.sidebar-toggle-btn:active {
+  transform: scale(0.92);
+}
+
+/* Navigasi */
 .sidebar-nav {
   flex: 1;
-  padding: 14px 10px;
+  padding: 12px 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
+.sidebar.collapsed .sidebar-nav {
+  padding: 10px 4px;
+  align-items: center;
+}
+
+.sidebar-collapsed-divider {
+  width: 34px;
+  height: 1px;
+  background: #1F2C3D;
+  margin: 8px auto;
+}
+
 .nav-section-label {
-  font-size: 11px;
+  font-size: 10px;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 1.5px;
-  color: var(--text-tertiary);
+  color: #64748B;
   text-transform: uppercase;
-  padding: 12px 10px 6px;
+  padding: 10px 10px 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  white-space: nowrap;
 }
 
+.sidebar.collapsed .nav-section-label {
+  display: none;
+}
+
+/* Nav Item */
 .nav-item {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  color: var(--text-secondary);
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: #94A3B8;
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
@@ -357,43 +445,116 @@ body, #root, .app-layout {
 }
 
 .nav-item:hover {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
+  background: rgba(30, 41, 56, 0.6);
+  color: #F1F5F9;
+  border-color: #283648;
 }
 
 .nav-item.active {
-  background: var(--brand-red-subtle);
-  color: var(--brand-red);
-  border: 1px solid rgba(200, 16, 46, 0.25);
+  background: linear-gradient(135deg, rgba(200, 16, 46, 0.22) 0%, rgba(140, 15, 35, 0.3) 100%);
+  color: #FCA5A5;
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.4);
   font-weight: 700;
 }
 
+/* Ketika di-Hide/Collapsed: Sedikit lebih besar menu-menunya! */
+.sidebar.collapsed .nav-item {
+  width: 58px;
+  height: 52px;
+  padding: 0;
+  margin: 3px auto;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(14, 19, 27, 0.5);
+  border: 1px solid #1C2634;
+}
+
+.sidebar.collapsed .nav-item:hover {
+  background: rgba(30, 42, 58, 0.85);
+  border-color: #3E526B;
+  transform: scale(1.08);
+}
+
+.sidebar.collapsed .nav-item.active {
+  background: linear-gradient(135deg, rgba(200, 16, 46, 0.35) 0%, rgba(120, 10, 25, 0.5) 100%);
+  border: 1px solid #EF4444;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* Icon Menu */
 .nav-item-icon {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  opacity: 0.8;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.nav-item.active .nav-item-icon {
+.sidebar.collapsed .nav-item-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar.collapsed .nav-item.active .nav-item-icon {
+  color: #F87171;
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.6));
+}
+
+/* Tooltip Taktis Saat Collapsed */
+.sidebar.collapsed .nav-item::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.9);
+  background: #0B1017;
+  color: #F1F5F9;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #2E3E54;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1000;
+}
+
+.sidebar.collapsed .nav-item:hover::after {
   opacity: 1;
-  color: var(--brand-red);
+  visibility: visible;
+  transform: translateY(-50%) scale(1);
 }
 
+/* Footer Sidebar: Menempel Rapi di Bagian Bawah (Hanya muncul saat mode show) */
 .sidebar-footer {
-  padding: 14px 10px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
+  padding: 12px 14px 14px;
+  border-top: 1px solid #1C2634;
+  background: rgba(8, 12, 17, 0.75);
+  position: relative;
+}
+
+/* Ketika mode hide/collapsed: Hilangkan seluruh footer & titik hijau online agar rapi dan bersih */
+.sidebar.collapsed .sidebar-footer {
+  display: none !important;
 }
 
 .system-status {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  background: var(--bg-base);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
+  padding: 9px 12px;
+  background: #090C10;
+  border-radius: 6px;
+  border: 1px solid #1C2430;
+  transition: all 0.25s ease;
+  margin: 0 2px;
 }
 
 .status-dot {
@@ -403,17 +564,13 @@ body, #root, .app-layout {
   background: var(--telemetry-online);
   box-shadow: 0 0 6px var(--telemetry-online);
   animation: pulse-green 2s ease-in-out infinite;
-}
-
-@keyframes pulse-green {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--telemetry-online); }
-  50% { opacity: 0.5; box-shadow: 0 0 3px var(--telemetry-online); }
+  flex-shrink: 0;
 }
 
 .status-text {
   font-size: 11px;
   font-family: var(--font-mono);
-  color: var(--text-secondary);
+  color: #CBD5E1;
   letter-spacing: 0.5px;
 }
 

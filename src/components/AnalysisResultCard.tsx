@@ -35,6 +35,8 @@ import {
 import type { AnalysisResult, ThreatSpectrumCluster } from '../types'
 import { getThreatBadge, getCategoryBadge, formatMilitaryDate } from '../utils/format'
 import { generateSHA256 } from '../utils/crypto'
+import XAIInspectorDrawer from './XAIInspectorDrawer'
+import CountermeasureAdvisoryBox from './CountermeasureAdvisoryBox'
 
 interface AnalysisResultCardProps {
   result: AnalysisResult
@@ -455,6 +457,16 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
       </div>
 
       <div className="card-body">
+        {/* ─── XAI ENGINE INSPECTOR: EXPLAINABLE AI TOKEN SALIENCE HEATMAP ─── */}
+        <XAIInspectorDrawer
+          text={result.input}
+          category={result.category}
+          confidence={result.confidence}
+          tokens={result.keywords}
+          salienceTokens={result.salienceTokens}
+          latencyMs={result.inferenceLatencyMs}
+        />
+
         {/* ─── KOTAK PERBANDINGAN: KLAIM VS FAKTA SEBENARNYA (DEBUNK COMPARISON SHEET) ─── */}
         {(result.debunkMatch || result.logicAnomaly?.detected || result.category === 'HOAKS' || result.category === 'DISINFORMASI') && (
           <div style={{
@@ -1048,9 +1060,16 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
           }}>
             <ChevronRight size={12} /> REKOMENDASI TINDAKAN TAKTIS MILITER (DISPENAD / ASINTEL)
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.7' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: '1.7', marginBottom: '12px' }}>
             {result.recommendation}
           </div>
+
+          {/* ─── REKOMENDASI TINDAKAN OPERASIONAL BERJENJANG TNI AD ─── */}
+          <CountermeasureAdvisoryBox
+            threatLevel={result.threatLevel}
+            cluster={result.spectrumCluster || result.category}
+            claim={result.input}
+          />
         </div>
 
         {/* ─── 7B. TASK H.2: GENERATOR DRAF KONTRANARASI TAKTIS DISPENAD ─── */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { HashRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   Radio,
@@ -8,7 +8,8 @@ import {
   FileText, 
   Settings,
   Activity,
-  ShieldAlert
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import LiveRadar from './pages/LiveRadar'
@@ -16,7 +17,8 @@ import Analyzer from './pages/Analyzer'
 import SocialForensic from './pages/SocialForensic'
 import Reports from './pages/Reports'
 import SettingsPage from './pages/SettingsPage'
-import { getUserSettings, getStoredAnalyses } from './utils/storage'
+import TacticalTopBar from './components/TacticalTopBar'
+import InteractiveDoctrineModal from './components/InteractiveDoctrineModal'
 
 // ─── Nav Items Config dengan Keyboard Hotkeys ───
 const NAV_ITEMS = [
@@ -27,200 +29,168 @@ const NAV_ITEMS = [
   { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]
 
-// ─── Sidebar Component ───
-function Sidebar() {
+// ─── Sidebar Component (Tactical Armored Steel Plate) ───
+interface SidebarProps {
+  isCollapsed: boolean
+  onToggle: () => void
+}
+
+function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   return (
-    <aside className="sidebar">
-      {/* Header: Crest Garuda Kognitif (40x40px), NARADA, KOGNITIF AI - V1.0 */}
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      {/* Header: Logo Crest & Tombol Toggle Show/Hide Sejajar Rapi dengan TopBar */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon" style={{ background: 'transparent', padding: 0 }}>
-          <img 
-            src="/image/Electrified%20Golden%20Globe%20Crest.png" 
-            alt="NARADA Crest" 
-            className="crest-glow"
-            style={{ width: '40px', height: '40px', objectFit: 'contain' }} 
-          />
-        </div>
-        <div>
-          <div className="sidebar-logo-text">NARADA</div>
-          <div className="sidebar-logo-sub">KOGNITIF AI - V1.0</div>
-        </div>
+        {!isCollapsed ? (
+          <>
+            <div className="sidebar-logo-brand">
+              <div className="sidebar-logo-icon" style={{ background: 'transparent', padding: 0 }}>
+                <img 
+                  src="/image/Electrified%20Golden%20Globe%20Crest.png" 
+                  alt="NARADA Crest" 
+                  className="crest-glow"
+                  style={{ width: '36px', height: '36px', objectFit: 'contain' }} 
+                />
+              </div>
+              <div className="sidebar-logo-text-wrap">
+                <div className="sidebar-logo-text">NARADA</div>
+                <div className="sidebar-logo-sub">KOGNITIF AI - V1.0</div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="sidebar-toggle-btn"
+              onClick={onToggle}
+              title="Sembunyikan Bilah Samping [Ctrl+B]"
+            >
+              <ChevronLeft size={15} />
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="sidebar-toggle-btn"
+            onClick={onToggle}
+            title="Tampilkan Bilah Samping [Ctrl+B]"
+            style={{ width: '36px', height: '36px', borderRadius: '6px' }}
+          >
+            <ChevronRight size={17} color="#D4AF37" />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        <div className="nav-section-label">
-          <span>MODUL UTAMA</span>
-          <span style={{ color: 'var(--accent-gold)', fontSize: '10px', letterSpacing: '1px' }}>///</span>
-        </div>
+        {!isCollapsed ? (
+          <div className="nav-section-label">
+            <span>MODUL UTAMA</span>
+            <span style={{ color: 'var(--accent-gold)', fontSize: '10px', letterSpacing: '1px' }}>///</span>
+          </div>
+        ) : (
+          <div className="sidebar-collapsed-divider" />
+        )}
+
         {NAV_ITEMS.map(({ to, icon: Icon, label, exact, hotkey }) => (
           <NavLink
             key={to}
             to={to}
             end={exact}
+            data-tooltip={`${label} [${hotkey}]`}
+            title={isCollapsed ? `${label} (${hotkey})` : undefined}
             className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
           >
-            <Icon size={16} className="nav-item-icon" />
-            <span style={{ flex: 1 }}>{label}</span>
-            <span style={{ 
-              fontSize: '8px', 
-              fontFamily: 'var(--font-mono)', 
-              color: 'var(--text-tertiary)', 
-              opacity: 0.8,
-              border: '1px solid var(--border-subtle)',
-              padding: '1px 4px',
-              borderRadius: '3px',
-              lineHeight: 1
-            }}>
-              {hotkey}
-            </span>
+            <Icon size={isCollapsed ? 22 : 18} className="nav-item-icon" />
+            {!isCollapsed && <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>}
+            {!isCollapsed && (
+              <span style={{ 
+                fontSize: '8px', 
+                fontFamily: 'var(--font-mono)', 
+                color: 'var(--text-tertiary)', 
+                opacity: 0.8,
+                border: '1px solid var(--border-subtle)',
+                padding: '1px 4px',
+                borderRadius: '3px',
+                lineHeight: 1
+              }}>
+                {hotkey}
+              </span>
+            )}
           </NavLink>
         ))}
 
-        <div className="nav-section-label" style={{ marginTop: '12px' }}>
-          <span>SISTEM</span>
-          <span style={{ color: 'var(--accent-gold)', fontSize: '10px', letterSpacing: '1px' }}>///</span>
-        </div>
+        {!isCollapsed ? (
+          <div className="nav-section-label" style={{ marginTop: '12px' }}>
+            <span>SISTEM</span>
+            <span style={{ color: 'var(--accent-gold)', fontSize: '10px', letterSpacing: '1px' }}>///</span>
+          </div>
+        ) : (
+          <div className="sidebar-collapsed-divider" style={{ marginTop: '10px' }} />
+        )}
+
         <NavLink
           to="/settings"
+          data-tooltip="Pengaturan Sistem"
+          title={isCollapsed ? "Pengaturan Sistem" : undefined}
           className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
         >
-          <Settings size={16} className="nav-item-icon" />
-          Pengaturan
+          <Settings size={isCollapsed ? 22 : 18} className="nav-item-icon" />
+          {!isCollapsed && <span>Pengaturan</span>}
         </NavLink>
       </nav>
 
-      {/* Footer Sidebar */}
-      <div className="sidebar-footer">
-        <div className="system-status" style={{ background: '#090C10', border: '1px solid #1C2430' }}>
-          <div className="status-dot" />
-          <div>
-            <div className="status-text" style={{ fontWeight: 700, color: '#F1F5F9' }}>SISTEM AKTIF</div>
-            <div className="status-text" style={{ color: '#64748B', marginTop: '1px', fontSize: '10px' }}>
-              AI ENGINE ONLINE
+      {/* Footer Sidebar: Hanya muncul saat bilah samping di-show */}
+      {!isCollapsed && (
+        <div className="sidebar-footer">
+          <div className="system-status">
+            <div className="status-dot" />
+            <div className="system-status-detail">
+              <div className="status-text" style={{ fontWeight: 700, color: '#F1F5F9' }}>SISTEM AKTIF</div>
+              <div className="status-text" style={{ color: '#64748B', marginTop: '1px', fontSize: '9px' }}>
+                AI ENGINE ONLINE
+              </div>
             </div>
+            <Activity size={14} style={{ marginLeft: 'auto', color: '#10B981', opacity: 0.85 }} />
           </div>
-          <Activity size={15} style={{ marginLeft: 'auto', color: '#10B981', opacity: 0.85 }} />
         </div>
-      </div>
+      )}
     </aside>
   )
 }
 
-// ─── Page Title Map ───
-const PAGE_TITLES: Record<string, string> = {
-  '/': 'Situational Awareness',
-  '/radar': 'Live OSINT Debunk Radar',
-  '/analyzer': 'Multi-Input Threat Analyzer',
-  '/classifier': 'Multi-Input Threat Analyzer',
-  '/social-forensic': 'Forensik Postingan Medsos & Buzzer',
-  '/profiler': 'Forensik Postingan Medsos & Buzzer',
-  '/nexus': 'Live OSINT Debunk Radar',
-  '/reports': 'Produk Intelijen A4',
-  '/settings': 'Pengaturan Sistem',
-}
-
-// ─── TopBar Component ───
-function TopBar() {
-  const location = useLocation()
-  const title = PAGE_TITLES[location.pathname] ?? 'Situational Awareness'
-  const [timeStr, setTimeStr] = useState<string>('')
-  const [dateStr, setDateStr] = useState<string>('')
-  const [isOffline, setIsOffline] = useState<boolean>(() => getUserSettings().offlineMode)
-  const [hasCritical, setHasCritical] = useState<boolean>(() => getStoredAnalyses().some(a => a.threatLevel === 'critical'))
-
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date()
-      setTimeStr(now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
-      setDateStr(now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }))
-    }
-    updateTime()
-    const timer = setInterval(updateTime, 1000)
-
-    const handleSettingsUpdate = () => {
-      setIsOffline(getUserSettings().offlineMode)
-    }
-    const handleAnalysesUpdate = () => {
-      setHasCritical(getStoredAnalyses().some(a => a.threatLevel === 'critical'))
-    }
-
-    window.addEventListener('narada:settings-updated', handleSettingsUpdate)
-    window.addEventListener('narada:analyses-updated', handleAnalysesUpdate)
-
-    return () => {
-      clearInterval(timer)
-      window.removeEventListener('narada:settings-updated', handleSettingsUpdate)
-      window.removeEventListener('narada:analyses-updated', handleAnalysesUpdate)
-    }
-  }, [])
-
-  return (
-    <header className="topbar no-print">
-      <div className="topbar-title-wrap">
-        <span className="tactical-slashes">///</span>
-        <div>
-          <div className="topbar-title">{title}</div>
-          <div style={{ 
-            fontSize: '10px', 
-            fontFamily: 'var(--font-mono)', 
-            color: '#64748B', 
-            letterSpacing: '0.8px',
-            lineHeight: 1
-          }}>
-            ANALISIS | DETEKSI | VERIFIKASI | LINDUNGI INFORMASI
-          </div>
-        </div>
-      </div>
-
-      <div className="topbar-actions">
-        {hasCritical && (
-          <span
-            className="topbar-badge"
-            style={{
-              background: 'rgba(239, 68, 68, 0.20)',
-              color: '#F87171',
-              border: '1px solid rgba(239, 68, 68, 0.45)',
-              animation: 'pulse-critical 1.5s ease-in-out infinite'
-            }}
-          >
-            <ShieldAlert size={12} />
-            DEFCON 1 ACTIVE
-          </span>
-        )}
-
-        <span className={`topbar-badge ${isOffline ? 'badge-offline' : 'badge-online'}`}>
-          <span style={{ 
-            width: '6px', 
-            height: '6px', 
-            borderRadius: '50%', 
-            background: isOffline ? '#EF4444' : '#10B981', 
-            boxShadow: isOffline ? '0 0 6px #EF4444' : '0 0 6px #10B981',
-            display: 'inline-block' 
-          }} />
-          {isOffline ? 'OFFLINE AIR-GAPPED' : 'SYSTEM ONLINE'}
-        </span>
-
-        <span style={{ 
-          fontSize: '11px', 
-          fontFamily: 'var(--font-mono)', 
-          color: '#94A3B8',
-          letterSpacing: '0.5px',
-          fontWeight: 600
-        }}>
-          {dateStr ? `${dateStr} — ${timeStr} WIB` : 'SIAGA OPERASIONAL'}
-        </span>
-      </div>
-    </header>
-  )
-}
-
-// ─── App Shell dengan Hotkey Alt+1 s/d Alt+5 ───
+// ─── App Shell dengan Hotkey Alt+1 s/d Alt+5, Peluncur Skenario & Global Paste Listener ───
 function AppShell() {
   const navigate = useNavigate()
+  const [isDoctrineModalOpen, setIsDoctrineModalOpen] = useState<boolean>(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('narada_sidebar_collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
 
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('narada_sidebar_collapsed', String(next))
+      } catch {
+        // ignore
+      }
+      return next
+    })
+  }
+
+  // Keyboard Hotkeys Alt+1..5, Ctrl+B (Toggle Sidebar) & Global Clipboard Paste (Ctrl+V)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle Sidebar via Ctrl+B / Cmd+B
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault()
+        toggleSidebar()
+        return
+      }
+
       // Periksa apakah pengguna sedang mengetik di input / textarea
       const target = e.target as HTMLElement | null
       const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
@@ -245,15 +215,48 @@ function AppShell() {
       }
     }
 
+    const handlePaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+
+      // Jika user paste gambar di luar textarea atau di jendela mana saja
+      const items = e.clipboardData?.items
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].type.startsWith('image/')) {
+            const file = items[i].getAsFile()
+            if (file) {
+              if (!isInput) {
+                e.preventDefault()
+              }
+              navigate('/analyzer', { state: { hasClipboardImage: true } })
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('narada:clipboard-image-pasted', { detail: { file } }))
+              }, 120)
+              break
+            }
+          }
+        }
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('paste', handlePaste)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('paste', handlePaste)
+    }
   }, [navigate])
 
   return (
     <div className="app-layout">
-      <Sidebar />
+      <Sidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
       <div className="main-content">
-        <TopBar />
+        <TacticalTopBar
+          onOpenDoctrineModal={() => setIsDoctrineModalOpen(true)}
+          onToggleSidebar={toggleSidebar}
+          isSidebarCollapsed={isSidebarCollapsed}
+        />
         <main className="page-content">
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -268,6 +271,12 @@ function AppShell() {
           </Routes>
         </main>
       </div>
+
+      {/* Modal Doktrin Interaktif In-App */}
+      <InteractiveDoctrineModal
+        isOpen={isDoctrineModalOpen}
+        onClose={() => setIsDoctrineModalOpen(false)}
+      />
     </div>
   )
 }

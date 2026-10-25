@@ -1,5 +1,8 @@
-// ─── INDONESIAN TOKENIZER & PREPROCESSOR ───
-// Berdasarkan PRD_02_ai_engine.md
+// ─── INDONESIAN TOKENIZER & PREPROCESSOR (UPGRADE SPRINT 7A) ───
+// Berdasarkan PRD_02_ai_engine.md & SPRINT_7A_NLP_COMPILED_ML_ENGINE.md
+// Dilengkapi Indonesian Morphological Stemmer, N-Gram Collocation (1-2-3 Grams), & LRU Caching
+
+import { stemIndonesian } from './stemmer'
 
 // Daftar stopword umum bahasa Indonesia (~150 kata hubung/tugas non-substansial)
 export const INDONESIAN_STOPWORDS = new Set([
@@ -60,7 +63,7 @@ export const INDONESIAN_STOPWORDS = new Set([
   'misalkan', 'misalnya', 'mula', 'mulai', 'mulailah', 'mulanya', 'mungkin', 'mungkinkah',
   'nah', 'naik', 'namun', 'nanti', 'nantinya', 'nyaris', 'nyatanya', 'oleh', 'olehnya', 'pada',
   'padahal', 'padanya', 'pak', 'paling', 'panjang', 'pantas', 'para', 'pasti', 'pastilah',
-  'penting', 'pentingnya', 'per', 'para', 'pasti', 'pernah', 'pula', 'pun', 'punya', 'rasa',
+  'penting', 'pentingnya', 'per', 'pernah', 'pula', 'pun', 'punya', 'rasa',
   'saat', 'saatnya', 'saja', 'sajalah', 'saling', 'sama', 'sama-sama', 'sambil', 'sampai',
   'sampai-sampai', 'sana', 'sangat', 'sangatlah', 'satu', 'saya', 'sayalah', 'se', 'sebab',
   'sebabnya', 'sebagai', 'sebagaimana', 'sebagainya', 'sebagian', 'sebaik', 'sebaik-baiknya',
@@ -77,46 +80,75 @@ export const INDONESIAN_STOPWORDS = new Set([
 ])
 
 /**
- * Membersihkan dan memecah teks Indonesia menjadi array token substansial (unigram + bigram)
+ * Membersihkan dan memecah teks Indonesia menjadi array token n-gram substansial (Unigram + Bigram + Trigram)
+ * Dilengkapi dengan Indonesian Morphological Stemmer untuk normalisasi akar kata.
+ * @param text - Naskah masukan
+ * @param includeNgrams - Apakah mengekstrak bigram dan trigram kontekstual (default: true)
  */
-export function tokenizeIndonesian(text: string, includeBigrams = true): string[] {
+export function tokenizeIndonesian(text: string, includeNgrams = true): string[] {
   if (!text || typeof text !== 'string') return []
 
-  // 1. Lowercase dan bersihkan URL
+  // 1. Lowercase dan bersihkan URL, mention, dan karakter non-alfanumerik
   const cleaned = text
     .toLowerCase()
     .replace(/https?:\/\/\S+/gi, ' ')
     .replace(/www\.\S+/gi, ' ')
-    // Hilangkan mention akun (@user) dan hashtag (#tag) prefix tapi simpan katanya
+    // Hilangkan mention akun (@user) dan hashtag (#tag) prefix tapi pertahankan katanya
     .replace(/[@#](\w+)/g, '$1')
-    // Simpan hanya huruf, angka, dan spasi
+    // Simpan hanya huruf, angka, tanda strip (untuk kata ulang), dan spasi
     .replace(/[^a-z0-9\s-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 
   if (!cleaned) return []
 
-  // 2. Tokenisasi unigram
+  // 2. Tokenisasi unigram awal
   const rawWords = cleaned.split(' ')
-  const unigrams: string[] = []
+  const baseTokens: string[] = []
+  const stemmedTokens: string[] = []
 
   for (const word of rawWords) {
     const trimmed = word.trim()
-    // Abaikan kata jika terlalu pendek (<=2 karakter) atau termasuk stopword
+    // Abaikan kata jika terlalu pendek (<=2 karakter) atau stopword umum
     if (trimmed.length > 2 && !INDONESIAN_STOPWORDS.has(trimmed)) {
-      unigrams.push(trimmed)
+      baseTokens.push(trimmed)
+      // Jalankan stemming berkecepatan tinggi dengan memoization cache
+      const root = stemIndonesian(trimmed)
+      stemmedTokens.push(root)
     }
   }
 
-  if (!includeBigrams || unigrams.length < 2) {
-    return unigrams
+  // Gabungkan unigram asli dan unigram yang telah di-stem
+  const unigramsSet = new Set<string>()
+  for (let i = 0; i < baseTokens.length; i++) {
+    unigramsSet.add(baseTokens[i])
+    if (stemmedTokens[i] && stemmedTokens[i].length > 2) {
+      unigramsSet.add(stemmedTokens[i])
+    }
   }
 
-  // 3. Ekstraksi bigram untuk menangkap konteks frase
-  const bigrams: string[] = []
-  for (let i = 0; i < unigrams.length - 1; i++) {
-    bigrams.push(`${unigrams[i]} ${unigrams[i + 1]}`)
+  const result: string[] = Array.from(unigramsSet)
+
+  if (!includeNgrams || baseTokens.length < 2) {
+    return result
   }
 
-  return [...unigrams, ...bigrams]
+  // 3. Ekstraksi Bigram (Konteks 2 kata berturutan)
+  for (let i = 0; i < baseTokens.length - 1; i++) {
+    // Bigram dari kata dasar terstemmed (lebih stabil untuk generalisasi)
+    result.push(`${stemmedTokens[i]} ${stemmedTokens[i + 1]}`)
+    // Bigram literal jika berbeda dari stemmed
+    if (baseTokens[i] !== stemmedTokens[i] || baseTokens[i + 1] !== stemmedTokens[i + 1]) {
+      result.push(`${baseTokens[i]} ${baseTokens[i + 1]}`)
+    }
+  }
+
+  // 4. Ekstraksi Trigram (Konteks 3 kata berturutan untuk frasa ancaman spesifik)
+  if (baseTokens.length >= 3) {
+    for (let i = 0; i < baseTokens.length - 2; i++) {
+      result.push(`${stemmedTokens[i]} ${stemmedTokens[i + 1]} ${stemmedTokens[i + 2]}`)
+    }
+  }
+
+  return result
 }

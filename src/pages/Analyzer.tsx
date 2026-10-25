@@ -29,12 +29,15 @@ export default function Analyzer() {
 
   const resultContainerRef = useRef<HTMLDivElement>(null)
 
-  // Tangkap prefill dari navigasi eksternal (Dashboard atau LiveRadar)
+  // Tangkap prefill dari navigasi eksternal (Dashboard, LiveRadar, atau TacticalTopBar Skenario)
   useEffect(() => {
-    const state = location.state as { prefill?: string } | null
+    const state = location.state as { prefill?: string; autoAnalyze?: boolean } | null
     if (state?.prefill) {
       setInjectedText(state.prefill)
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      if (state.autoAnalyze) {
+        executeAnalysis(state.prefill, 'text', 'Skenario Taktis PUSSIBERAD')
+      }
     }
   }, [location.state])
 

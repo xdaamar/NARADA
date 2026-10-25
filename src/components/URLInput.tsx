@@ -13,6 +13,7 @@ import {
   ClipboardPaste
 } from 'lucide-react'
 import { Readability } from '@mozilla/readability'
+import ResilientIngestionBanner from './ResilientIngestionBanner'
 import type { URLAnalysisInput } from '../types'
 
 interface URLInputProps {
@@ -396,8 +397,29 @@ export default function URLInput({ onAnalyze, isAnalyzing = false }: URLInputPro
           </button>
         </div>
 
+        {/* Banner Ketahanan Ingesti Multi-Tier (Palantir Pattern) */}
+        {(corsFallbackActive || /(instagram\.com|tiktok\.com|twitter\.com|x\.com|facebook\.com|threads\.net)/i.test(urlInput)) && (
+          <ResilientIngestionBanner
+            platformName={
+              /(instagram\.com|tiktok\.com|twitter\.com|x\.com|facebook\.com|threads\.net)/i.test(urlInput)
+                ? 'MEDIA SOSIAL (PROTEKSI LOGIN WALL)'
+                : 'PORTAL BERITA (CORS POLICY BROWSER)'
+            }
+            url={urlInput}
+            onBypassWithOCR={() => {
+              window.dispatchEvent(new CustomEvent('narada:switch-input-mode', { detail: { mode: 'image' } }))
+            }}
+            onLoadLocalSnapshot={() => {
+              handleSelectDemoSample(DEMO_URL_SAMPLES[0])
+            }}
+            onPasteManualText={() => {
+              setCorsFallbackActive(true)
+            }}
+          />
+        )}
+
         {/* Notifikasi Pesan Kesalahan */}
-        {errorMessage && (
+        {errorMessage && !corsFallbackActive && (
           <div style={{
             marginTop: '14px',
             padding: '12px 14px',

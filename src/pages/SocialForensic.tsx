@@ -1,5 +1,5 @@
-import { useState, useTransition } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useTransition, useEffect, useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   MessageSquareQuote,
   Search,
@@ -27,9 +27,14 @@ import {
   type SocialPostForensicResult,
   type SocialPlatform
 } from '../engine/social-forensic'
+import { predictNaiveBayes } from '../engine/ml/naive-bayes'
+import ResilientIngestionBanner from '../components/ResilientIngestionBanner'
+import XAIInspectorDrawer from '../components/XAIInspectorDrawer'
+import CountermeasureAdvisoryBox from '../components/CountermeasureAdvisoryBox'
 
 export default function SocialForensic() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [, startTransition] = useTransition()
 
   // State input
@@ -45,6 +50,27 @@ export default function SocialForensic() {
 
   // Deteksi platform aktif dari URL saat ini
   const detectedPlatform = detectSocialPlatform(urlInput)
+
+  // Hitung salience tokens takarir postingan menggunakan Naive Bayes Engine (Sprint 7A)
+  const captionSalience = useMemo(() => {
+    if (!result?.post?.caption) return undefined
+    return predictNaiveBayes(result.post.caption)
+  }, [result?.post?.caption])
+
+  // Tangani navigasi 1-Click Scenario dari TacticalTopBar
+  useEffect(() => {
+    const state = location.state as { scenarioId?: string } | null
+    if (state?.scenarioId) {
+      const preset = SOCIAL_PRESET_SCENARIOS.find((p) => p.id === state.scenarioId)
+      if (preset) {
+        setUrlInput(preset.url)
+        setCustomCaption('')
+        setCustomComments('')
+        setShowCustomDrawer(false)
+        setResult(preset)
+      }
+    }
+  }, [location.state])
 
   // Handler eksekusi analisis
   const handleExecuteForensic = async (targetUrl = urlInput) => {
@@ -419,6 +445,29 @@ export default function SocialForensic() {
             </div>
           </div>
         )}
+
+        {/* Banner Ketahanan Ingesti Multi-Tier (Palantir Pattern) jika target medsos terdeteksi */}
+        {detectedPlatform !== 'GENERIC_WEB' && (
+          <ResilientIngestionBanner
+            platformName={detectedPlatform}
+            url={urlInput}
+            onBypassWithOCR={() => {
+              navigate('/analyzer', {
+                state: {
+                  openTab: 'image',
+                  sourceUrl: urlInput
+                }
+              })
+            }}
+            onLoadLocalSnapshot={() => {
+              const matched = SOCIAL_PRESET_SCENARIOS.find((p) => p.platform === detectedPlatform) || SOCIAL_PRESET_SCENARIOS[0]
+              handleSelectPreset(matched)
+            }}
+            onPasteManualText={() => {
+              setShowCustomDrawer(true)
+            }}
+          />
+        )}
       </div>
 
       {/* ─── 3. Grid 4 Deck Plat Baja Forensik ─── */}
@@ -781,6 +830,16 @@ export default function SocialForensic() {
             </div>
           </div>
         </div>
+
+        {/* ─── XAI ENGINE INSPECTOR: TELEMETRI PEMBOBOTAN MODEL (NAIVE BAYES & HEATMAP) ─── */}
+        <XAIInspectorDrawer
+          text={result.post.caption}
+          category={result.cognitiveVerdict.status}
+          confidence={result.cognitiveVerdict.confidenceScore}
+          salienceTokens={captionSalience?.salienceTokens}
+          latencyMs={captionSalience?.inferenceLatencyMs}
+          title="XAI ENGINE INSPECTOR: TELEMETRI PEMBOBOTAN TAKARIR POSTINGAN (SALIENCE & LOG-LIKELIHOOD)"
+        />
 
         {/* BARIS TENGAH: DECK 3 (Detektor Buzzer & Bukti Copypasta Template) */}
         <div
@@ -1219,6 +1278,20 @@ export default function SocialForensic() {
               </div>
             </div>
           </div>
+
+          {/* Rekomendasi Operasional Militer Berjenjang (Babinsa, Dispenad, Pussiberad) */}
+          <CountermeasureAdvisoryBox
+            threatLevel={result.cognitiveVerdict.threatLevel.toLowerCase()}
+            cluster={
+              result.id.includes('megathrust')
+                ? 'BENCANA_DARURAT'
+                : result.id.includes('bansos')
+                ? 'PENIPUAN_BANSOS'
+                : 'KEDAULATAN_MILITER'
+            }
+            claim={result.post.caption}
+            customAdvice={result.tacticalRecommendation.recommendedDispenadProtocol}
+          />
 
           {/* Tombol Aksi Taktis Menuju Analyzer */}
           <div style={{

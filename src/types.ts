@@ -100,10 +100,20 @@ export interface CognitivePsychologyVectors {
   primaryEmotion: 'ANGER' | 'FEAR' | 'CONFUSION' | 'URGENCY' | 'NEUTRAL'
 }
 
+export interface TokenAttribution {
+  token: string
+  tfidfWeight: number
+  logLikelihoodRatio: number
+  dominantCategory: ContentCategory
+  intensity: 'CRIMSON' | 'AMBER' | 'EMERALD' | 'NEUTRAL'
+}
+
 export interface MLPrediction {
   category: ContentCategory
   probabilities: Record<ContentCategory, number>
   tokens: string[]
+  salienceTokens?: TokenAttribution[]
+  inferenceLatencyMs?: number
 }
 
 export interface RuleMatchDetail {
@@ -143,6 +153,8 @@ export interface AnalysisResult {
   spectrumCluster?: ThreatSpectrumCluster
   debunkMatch?: DebunkKnowledgeEntry
   logicAnomaly?: InstitutionalLogicAnomaly
+  salienceTokens?: TokenAttribution[]
+  inferenceLatencyMs?: number
 }
 
 // ─── Legacy / Backward-Compatible Aliases ───
