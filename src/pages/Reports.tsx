@@ -16,6 +16,7 @@ import type { AnalysisResult, IntelReportConfig, ReportClassification } from '..
 import { getStoredAnalyses, getUserSettings, seedDemoAnalyses } from '../utils/storage'
 import { formatMilitaryDate, truncateText } from '../utils/format'
 import { generateSHA256 } from '../utils/crypto'
+import { generateCounterNarratives } from '../engine/forensic/counter-narrative-generator'
 
 export default function Reports() {
   const [analyses, setAnalyses] = useState<AnalysisResult[]>(() => getStoredAnalyses())
@@ -24,10 +25,7 @@ export default function Reports() {
 
   // Auto-generate nomor laporan standar dinas militer
   const generatedReportNumber = useMemo(() => {
-    const year = 2026
-    const monthsRomawi = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
-    const month = monthsRomawi[9] // Oktober = X
-    return `NRD-LAP/KOGNITIF/${year}/${month}/001`
+    return 'NRD-LAP/X/2026/01'
   }, [])
 
   const [config, setConfig] = useState<IntelReportConfig>({
@@ -36,7 +34,7 @@ export default function Reports() {
     analystNrp: userSettings.analystNrp || '21260408',
     reportNumber: generatedReportNumber,
     classification: 'RAHASIA',
-    date: '21 Oktober 2026',
+    date: '25 Oktober 2026',
     includeFindingsDetail: true,
     includeFactCheck: true,
     includeRecommendations: true,
@@ -93,6 +91,13 @@ export default function Reports() {
     return analyses.filter(a => a.factCheck && a.factCheck.claims && a.factCheck.claims.length > 0)
   }, [analyses])
 
+  // Draf Kontranarasi 4 Kanal Otomatis Terintegrasi
+  const counterNarratives = useMemo(() => {
+    const topThreat = criticals[0] || highs[0] || threats[0] || analyses[0]
+    const topic = topThreat?.rawContent || topThreat?.input || 'Ancaman Disinformasi dan Agitasi Kognitif Siber terhadap Kedaulatan'
+    return generateCounterNarratives(topic, topThreat?.debunkMatch, 'Multi-Channel Intel Report')
+  }, [criticals, highs, threats, analyses])
+
   const handlePrint = () => {
     window.print()
   }
@@ -108,7 +113,7 @@ export default function Reports() {
       analystNrp: '21260408',
       reportNumber: generatedReportNumber,
       classification: 'RAHASIA',
-      date: '21 Oktober 2026',
+      date: '25 Oktober 2026',
       includeFindingsDetail: true,
       includeFactCheck: true,
       includeRecommendations: true,
@@ -231,17 +236,38 @@ export default function Reports() {
 
               {/* Klasifikasi Keamanan */}
               <div className="form-group">
-                <label className="form-label">KLASIFIKASI KEAMANAN</label>
-                <select
-                  className="form-control"
-                  value={config.classification}
-                  onChange={e => setConfig({ ...config, classification: e.target.value as ReportClassification })}
-                  style={{ background: 'var(--bg-elevated)', cursor: 'pointer' }}
-                >
-                  <option value="RAHASIA">RAHASIA (Merah Militer)</option>
-                  <option value="TERBATAS">TERBATAS (Kuning/Oranye)</option>
-                  <option value="BIASA">BIASA (Netral)</option>
-                </select>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Lock size={11} /> TINGKAT KLASIFIKASI DOKUMEN
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '4px' }}>
+                  {(['RAHASIA', 'TERBATAS', 'BIASA'] as const).map((cls: ReportClassification) => {
+                    const isSelected = config.classification === cls
+                    const activeColor = cls === 'RAHASIA' ? '#C8102E' : cls === 'TERBATAS' ? '#D97706' : '#2563EB'
+                    return (
+                      <button
+                        key={cls}
+                        type="button"
+                        onClick={() => setConfig({ ...config, classification: cls })}
+                        style={{
+                          padding: '7px 4px',
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          letterSpacing: '1px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          transition: 'all 0.2s ease',
+                          background: isSelected ? activeColor : 'var(--bg-elevated)',
+                          color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
+                          border: isSelected ? `1px solid ${activeColor}` : '1px solid var(--border-subtle)',
+                          boxShadow: isSelected ? `0 0 10px ${activeColor}55` : 'none',
+                        }}
+                      >
+                        {cls}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
               {/* Tanggal Laporan */}
@@ -345,7 +371,7 @@ export default function Reports() {
             }}
           >
             {/* ─── WATERMARK RESMI DINAS MILITER TNI AD ─── */}
-            <div style={{
+            <div className="watermark" style={{
               position: 'absolute',
               top: '50%',
               left: '50%',
@@ -366,43 +392,55 @@ export default function Reports() {
             </div>
 
             {/* ─── KOP SURAT RESMI MILITER TNI AD ─── */}
-            <div style={{ borderBottom: '3px solid #C8102E', paddingBottom: '16px', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{
-                    fontSize: '11px',
-                    fontFamily: '"Inter", sans-serif',
-                    fontWeight: '800',
-                    letterSpacing: '2px',
-                    color: '#4B5563',
-                    textTransform: 'uppercase'
-                  }}>
-                    TENTARA NASIONAL INDONESIA — ANGKATAN DARAT
-                  </div>
-                  <div style={{
-                    fontSize: '13px',
-                    fontFamily: '"Rajdhani", sans-serif',
-                    fontWeight: '700',
-                    letterSpacing: '1.5px',
-                    color: '#111827',
-                    marginTop: '2px',
-                    textTransform: 'uppercase'
-                  }}>
-                    {config.unitName}
-                  </div>
-                  <div style={{
-                    fontSize: '24px',
-                    fontWeight: '900',
-                    color: '#C8102E',
-                    letterSpacing: '3px',
-                    fontFamily: '"Rajdhani", sans-serif',
-                    lineHeight: '1.2',
-                    marginTop: '4px'
-                  }}>
-                    NARADA INTEL REPORT
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#374151', letterSpacing: '1px', fontWeight: '600' }}>
-                    PRODUK LAPORAN INTELIJEN ANCAMAN KOGNITIF & SIBER SOSIAL
+            <div className="report-header" style={{ borderBottom: '3px solid #C8102E', paddingBottom: '16px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <img
+                    src="/image/Electrified Golden Globe Crest.png"
+                    alt="Lambang Kartika Eka Paksi & Pussiberad TNI AD"
+                    style={{
+                      width: '68px',
+                      height: '68px',
+                      objectFit: 'contain',
+                      filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))'
+                    }}
+                  />
+                  <div>
+                    <div style={{
+                      fontSize: '11px',
+                      fontFamily: '"Inter", sans-serif',
+                      fontWeight: '800',
+                      letterSpacing: '2px',
+                      color: '#4B5563',
+                      textTransform: 'uppercase'
+                    }}>
+                      TENTARA NASIONAL INDONESIA — ANGKATAN DARAT
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      fontFamily: '"Rajdhani", sans-serif',
+                      fontWeight: '700',
+                      letterSpacing: '1.5px',
+                      color: '#111827',
+                      marginTop: '2px',
+                      textTransform: 'uppercase'
+                    }}>
+                      {config.unitName}
+                    </div>
+                    <div style={{
+                      fontSize: '24px',
+                      fontWeight: '900',
+                      color: '#C8102E',
+                      letterSpacing: '3px',
+                      fontFamily: '"Rajdhani", sans-serif',
+                      lineHeight: '1.2',
+                      marginTop: '4px'
+                    }}>
+                      NARADA INTEL REPORT
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#374151', letterSpacing: '1px', fontWeight: '600' }}>
+                      PRODUK LAPORAN INTELIJEN ANCAMAN KOGNITIF & SIBER SOSIAL
+                    </div>
                   </div>
                 </div>
 
@@ -670,45 +708,92 @@ export default function Reports() {
               </div>
             )}
 
-            {/* ─── BAGIAN VI: DRAF KONTRANARASI TAKTIS DISPENAD ─── */}
-            <div style={{ marginBottom: '28px' }}>
-              <div style={{
+            {/* ─── BAGIAN VI: DRAF KONTRANARASI TAKTIS 4 KANAL DISPENAD ─── */}
+            <div className="report-section card-section" style={{ marginBottom: '28px' }}>
+              <div className="section-title" style={{
                 fontSize: '12px',
                 fontWeight: '800',
                 letterSpacing: '1.5px',
                 color: '#C8102E',
-                marginBottom: '8px',
+                marginBottom: '10px',
                 borderBottom: '1.5px solid #E5E7EB',
                 paddingBottom: '4px'
               }}>
-                VI. DRAF KONTRANARASI TAKTIS DISPENAD (SIAP SIAR)
+                VI. DRAF KONTRANARASI TAKTIS 4 KANAL DISPENAD & SATUAN TERITORIAL
               </div>
-              <div style={{
-                padding: '12px 14px',
-                background: '#FEF2F2',
-                border: '1px solid #FECACA',
-                borderRadius: '4px',
-                fontSize: '11px',
-                color: '#991B1B',
-                lineHeight: '1.6'
-              }}>
-                <div style={{ fontWeight: '700', marginBottom: '4px', color: '#B91C1C' }}>
-                  SIARAN PERS RESMI KEDINASAN PENERANGAN TNI AD (DISPENAD):
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                {/* Kanal 1: Siaran Pers Dispenad */}
+                <div className="report-item" style={{
+                  padding: '12px 14px',
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  color: '#1F2937'
+                }}>
+                  <div style={{ fontWeight: '800', marginBottom: '4px', color: '#B91C1C', letterSpacing: '0.5px' }}>
+                    1. SIARAN PERS RESMI DISPENAD (Media Cetak & Online):
+                  </div>
+                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
+                    {counterNarratives.dispenadOfficial}
+                  </div>
                 </div>
-                <p style={{ margin: '0 0 6px 0', color: '#1F2937' }}>
-                  "{criticals.length > 0 ?
-                    `Menanggapi narasi provokatif dan hoaks terkait ${criticals[0]?.targetedEntities?.join(', ') || 'institusi TNI AD'}, Dinas Penerangan TNI AD menegaskan bahwa informasi tersebut adalah TIDAK BENAR (HOAKS/DISINFORMASI). Seluruh dokumen dan isu yang disebarkan merupakan fabrikasi manipulatif yang bertujuan mencederai kepercayaan publik terhadap integritas TNI AD.` :
-                    `Dinas Penerangan TNI AD mengimbau seluruh lapisan masyarakat untuk senantiasa bijak menyaring informasi di media sosial, memverifikasi fakta melalui kanal resmi kemhan.go.id / tni-ad.mil.id, dan tidak menyebarluaskan konten spekulatif tanpa konfirmasi.`
-                  }"
-                </p>
-                <div style={{ fontSize: '10px', color: '#4B5563', borderTop: '1px dashed #FECACA', paddingTop: '6px', marginTop: '6px' }}>
-                  <strong>Distribusi Multikanal:</strong> Rilis Siaran Pers Resmi Media Cetak/Online · Jukrah Babinsa Pendampingan Warga · Amplifikasi Medsos (#TNIBersamaRakyat #TangkalDisinformasi #KedaulatanNKRI)
+
+                {/* Kanal 2: Komsos Babinsa */}
+                <div className="report-item" style={{
+                  padding: '12px 14px',
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  color: '#1F2937'
+                }}>
+                  <div style={{ fontWeight: '800', marginBottom: '4px', color: '#15803D', letterSpacing: '0.5px' }}>
+                    2. PANDUAN KOMSOS BABINSA (Aparat Teritorial & Koramil):
+                  </div>
+                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
+                    {counterNarratives.babinsaTerritorial}
+                  </div>
+                </div>
+
+                {/* Kanal 3: Pesan Edukasi WhatsApp Warga */}
+                <div className="report-item" style={{
+                  padding: '12px 14px',
+                  background: '#EFF6FF',
+                  border: '1px solid #BFDBFE',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  color: '#1F2937'
+                }}>
+                  <div style={{ fontWeight: '800', marginBottom: '4px', color: '#1D4ED8', letterSpacing: '0.5px' }}>
+                    3. PESAN EDUKASI WHATSAPP WARGA (Mitigasi Kepanikan Publik):
+                  </div>
+                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
+                    {counterNarratives.whatsappCivilian}
+                  </div>
+                </div>
+
+                {/* Kanal 4: Medsos Taktis */}
+                <div className="report-item" style={{
+                  padding: '12px 14px',
+                  background: '#FFFBEB',
+                  border: '1px solid #FDE68A',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  color: '#1F2937'
+                }}>
+                  <div style={{ fontWeight: '800', marginBottom: '4px', color: '#B45309', letterSpacing: '0.5px' }}>
+                    4. CUITAN MEDSOS TAKTIS (Twitter/X, Instagram, TikTok):
+                  </div>
+                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
+                    {counterNarratives.socialTactical}
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* ─── KOLOM TANDA TANGAN DINAS MILITER ─── */}
-            <div style={{
+            <div className="signature-block" style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               marginTop: '40px',
@@ -718,8 +803,32 @@ export default function Reports() {
             }}>
               <div>
                 <div style={{ color: '#6B7280', marginBottom: '4px' }}>Mengetahui,</div>
-                <div style={{ fontWeight: '700', color: '#111827' }}>Komandan Satgas Intelijen Siber</div>
-                <div style={{ marginTop: '54px', fontWeight: '700', textDecoration: 'underline' }}>
+                <div style={{ fontWeight: '700', color: '#111827' }}>Komandan Satgas Intelijen Siber Pussiberad</div>
+                
+                {/* STEMPEL DINAS RESMI DIGITAL */}
+                <div className="digital-stamp" style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px dashed #C8102E',
+                  borderRadius: '50%',
+                  width: '76px',
+                  height: '76px',
+                  color: '#C8102E',
+                  fontSize: '8px',
+                  fontWeight: '800',
+                  textAlign: 'center',
+                  letterSpacing: '0.8px',
+                  textTransform: 'uppercase',
+                  transform: 'rotate(-10deg)',
+                  margin: '12px 0 6px 14px',
+                  padding: '4px',
+                  lineHeight: '1.3'
+                }}>
+                  <span>★ PUSSIBERAD ★<br/>TNI AD<br/>TERVALIDASI</span>
+                </div>
+
+                <div style={{ fontWeight: '800', textDecoration: 'underline', color: '#111827' }}>
                   HERLAMBANG, S.I.P., M.Han.
                 </div>
                 <div style={{ color: '#4B5563', fontSize: '10px' }}>Kolonel Inf. NRP 1102003891</div>
@@ -727,8 +836,8 @@ export default function Reports() {
 
               <div style={{ textAlign: 'right' }}>
                 <div style={{ color: '#6B7280', marginBottom: '4px' }}>Jakarta, {config.date}</div>
-                <div style={{ fontWeight: '700', color: '#111827' }}>Analis Intelijen Siber Pelapor</div>
-                <div style={{ marginTop: '54px', fontWeight: '700', textDecoration: 'underline' }}>
+                <div style={{ fontWeight: '700', color: '#111827' }}>Perwira Analis Intelijen Siber</div>
+                <div style={{ marginTop: '76px', fontWeight: '800', textDecoration: 'underline', color: '#111827' }}>
                   {config.analystName.toUpperCase()}
                 </div>
                 <div style={{ color: '#4B5563', fontSize: '10px' }}>NRP. {config.analystNrp || '21260408'}</div>
@@ -736,7 +845,7 @@ export default function Reports() {
             </div>
 
             {/* ─── STEMPEL INTEGRITAS KRIPTOGRAFIS SHA-256 ─── */}
-            <div style={{
+            <div className="sha256-block card-section" style={{
               marginTop: '24px',
               padding: '8px 12px',
               background: '#F9FAFB',

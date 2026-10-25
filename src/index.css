@@ -1499,3 +1499,128 @@ textarea.form-control {
   border-color: #DC2626;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   MILITARY A4 INTELLIGENCE REPORT PRINT ENGINE (@media print & @page)
+   PUSSIBERAD TNI AD × CODEPOLITAN (Sprint 7F Standard)
+   ══════════════════════════════════════════════════════════════════════════════ */
+@page {
+  size: A4 portrait;
+  margin: 20mm 15mm 20mm 15mm;
+}
+
+@media print {
+  /* 1. Pembersihan Menyeluruh UI Canvas */
+  *, *::before, *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body, html {
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    font-size: 10.5pt !important;
+    line-height: 1.5 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Sembunyikan seluruh kontrol antarmuka, navigasi, topbar, dan sidebars */
+  .no-print,
+  .sidebar,
+  .sidebar-collapsed,
+  .sidebar-footer,
+  .topbar,
+  .report-config-panel,
+  .btn,
+  button,
+  .steel-chassis-card,
+  nav,
+  header {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
+  }
+
+  .app-container,
+  .main-content,
+  .page-container,
+  .fade-in {
+    background: #FFFFFF !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* 2. Container Dokumen Laporan Kertas Standar Militer */
+  #military-report-document {
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* 3. Pencegahan Pemotongan Konten Liar (Anti Page-Break Cut) */
+  #military-report-document table,
+  #military-report-document tr,
+  #military-report-document th,
+  #military-report-document td,
+  #military-report-document .signature-block,
+  #military-report-document .card-section,
+  #military-report-document .report-section,
+  #military-report-document .report-item,
+  #military-report-document .digital-stamp,
+  #military-report-document .sha256-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* 4. Tipografi & Kontras Tajam Kedinasan */
+  #military-report-document h1,
+  #military-report-document h2,
+  #military-report-document h3,
+  #military-report-document .section-title {
+    color: #C8102E !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  #military-report-document table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  #military-report-document table th {
+    background: #F1F5F9 !important;
+    color: #0F172A !important;
+    border-bottom: 2px solid #334155 !important;
+  }
+
+  #military-report-document table td {
+    border-bottom: 1px solid #CBD5E1 !important;
+    color: #0F172A !important;
+  }
+
+  /* Watermark kedinasan saat dicetak */
+  #military-report-document .watermark {
+    opacity: 0.04 !important;
+    color: #C8102E !important;
+  }
+}
+
