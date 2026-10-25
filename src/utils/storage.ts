@@ -21,13 +21,11 @@ export const DEFAULT_SETTINGS: UserSettings = {
 import {
   saveAnalysisToDB,
   getAnalysesFromDB,
-  clearAnalysesFromDB,
-  initDB
+  clearAnalysesFromDB
 } from './db-adapter'
 
 // ─── Dual-Layer Memory Cache ───
 let memoryCacheAnalyses: AnalysisResult[] | null = null
-let isInitializedFromDB = false
 
 /**
  * Inisialisasi latar belakang sinkronisasi dari IndexedDB ke Memory Cache
@@ -45,7 +43,6 @@ if (typeof window !== 'undefined') {
           current.forEach(a => idMap.set(a.id, a))
           const merged = Array.from(idMap.values()).sort((a, b) => b.timestamp - a.timestamp)
           memoryCacheAnalyses = merged
-          isInitializedFromDB = true
           window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: merged }))
         }
       })

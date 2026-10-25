@@ -10,8 +10,6 @@ import {
   Eye,
   Edit3,
   Contrast,
-  Layers,
-  Cpu,
   Sliders
 } from 'lucide-react'
 import { createWorker } from 'tesseract.js'
@@ -713,6 +711,22 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
                     <span style={{ color: 'var(--threat-low)' }}>
                       ⚡ {otsuResult.processingLatencyMs}ms
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => setUseOtsuForOCR(!useOtsuForOCR)}
+                      style={{
+                        padding: '2px 6px',
+                        fontSize: '9px',
+                        fontFamily: 'var(--font-mono)',
+                        borderRadius: '2px',
+                        border: '1px solid rgba(217, 119, 6, 0.4)',
+                        background: useOtsuForOCR ? 'rgba(217, 119, 6, 0.2)' : 'transparent',
+                        color: useOtsuForOCR ? '#FBBF24' : 'var(--text-dim)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Mode Input OCR: {useOtsuForOCR ? 'Binarized (Optimal)' : 'Citra Raw'}
+                    </button>
                   </div>
                 )}
               </div>

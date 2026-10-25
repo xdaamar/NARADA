@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Radio,
@@ -12,15 +12,13 @@ import {
   Filter,
   CheckCircle2,
   Calendar,
-  Database,
-  Layers
+  Database
 } from 'lucide-react'
-import { fetchLiveRadarDebunks, type LiveRadarFetchResult } from '../engine/data/live-radar-service'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network'
 import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../types'
 import { radarScheduler } from '../engine/scheduler/radar-scheduler'
-import { getCachedRadarItems, cacheRadarItems } from '../utils/db-adapter'
+import { getCachedRadarItems } from '../utils/db-adapter'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterFilterOption {

@@ -11,11 +11,9 @@ import {
   User,
   Clock,
   ClipboardPaste,
-  ShieldCheck,
   Zap,
   Server
 } from 'lucide-react'
-import { Readability } from '@mozilla/readability'
 import ResilientIngestionBanner from './ResilientIngestionBanner'
 import type { URLAnalysisInput } from '../types'
 import { fetchArticleContent, type ArticleFetchResult } from '../engine/ingest/content-fetcher'
@@ -122,37 +120,6 @@ export default function URLInput({ onAnalyze, isAnalyzing = false }: URLInputPro
       return parsed.protocol === 'http:' || parsed.protocol === 'https:'
     } catch {
       return false
-    }
-  }
-
-  /**
-   * Ekstraksi DOM HTML menggunakan Mozilla Readability
-   */
-  const parseHtmlWithReadability = (htmlText: string, targetUrl: string): URLAnalysisInput => {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(htmlText, 'text/html')
-
-    const hostName = new URL(targetUrl).hostname.replace(/^www\./, '')
-    const reader = new Readability(doc)
-    const article = reader.parse()
-
-    const rawTitle = article?.title || doc.querySelector('title')?.textContent || 'Artikel Berita'
-    const cleanContent = article?.textContent
-      ? article.textContent.trim()
-      : (doc.body?.textContent || '').trim()
-
-    const excerpt = article?.excerpt || cleanContent.substring(0, 180) + '...'
-    const author = article?.byline || null
-    const siteName = article?.siteName || hostName
-
-    return {
-      url: targetUrl,
-      title: rawTitle.trim(),
-      content: cleanContent,
-      author,
-      siteName,
-      excerpt: excerpt.trim(),
-      fetchedAt: Date.now(),
     }
   }
 
