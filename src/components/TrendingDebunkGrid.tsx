@@ -38,16 +38,16 @@ const TABS: TabConfig[] = [
 function getClusterVisuals(cluster: ThreatSpectrumCluster) {
   switch (cluster) {
     case 'POLITIK_NEGARA':
-      return { label: 'POLITIK NEGARA', color: '#A855F7', bg: 'rgba(168, 85, 247, 0.12)' }
+      return { label: 'POLITIK NEGARA', color: '#7C3AED', bg: '#F5F3FF' }
     case 'BENCANA_DARURAT':
-      return { label: 'BENCANA BMKG', color: '#F97316', bg: 'rgba(249, 115, 22, 0.12)' }
+      return { label: 'BENCANA BMKG', color: '#EA580C', bg: '#FFF7ED' }
     case 'PENIPUAN_BANSOS':
-      return { label: 'PENIPUAN BANSOS', color: '#EAB308', bg: 'rgba(234, 179, 8, 0.12)' }
+      return { label: 'PENIPUAN BANSOS', color: '#D97706', bg: '#FFFBEB' }
     case 'KESEHATAN_PANGAN':
-      return { label: 'KESEHATAN & PANGAN', color: '#22C55E', bg: 'rgba(34, 197, 94, 0.12)' }
+      return { label: 'KESEHATAN & PANGAN', color: '#059669', bg: '#ECFDF5' }
     case 'KEDAULATAN_MILITER':
     default:
-      return { label: 'KEDAULATAN MILITER', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)' }
+      return { label: 'KEDAULATAN MILITER', color: '#DC2626', bg: '#FEF2F2' }
   }
 }
 
@@ -193,11 +193,11 @@ export default function TrendingDebunkGrid({ onSelectDebunk, disabled = false }:
                     fontSize: '10px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: '700',
-                    color: '#EF4444',
-                    background: 'rgba(239, 68, 68, 0.12)',
+                    color: '#991B1B',
+                    background: '#FEF2F2',
                     padding: '2px 6px',
-                    borderRadius: '3px',
-                    border: '1px solid rgba(239, 68, 68, 0.3)'
+                    borderRadius: '4px',
+                    border: '1px solid #FCA5A5'
                   }}>
                     {entry.verdict} 96%
                   </span>
@@ -241,7 +241,7 @@ export default function TrendingDebunkGrid({ onSelectDebunk, disabled = false }:
                 }}
               >
                 <Zap size={13} />
-                ⚡ Uji / Analisis Isu Ini
+                Uji / Analisis Isu Ini
               </button>
             </div>
           )

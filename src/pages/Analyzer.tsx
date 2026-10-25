@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   History,
   Trash2,
@@ -8,8 +9,6 @@ import {
   AlertTriangle
 } from 'lucide-react'
 import OmniInputConsole from '../components/OmniInputConsole'
-import NetworkTelemetryBanner from '../components/NetworkTelemetryBanner'
-import CompactTacticalHorizon from '../components/CompactTacticalHorizon'
 import AnalysisResultCard from '../components/AnalysisResultCard'
 import FactCheckPanel from '../components/FactCheckPanel'
 import { analyzeHybrid } from '../engine/combiner'
@@ -17,12 +16,10 @@ import { verifyFactCheck } from '../engine/fact-checker'
 import { saveAnalysis, getStoredAnalyses, clearStoredAnalyses } from '../utils/storage'
 import { getCategoryBadge, getThreatBadge, formatMilitaryDate, truncateText } from '../utils/format'
 import { generateSHA256 } from '../utils/crypto'
-import { fetchLiveRadarDebunks } from '../engine/data/live-radar-service'
-import { checkNetworkStatus, subscribeNetworkChanges, type NetworkTelemetryInfo } from '../utils/network'
-import { getCuratedArchiveDebunks } from '../engine/data/debunk-service'
-import type { AnalysisResult, InputSourceType, ThreatSpectrumCluster, DebunkKnowledgeEntry } from '../types'
+import type { AnalysisResult, InputSourceType } from '../types'
 
 export default function Analyzer() {
+  const location = useLocation()
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
   const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null)
   const [history, setHistory] = useState<AnalysisResult[]>(() => getStoredAnalyses())
@@ -30,17 +27,16 @@ export default function Analyzer() {
   const [injectedText, setInjectedText] = useState<string>('')
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  // ─── Telemetri Jaringan & Ingestion Live Radar State ───
-  const [telemetry, setTelemetry] = useState<NetworkTelemetryInfo>({
-    status: 'ONLINE',
-    latencyMs: 0,
-    lastChecked: Date.now(),
-    isUsingProxy: false,
-  })
-  const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => getCuratedArchiveDebunks())
-  const [isSyncingLive, setIsSyncingLive] = useState<boolean>(false)
-
   const resultContainerRef = useRef<HTMLDivElement>(null)
+
+  // Tangkap prefill dari navigasi eksternal (Dashboard atau LiveRadar)
+  useEffect(() => {
+    const state = location.state as { prefill?: string } | null
+    if (state?.prefill) {
+      setInjectedText(state.prefill)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [location.state])
 
   // Sinkronisasi riwayat analisis sessionStorage
   useEffect(() => {
@@ -58,51 +54,6 @@ export default function Analyzer() {
       window.removeEventListener('narada:analyses-updated', handleStorageUpdate)
     }
   }, [])
-
-  // Inisialisasi telemetri & penarikan live radar saat komponen mount
-  useEffect(() => {
-    let isMounted = true
-
-    const initRadar = async () => {
-      setIsSyncingLive(true)
-      const net = await checkNetworkStatus()
-      if (isMounted) setTelemetry(net)
-
-      const result = await fetchLiveRadarDebunks()
-      if (isMounted) {
-        setDebunkItems(result.entries)
-        if (result.sourceChannel === 'LOCAL_ARCHIVE' && net.status === 'ONLINE') {
-          setTelemetry(prev => ({ ...prev, status: 'DEGRADED' }))
-        }
-        setIsSyncingLive(false)
-      }
-    }
-
-    initRadar()
-
-    const unsubscribe = subscribeNetworkChanges(netInfo => {
-      if (isMounted) setTelemetry(netInfo)
-    })
-
-    return () => {
-      isMounted = false
-      unsubscribe()
-    }
-  }, [])
-
-  // Manual trigger sinkronisasi live radar
-  const handleManualSync = async () => {
-    setIsSyncingLive(true)
-    const net = await checkNetworkStatus()
-    setTelemetry(net)
-
-    const result = await fetchLiveRadarDebunks()
-    setDebunkItems(result.entries)
-    if (result.sourceChannel === 'LOCAL_ARCHIVE' && net.status === 'ONLINE') {
-      setTelemetry(prev => ({ ...prev, status: 'DEGRADED' }))
-    }
-    setIsSyncingLive(false)
-  }
 
   /**
    * Menjalankan Analisis Kognitif Terpadu (Truth Priority Architecture)
@@ -160,14 +111,6 @@ export default function Analyzer() {
     } finally {
       setIsAnalyzing(false)
     }
-  }
-
-  /**
-   * Handler saat kartu isu Compact Tactical Horizon diklik
-   */
-  const handleSelectTrending = (debunkText: string, _cluster: ThreatSpectrumCluster) => {
-    setInjectedText(debunkText)
-    executeAnalysis(debunkText, 'text', `Isu Radar: ${truncateText(debunkText, 45)}`)
   }
 
   const handleClearHistory = () => {
@@ -280,33 +223,9 @@ export default function Analyzer() {
         onAnalyze={(payload) => {
           executeAnalysis(payload.text, payload.source, payload.title, payload.sourceMeta)
         }}
-        onSelectBatchResult={(selected) => {
-          setCurrentResult(selected)
-          setTimeout(() => {
-            resultContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }, 100)
-        }}
       />
 
-      {/* ─── 2. NETWORK TELEMETRY BANNER (RADICAL HONESTY) ─── */}
-      <div style={{ marginTop: '16px' }}>
-        <NetworkTelemetryBanner
-          telemetry={telemetry}
-          itemCount={debunkItems.length}
-          isSyncing={isSyncingLive}
-          onSync={handleManualSync}
-        />
-      </div>
-
-      {/* ─── 3. COMPACT TACTICAL HORIZON (HORIZONTAL STREAMING TRACK) ─── */}
-      <CompactTacticalHorizon
-        entries={debunkItems}
-        isLiveStream={telemetry.status === 'ONLINE'}
-        disabled={isAnalyzing}
-        onSelectDebunk={handleSelectTrending}
-      />
-
-      {/* ─── 4. HASIL ANALISIS KOGNITIF (JIKA TERSEDIA) ─── */}
+      {/* ─── 2. HASIL ANALISIS KOGNITIF (JIKA TERSEDIA) ─── */}
       <div ref={resultContainerRef} style={{ marginTop: '20px' }}>
         {/* Loading Spinner State */}
         {isAnalyzing && (
@@ -351,8 +270,12 @@ export default function Analyzer() {
         )}
       </div>
 
-      {/* ─── 5. DRAWER RIWAYAT ANALISIS SESI INI ─── */}
-      <div className="card" style={{ marginTop: '24px' }}>
+      {/* ─── 3. DRAWER RIWAYAT ANALISIS SESI INI ─── */}
+      <div className="steel-chassis-card" style={{ marginTop: '24px', position: 'relative' }}>
+        <span className="bolt-tl" />
+        <span className="bolt-tr" />
+        <span className="bolt-bl" />
+        <span className="bolt-br" />
         <div
           className="card-header"
           style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -397,13 +320,13 @@ export default function Analyzer() {
         </div>
 
         {isHistoryExpanded && (
-          <div style={{ padding: '0' }}>
+          <div style={{ padding: '12px 16px' }}>
             {history.length === 0 ? (
               <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
                 Belum ada analisis yang dijalankan dalam sesi ini.
               </div>
             ) : (
-              <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+              <div className="steel-sunken-tray" style={{ maxHeight: '280px', overflowY: 'auto', padding: '0' }}>
                 {history.map((item, idx) => {
                   const catBadge = getCategoryBadge(item.category)
                   const threatBadge = getThreatBadge(item.threatLevel)

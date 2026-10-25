@@ -4,18 +4,16 @@ import {
   RotateCcw,
   Image as ImageIcon,
   Globe,
-  FileSpreadsheet,
   Zap,
   ChevronDown,
-  ChevronUp,
   X,
   Scan,
-  FileText
+  FileText,
+  AlertTriangle
 } from 'lucide-react'
 import { createWorker } from 'tesseract.js'
 import { Readability } from '@mozilla/readability'
-import BatchUploader from './BatchUploader'
-import type { InputSourceType, AnalysisResult } from '../types'
+import type { InputSourceType } from '../types'
 
 export interface OmniInputConsoleProps {
   isAnalyzing: boolean
@@ -30,7 +28,6 @@ export interface OmniInputConsoleProps {
       imagePreview?: string
     }
   }) => void
-  onSelectBatchResult?: (result: AnalysisResult) => void
   initialText?: string
 }
 
@@ -69,7 +66,6 @@ const SAMPLE_PRESETS = [
 export default function OmniInputConsole({
   isAnalyzing,
   onAnalyze,
-  onSelectBatchResult,
   initialText = ''
 }: OmniInputConsoleProps) {
   const [inputText, setInputText] = useState<string>(initialText)
@@ -93,9 +89,6 @@ export default function OmniInputConsole({
 
   // Drag & Drop state
   const [isDragOver, setIsDragOver] = useState<boolean>(false)
-
-  // Batch Mode Toggle
-  const [showBatchMode, setShowBatchMode] = useState<boolean>(false)
 
   // Sample Popover Toggle
   const [showSampleDropdown, setShowSampleDropdown] = useState<boolean>(false)
@@ -337,12 +330,24 @@ export default function OmniInputConsole({
   }
 
   return (
-    <div className="omni-input-card" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+    <div 
+      className="omni-input-card steel-chassis-card" 
+      style={{ position: 'relative', overflow: 'hidden' }}
+      onDragOver={handleDragOver} 
+      onDragLeave={handleDragLeave} 
+      onDrop={handleDrop}
+    >
+      {/* 4 Baut Hex Socket (Allen Bolts) Sudut */}
+      <span className="bolt-tl" />
+      <span className="bolt-tr" />
+      <span className="bolt-bl" />
+      <span className="bolt-br" />
+
       {/* ─── Mode Indicator Banner ─── */}
       <div style={{
-        padding: '10px 16px',
-        background: isDragOver ? 'rgba(220, 38, 38, 0.2)' : 'var(--bg-elevated)',
-        borderBottom: '1px solid var(--bg-border)',
+        padding: '10px 22px',
+        background: isDragOver ? 'rgba(239, 68, 68, 0.2)' : 'linear-gradient(180deg, #171F2B 0%, #111721 100%)',
+        borderBottom: '1px solid #1E2734',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -359,12 +364,12 @@ export default function OmniInputConsole({
               borderRadius: '4px',
               background: 'rgba(59, 130, 246, 0.15)',
               color: '#60A5FA',
-              border: '1px solid rgba(59, 130, 246, 0.35)',
+              border: '1px solid rgba(59, 130, 246, 0.4)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px'
             }}>
-              <Globe size={11} /> 🔗 MODE URL EKSTRAKTOR
+              <Globe size={11} /> MODE URL EKSTRAKTOR
             </span>
           ) : imagePreview ? (
             <span style={{
@@ -375,12 +380,12 @@ export default function OmniInputConsole({
               borderRadius: '4px',
               background: 'rgba(249, 115, 22, 0.15)',
               color: '#FB923C',
-              border: '1px solid rgba(249, 115, 22, 0.35)',
+              border: '1px solid rgba(249, 115, 22, 0.4)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px'
             }}>
-              <Scan size={11} /> 📷 MODE OCR CITRA ({imageName})
+              <Scan size={11} /> MODE OCR CITRA ({imageName})
             </span>
           ) : (
             <span style={{
@@ -389,14 +394,14 @@ export default function OmniInputConsole({
               fontWeight: '700',
               padding: '2px 8px',
               borderRadius: '4px',
-              background: 'rgba(34, 197, 94, 0.12)',
-              color: '#4ADE80',
-              border: '1px solid rgba(34, 197, 94, 0.3)',
+              background: 'rgba(16, 185, 129, 0.15)',
+              color: '#34D399',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px'
             }}>
-              <FileText size={11} /> ⚡ SMART OMNI-INPUT CONSOLE
+              <FileText size={11} /> SMART OMNI-INPUT CONSOLE
             </span>
           )}
 
@@ -417,7 +422,7 @@ export default function OmniInputConsole({
               onClick={() => setShowSampleDropdown(!showSampleDropdown)}
               style={{ fontSize: '11px', padding: '4px 8px' }}
             >
-              <Sparkles size={12} color="#F59E0B" />
+              <Sparkles size={12} color="#D97706" />
               <span>Contoh Isu</span>
               <ChevronDown size={11} />
             </button>
@@ -428,21 +433,22 @@ export default function OmniInputConsole({
                 top: '100%',
                 right: 0,
                 marginTop: '4px',
-                background: 'var(--bg-card)',
-                border: '1px solid var(--bg-border)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-lg)',
+                background: '#141B24',
+                border: '1px solid #2D3848',
+                borderRadius: '6px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.85)',
                 padding: '6px',
                 zIndex: 50,
-                minWidth: '260px'
+                minWidth: '280px'
               }}>
                 <div style={{
                   fontSize: '9px',
                   fontFamily: 'var(--font-mono)',
-                  color: 'var(--text-muted)',
+                  color: '#94A3B8',
                   padding: '4px 8px',
-                  borderBottom: '1px solid var(--bg-border)',
-                  marginBottom: '4px'
+                  borderBottom: '1px solid #1E2734',
+                  marginBottom: '4px',
+                  fontWeight: 700
                 }}>
                   PILIH PRESET SKENARIO:
                 </div>
@@ -453,18 +459,24 @@ export default function OmniInputConsole({
                     style={{
                       width: '100%',
                       textAlign: 'left',
-                      padding: '6px 8px',
+                      padding: '7px 10px',
                       background: 'transparent',
                       border: 'none',
                       borderRadius: '4px',
                       fontSize: '11px',
-                      color: 'var(--text-secondary)',
+                      color: '#F1F5F9',
                       cursor: 'pointer',
-                      transition: 'background 0.2s ease',
+                      transition: 'all 0.15s ease',
                       display: 'block'
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-elevated)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#1E2734'
+                      e.currentTarget.style.color = '#FCA5A5'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
+                      e.currentTarget.style.color = '#F1F5F9'
+                    }}
                     onClick={() => {
                       setInputText(sample.text)
                       setSourceType('text')
@@ -497,7 +509,7 @@ export default function OmniInputConsole({
       {/* ─── OCR Progress Bar (Jika Sedang Memproses OCR) ─── */}
       {isOcrProcessing && (
         <div style={{
-          padding: '8px 16px',
+          padding: '8px 22px',
           background: 'rgba(249, 115, 22, 0.1)',
           borderBottom: '1px solid rgba(249, 115, 22, 0.2)'
         }}>
@@ -510,7 +522,10 @@ export default function OmniInputConsole({
             color: '#FB923C',
             marginBottom: '4px'
           }}>
-            <span>⚙️ {ocrStatusText}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              <Scan size={12} className="spin-animation" />
+              {ocrStatusText}
+            </span>
             <span>{ocrProgress}%</span>
           </div>
           <div style={{ height: '4px', background: 'var(--bg-elevated)', borderRadius: '2px', overflow: 'hidden' }}>
@@ -519,63 +534,65 @@ export default function OmniInputConsole({
         </div>
       )}
 
-      {/* ─── Area Input Textarea Terpadu ─── */}
-      <div style={{ position: 'relative' }}>
-        <textarea
-          ref={textareaRef}
-          className="omni-textarea"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Tempelkan apa saja: naskah berita, narasi viral WhatsApp, tautan URL berita (http/https), atau seret tangkapan layar screenshot ke sini..."
-          disabled={isAnalyzing || isOcrProcessing}
-        />
+      {/* ─── Area Input Textarea Terpadu (Sunken Clean Well) ─── */}
+      <div style={{ padding: '12px 18px', position: 'relative' }}>
+        <div className="omni-input-well">
+          <textarea
+            ref={textareaRef}
+            className="omni-textarea"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Tempelkan apa saja: naskah berita, narasi viral WhatsApp, tautan URL berita (http/https), atau seret tangkapan layar screenshot ke sini..."
+            disabled={isAnalyzing || isOcrProcessing}
+          />
 
-        {/* Thumbnail Preview jika ada citra OCR */}
-        {imagePreview && (
-          <div style={{
-            padding: '8px 16px',
-            background: 'var(--bg-base)',
-            borderTop: '1px solid var(--bg-border)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <img
-              src={imagePreview}
-              alt="Preview"
-              style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--bg-border)' }}
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {imageName || 'Screenshot Dokumen'}
+          {/* Thumbnail Preview jika ada citra OCR */}
+          {imagePreview && (
+            <div style={{
+              padding: '8px 16px',
+              background: '#0D1219',
+              borderTop: '1px solid #1E2736',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              <img
+                src={imagePreview}
+                alt="Preview"
+                style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #2D3848' }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: '600', color: '#F1F5F9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {imageName || 'Screenshot Dokumen'}
+                </div>
+                <div style={{ fontSize: '10px', color: '#94A3B8' }}>
+                  Teks telah diekstrak otomatis oleh Tesseract OCR Neural Network
+                </div>
               </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                Teks telah diekstrak otomatis oleh Tesseract OCR Neural Network
-              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  setImagePreview(null)
+                  setImageName('')
+                  if (sourceType === 'ocr') setSourceType('text')
+                }}
+                style={{ padding: '4px', color: '#94A3B8' }}
+                title="Hapus gambar"
+              >
+                <X size={14} />
+              </button>
             </div>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => {
-                setImagePreview(null)
-                setImageName('')
-                if (sourceType === 'ocr') setSourceType('text')
-              }}
-              style={{ padding: '4px', color: 'var(--text-muted)' }}
-              title="Hapus gambar"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ─── Bar Indikator Heuristik & Tombol Aksi Bawah ─── */}
       <div style={{
-        padding: '10px 16px',
-        background: 'var(--bg-surface)',
-        borderTop: '1px solid var(--bg-border)',
+        padding: '10px 22px',
+        background: 'linear-gradient(180deg, #131A24 0%, #0E131C 100%)',
+        borderTop: '1px solid #1E2734',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -609,7 +626,7 @@ export default function OmniInputConsole({
               color: '#EF4444',
               fontWeight: '700'
             }}>
-              ⚡ {heuristics.riskyTermsCount} Frasa Berisiko Terdeteksi
+              <AlertTriangle size={11} /> {heuristics.riskyTermsCount} Frasa Berisiko Terdeteksi
             </span>
           )}
         </div>
@@ -634,19 +651,7 @@ export default function OmniInputConsole({
             style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '5px' }}
           >
             <ImageIcon size={13} />
-            <span>📷 Lampirkan Screenshot</span>
-          </button>
-
-          {/* Tombol Collapsible Batch Mode */}
-          <button
-            type="button"
-            className={`btn btn-sm ${showBatchMode ? 'btn-primary' : 'btn-ghost'}`}
-            onClick={() => setShowBatchMode(!showBatchMode)}
-            style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '5px' }}
-          >
-            <FileSpreadsheet size={13} />
-            <span>Mode Batch CSV</span>
-            {showBatchMode ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            <span>Unggah Screenshot (OCR)</span>
           </button>
 
           {/* Tombol Utama Analisis Kognitif */}
@@ -672,7 +677,7 @@ export default function OmniInputConsole({
             ) : (
               <>
                 <Zap size={14} />
-                <span>⚡ Analisis Kognitif</span>
+                <span>Analisis Kognitif</span>
                 <span style={{
                   fontSize: '9px',
                   fontFamily: 'var(--font-mono)',
@@ -689,34 +694,6 @@ export default function OmniInputConsole({
           </button>
         </div>
       </div>
-
-      {/* ─── Mode Batch CSV / Excel Collapsible Accordion ─── */}
-      {showBatchMode && (
-        <div style={{
-          borderTop: '1px solid var(--bg-border)',
-          background: 'var(--bg-base)',
-          padding: '16px'
-        }}>
-          <div style={{
-            fontSize: '11px',
-            fontFamily: 'var(--font-mono)',
-            color: 'var(--narada-red)',
-            marginBottom: '10px',
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <FileSpreadsheet size={13} /> MODE ANALISIS MASSAL DATA TABULAR (CSV / EXCEL)
-          </div>
-          <BatchUploader
-            isGlobalAnalyzing={isAnalyzing}
-            onSelectResult={(res) => {
-              if (onSelectBatchResult) onSelectBatchResult(res)
-            }}
-          />
-        </div>
-      )}
     </div>
   )
 }

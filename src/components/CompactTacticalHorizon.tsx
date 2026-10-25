@@ -40,16 +40,16 @@ const FILTER_PILLS: FilterPillConfig[] = [
 function getClusterVisuals(cluster: ThreatSpectrumCluster) {
   switch (cluster) {
     case 'POLITIK_NEGARA':
-      return { label: 'POLITIK', color: '#A855F7', bg: 'rgba(168, 85, 247, 0.15)' }
+      return { label: 'POLITIK', color: '#7C3AED', bg: '#F5F3FF' }
     case 'BENCANA_DARURAT':
-      return { label: 'BENCANA', color: '#F97316', bg: 'rgba(249, 115, 22, 0.15)' }
+      return { label: 'BENCANA', color: '#EA580C', bg: '#FFF7ED' }
     case 'PENIPUAN_BANSOS':
-      return { label: 'PENIPUAN', color: '#EAB308', bg: 'rgba(234, 179, 8, 0.15)' }
+      return { label: 'PENIPUAN', color: '#D97706', bg: '#FFFBEB' }
     case 'KESEHATAN_PANGAN':
-      return { label: 'KESEHATAN', color: '#22C55E', bg: 'rgba(34, 197, 94, 0.15)' }
+      return { label: 'KESEHATAN', color: '#059669', bg: '#ECFDF5' }
     case 'KEDAULATAN_MILITER':
     default:
-      return { label: 'MILITER', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)' }
+      return { label: 'MILITER', color: '#DC2626', bg: '#FEF2F2' }
   }
 }
 
@@ -263,7 +263,7 @@ export default function CompactTacticalHorizon({
                         border: `1px solid ${isLive ? '#22C55E40' : '#94A3B840'}`,
                       }}
                     >
-                      {isLive ? '🔴 LIVE' : '📁 ARSIP'}
+                      {isLive ? 'LIVE' : 'ARSIP'}
                     </span>
                   </div>
 
@@ -343,7 +343,7 @@ export default function CompactTacticalHorizon({
                   }}
                 >
                   <Zap size={11} />
-                  ⚡ Uji Isu Ini
+                  Uji Isu Ini
                 </button>
               </div>
             )

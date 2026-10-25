@@ -290,7 +290,7 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
     // Footer stats
     ctx.fillStyle = '#8B93B0'
     ctx.font = '13px Arial'
-    ctx.fillText('🔁 12.4K Retweets    ❤️ 38.2K Likes    💬 4.1K Balasan', 30, 380)
+    ctx.fillText('12.4K Retweets · 38.2K Likes · 4.1K Balasan', 30, 380)
 
     const dataUrl = canvas.toDataURL('image/png')
     const fileName = type === 'hoax' ? 'demo_hoax_tni_screenshot.png' : 'demo_propaganda_papua.png'
@@ -672,7 +672,7 @@ export default function OCRUploader({ onAnalyze, isAnalyzing = false }: OCRUploa
                       fontFamily: 'var(--font-mono)',
                       color: 'var(--threat-medium)'
                     }}>
-                      ✎ Telah dikoreksi analis
+                      [Telah dikoreksi analis]
                     </span>
                   )}
                 </div>

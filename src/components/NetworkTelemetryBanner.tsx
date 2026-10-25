@@ -30,15 +30,16 @@ export default function NetworkTelemetryBanner({
         borderRadius: 'var(--radius-md)',
         marginBottom: '12px',
         border: isOnline
-          ? '1px solid rgba(34, 197, 94, 0.35)'
+          ? '1px solid #A7F3D0'
           : isDegraded
-          ? '1px solid rgba(245, 158, 11, 0.4)'
-          : '1px solid rgba(239, 68, 68, 0.45)',
+          ? '1px solid #FCD34D'
+          : '1px solid #FCA5A5',
         background: isOnline
-          ? 'linear-gradient(90deg, rgba(34, 197, 94, 0.1), rgba(15, 23, 42, 0.6))'
+          ? '#FFFFFF'
           : isDegraded
-          ? 'linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(15, 23, 42, 0.6))'
-          : 'linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(15, 23, 42, 0.6))',
+          ? '#FFFBEB'
+          : '#FEF2F2',
+        boxShadow: 'var(--shadow-sm)',
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
@@ -143,12 +144,12 @@ export default function NetworkTelemetryBanner({
           {isOnline ? (
             <>
               <RotateCcw size={12} className={isSyncing ? 'spin-animation' : ''} />
-              <span>{isSyncing ? 'Menyinkronkan...' : '🔄 Sinkronkan Isu Hari Ini'}</span>
+              <span>{isSyncing ? 'Menyinkronkan...' : 'Sinkronkan Isu Hari Ini'}</span>
             </>
           ) : (
             <>
               <Zap size={12} className={isSyncing ? 'spin-animation' : ''} />
-              <span>{isSyncing ? 'Menghubungkan...' : '⚡ Coba Hubungkan Ulang'}</span>
+              <span>{isSyncing ? 'Menghubungkan...' : 'Coba Hubungkan Ulang'}</span>
             </>
           )}
         </button>
@@ -160,18 +161,18 @@ export default function NetworkTelemetryBanner({
           style={{
             padding: '8px 12px',
             borderRadius: 'var(--radius-sm)',
-            background: 'rgba(0, 0, 0, 0.4)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
+            background: '#FEF2F2',
+            border: '1px solid #FCA5A5',
             fontSize: '11px',
-            color: '#FCA5A5',
+            color: '#991B1B',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
           }}
         >
-          <AlertTriangle size={14} color="#EF4444" style={{ flexShrink: 0 }} />
+          <AlertTriangle size={14} color="#DC2626" style={{ flexShrink: 0 }} />
           <span>
-            <strong>Kejujuran Data Intelijen:</strong> Sistem beroperasi dalam mode taktis lokal terisolasi (*air-gapped*).
+            <strong>Kejujuran Data Intelijen:</strong> Sistem beroperasi dalam mode taktis lokal terisolasi (<em>air-gapped</em>).
             Data di bawah ini adalah <strong>arsip lokal tersimpan</strong>, bukan stream terkini hari ini.
           </span>
         </div>

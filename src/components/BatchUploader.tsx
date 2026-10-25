@@ -331,7 +331,7 @@ export default function BatchUploader({ onSelectResult }: BatchUploaderProps) {
                 onClick={handleLoadStressTest}
               >
                 <Sparkles size={12} color="#F97316" />
-                ⚡ Muat Uji Stres: 25 Komentar Buzzer Ekstrem
+                Muat Uji Stres: 25 Komentar Buzzer Ekstrem
               </button>
             </div>
           </div>
