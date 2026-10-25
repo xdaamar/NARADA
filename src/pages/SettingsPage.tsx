@@ -15,7 +15,8 @@ import {
   EyeOff,
   User,
   Building,
-  Award
+  Award,
+  Check
 } from 'lucide-react'
 import type { UserSettings } from '../types'
 import { getUserSettings, saveUserSettings, seedDemoAnalyses, clearStoredAnalyses } from '../utils/storage'
@@ -44,14 +45,14 @@ export default function SettingsPage() {
 
   const handleSeedDemoData = () => {
     seedDemoAnalyses()
-    setDataMessage('✓ Berhasil memuat 5 skenario intelijen siap uji ke Session Storage!')
+    setDataMessage('Berhasil memuat 5 skenario intelijen siap uji ke Session Storage!')
     setTimeout(() => setDataMessage(null), 3000)
   }
 
   const handleClearSession = () => {
     if (window.confirm('Apakah Anda yakin ingin menghapus seluruh riwayat analisis pada sesi ini?')) {
       clearStoredAnalyses()
-      setDataMessage('✓ Seluruh data riwayat sesi berhasil dibersihkan.')
+      setDataMessage('Seluruh data riwayat sesi berhasil dibersihkan.')
       setTimeout(() => setDataMessage(null), 3000)
     }
   }
@@ -68,7 +69,7 @@ export default function SettingsPage() {
     }
     setSettings(defaultVals)
     saveUserSettings(defaultVals)
-    setDataMessage('✓ Konfigurasi sistem telah dikembalikan ke pengaturan standar.')
+    setDataMessage('Konfigurasi sistem telah dikembalikan ke pengaturan standar.')
     setTimeout(() => setDataMessage(null), 3000)
   }
 
@@ -132,7 +133,11 @@ export default function SettingsPage() {
 
       <div style={{ maxWidth: '840px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* ─── 1. Profil Analis & Identitas Satuan ─── */}
-        <div className="card">
+        <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
           <div className="card-header">
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Shield size={14} color="var(--narada-red)" />
@@ -185,7 +190,11 @@ export default function SettingsPage() {
         </div>
 
         {/* ─── 2. Tuning Bobot Engine AI Kognitif ─── */}
-        <div className="card">
+        <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
           <div className="card-header">
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Sliders size={14} color="var(--accent-blue)" />
@@ -238,7 +247,11 @@ export default function SettingsPage() {
         </div>
 
         {/* ─── 3. Integrasi Google Fact Check API & Mode Offline ─── */}
-        <div className="card">
+        <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
           <div className="card-header">
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Key size={14} color="var(--threat-medium)" />
@@ -303,7 +316,11 @@ export default function SettingsPage() {
         </div>
 
         {/* ─── 4. Pengelolaan Data Sesi & Demo Seeder ─── */}
-        <div className="card">
+        <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
           <div className="card-header">
             <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Database size={14} color="var(--threat-low)" />
@@ -356,8 +373,17 @@ export default function SettingsPage() {
             onClick={handleSave}
             style={{ padding: '12px 28px' }}
           >
-            <Save size={16} />
-            {saveSuccess ? '✓ Konfigurasi Tersimpan!' : 'Simpan Pengaturan'}
+            {saveSuccess ? (
+              <>
+                <Check size={16} />
+                <span>Konfigurasi Tersimpan!</span>
+              </>
+            ) : (
+              <>
+                <Save size={16} />
+                <span>Simpan Pengaturan</span>
+              </>
+            )}
           </button>
           {saveSuccess && (
             <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--threat-low)' }}>

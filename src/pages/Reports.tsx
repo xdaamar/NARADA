@@ -9,7 +9,8 @@ import {
   Building,
   User,
   Hash,
-  Award
+  Award,
+  Lock
 } from 'lucide-react'
 import type { AnalysisResult, IntelReportConfig, ReportClassification } from '../types'
 import { getStoredAnalyses, getUserSettings, seedDemoAnalyses } from '../utils/storage'
@@ -156,7 +157,11 @@ export default function Reports() {
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
         {/* ─── KOLOM KIRI: Panel Konfigurasi Laporan (Disembunyikan saat cetak) ─── */}
         <div className="report-config-panel no-print" style={{ width: '340px', flexShrink: 0 }}>
-          <div className="card" style={{ marginBottom: '16px' }}>
+          <div className="steel-chassis-card" style={{ marginBottom: '16px', position: 'relative' }}>
+            <span className="bolt-tl" />
+            <span className="bolt-tr" />
+            <span className="bolt-bl" />
+            <span className="bolt-br" />
             <div className="card-header">
               <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Sliders size={13} color="var(--narada-red)" />
@@ -744,7 +749,9 @@ export default function Reports() {
               fontFamily: '"JetBrains Mono", monospace'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#374151', minWidth: 0 }}>
-                <span style={{ fontWeight: '700', color: '#111827', flexShrink: 0 }}>🔒 STEMPEL INTEGRITAS SHA-256:</span>
+                <span style={{ fontWeight: '700', color: '#111827', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Lock size={11} /> STEMPEL INTEGRITAS SHA-256:
+                </span>
                 <span style={{ color: '#059669', wordBreak: 'break-all' }}>
                   {reportHash || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'}
                 </span>

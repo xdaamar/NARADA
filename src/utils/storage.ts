@@ -153,7 +153,7 @@ export function seedDemoAnalyses(): AnalysisResult[] {
             publisherSite: 'turnbackhoax.id',
             articleUrl: 'https://turnbackhoax.id/2026/08/14/salah-dokumen-pengadaan-alutsista-fiktif-kemhan/',
             articleTitle: '[SALAH] Dokumen Pengadaan Sistem Alutsista Fiktif Kemhan Senilai Rp 24 Triliun',
-            rating: '❌ SALAH (Fabricated Content)',
+            rating: 'SALAH (Fabricated Content)',
             ratingColor: '#EF4444',
             reviewDate: '14-AGU-2026',
           },
