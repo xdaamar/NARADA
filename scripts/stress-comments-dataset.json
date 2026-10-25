@@ -1,0 +1,4652 @@
+[
+  {
+    "id": "COM-0001",
+    "text": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "author": "@buzzer_army_101",
+    "timestamp": "2026-10-25T14:00:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0002",
+    "text": "uang 24t menguapp beli besii tua kemana audit bpk usut tuntas!",
+    "author": "@buzzer_army_102",
+    "timestamp": "2026-10-25T14:00:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0003",
+    "text": "Uang 24T menguap beli besi tua!! Kemana audit BPK??? Usut!",
+    "author": "@buzzer_army_103",
+    "timestamp": "2026-10-25T14:00:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0004",
+    "text": "Uang 24T mnguap beli besi tua kmana audit BPK? Usut sekarang",
+    "author": "@buzzer_army_104",
+    "timestamp": "2026-10-25T14:01:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0005",
+    "text": "uang 24T menguap beli besi tua, kmana audit BPK? usut tuntas!!",
+    "author": "@buzzer_army_105",
+    "timestamp": "2026-10-25T14:01:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0006",
+    "text": "Uang 24T menguap beli besi tua! Kemana audit BPK? Usut tuntas pejabatnya",
+    "author": "@buzzer_army_106",
+    "timestamp": "2026-10-25T14:01:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0007",
+    "text": "UANG 24T MENGUAP BELI BESI TUA, KEMANA AUDIT BPK? USUT!",
+    "author": "@buzzer_army_107",
+    "timestamp": "2026-10-25T14:02:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0008",
+    "text": "uang 24t menguap beli besi tua.. kemana audit bpk? usut!",
+    "author": "@buzzer_army_108",
+    "timestamp": "2026-10-25T14:02:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0009",
+    "text": "Uang 24 T menguap beli besi tua, kemana audit bpk? Usut dong!",
+    "author": "@buzzer_army_109",
+    "timestamp": "2026-10-25T14:02:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0010",
+    "text": "uang 24t menguap beli besi tua kemana audit bpk usut!",
+    "author": "@buzzer_army_110",
+    "timestamp": "2026-10-25T14:03:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0011",
+    "text": "Uang 24T menguap beli besi tua, kmana audit BPK? Usut tuntas!",
+    "author": "@buzzer_army_111",
+    "timestamp": "2026-10-25T14:03:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0012",
+    "text": "Uang 24T menguapp beli besi tua kemana audit bpk? Usut segera!",
+    "author": "@buzzer_army_112",
+    "timestamp": "2026-10-25T14:03:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0013",
+    "text": "uang 24T menguap beli besi tua, kemana audit bpk? usut tuntas skrng",
+    "author": "@buzzer_army_101",
+    "timestamp": "2026-10-25T14:04:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0014",
+    "text": "Uang 24T menguap beli besi tua kemana audit bpk usut dong",
+    "author": "@buzzer_army_102",
+    "timestamp": "2026-10-25T14:04:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0015",
+    "text": "Uang 24T menguap beli besi tua!! Kemana audit BPK?? Usut!",
+    "author": "@buzzer_army_103",
+    "timestamp": "2026-10-25T14:04:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0016",
+    "text": "uang 24t mnguap beli besi tua, kemana audit bpk? usut tuntas",
+    "author": "@buzzer_army_104",
+    "timestamp": "2026-10-25T14:05:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0017",
+    "text": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut tuntas rakyat tagih",
+    "author": "@buzzer_army_105",
+    "timestamp": "2026-10-25T14:05:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0018",
+    "text": "uang 24T menguap beli besi tua, kmana audit BPK? Usut!",
+    "author": "@buzzer_army_106",
+    "timestamp": "2026-10-25T14:05:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0019",
+    "text": "Uang 24T menguap beli besi tua! Kemana audit BPK? Usut skrg juga!",
+    "author": "@buzzer_army_107",
+    "timestamp": "2026-10-25T14:06:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0020",
+    "text": "uang 24t menguap beli besi tua kemana audit bpk? usut!!",
+    "author": "@buzzer_army_108",
+    "timestamp": "2026-10-25T14:06:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0021",
+    "text": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut segera!",
+    "author": "@buzzer_army_109",
+    "timestamp": "2026-10-25T14:06:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0022",
+    "text": "uang 24T menguapp beli besi tua kemana audit BPK? usut tuntas",
+    "author": "@buzzer_army_110",
+    "timestamp": "2026-10-25T14:07:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0023",
+    "text": "Uang 24T mnguap beli besi tua kemana audit bpk? Usut!",
+    "author": "@buzzer_army_111",
+    "timestamp": "2026-10-25T14:07:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0024",
+    "text": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "author": "@buzzer_army_112",
+    "timestamp": "2026-10-25T14:07:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0025",
+    "text": "uang 24t menguap beli besi tua.. kmana audit bpk? usut tuntas",
+    "author": "@buzzer_army_101",
+    "timestamp": "2026-10-25T14:08:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0026",
+    "text": "Uang 24T menguap beli besi tua kemana audit bpk usut!!",
+    "author": "@buzzer_army_102",
+    "timestamp": "2026-10-25T14:08:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0027",
+    "text": "Uang 24 T menguap beli besi tua, kemana audit BPK? Usut tuntas!",
+    "author": "@buzzer_army_103",
+    "timestamp": "2026-10-25T14:08:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0028",
+    "text": "uang 24T menguap beli besi tua kemana audit bpk usut dong!!",
+    "author": "@buzzer_army_104",
+    "timestamp": "2026-10-25T14:09:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0029",
+    "text": "Uang 24T menguapp beli besi tua, kemana audit bpk? Usut!",
+    "author": "@buzzer_army_105",
+    "timestamp": "2026-10-25T14:09:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0030",
+    "text": "Uang 24T menguap beli besi tua! kmana audit BPK? Usut segera",
+    "author": "@buzzer_army_106",
+    "timestamp": "2026-10-25T14:09:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0031",
+    "text": "uang 24t mnguap beli besi tua kemana audit bpk usut!",
+    "author": "@buzzer_army_107",
+    "timestamp": "2026-10-25T14:10:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0032",
+    "text": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut tuntas dong",
+    "author": "@buzzer_army_108",
+    "timestamp": "2026-10-25T14:10:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0033",
+    "text": "uang 24T menguap beli besi tua.. kemana audit bpk? usut!",
+    "author": "@buzzer_army_109",
+    "timestamp": "2026-10-25T14:10:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0034",
+    "text": "Uang 24T menguap beli besi tua! Kemana audit BPK?? Usut!",
+    "author": "@buzzer_army_110",
+    "timestamp": "2026-10-25T14:11:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0035",
+    "text": "UANG 24T MENGUAP BELI BESI TUA! KEMANA AUDIT BPK? USUT TUNTAS!",
+    "author": "@buzzer_army_111",
+    "timestamp": "2026-10-25T14:11:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0036",
+    "text": "uang 24t menguap beli besi tua kemana audit bpk usut tuntas skrg",
+    "author": "@buzzer_army_112",
+    "timestamp": "2026-10-25T14:11:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0037",
+    "text": "Uang 24T menguap beli besi tua, kmana audit bpk? Usut dong",
+    "author": "@buzzer_army_101",
+    "timestamp": "2026-10-25T14:12:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0038",
+    "text": "Uang 24T mnguap beli besi tua, kemana audit BPK? Usut!",
+    "author": "@buzzer_army_102",
+    "timestamp": "2026-10-25T14:12:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0039",
+    "text": "uang 24T menguapp beli besi tua kemana audit bpk usut segera",
+    "author": "@buzzer_army_103",
+    "timestamp": "2026-10-25T14:12:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0040",
+    "text": "Uang 24T menguap beli besi tua kemana audit bpk? Usut tuntas!",
+    "author": "@buzzer_army_104",
+    "timestamp": "2026-10-25T14:13:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0041",
+    "text": "uang 24t menguap beli besi tua, kemana audit bpk?? usut!",
+    "author": "@buzzer_army_105",
+    "timestamp": "2026-10-25T14:13:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0042",
+    "text": "Uang 24T menguap beli besi tua! Kemana audit BPK? Usut!",
+    "author": "@buzzer_army_106",
+    "timestamp": "2026-10-25T14:13:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0043",
+    "text": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut skrng!",
+    "author": "@buzzer_army_107",
+    "timestamp": "2026-10-25T14:14:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0044",
+    "text": "uang 24t menguap beli besi tua kmana audit bpk usut tuntas!!",
+    "author": "@buzzer_army_108",
+    "timestamp": "2026-10-25T14:14:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0045",
+    "text": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "author": "@buzzer_army_109",
+    "timestamp": "2026-10-25T14:14:12Z",
+    "category": "BUZZER_A",
+    "clusterTemplate": "Uang 24T menguap beli besi tua, kemana audit BPK? Usut!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0046",
+    "text": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_201",
+    "timestamp": "2026-10-25T14:02:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0047",
+    "text": "viralkann rezimm panikk! biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_202",
+    "timestamp": "2026-10-25T14:02:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0048",
+    "text": "Bongkar teruss rezim panik viralkan biar rakyat melek kebobrokan rezim",
+    "author": "@cyber_drone_203",
+    "timestamp": "2026-10-25T14:02:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0049",
+    "text": "Bongkar trs rezim panik! Viralkan spy rakyat melek kebobrokan!",
+    "author": "@cyber_drone_204",
+    "timestamp": "2026-10-25T14:03:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0050",
+    "text": "bongkar terus rezim panik viralkan biar rakyat melek kebobrokan!",
+    "author": "@cyber_drone_205",
+    "timestamp": "2026-10-25T14:03:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0051",
+    "text": "Bongkar terus rezim panik!! Viralkan biar rakyat melek kebobrokan ini",
+    "author": "@cyber_drone_206",
+    "timestamp": "2026-10-25T14:03:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0052",
+    "text": "BONGKAR TERUS REZIM PANIK! VIRALKAN BIAR RAKYAT MELEK KEBOBROKAN",
+    "author": "@cyber_drone_207",
+    "timestamp": "2026-10-25T14:04:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0053",
+    "text": "bongkar trs rezim panik! viralkann biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_208",
+    "timestamp": "2026-10-25T14:04:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0054",
+    "text": "Bongkar terus rezim panik, viralkan biar rakyat melek kebobrokan!",
+    "author": "@cyber_drone_209",
+    "timestamp": "2026-10-25T14:04:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0055",
+    "text": "bongkar terus rezimm panik viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_210",
+    "timestamp": "2026-10-25T14:05:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0056",
+    "text": "Bongkar terus rezim panik! Viralkann biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_201",
+    "timestamp": "2026-10-25T14:05:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0057",
+    "text": "Bongkar trs rezim panik viralkan spy rakyat melek kebobrokan rezim",
+    "author": "@cyber_drone_202",
+    "timestamp": "2026-10-25T14:05:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0058",
+    "text": "bongkar terus rezim panik! viralkan biar rakyat melek kebobrokan rezim!",
+    "author": "@cyber_drone_203",
+    "timestamp": "2026-10-25T14:06:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0059",
+    "text": "Bongkar terus rezim panikk! Viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_204",
+    "timestamp": "2026-10-25T14:06:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0060",
+    "text": "bongkar trs rezim panik! viralkan biar rakyat melek kebobrokan!",
+    "author": "@cyber_drone_205",
+    "timestamp": "2026-10-25T14:06:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0061",
+    "text": "Bongkar terus rezim panik! Viralkan biar rakyat sadar kebobrokan",
+    "author": "@cyber_drone_206",
+    "timestamp": "2026-10-25T14:07:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0062",
+    "text": "Bongkar terus rezim panik, viralkan spy rakyat melek kebobrokan",
+    "author": "@cyber_drone_207",
+    "timestamp": "2026-10-25T14:07:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0063",
+    "text": "bongkar terus rezim panik viralkann biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_208",
+    "timestamp": "2026-10-25T14:07:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0064",
+    "text": "BONGKAR TERUS REZIM PANIK VIRALKAN BIAR RAKYAT MELEK KEBOBROKAN!",
+    "author": "@cyber_drone_209",
+    "timestamp": "2026-10-25T14:08:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0065",
+    "text": "Bongkar trs rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_210",
+    "timestamp": "2026-10-25T14:08:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0066",
+    "text": "bongkar terus rezim panik! viralkan biar seluruh rakyat melek kebobrokan",
+    "author": "@cyber_drone_201",
+    "timestamp": "2026-10-25T14:08:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0067",
+    "text": "Bongkar terus rezim panik!! Viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_202",
+    "timestamp": "2026-10-25T14:09:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0068",
+    "text": "Bongkar teruss rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_203",
+    "timestamp": "2026-10-25T14:09:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0069",
+    "text": "bongkar trs rezim panikk viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_204",
+    "timestamp": "2026-10-25T14:09:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0070",
+    "text": "Bongkar terus rezim panik, viralkann biar rakyat melek kebobrokan!",
+    "author": "@cyber_drone_205",
+    "timestamp": "2026-10-25T14:10:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0071",
+    "text": "bongkar terus rezim panik viralkan spya rakyat melek kebobrokan",
+    "author": "@cyber_drone_206",
+    "timestamp": "2026-10-25T14:10:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0072",
+    "text": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan rezim",
+    "author": "@cyber_drone_207",
+    "timestamp": "2026-10-25T14:10:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0073",
+    "text": "Bongkar trs rezim panik viralkan biar rakyat melek kebobrokan ini",
+    "author": "@cyber_drone_208",
+    "timestamp": "2026-10-25T14:11:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0074",
+    "text": "bongkar terus rezimm panik! viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_209",
+    "timestamp": "2026-10-25T14:11:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0075",
+    "text": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan!",
+    "author": "@cyber_drone_210",
+    "timestamp": "2026-10-25T14:11:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0076",
+    "text": "bongkar trs rezim panik viralkann biar rakyat melek kebobrokan rezim",
+    "author": "@cyber_drone_201",
+    "timestamp": "2026-10-25T14:12:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0077",
+    "text": "Bongkar terus rezim panik!! viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_202",
+    "timestamp": "2026-10-25T14:12:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0078",
+    "text": "Bongkar teruss rezim panik viralkan spy rakyat melek kebobrokan",
+    "author": "@cyber_drone_203",
+    "timestamp": "2026-10-25T14:12:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0079",
+    "text": "bongkar terus rezim panik! viralkan biar rakyat melek kebobrokan skrg",
+    "author": "@cyber_drone_204",
+    "timestamp": "2026-10-25T14:13:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0080",
+    "text": "Bongkar terus rezim panik viralkan biar rakyat melek kebobrokan!",
+    "author": "@cyber_drone_205",
+    "timestamp": "2026-10-25T14:13:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0081",
+    "text": "Bongkar trs rezim panikk! Viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_206",
+    "timestamp": "2026-10-25T14:13:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0082",
+    "text": "bongkar terus rezim panik! viralkan biar rakyat makin melek kebobrokan",
+    "author": "@cyber_drone_207",
+    "timestamp": "2026-10-25T14:14:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0083",
+    "text": "Bongkar terus rezim panik, viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_208",
+    "timestamp": "2026-10-25T14:14:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0084",
+    "text": "bongkar trs rezim panik viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_209",
+    "timestamp": "2026-10-25T14:14:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0085",
+    "text": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "author": "@cyber_drone_210",
+    "timestamp": "2026-10-25T14:15:34Z",
+    "category": "BUZZER_B",
+    "clusterTemplate": "Bongkar terus rezim panik! Viralkan biar rakyat melek kebobrokan",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0086",
+    "text": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "author": "@promo_blast_301",
+    "timestamp": "2026-10-25T14:05:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0087",
+    "text": "bansos 5jt beneran cairr klik link di bio sblm kuota abiss",
+    "author": "@promo_blast_302",
+    "timestamp": "2026-10-25T14:05:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0088",
+    "text": "Bansos 5jt beneran cair, buruan klik link di bio sblm kuota habis ya",
+    "author": "@promo_blast_303",
+    "timestamp": "2026-10-25T14:05:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0089",
+    "text": "bansos 5jt bnrn cair klik link bio sblm kuota habis!",
+    "author": "@promo_blast_304",
+    "timestamp": "2026-10-25T14:06:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0090",
+    "text": "Bansos 5jt beneran cair!! Klik link di bio sblm kuota habis",
+    "author": "@promo_blast_305",
+    "timestamp": "2026-10-25T14:06:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0091",
+    "text": "BANSOS 5JT BENERAN CAIR, KLIK LINK DI BIO SBLM KUOTA HABIS!",
+    "author": "@promo_blast_306",
+    "timestamp": "2026-10-25T14:06:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0092",
+    "text": "bansos 5jt beneran cair, klik link di bio sblm kuota habis ya guys",
+    "author": "@promo_blast_307",
+    "timestamp": "2026-10-25T14:07:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0093",
+    "text": "Bansos 5jt bnrn cair, klik link bio sebelum kuota habis!",
+    "author": "@promo_blast_308",
+    "timestamp": "2026-10-25T14:07:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0094",
+    "text": "bansos 5jt beneran cair.. klik link di bio sblm kuota habis",
+    "author": "@promo_blast_301",
+    "timestamp": "2026-10-25T14:07:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0095",
+    "text": "Bansos 5jt beneran cair! Buruan klik link di bio sblm kuota habis",
+    "author": "@promo_blast_302",
+    "timestamp": "2026-10-25T14:08:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0096",
+    "text": "bansos 5jt beneran cair klik link di bio sblm kuota habis!",
+    "author": "@promo_blast_303",
+    "timestamp": "2026-10-25T14:08:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0097",
+    "text": "Bansos 5jt bnrn cairr klik link di bio sblm kuota abis",
+    "author": "@promo_blast_304",
+    "timestamp": "2026-10-25T14:08:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0098",
+    "text": "Bansos 5jt beneran cair, klik tautan di bio sblm kuota habis!",
+    "author": "@promo_blast_305",
+    "timestamp": "2026-10-25T14:09:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0099",
+    "text": "bansos 5jt beneran cair! klik link bio sblm kuota habis ya",
+    "author": "@promo_blast_306",
+    "timestamp": "2026-10-25T14:09:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0100",
+    "text": "Bansos 5jt beneran cair.. buruan klik link di bio sblm kuota habis!",
+    "author": "@promo_blast_307",
+    "timestamp": "2026-10-25T14:09:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0101",
+    "text": "Bansos 5jt beneran cair, klik link di bio sebelum kuota habis",
+    "author": "@promo_blast_308",
+    "timestamp": "2026-10-25T14:10:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0102",
+    "text": "bansos 5jt bnrn cair klik link di bio sblm kuota habis ya",
+    "author": "@promo_blast_301",
+    "timestamp": "2026-10-25T14:10:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0103",
+    "text": "Bansos 5jt beneran cair! Klik link di bio sblm kuota abis",
+    "author": "@promo_blast_302",
+    "timestamp": "2026-10-25T14:10:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0104",
+    "text": "bansos 5jt beneran cair buruan klik link bio sblm kuota habis!",
+    "author": "@promo_blast_303",
+    "timestamp": "2026-10-25T14:11:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0105",
+    "text": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis",
+    "author": "@promo_blast_304",
+    "timestamp": "2026-10-25T14:11:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0106",
+    "text": "BANSOS 5JT BENERAN CAIR KLIK LINK DI BIO SBLM KUOTA HABIS",
+    "author": "@promo_blast_305",
+    "timestamp": "2026-10-25T14:11:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0107",
+    "text": "bansos 5jt beneran cairr, klik link di bio sblm kuota habis",
+    "author": "@promo_blast_306",
+    "timestamp": "2026-10-25T14:12:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0108",
+    "text": "Bansos 5jt bnrn cair! Klik link bio sebelum kuota habis!",
+    "author": "@promo_blast_307",
+    "timestamp": "2026-10-25T14:12:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0109",
+    "text": "bansos 5jt beneran cair, buruan klik tautan di bio sblm kuota habis",
+    "author": "@promo_blast_308",
+    "timestamp": "2026-10-25T14:12:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0110",
+    "text": "Bansos 5jt beneran cair klik link di bio sblm kuota habis dong",
+    "author": "@promo_blast_301",
+    "timestamp": "2026-10-25T14:13:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0111",
+    "text": "bansos 5jt beneran cair! klik link di bio sblm kuota habis",
+    "author": "@promo_blast_302",
+    "timestamp": "2026-10-25T14:13:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0112",
+    "text": "Bansos 5jt bnrn cairr klik link bio sblm kuota habis ya",
+    "author": "@promo_blast_303",
+    "timestamp": "2026-10-25T14:13:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0113",
+    "text": "Bansos 5jt beneran cair.. klik tautan di bio sblm kuota habis",
+    "author": "@promo_blast_304",
+    "timestamp": "2026-10-25T14:14:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0114",
+    "text": "bansos 5jt beneran cair, buruan klik link bio sblm kuota habis",
+    "author": "@promo_blast_305",
+    "timestamp": "2026-10-25T14:14:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0115",
+    "text": "Bansos 5jt beneran cair!! klik link di bio sebelum kuota habis",
+    "author": "@promo_blast_306",
+    "timestamp": "2026-10-25T14:14:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0116",
+    "text": "bansos 5jt bnrn cair klik link di bio sblm kuota abis!",
+    "author": "@promo_blast_307",
+    "timestamp": "2026-10-25T14:15:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0117",
+    "text": "Bansos 5jt beneran cair, klik link bio sblm kuota habis ya guys",
+    "author": "@promo_blast_308",
+    "timestamp": "2026-10-25T14:15:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0118",
+    "text": "bansos 5jt beneran cair buruan klik link di bio sblm kuota habis",
+    "author": "@promo_blast_301",
+    "timestamp": "2026-10-25T14:15:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0119",
+    "text": "Bansos 5jt beneran cair! klik link di bio sblm kuota habis!",
+    "author": "@promo_blast_302",
+    "timestamp": "2026-10-25T14:16:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0120",
+    "text": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "author": "@promo_blast_303",
+    "timestamp": "2026-10-25T14:16:18Z",
+    "category": "BUZZER_C",
+    "clusterTemplate": "Bansos 5jt beneran cair, klik link di bio sblm kuota habis!",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0121",
+    "text": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "author": "@agitator_west_401",
+    "timestamp": "2026-10-25T14:08:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0122",
+    "text": "rakyat papua tolak otsus dan militerisasi berikan referendum skrng",
+    "author": "@agitator_west_402",
+    "timestamp": "2026-10-25T14:08:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0123",
+    "text": "Rakyat Papua tolak otsus & militerisasi, berikan hak referendum sekarang juga",
+    "author": "@agitator_west_403",
+    "timestamp": "2026-10-25T14:08:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0124",
+    "text": "rakyat papua menolak otsus militerisasi berikan referendum skrg",
+    "author": "@agitator_west_404",
+    "timestamp": "2026-10-25T14:09:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0125",
+    "text": "Rakyat Papua tolak otsus dan militerisasi! Berikan referendum sekarang",
+    "author": "@agitator_west_405",
+    "timestamp": "2026-10-25T14:09:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0126",
+    "text": "RAKYAT PAPUA TOLAK OTSUS DAN MILITERISASI, BERIKAN REFERENDUM SEKARANG",
+    "author": "@agitator_west_406",
+    "timestamp": "2026-10-25T14:09:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0127",
+    "text": "rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang juga",
+    "author": "@agitator_west_407",
+    "timestamp": "2026-10-25T14:10:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0128",
+    "text": "Rakyat Papua tolak otsus dan militerisasi berikan referendum skrng!",
+    "author": "@agitator_west_401",
+    "timestamp": "2026-10-25T14:10:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0129",
+    "text": "rakyat papua menolak otsus dan militerisasi, berikan referendum sekarang",
+    "author": "@agitator_west_402",
+    "timestamp": "2026-10-25T14:10:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0130",
+    "text": "Rakyat Papua tolak otsus dan militerisasi! Berikan hak referendum sekarang",
+    "author": "@agitator_west_403",
+    "timestamp": "2026-10-25T14:11:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0131",
+    "text": "rakyat papua tolak otsus & militerisasi berikan referendum skrg",
+    "author": "@agitator_west_404",
+    "timestamp": "2026-10-25T14:11:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0132",
+    "text": "Rakyat Papua tolak otsus dan militerisasi.. berikan referendum sekarang",
+    "author": "@agitator_west_405",
+    "timestamp": "2026-10-25T14:11:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0133",
+    "text": "rakyat Papua tolak otsus militerisasi, berikan referendum sekarang juga",
+    "author": "@agitator_west_406",
+    "timestamp": "2026-10-25T14:12:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0134",
+    "text": "Rakyat Papua tolak otsus dan militerisasi, berikan hak referendum skrng",
+    "author": "@agitator_west_407",
+    "timestamp": "2026-10-25T14:12:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0135",
+    "text": "rakyat papua tolak otsus dan militerisasi berikan referendum sekarang!",
+    "author": "@agitator_west_401",
+    "timestamp": "2026-10-25T14:12:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0136",
+    "text": "Rakyat Papua tolak otsus dan militerisasi! Berikan referendum skrg",
+    "author": "@agitator_west_402",
+    "timestamp": "2026-10-25T14:13:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0137",
+    "text": "rakyat papua menolak otsus dan militerisasi berikan hak referendum sekarang",
+    "author": "@agitator_west_403",
+    "timestamp": "2026-10-25T14:13:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0138",
+    "text": "Rakyat Papua tolak otsus & militerisasi, berikan referendum sekarang",
+    "author": "@agitator_west_404",
+    "timestamp": "2026-10-25T14:13:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0139",
+    "text": "rakyat Papua tolak otsus dan militerisasi berikan referendum skrg juga",
+    "author": "@agitator_west_405",
+    "timestamp": "2026-10-25T14:14:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0140",
+    "text": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "author": "@agitator_west_406",
+    "timestamp": "2026-10-25T14:14:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0141",
+    "text": "RAKYAT PAPUA TOLAK OTSUS DAN MILITERISASI! BERIKAN REFERENDUM SEKARANG!",
+    "author": "@agitator_west_407",
+    "timestamp": "2026-10-25T14:14:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0142",
+    "text": "rakyat papua tolak otsus dan militerisasi.. berikan referendum skrng",
+    "author": "@agitator_west_401",
+    "timestamp": "2026-10-25T14:15:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0143",
+    "text": "Rakyat Papua tolak otsus militerisasi, berikan hak referendum sekarang",
+    "author": "@agitator_west_402",
+    "timestamp": "2026-10-25T14:15:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0144",
+    "text": "rakyat Papua tolak otsus & militerisasi berikan referendum sekarang juga",
+    "author": "@agitator_west_403",
+    "timestamp": "2026-10-25T14:15:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0145",
+    "text": "Rakyat Papua tolak otsus dan militerisasi berikan hak referendum skrg",
+    "author": "@agitator_west_404",
+    "timestamp": "2026-10-25T14:16:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0146",
+    "text": "rakyat papua menolak otsus dan militerisasi, berikan referendum sekarang juga",
+    "author": "@agitator_west_405",
+    "timestamp": "2026-10-25T14:16:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0147",
+    "text": "Rakyat Papua tolak otsus dan militerisasi! Berikan referendum sekarang!",
+    "author": "@agitator_west_406",
+    "timestamp": "2026-10-25T14:16:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0148",
+    "text": "rakyat Papua tolak otsus dan militerisasi berikan referendum sekarang",
+    "author": "@agitator_west_407",
+    "timestamp": "2026-10-25T14:17:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0149",
+    "text": "Rakyat Papua tolak otsus dan militerisasi, berikan hak referendum sekarang",
+    "author": "@agitator_west_401",
+    "timestamp": "2026-10-25T14:17:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0150",
+    "text": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "author": "@agitator_west_402",
+    "timestamp": "2026-10-25T14:17:45Z",
+    "category": "BUZZER_D",
+    "clusterTemplate": "Rakyat Papua tolak otsus dan militerisasi, berikan referendum sekarang",
+    "isBuzzer": true,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0151",
+    "text": "kebijakan impor beras bikin petani lokal gigit jari pemerintah maunya apa tolong dengar aspirasi kami",
+    "author": "@warga_kritis_10",
+    "timestamp": "2026-10-25T14:10:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0152",
+    "text": "gila ya biaya hidup makin mahal sementara gaji UMR gak naik-naik tolong dengar aspirasi kami",
+    "author": "@warga_kritis_11",
+    "timestamp": "2026-10-25T14:11:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0153",
+    "text": "pejabat kerjanya cuma pamer kemewahan sementara rakyat antre minyak goreng tolong dengar aspirasi kami",
+    "author": "@warga_kritis_12",
+    "timestamp": "2026-10-25T14:12:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0154",
+    "text": "pelayanan rumah sakit umum lambat banget pasien kritis dibiarin nunggu tolong dengar aspirasi kami",
+    "author": "@warga_kritis_13",
+    "timestamp": "2026-10-25T14:13:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0155",
+    "text": "jalan di daerah kami rusak parah berlubang gak pernah diperbaiki pemda tolong dengar aspirasi kami",
+    "author": "@warga_kritis_14",
+    "timestamp": "2026-10-25T14:14:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0156",
+    "text": "korupsi di kementerian makin terang-terangan hukum cuma tajam ke bawah tolong dengar aspirasi kami",
+    "author": "@warga_kritis_15",
+    "timestamp": "2026-10-25T14:15:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0157",
+    "text": "janji politik dulu katanya mau ciptakan lapangan kerja kenyataannya PHK massal tolong dengar aspirasi kami",
+    "author": "@warga_kritis_16",
+    "timestamp": "2026-10-25T14:16:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0158",
+    "text": "listrik sering padam tanpa pemberitahuan giliran telat bayar langsung diputus tolong dengar aspirasi kami",
+    "author": "@warga_kritis_17",
+    "timestamp": "2026-10-25T14:17:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0159",
+    "text": "hukum di negeri ini beneran bisa dibeli yang punya uang selalu menang tolong dengar aspirasi kami",
+    "author": "@warga_kritis_18",
+    "timestamp": "2026-10-25T14:18:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0160",
+    "text": "kecewa banget sama kepengurusan bantuan sosial yang salah sasaran terus tolong dengar aspirasi kami",
+    "author": "@warga_kritis_19",
+    "timestamp": "2026-10-25T14:19:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0161",
+    "text": "anak pejabat nabrak orang gak dihukum rakyat jelata curi semangka dipenjara tolong dengar aspirasi kami",
+    "author": "@warga_kritis_20",
+    "timestamp": "2026-10-25T14:20:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0162",
+    "text": "anggaran pendidikan triliunan tapi sekolah di pelosok atapnya pada roboh tolong dengar aspirasi kami",
+    "author": "@warga_kritis_21",
+    "timestamp": "2026-10-25T14:21:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0163",
+    "text": "kenaikan pajak bikin pengusaha UMKM gulung tikar gak ada insentif nyata tolong dengar aspirasi kami",
+    "author": "@warga_kritis_22",
+    "timestamp": "2026-10-25T14:22:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0164",
+    "text": "menteri perdagangan harusnya introspeksi kalau harga pangan terus melonjak tolong dengar aspirasi kami",
+    "author": "@warga_kritis_23",
+    "timestamp": "2026-10-25T14:23:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0165",
+    "text": "birokrasi berbelit-belit ngurus izin usaha kecil dipersulit oknum nakal tolong dengar aspirasi kami",
+    "author": "@warga_kritis_24",
+    "timestamp": "2026-10-25T14:24:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0166",
+    "text": "lingkungan hidup rusak gara-gara izin tambang ugal-ugalan dekat pemukiman tolong dengar aspirasi kami",
+    "author": "@warga_kritis_25",
+    "timestamp": "2026-10-25T14:25:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0167",
+    "text": "polusi udara di kota makin mencekik anak-anak pada kena ISPA pemda diam aja tolong dengar aspirasi kami",
+    "author": "@warga_kritis_26",
+    "timestamp": "2026-10-25T14:26:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0168",
+    "text": "kelangkaan gas elpiji 3kg bikin pedagang kaki lima menjerit tiap hari tolong dengar aspirasi kami",
+    "author": "@warga_kritis_27",
+    "timestamp": "2026-10-25T14:27:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0169",
+    "text": "subsidi pupuk dipotong pas petani mau musim tanam logika pejabat di mana tolong dengar aspirasi kami",
+    "author": "@warga_kritis_28",
+    "timestamp": "2026-10-25T14:28:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0170",
+    "text": "mafia tanah berkeliaran bebas rampas lahan warga sertifikat asli gak berguna tolong dengar aspirasi kami",
+    "author": "@warga_kritis_29",
+    "timestamp": "2026-10-25T14:29:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0171",
+    "text": "harga tiket transportasi umum naik terus fasilitasnya makin kumuh dan sempit tolong dengar aspirasi kami",
+    "author": "@warga_kritis_30",
+    "timestamp": "2026-10-25T14:30:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0172",
+    "text": "keamanan di perumahan makin rawan begal merajalela ronda malam gak cukup tolong dengar aspirasi kami",
+    "author": "@warga_kritis_31",
+    "timestamp": "2026-10-25T14:31:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0173",
+    "text": "anggaran studi banding luar negeri pejabat miliaran tapi gak ada hasil konkrit tolong dengar aspirasi kami",
+    "author": "@warga_kritis_32",
+    "timestamp": "2026-10-25T14:32:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0174",
+    "text": "bencana banjir tahunan di ibukota gak ada solusi tuntas saling lempar wewenang tolong dengar aspirasi kami",
+    "author": "@warga_kritis_33",
+    "timestamp": "2026-10-25T14:33:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0175",
+    "text": "ijazah palsu pejabat disorot publik tapi penyelidikannya menguap begitu saja tolong dengar aspirasi kami",
+    "author": "@warga_kritis_34",
+    "timestamp": "2026-10-25T14:34:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0176",
+    "text": "pinjaman online ilegal merajalela teror warga OJK lambat ambil tindakan tolong dengar aspirasi kami",
+    "author": "@warga_kritis_35",
+    "timestamp": "2026-10-25T14:35:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0177",
+    "text": "kecurangan di seleksi CPNS daerah terbukti tapi gak ada pembatalan resmi tolong dengar aspirasi kami",
+    "author": "@warga_kritis_36",
+    "timestamp": "2026-10-25T14:36:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0178",
+    "text": "air bersih PDAM sering mati warga terpaksa beli air tangki mahal tiap minggu tolong dengar aspirasi kami",
+    "author": "@warga_kritis_37",
+    "timestamp": "2026-10-25T14:37:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0179",
+    "text": "sampah menumpuk di bantaran sungai aroma busuk ganggu aktivitas warga tolong dengar aspirasi kami",
+    "author": "@warga_kritis_38",
+    "timestamp": "2026-10-25T14:38:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0180",
+    "text": "fasilitas puskesmas di desa sangat minim obat-obatan dasar sering kosong tolong dengar aspirasi kami",
+    "author": "@warga_kritis_39",
+    "timestamp": "2026-10-25T14:39:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0181",
+    "text": "anggaran pemilu triliunan cuma hasilkan pemimpin yang lupa sama rakyat tolong dengar aspirasi kami",
+    "author": "@warga_kritis_40",
+    "timestamp": "2026-10-25T14:40:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0182",
+    "text": "guru honorer digaji ratusan ribu per bulan sementara staf kementerian foya-foya tolong dengar aspirasi kami",
+    "author": "@warga_kritis_41",
+    "timestamp": "2026-10-25T14:41:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0183",
+    "text": "kemacetan parah tiap jam pulang kerja rekayasa lalu lintas gak efektif tolong dengar aspirasi kami",
+    "author": "@warga_kritis_42",
+    "timestamp": "2026-10-25T14:42:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0184",
+    "text": "tarif tol naik berkali-kali tapi jalanan bergelombang bikin ban cepat aus tolong dengar aspirasi kami",
+    "author": "@warga_kritis_43",
+    "timestamp": "2026-10-25T14:43:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0185",
+    "text": "pemberantasan narkoba cuma tangkap kurir kecil bandar besarnya bebas melenggang tolong dengar aspirasi kami",
+    "author": "@warga_kritis_44",
+    "timestamp": "2026-10-25T14:44:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0186",
+    "text": "harga cabai rawit tembus seratus ribu per kilo ibu rumah tangga pusing tolong dengar aspirasi kami",
+    "author": "@warga_kritis_45",
+    "timestamp": "2026-10-25T14:45:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0187",
+    "text": "pemadaman kebakaran hutan lambat lahan gambut terlanjur hangus ribuan hektar tolong dengar aspirasi kami",
+    "author": "@warga_kritis_46",
+    "timestamp": "2026-10-25T14:46:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0188",
+    "text": "proyek jembatan mangkrak bertahun-tahun kontraktor kabur gak ada sanksi tolong dengar aspirasi kami",
+    "author": "@warga_kritis_47",
+    "timestamp": "2026-10-25T14:47:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0189",
+    "text": "kebijakan zonasi sekolah malah bikin anak pintar gagal masuk sekolah negeri tolong dengar aspirasi kami",
+    "author": "@warga_kritis_48",
+    "timestamp": "2026-10-25T14:48:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0190",
+    "text": "pungutan liar di jembatan timbang masih jalan supir truk mengeluh terus tolong dengar aspirasi kami",
+    "author": "@warga_kritis_49",
+    "timestamp": "2026-10-25T14:49:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0191",
+    "text": "harga obat paten di apotek selangit pasien kronis kesulitan berobat rutin tolong dengar aspirasi kami",
+    "author": "@warga_kritis_50",
+    "timestamp": "2026-10-25T14:50:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0192",
+    "text": "tempat pembuangan akhir overload bau menyengat radius lima kilometer tolong dengar aspirasi kami",
+    "author": "@warga_kritis_51",
+    "timestamp": "2026-10-25T14:51:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0193",
+    "text": "kasus kekerasan seksual di kampus penanganannya lambat korban malah diintimidasi tolong dengar aspirasi kami",
+    "author": "@warga_kritis_52",
+    "timestamp": "2026-10-25T14:52:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0194",
+    "text": "nelayan tradisional kalah bersaing sama kapal pukat harimau ilegal asing tolong dengar aspirasi kami",
+    "author": "@warga_kritis_53",
+    "timestamp": "2026-10-25T14:53:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0195",
+    "text": "pasar tradisional becek dan kumuh gak pernah direnovasi dinas pasar tolong dengar aspirasi kami",
+    "author": "@warga_kritis_54",
+    "timestamp": "2026-10-25T14:54:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0196",
+    "text": "keluhan konsumen di media sosial malah diancam pasal karet pencemaran nama baik tolong dengar aspirasi kami",
+    "author": "@warga_kritis_55",
+    "timestamp": "2026-10-25T14:10:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0197",
+    "text": "akses internet di perbatasan lambat banget anak-anak susah belajar daring tolong dengar aspirasi kami",
+    "author": "@warga_kritis_56",
+    "timestamp": "2026-10-25T14:11:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0198",
+    "text": "bantuan bencana gempa dipotong oknum aparat desa tega banget makan hak korban tolong dengar aspirasi kami",
+    "author": "@warga_kritis_57",
+    "timestamp": "2026-10-25T14:12:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0199",
+    "text": "taman kota rusak dipenuhi pedagang liar ruang terbuka hijau makin hilang tolong dengar aspirasi kami",
+    "author": "@warga_kritis_58",
+    "timestamp": "2026-10-25T14:13:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0200",
+    "text": "judi online makin marak anak muda terjerat hutang polisi kemana aja tolong dengar aspirasi kami",
+    "author": "@warga_kritis_59",
+    "timestamp": "2026-10-25T14:14:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0201",
+    "text": "kebijakan impor beras bikin petani lokal gigit jari pemerintah maunya apa warga sudah muak kondisi ini",
+    "author": "@warga_kritis_60",
+    "timestamp": "2026-10-25T14:15:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0202",
+    "text": "gila ya biaya hidup makin mahal sementara gaji UMR gak naik-naik warga sudah muak kondisi ini",
+    "author": "@warga_kritis_61",
+    "timestamp": "2026-10-25T14:16:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0203",
+    "text": "pejabat kerjanya cuma pamer kemewahan sementara rakyat antre minyak goreng warga sudah muak kondisi ini",
+    "author": "@warga_kritis_62",
+    "timestamp": "2026-10-25T14:17:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0204",
+    "text": "pelayanan rumah sakit umum lambat banget pasien kritis dibiarin nunggu warga sudah muak kondisi ini",
+    "author": "@warga_kritis_63",
+    "timestamp": "2026-10-25T14:18:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0205",
+    "text": "jalan di daerah kami rusak parah berlubang gak pernah diperbaiki pemda warga sudah muak kondisi ini",
+    "author": "@warga_kritis_64",
+    "timestamp": "2026-10-25T14:19:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0206",
+    "text": "korupsi di kementerian makin terang-terangan hukum cuma tajam ke bawah warga sudah muak kondisi ini",
+    "author": "@warga_kritis_65",
+    "timestamp": "2026-10-25T14:20:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0207",
+    "text": "janji politik dulu katanya mau ciptakan lapangan kerja kenyataannya PHK massal warga sudah muak kondisi ini",
+    "author": "@warga_kritis_66",
+    "timestamp": "2026-10-25T14:21:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0208",
+    "text": "listrik sering padam tanpa pemberitahuan giliran telat bayar langsung diputus warga sudah muak kondisi ini",
+    "author": "@warga_kritis_67",
+    "timestamp": "2026-10-25T14:22:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0209",
+    "text": "hukum di negeri ini beneran bisa dibeli yang punya uang selalu menang warga sudah muak kondisi ini",
+    "author": "@warga_kritis_68",
+    "timestamp": "2026-10-25T14:23:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0210",
+    "text": "kecewa banget sama kepengurusan bantuan sosial yang salah sasaran terus warga sudah muak kondisi ini",
+    "author": "@warga_kritis_69",
+    "timestamp": "2026-10-25T14:24:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0211",
+    "text": "anak pejabat nabrak orang gak dihukum rakyat jelata curi semangka dipenjara warga sudah muak kondisi ini",
+    "author": "@warga_kritis_70",
+    "timestamp": "2026-10-25T14:25:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0212",
+    "text": "anggaran pendidikan triliunan tapi sekolah di pelosok atapnya pada roboh warga sudah muak kondisi ini",
+    "author": "@warga_kritis_71",
+    "timestamp": "2026-10-25T14:26:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0213",
+    "text": "kenaikan pajak bikin pengusaha UMKM gulung tikar gak ada insentif nyata warga sudah muak kondisi ini",
+    "author": "@warga_kritis_72",
+    "timestamp": "2026-10-25T14:27:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0214",
+    "text": "menteri perdagangan harusnya introspeksi kalau harga pangan terus melonjak warga sudah muak kondisi ini",
+    "author": "@warga_kritis_73",
+    "timestamp": "2026-10-25T14:28:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0215",
+    "text": "birokrasi berbelit-belit ngurus izin usaha kecil dipersulit oknum nakal warga sudah muak kondisi ini",
+    "author": "@warga_kritis_74",
+    "timestamp": "2026-10-25T14:29:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0216",
+    "text": "lingkungan hidup rusak gara-gara izin tambang ugal-ugalan dekat pemukiman warga sudah muak kondisi ini",
+    "author": "@warga_kritis_75",
+    "timestamp": "2026-10-25T14:30:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0217",
+    "text": "polusi udara di kota makin mencekik anak-anak pada kena ISPA pemda diam aja warga sudah muak kondisi ini",
+    "author": "@warga_kritis_76",
+    "timestamp": "2026-10-25T14:31:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0218",
+    "text": "kelangkaan gas elpiji 3kg bikin pedagang kaki lima menjerit tiap hari warga sudah muak kondisi ini",
+    "author": "@warga_kritis_77",
+    "timestamp": "2026-10-25T14:32:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0219",
+    "text": "subsidi pupuk dipotong pas petani mau musim tanam logika pejabat di mana warga sudah muak kondisi ini",
+    "author": "@warga_kritis_78",
+    "timestamp": "2026-10-25T14:33:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0220",
+    "text": "mafia tanah berkeliaran bebas rampas lahan warga sertifikat asli gak berguna warga sudah muak kondisi ini",
+    "author": "@warga_kritis_79",
+    "timestamp": "2026-10-25T14:34:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0221",
+    "text": "harga tiket transportasi umum naik terus fasilitasnya makin kumuh dan sempit warga sudah muak kondisi ini",
+    "author": "@warga_kritis_80",
+    "timestamp": "2026-10-25T14:35:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0222",
+    "text": "keamanan di perumahan makin rawan begal merajalela ronda malam gak cukup warga sudah muak kondisi ini",
+    "author": "@warga_kritis_81",
+    "timestamp": "2026-10-25T14:36:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0223",
+    "text": "anggaran studi banding luar negeri pejabat miliaran tapi gak ada hasil konkrit warga sudah muak kondisi ini",
+    "author": "@warga_kritis_82",
+    "timestamp": "2026-10-25T14:37:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0224",
+    "text": "bencana banjir tahunan di ibukota gak ada solusi tuntas saling lempar wewenang warga sudah muak kondisi ini",
+    "author": "@warga_kritis_83",
+    "timestamp": "2026-10-25T14:38:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0225",
+    "text": "ijazah palsu pejabat disorot publik tapi penyelidikannya menguap begitu saja warga sudah muak kondisi ini",
+    "author": "@warga_kritis_84",
+    "timestamp": "2026-10-25T14:39:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0226",
+    "text": "pinjaman online ilegal merajalela teror warga OJK lambat ambil tindakan warga sudah muak kondisi ini",
+    "author": "@warga_kritis_85",
+    "timestamp": "2026-10-25T14:40:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0227",
+    "text": "kecurangan di seleksi CPNS daerah terbukti tapi gak ada pembatalan resmi warga sudah muak kondisi ini",
+    "author": "@warga_kritis_86",
+    "timestamp": "2026-10-25T14:41:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0228",
+    "text": "air bersih PDAM sering mati warga terpaksa beli air tangki mahal tiap minggu warga sudah muak kondisi ini",
+    "author": "@warga_kritis_87",
+    "timestamp": "2026-10-25T14:42:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0229",
+    "text": "sampah menumpuk di bantaran sungai aroma busuk ganggu aktivitas warga warga sudah muak kondisi ini",
+    "author": "@warga_kritis_88",
+    "timestamp": "2026-10-25T14:43:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0230",
+    "text": "fasilitas puskesmas di desa sangat minim obat-obatan dasar sering kosong warga sudah muak kondisi ini",
+    "author": "@warga_kritis_89",
+    "timestamp": "2026-10-25T14:44:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0231",
+    "text": "anggaran pemilu triliunan cuma hasilkan pemimpin yang lupa sama rakyat warga sudah muak kondisi ini",
+    "author": "@warga_kritis_90",
+    "timestamp": "2026-10-25T14:45:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0232",
+    "text": "guru honorer digaji ratusan ribu per bulan sementara staf kementerian foya-foya warga sudah muak kondisi ini",
+    "author": "@warga_kritis_91",
+    "timestamp": "2026-10-25T14:46:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0233",
+    "text": "kemacetan parah tiap jam pulang kerja rekayasa lalu lintas gak efektif warga sudah muak kondisi ini",
+    "author": "@warga_kritis_92",
+    "timestamp": "2026-10-25T14:47:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0234",
+    "text": "tarif tol naik berkali-kali tapi jalanan bergelombang bikin ban cepat aus warga sudah muak kondisi ini",
+    "author": "@warga_kritis_93",
+    "timestamp": "2026-10-25T14:48:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0235",
+    "text": "pemberantasan narkoba cuma tangkap kurir kecil bandar besarnya bebas melenggang warga sudah muak kondisi ini",
+    "author": "@warga_kritis_94",
+    "timestamp": "2026-10-25T14:49:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0236",
+    "text": "harga cabai rawit tembus seratus ribu per kilo ibu rumah tangga pusing warga sudah muak kondisi ini",
+    "author": "@warga_kritis_95",
+    "timestamp": "2026-10-25T14:50:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0237",
+    "text": "pemadaman kebakaran hutan lambat lahan gambut terlanjur hangus ribuan hektar warga sudah muak kondisi ini",
+    "author": "@warga_kritis_96",
+    "timestamp": "2026-10-25T14:51:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0238",
+    "text": "proyek jembatan mangkrak bertahun-tahun kontraktor kabur gak ada sanksi warga sudah muak kondisi ini",
+    "author": "@warga_kritis_97",
+    "timestamp": "2026-10-25T14:52:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0239",
+    "text": "kebijakan zonasi sekolah malah bikin anak pintar gagal masuk sekolah negeri warga sudah muak kondisi ini",
+    "author": "@warga_kritis_98",
+    "timestamp": "2026-10-25T14:53:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0240",
+    "text": "pungutan liar di jembatan timbang masih jalan supir truk mengeluh terus warga sudah muak kondisi ini",
+    "author": "@warga_kritis_99",
+    "timestamp": "2026-10-25T14:54:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0241",
+    "text": "harga obat paten di apotek selangit pasien kronis kesulitan berobat rutin warga sudah muak kondisi ini",
+    "author": "@warga_kritis_100",
+    "timestamp": "2026-10-25T14:10:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0242",
+    "text": "tempat pembuangan akhir overload bau menyengat radius lima kilometer warga sudah muak kondisi ini",
+    "author": "@warga_kritis_101",
+    "timestamp": "2026-10-25T14:11:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0243",
+    "text": "kasus kekerasan seksual di kampus penanganannya lambat korban malah diintimidasi warga sudah muak kondisi ini",
+    "author": "@warga_kritis_102",
+    "timestamp": "2026-10-25T14:12:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0244",
+    "text": "nelayan tradisional kalah bersaing sama kapal pukat harimau ilegal asing warga sudah muak kondisi ini",
+    "author": "@warga_kritis_103",
+    "timestamp": "2026-10-25T14:13:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0245",
+    "text": "pasar tradisional becek dan kumuh gak pernah direnovasi dinas pasar warga sudah muak kondisi ini",
+    "author": "@warga_kritis_104",
+    "timestamp": "2026-10-25T14:14:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0246",
+    "text": "keluhan konsumen di media sosial malah diancam pasal karet pencemaran nama baik warga sudah muak kondisi ini",
+    "author": "@warga_kritis_105",
+    "timestamp": "2026-10-25T14:15:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0247",
+    "text": "akses internet di perbatasan lambat banget anak-anak susah belajar daring warga sudah muak kondisi ini",
+    "author": "@warga_kritis_106",
+    "timestamp": "2026-10-25T14:16:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0248",
+    "text": "bantuan bencana gempa dipotong oknum aparat desa tega banget makan hak korban warga sudah muak kondisi ini",
+    "author": "@warga_kritis_107",
+    "timestamp": "2026-10-25T14:17:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0249",
+    "text": "taman kota rusak dipenuhi pedagang liar ruang terbuka hijau makin hilang warga sudah muak kondisi ini",
+    "author": "@warga_kritis_108",
+    "timestamp": "2026-10-25T14:18:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0250",
+    "text": "judi online makin marak anak muda terjerat hutang polisi kemana aja warga sudah muak kondisi ini",
+    "author": "@warga_kritis_109",
+    "timestamp": "2026-10-25T14:19:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0251",
+    "text": "kebijakan impor beras bikin petani lokal gigit jari pemerintah maunya apa sungguh keterlaluan nomor 101",
+    "author": "@warga_kritis_110",
+    "timestamp": "2026-10-25T14:20:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0252",
+    "text": "gila ya biaya hidup makin mahal sementara gaji UMR gak naik-naik sungguh keterlaluan nomor 102",
+    "author": "@warga_kritis_111",
+    "timestamp": "2026-10-25T14:21:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0253",
+    "text": "pejabat kerjanya cuma pamer kemewahan sementara rakyat antre minyak goreng sungguh keterlaluan nomor 103",
+    "author": "@warga_kritis_112",
+    "timestamp": "2026-10-25T14:22:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0254",
+    "text": "pelayanan rumah sakit umum lambat banget pasien kritis dibiarin nunggu sungguh keterlaluan nomor 104",
+    "author": "@warga_kritis_113",
+    "timestamp": "2026-10-25T14:23:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0255",
+    "text": "jalan di daerah kami rusak parah berlubang gak pernah diperbaiki pemda sungguh keterlaluan nomor 105",
+    "author": "@warga_kritis_114",
+    "timestamp": "2026-10-25T14:24:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0256",
+    "text": "korupsi di kementerian makin terang-terangan hukum cuma tajam ke bawah sungguh keterlaluan nomor 106",
+    "author": "@warga_kritis_115",
+    "timestamp": "2026-10-25T14:25:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0257",
+    "text": "janji politik dulu katanya mau ciptakan lapangan kerja kenyataannya PHK massal sungguh keterlaluan nomor 107",
+    "author": "@warga_kritis_116",
+    "timestamp": "2026-10-25T14:26:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0258",
+    "text": "listrik sering padam tanpa pemberitahuan giliran telat bayar langsung diputus sungguh keterlaluan nomor 108",
+    "author": "@warga_kritis_117",
+    "timestamp": "2026-10-25T14:27:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0259",
+    "text": "hukum di negeri ini beneran bisa dibeli yang punya uang selalu menang sungguh keterlaluan nomor 109",
+    "author": "@warga_kritis_118",
+    "timestamp": "2026-10-25T14:28:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0260",
+    "text": "kecewa banget sama kepengurusan bantuan sosial yang salah sasaran terus sungguh keterlaluan nomor 110",
+    "author": "@warga_kritis_119",
+    "timestamp": "2026-10-25T14:29:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0261",
+    "text": "anak pejabat nabrak orang gak dihukum rakyat jelata curi semangka dipenjara sungguh keterlaluan nomor 111",
+    "author": "@warga_kritis_120",
+    "timestamp": "2026-10-25T14:30:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0262",
+    "text": "anggaran pendidikan triliunan tapi sekolah di pelosok atapnya pada roboh sungguh keterlaluan nomor 112",
+    "author": "@warga_kritis_121",
+    "timestamp": "2026-10-25T14:31:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0263",
+    "text": "kenaikan pajak bikin pengusaha UMKM gulung tikar gak ada insentif nyata sungguh keterlaluan nomor 113",
+    "author": "@warga_kritis_122",
+    "timestamp": "2026-10-25T14:32:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0264",
+    "text": "menteri perdagangan harusnya introspeksi kalau harga pangan terus melonjak sungguh keterlaluan nomor 114",
+    "author": "@warga_kritis_123",
+    "timestamp": "2026-10-25T14:33:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0265",
+    "text": "birokrasi berbelit-belit ngurus izin usaha kecil dipersulit oknum nakal sungguh keterlaluan nomor 115",
+    "author": "@warga_kritis_124",
+    "timestamp": "2026-10-25T14:34:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0266",
+    "text": "lingkungan hidup rusak gara-gara izin tambang ugal-ugalan dekat pemukiman sungguh keterlaluan nomor 116",
+    "author": "@warga_kritis_125",
+    "timestamp": "2026-10-25T14:35:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0267",
+    "text": "polusi udara di kota makin mencekik anak-anak pada kena ISPA pemda diam aja sungguh keterlaluan nomor 117",
+    "author": "@warga_kritis_126",
+    "timestamp": "2026-10-25T14:36:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0268",
+    "text": "kelangkaan gas elpiji 3kg bikin pedagang kaki lima menjerit tiap hari sungguh keterlaluan nomor 118",
+    "author": "@warga_kritis_127",
+    "timestamp": "2026-10-25T14:37:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0269",
+    "text": "subsidi pupuk dipotong pas petani mau musim tanam logika pejabat di mana sungguh keterlaluan nomor 119",
+    "author": "@warga_kritis_128",
+    "timestamp": "2026-10-25T14:38:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0270",
+    "text": "mafia tanah berkeliaran bebas rampas lahan warga sertifikat asli gak berguna sungguh keterlaluan nomor 120",
+    "author": "@warga_kritis_129",
+    "timestamp": "2026-10-25T14:39:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0271",
+    "text": "harga tiket transportasi umum naik terus fasilitasnya makin kumuh dan sempit sungguh keterlaluan nomor 121",
+    "author": "@warga_kritis_130",
+    "timestamp": "2026-10-25T14:40:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0272",
+    "text": "keamanan di perumahan makin rawan begal merajalela ronda malam gak cukup sungguh keterlaluan nomor 122",
+    "author": "@warga_kritis_131",
+    "timestamp": "2026-10-25T14:41:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0273",
+    "text": "anggaran studi banding luar negeri pejabat miliaran tapi gak ada hasil konkrit sungguh keterlaluan nomor 123",
+    "author": "@warga_kritis_132",
+    "timestamp": "2026-10-25T14:42:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0274",
+    "text": "bencana banjir tahunan di ibukota gak ada solusi tuntas saling lempar wewenang sungguh keterlaluan nomor 124",
+    "author": "@warga_kritis_133",
+    "timestamp": "2026-10-25T14:43:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0275",
+    "text": "ijazah palsu pejabat disorot publik tapi penyelidikannya menguap begitu saja sungguh keterlaluan nomor 125",
+    "author": "@warga_kritis_134",
+    "timestamp": "2026-10-25T14:44:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0276",
+    "text": "pinjaman online ilegal merajalela teror warga OJK lambat ambil tindakan sungguh keterlaluan nomor 126",
+    "author": "@warga_kritis_135",
+    "timestamp": "2026-10-25T14:45:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0277",
+    "text": "kecurangan di seleksi CPNS daerah terbukti tapi gak ada pembatalan resmi sungguh keterlaluan nomor 127",
+    "author": "@warga_kritis_136",
+    "timestamp": "2026-10-25T14:46:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0278",
+    "text": "air bersih PDAM sering mati warga terpaksa beli air tangki mahal tiap minggu sungguh keterlaluan nomor 128",
+    "author": "@warga_kritis_137",
+    "timestamp": "2026-10-25T14:47:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0279",
+    "text": "sampah menumpuk di bantaran sungai aroma busuk ganggu aktivitas warga sungguh keterlaluan nomor 129",
+    "author": "@warga_kritis_138",
+    "timestamp": "2026-10-25T14:48:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0280",
+    "text": "fasilitas puskesmas di desa sangat minim obat-obatan dasar sering kosong sungguh keterlaluan nomor 130",
+    "author": "@warga_kritis_139",
+    "timestamp": "2026-10-25T14:49:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0281",
+    "text": "anggaran pemilu triliunan cuma hasilkan pemimpin yang lupa sama rakyat sungguh keterlaluan nomor 131",
+    "author": "@warga_kritis_140",
+    "timestamp": "2026-10-25T14:50:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0282",
+    "text": "guru honorer digaji ratusan ribu per bulan sementara staf kementerian foya-foya sungguh keterlaluan nomor 132",
+    "author": "@warga_kritis_141",
+    "timestamp": "2026-10-25T14:51:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0283",
+    "text": "kemacetan parah tiap jam pulang kerja rekayasa lalu lintas gak efektif sungguh keterlaluan nomor 133",
+    "author": "@warga_kritis_142",
+    "timestamp": "2026-10-25T14:52:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0284",
+    "text": "tarif tol naik berkali-kali tapi jalanan bergelombang bikin ban cepat aus sungguh keterlaluan nomor 134",
+    "author": "@warga_kritis_143",
+    "timestamp": "2026-10-25T14:53:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0285",
+    "text": "pemberantasan narkoba cuma tangkap kurir kecil bandar besarnya bebas melenggang sungguh keterlaluan nomor 135",
+    "author": "@warga_kritis_144",
+    "timestamp": "2026-10-25T14:54:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0286",
+    "text": "harga cabai rawit tembus seratus ribu per kilo ibu rumah tangga pusing sungguh keterlaluan nomor 136",
+    "author": "@warga_kritis_145",
+    "timestamp": "2026-10-25T14:10:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0287",
+    "text": "pemadaman kebakaran hutan lambat lahan gambut terlanjur hangus ribuan hektar sungguh keterlaluan nomor 137",
+    "author": "@warga_kritis_146",
+    "timestamp": "2026-10-25T14:11:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0288",
+    "text": "proyek jembatan mangkrak bertahun-tahun kontraktor kabur gak ada sanksi sungguh keterlaluan nomor 138",
+    "author": "@warga_kritis_147",
+    "timestamp": "2026-10-25T14:12:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0289",
+    "text": "kebijakan zonasi sekolah malah bikin anak pintar gagal masuk sekolah negeri sungguh keterlaluan nomor 139",
+    "author": "@warga_kritis_148",
+    "timestamp": "2026-10-25T14:13:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0290",
+    "text": "pungutan liar di jembatan timbang masih jalan supir truk mengeluh terus sungguh keterlaluan nomor 140",
+    "author": "@warga_kritis_149",
+    "timestamp": "2026-10-25T14:14:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0291",
+    "text": "harga obat paten di apotek selangit pasien kronis kesulitan berobat rutin sungguh keterlaluan nomor 141",
+    "author": "@warga_kritis_150",
+    "timestamp": "2026-10-25T14:15:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0292",
+    "text": "tempat pembuangan akhir overload bau menyengat radius lima kilometer sungguh keterlaluan nomor 142",
+    "author": "@warga_kritis_151",
+    "timestamp": "2026-10-25T14:16:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0293",
+    "text": "kasus kekerasan seksual di kampus penanganannya lambat korban malah diintimidasi sungguh keterlaluan nomor 143",
+    "author": "@warga_kritis_152",
+    "timestamp": "2026-10-25T14:17:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0294",
+    "text": "nelayan tradisional kalah bersaing sama kapal pukat harimau ilegal asing sungguh keterlaluan nomor 144",
+    "author": "@warga_kritis_153",
+    "timestamp": "2026-10-25T14:18:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0295",
+    "text": "pasar tradisional becek dan kumuh gak pernah direnovasi dinas pasar sungguh keterlaluan nomor 145",
+    "author": "@warga_kritis_154",
+    "timestamp": "2026-10-25T14:19:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0296",
+    "text": "keluhan konsumen di media sosial malah diancam pasal karet pencemaran nama baik sungguh keterlaluan nomor 146",
+    "author": "@warga_kritis_155",
+    "timestamp": "2026-10-25T14:20:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0297",
+    "text": "akses internet di perbatasan lambat banget anak-anak susah belajar daring sungguh keterlaluan nomor 147",
+    "author": "@warga_kritis_156",
+    "timestamp": "2026-10-25T14:21:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0298",
+    "text": "bantuan bencana gempa dipotong oknum aparat desa tega banget makan hak korban sungguh keterlaluan nomor 148",
+    "author": "@warga_kritis_157",
+    "timestamp": "2026-10-25T14:22:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0299",
+    "text": "taman kota rusak dipenuhi pedagang liar ruang terbuka hijau makin hilang sungguh keterlaluan nomor 149",
+    "author": "@warga_kritis_158",
+    "timestamp": "2026-10-25T14:23:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0300",
+    "text": "judi online makin marak anak muda terjerat hutang polisi kemana aja sungguh keterlaluan nomor 150",
+    "author": "@warga_kritis_159",
+    "timestamp": "2026-10-25T14:24:22Z",
+    "category": "ORGANIC_PROVOCATIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "PROVOKATIF"
+  },
+  {
+    "id": "COM-0301",
+    "text": "jadwal pendaftaran bintara tni ad gelombang kedua tahun ini tanggal berapa ya min mohon konfirmasi admin",
+    "author": "@netizen_santun_10",
+    "timestamp": "2026-10-25T14:15:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0302",
+    "text": "mohon informasi posko kesehatan gratis di wilayah cianjur lokasinya di mana mohon konfirmasi admin",
+    "author": "@netizen_santun_11",
+    "timestamp": "2026-10-25T14:16:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0303",
+    "text": "menyimak rilis resmi dari dinas penerangan terkait klarifikasi video kemarin mohon konfirmasi admin",
+    "author": "@netizen_santun_12",
+    "timestamp": "2026-10-25T14:17:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0304",
+    "text": "apakah syarat rekrutmen taruna akmil ada tes renang militer khusus mohon konfirmasi admin",
+    "author": "@netizen_santun_13",
+    "timestamp": "2026-10-25T14:18:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0305",
+    "text": "info prakiraan cuaca maritim dari bmkg untuk perairan selat sunda hari ini mohon konfirmasi admin",
+    "author": "@netizen_santun_14",
+    "timestamp": "2026-10-25T14:19:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0306",
+    "text": "apakah jalan protokol di depan kodim ditutup sementara selama gladi upacara mohon konfirmasi admin",
+    "author": "@netizen_santun_15",
+    "timestamp": "2026-10-25T14:20:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0307",
+    "text": "bisa tolong infokan nomor kontak babinsa kelurahan merdeka untuk konfirmasi bansos mohon konfirmasi admin",
+    "author": "@netizen_santun_16",
+    "timestamp": "2026-10-25T14:21:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0308",
+    "text": "terima kasih informasinya kami menunggu pernyataan pers lengkap sore nanti mohon konfirmasi admin",
+    "author": "@netizen_santun_17",
+    "timestamp": "2026-10-25T14:22:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0309",
+    "text": "bagaimana alur pengaduan masyarakat jika menemukan tindak pidana siber mohon konfirmasi admin",
+    "author": "@netizen_santun_18",
+    "timestamp": "2026-10-25T14:23:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0310",
+    "text": "lokasi donor darah bersama korem besok pagi dimulai jam berapa mohon konfirmasi admin",
+    "author": "@netizen_santun_19",
+    "timestamp": "2026-10-25T14:24:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0311",
+    "text": "apakah dokumen surat bebas narkoba wajib dibawa saat verifikasi berkas mohon konfirmasi admin",
+    "author": "@netizen_santun_20",
+    "timestamp": "2026-10-25T14:25:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0312",
+    "text": "mohon klarifikasi apakah foto latihan gabungan tersebut diambil di baturaja mohon konfirmasi admin",
+    "author": "@netizen_santun_21",
+    "timestamp": "2026-10-25T14:26:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0313",
+    "text": "link pendaftaran online rekrutmen tamtama sedang gangguan atau bisa diakses mohon konfirmasi admin",
+    "author": "@netizen_santun_22",
+    "timestamp": "2026-10-25T14:27:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0314",
+    "text": "kami warga rt 05 ingin mengajukan penyuluhan bela negara ke koramil setempat mohon konfirmasi admin",
+    "author": "@netizen_santun_23",
+    "timestamp": "2026-10-25T14:28:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0315",
+    "text": "pembagian beras stabilisasi pasokan dari bapanas hari ini dijadwalkan di kelurahan mana mohon konfirmasi admin",
+    "author": "@netizen_santun_24",
+    "timestamp": "2026-10-25T14:29:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0316",
+    "text": "apakah ada batasan usia maksimal untuk pendaftaran perwira prajurit karier mohon konfirmasi admin",
+    "author": "@netizen_santun_25",
+    "timestamp": "2026-10-25T14:30:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0317",
+    "text": "menunggu hasil investigasi resmi kepolisian dan polmil terkait insiden semalam mohon konfirmasi admin",
+    "author": "@netizen_santun_26",
+    "timestamp": "2026-10-25T14:31:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0318",
+    "text": "izin bertanya min apakah seragam dinas harian tni ada perubahan spesifikasi baru mohon konfirmasi admin",
+    "author": "@netizen_santun_27",
+    "timestamp": "2026-10-25T14:32:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0319",
+    "text": "info simulasi tanggap darurat gempa bumi besok terbuka untuk umum atau tidak mohon konfirmasi admin",
+    "author": "@netizen_santun_28",
+    "timestamp": "2026-10-25T14:33:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0320",
+    "text": "pantauan arus mudik di jalur lintas sumatera terpantau padat lancar siang ini mohon konfirmasi admin",
+    "author": "@netizen_santun_29",
+    "timestamp": "2026-10-25T14:34:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0321",
+    "text": "jadwal pendaftaran bintara tni ad gelombang kedua tahun ini tanggal berapa ya min mohon konfirmasi admin",
+    "author": "@netizen_santun_30",
+    "timestamp": "2026-10-25T14:35:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0322",
+    "text": "mohon informasi posko kesehatan gratis di wilayah cianjur lokasinya di mana mohon konfirmasi admin",
+    "author": "@netizen_santun_31",
+    "timestamp": "2026-10-25T14:36:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0323",
+    "text": "menyimak rilis resmi dari dinas penerangan terkait klarifikasi video kemarin mohon konfirmasi admin",
+    "author": "@netizen_santun_32",
+    "timestamp": "2026-10-25T14:37:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0324",
+    "text": "apakah syarat rekrutmen taruna akmil ada tes renang militer khusus mohon konfirmasi admin",
+    "author": "@netizen_santun_33",
+    "timestamp": "2026-10-25T14:38:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0325",
+    "text": "info prakiraan cuaca maritim dari bmkg untuk perairan selat sunda hari ini mohon konfirmasi admin",
+    "author": "@netizen_santun_34",
+    "timestamp": "2026-10-25T14:39:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0326",
+    "text": "apakah jalan protokol di depan kodim ditutup sementara selama gladi upacara mohon konfirmasi admin",
+    "author": "@netizen_santun_35",
+    "timestamp": "2026-10-25T14:40:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0327",
+    "text": "bisa tolong infokan nomor kontak babinsa kelurahan merdeka untuk konfirmasi bansos mohon konfirmasi admin",
+    "author": "@netizen_santun_36",
+    "timestamp": "2026-10-25T14:41:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0328",
+    "text": "terima kasih informasinya kami menunggu pernyataan pers lengkap sore nanti mohon konfirmasi admin",
+    "author": "@netizen_santun_37",
+    "timestamp": "2026-10-25T14:42:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0329",
+    "text": "bagaimana alur pengaduan masyarakat jika menemukan tindak pidana siber mohon konfirmasi admin",
+    "author": "@netizen_santun_38",
+    "timestamp": "2026-10-25T14:43:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0330",
+    "text": "lokasi donor darah bersama korem besok pagi dimulai jam berapa mohon konfirmasi admin",
+    "author": "@netizen_santun_39",
+    "timestamp": "2026-10-25T14:44:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0331",
+    "text": "apakah dokumen surat bebas narkoba wajib dibawa saat verifikasi berkas mohon konfirmasi admin",
+    "author": "@netizen_santun_40",
+    "timestamp": "2026-10-25T14:45:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0332",
+    "text": "mohon klarifikasi apakah foto latihan gabungan tersebut diambil di baturaja mohon konfirmasi admin",
+    "author": "@netizen_santun_41",
+    "timestamp": "2026-10-25T14:46:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0333",
+    "text": "link pendaftaran online rekrutmen tamtama sedang gangguan atau bisa diakses mohon konfirmasi admin",
+    "author": "@netizen_santun_42",
+    "timestamp": "2026-10-25T14:47:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0334",
+    "text": "kami warga rt 05 ingin mengajukan penyuluhan bela negara ke koramil setempat mohon konfirmasi admin",
+    "author": "@netizen_santun_43",
+    "timestamp": "2026-10-25T14:48:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0335",
+    "text": "pembagian beras stabilisasi pasokan dari bapanas hari ini dijadwalkan di kelurahan mana mohon konfirmasi admin",
+    "author": "@netizen_santun_44",
+    "timestamp": "2026-10-25T14:49:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0336",
+    "text": "apakah ada batasan usia maksimal untuk pendaftaran perwira prajurit karier mohon konfirmasi admin",
+    "author": "@netizen_santun_45",
+    "timestamp": "2026-10-25T14:50:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0337",
+    "text": "menunggu hasil investigasi resmi kepolisian dan polmil terkait insiden semalam mohon konfirmasi admin",
+    "author": "@netizen_santun_46",
+    "timestamp": "2026-10-25T14:51:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0338",
+    "text": "izin bertanya min apakah seragam dinas harian tni ada perubahan spesifikasi baru mohon konfirmasi admin",
+    "author": "@netizen_santun_47",
+    "timestamp": "2026-10-25T14:52:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0339",
+    "text": "info simulasi tanggap darurat gempa bumi besok terbuka untuk umum atau tidak mohon konfirmasi admin",
+    "author": "@netizen_santun_48",
+    "timestamp": "2026-10-25T14:53:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0340",
+    "text": "pantauan arus mudik di jalur lintas sumatera terpantau padat lancar siang ini mohon konfirmasi admin",
+    "author": "@netizen_santun_49",
+    "timestamp": "2026-10-25T14:54:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0341",
+    "text": "jadwal pendaftaran bintara tni ad gelombang kedua tahun ini tanggal berapa ya min mohon konfirmasi admin",
+    "author": "@netizen_santun_50",
+    "timestamp": "2026-10-25T14:15:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0342",
+    "text": "mohon informasi posko kesehatan gratis di wilayah cianjur lokasinya di mana mohon konfirmasi admin",
+    "author": "@netizen_santun_51",
+    "timestamp": "2026-10-25T14:16:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0343",
+    "text": "menyimak rilis resmi dari dinas penerangan terkait klarifikasi video kemarin mohon konfirmasi admin",
+    "author": "@netizen_santun_52",
+    "timestamp": "2026-10-25T14:17:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0344",
+    "text": "apakah syarat rekrutmen taruna akmil ada tes renang militer khusus mohon konfirmasi admin",
+    "author": "@netizen_santun_53",
+    "timestamp": "2026-10-25T14:18:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0345",
+    "text": "info prakiraan cuaca maritim dari bmkg untuk perairan selat sunda hari ini mohon konfirmasi admin",
+    "author": "@netizen_santun_54",
+    "timestamp": "2026-10-25T14:19:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0346",
+    "text": "apakah jalan protokol di depan kodim ditutup sementara selama gladi upacara mohon konfirmasi admin",
+    "author": "@netizen_santun_55",
+    "timestamp": "2026-10-25T14:20:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0347",
+    "text": "bisa tolong infokan nomor kontak babinsa kelurahan merdeka untuk konfirmasi bansos mohon konfirmasi admin",
+    "author": "@netizen_santun_56",
+    "timestamp": "2026-10-25T14:21:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0348",
+    "text": "terima kasih informasinya kami menunggu pernyataan pers lengkap sore nanti mohon konfirmasi admin",
+    "author": "@netizen_santun_57",
+    "timestamp": "2026-10-25T14:22:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0349",
+    "text": "bagaimana alur pengaduan masyarakat jika menemukan tindak pidana siber mohon konfirmasi admin",
+    "author": "@netizen_santun_58",
+    "timestamp": "2026-10-25T14:23:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0350",
+    "text": "lokasi donor darah bersama korem besok pagi dimulai jam berapa mohon konfirmasi admin",
+    "author": "@netizen_santun_59",
+    "timestamp": "2026-10-25T14:24:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0351",
+    "text": "apakah dokumen surat bebas narkoba wajib dibawa saat verifikasi berkas mohon konfirmasi admin",
+    "author": "@netizen_santun_60",
+    "timestamp": "2026-10-25T14:25:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0352",
+    "text": "mohon klarifikasi apakah foto latihan gabungan tersebut diambil di baturaja mohon konfirmasi admin",
+    "author": "@netizen_santun_61",
+    "timestamp": "2026-10-25T14:26:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0353",
+    "text": "link pendaftaran online rekrutmen tamtama sedang gangguan atau bisa diakses mohon konfirmasi admin",
+    "author": "@netizen_santun_62",
+    "timestamp": "2026-10-25T14:27:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0354",
+    "text": "kami warga rt 05 ingin mengajukan penyuluhan bela negara ke koramil setempat mohon konfirmasi admin",
+    "author": "@netizen_santun_63",
+    "timestamp": "2026-10-25T14:28:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0355",
+    "text": "pembagian beras stabilisasi pasokan dari bapanas hari ini dijadwalkan di kelurahan mana mohon konfirmasi admin",
+    "author": "@netizen_santun_64",
+    "timestamp": "2026-10-25T14:29:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0356",
+    "text": "apakah ada batasan usia maksimal untuk pendaftaran perwira prajurit karier mohon konfirmasi admin",
+    "author": "@netizen_santun_65",
+    "timestamp": "2026-10-25T14:30:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0357",
+    "text": "menunggu hasil investigasi resmi kepolisian dan polmil terkait insiden semalam mohon konfirmasi admin",
+    "author": "@netizen_santun_66",
+    "timestamp": "2026-10-25T14:31:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0358",
+    "text": "izin bertanya min apakah seragam dinas harian tni ada perubahan spesifikasi baru mohon konfirmasi admin",
+    "author": "@netizen_santun_67",
+    "timestamp": "2026-10-25T14:32:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0359",
+    "text": "info simulasi tanggap darurat gempa bumi besok terbuka untuk umum atau tidak mohon konfirmasi admin",
+    "author": "@netizen_santun_68",
+    "timestamp": "2026-10-25T14:33:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0360",
+    "text": "pantauan arus mudik di jalur lintas sumatera terpantau padat lancar siang ini mohon konfirmasi admin",
+    "author": "@netizen_santun_69",
+    "timestamp": "2026-10-25T14:34:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0361",
+    "text": "jadwal pendaftaran bintara tni ad gelombang kedua tahun ini tanggal berapa ya min terima kasih penjelasannya unit 61",
+    "author": "@netizen_santun_70",
+    "timestamp": "2026-10-25T14:35:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0362",
+    "text": "mohon informasi posko kesehatan gratis di wilayah cianjur lokasinya di mana terima kasih penjelasannya unit 62",
+    "author": "@netizen_santun_71",
+    "timestamp": "2026-10-25T14:36:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0363",
+    "text": "menyimak rilis resmi dari dinas penerangan terkait klarifikasi video kemarin terima kasih penjelasannya unit 63",
+    "author": "@netizen_santun_72",
+    "timestamp": "2026-10-25T14:37:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0364",
+    "text": "apakah syarat rekrutmen taruna akmil ada tes renang militer khusus terima kasih penjelasannya unit 64",
+    "author": "@netizen_santun_73",
+    "timestamp": "2026-10-25T14:38:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0365",
+    "text": "info prakiraan cuaca maritim dari bmkg untuk perairan selat sunda hari ini terima kasih penjelasannya unit 65",
+    "author": "@netizen_santun_74",
+    "timestamp": "2026-10-25T14:39:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0366",
+    "text": "apakah jalan protokol di depan kodim ditutup sementara selama gladi upacara terima kasih penjelasannya unit 66",
+    "author": "@netizen_santun_75",
+    "timestamp": "2026-10-25T14:40:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0367",
+    "text": "bisa tolong infokan nomor kontak babinsa kelurahan merdeka untuk konfirmasi bansos terima kasih penjelasannya unit 67",
+    "author": "@netizen_santun_76",
+    "timestamp": "2026-10-25T14:41:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0368",
+    "text": "terima kasih informasinya kami menunggu pernyataan pers lengkap sore nanti terima kasih penjelasannya unit 68",
+    "author": "@netizen_santun_77",
+    "timestamp": "2026-10-25T14:42:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0369",
+    "text": "bagaimana alur pengaduan masyarakat jika menemukan tindak pidana siber terima kasih penjelasannya unit 69",
+    "author": "@netizen_santun_78",
+    "timestamp": "2026-10-25T14:43:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0370",
+    "text": "lokasi donor darah bersama korem besok pagi dimulai jam berapa terima kasih penjelasannya unit 70",
+    "author": "@netizen_santun_79",
+    "timestamp": "2026-10-25T14:44:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0371",
+    "text": "apakah dokumen surat bebas narkoba wajib dibawa saat verifikasi berkas terima kasih penjelasannya unit 71",
+    "author": "@netizen_santun_80",
+    "timestamp": "2026-10-25T14:45:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0372",
+    "text": "mohon klarifikasi apakah foto latihan gabungan tersebut diambil di baturaja terima kasih penjelasannya unit 72",
+    "author": "@netizen_santun_81",
+    "timestamp": "2026-10-25T14:46:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0373",
+    "text": "link pendaftaran online rekrutmen tamtama sedang gangguan atau bisa diakses terima kasih penjelasannya unit 73",
+    "author": "@netizen_santun_82",
+    "timestamp": "2026-10-25T14:47:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0374",
+    "text": "kami warga rt 05 ingin mengajukan penyuluhan bela negara ke koramil setempat terima kasih penjelasannya unit 74",
+    "author": "@netizen_santun_83",
+    "timestamp": "2026-10-25T14:48:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0375",
+    "text": "pembagian beras stabilisasi pasokan dari bapanas hari ini dijadwalkan di kelurahan mana terima kasih penjelasannya unit 75",
+    "author": "@netizen_santun_84",
+    "timestamp": "2026-10-25T14:49:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0376",
+    "text": "apakah ada batasan usia maksimal untuk pendaftaran perwira prajurit karier terima kasih penjelasannya unit 76",
+    "author": "@netizen_santun_85",
+    "timestamp": "2026-10-25T14:50:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0377",
+    "text": "menunggu hasil investigasi resmi kepolisian dan polmil terkait insiden semalam terima kasih penjelasannya unit 77",
+    "author": "@netizen_santun_86",
+    "timestamp": "2026-10-25T14:51:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0378",
+    "text": "izin bertanya min apakah seragam dinas harian tni ada perubahan spesifikasi baru terima kasih penjelasannya unit 78",
+    "author": "@netizen_santun_87",
+    "timestamp": "2026-10-25T14:52:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0379",
+    "text": "info simulasi tanggap darurat gempa bumi besok terbuka untuk umum atau tidak terima kasih penjelasannya unit 79",
+    "author": "@netizen_santun_88",
+    "timestamp": "2026-10-25T14:53:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0380",
+    "text": "pantauan arus mudik di jalur lintas sumatera terpantau padat lancar siang ini terima kasih penjelasannya unit 80",
+    "author": "@netizen_santun_89",
+    "timestamp": "2026-10-25T14:54:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0381",
+    "text": "jadwal pendaftaran bintara tni ad gelombang kedua tahun ini tanggal berapa ya min terima kasih penjelasannya unit 81",
+    "author": "@netizen_santun_90",
+    "timestamp": "2026-10-25T14:15:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0382",
+    "text": "mohon informasi posko kesehatan gratis di wilayah cianjur lokasinya di mana terima kasih penjelasannya unit 82",
+    "author": "@netizen_santun_91",
+    "timestamp": "2026-10-25T14:16:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0383",
+    "text": "menyimak rilis resmi dari dinas penerangan terkait klarifikasi video kemarin terima kasih penjelasannya unit 83",
+    "author": "@netizen_santun_92",
+    "timestamp": "2026-10-25T14:17:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0384",
+    "text": "apakah syarat rekrutmen taruna akmil ada tes renang militer khusus terima kasih penjelasannya unit 84",
+    "author": "@netizen_santun_93",
+    "timestamp": "2026-10-25T14:18:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0385",
+    "text": "info prakiraan cuaca maritim dari bmkg untuk perairan selat sunda hari ini terima kasih penjelasannya unit 85",
+    "author": "@netizen_santun_94",
+    "timestamp": "2026-10-25T14:19:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0386",
+    "text": "apakah jalan protokol di depan kodim ditutup sementara selama gladi upacara terima kasih penjelasannya unit 86",
+    "author": "@netizen_santun_95",
+    "timestamp": "2026-10-25T14:20:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0387",
+    "text": "bisa tolong infokan nomor kontak babinsa kelurahan merdeka untuk konfirmasi bansos terima kasih penjelasannya unit 87",
+    "author": "@netizen_santun_96",
+    "timestamp": "2026-10-25T14:21:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0388",
+    "text": "terima kasih informasinya kami menunggu pernyataan pers lengkap sore nanti terima kasih penjelasannya unit 88",
+    "author": "@netizen_santun_97",
+    "timestamp": "2026-10-25T14:22:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0389",
+    "text": "bagaimana alur pengaduan masyarakat jika menemukan tindak pidana siber terima kasih penjelasannya unit 89",
+    "author": "@netizen_santun_98",
+    "timestamp": "2026-10-25T14:23:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0390",
+    "text": "lokasi donor darah bersama korem besok pagi dimulai jam berapa terima kasih penjelasannya unit 90",
+    "author": "@netizen_santun_99",
+    "timestamp": "2026-10-25T14:24:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0391",
+    "text": "apakah dokumen surat bebas narkoba wajib dibawa saat verifikasi berkas terima kasih penjelasannya unit 91",
+    "author": "@netizen_santun_100",
+    "timestamp": "2026-10-25T14:25:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0392",
+    "text": "mohon klarifikasi apakah foto latihan gabungan tersebut diambil di baturaja terima kasih penjelasannya unit 92",
+    "author": "@netizen_santun_101",
+    "timestamp": "2026-10-25T14:26:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0393",
+    "text": "link pendaftaran online rekrutmen tamtama sedang gangguan atau bisa diakses terima kasih penjelasannya unit 93",
+    "author": "@netizen_santun_102",
+    "timestamp": "2026-10-25T14:27:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0394",
+    "text": "kami warga rt 05 ingin mengajukan penyuluhan bela negara ke koramil setempat terima kasih penjelasannya unit 94",
+    "author": "@netizen_santun_103",
+    "timestamp": "2026-10-25T14:28:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0395",
+    "text": "pembagian beras stabilisasi pasokan dari bapanas hari ini dijadwalkan di kelurahan mana terima kasih penjelasannya unit 95",
+    "author": "@netizen_santun_104",
+    "timestamp": "2026-10-25T14:29:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0396",
+    "text": "apakah ada batasan usia maksimal untuk pendaftaran perwira prajurit karier terima kasih penjelasannya unit 96",
+    "author": "@netizen_santun_105",
+    "timestamp": "2026-10-25T14:30:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0397",
+    "text": "menunggu hasil investigasi resmi kepolisian dan polmil terkait insiden semalam terima kasih penjelasannya unit 97",
+    "author": "@netizen_santun_106",
+    "timestamp": "2026-10-25T14:31:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0398",
+    "text": "izin bertanya min apakah seragam dinas harian tni ada perubahan spesifikasi baru terima kasih penjelasannya unit 98",
+    "author": "@netizen_santun_107",
+    "timestamp": "2026-10-25T14:32:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0399",
+    "text": "info simulasi tanggap darurat gempa bumi besok terbuka untuk umum atau tidak terima kasih penjelasannya unit 99",
+    "author": "@netizen_santun_108",
+    "timestamp": "2026-10-25T14:33:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0400",
+    "text": "pantauan arus mudik di jalur lintas sumatera terpantau padat lancar siang ini terima kasih penjelasannya unit 100",
+    "author": "@netizen_santun_109",
+    "timestamp": "2026-10-25T14:34:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0401",
+    "text": "jadwal pendaftaran bintara tni ad gelombang kedua tahun ini tanggal berapa ya min terima kasih penjelasannya unit 101",
+    "author": "@netizen_santun_110",
+    "timestamp": "2026-10-25T14:35:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0402",
+    "text": "mohon informasi posko kesehatan gratis di wilayah cianjur lokasinya di mana terima kasih penjelasannya unit 102",
+    "author": "@netizen_santun_111",
+    "timestamp": "2026-10-25T14:36:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0403",
+    "text": "menyimak rilis resmi dari dinas penerangan terkait klarifikasi video kemarin terima kasih penjelasannya unit 103",
+    "author": "@netizen_santun_112",
+    "timestamp": "2026-10-25T14:37:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0404",
+    "text": "apakah syarat rekrutmen taruna akmil ada tes renang militer khusus terima kasih penjelasannya unit 104",
+    "author": "@netizen_santun_113",
+    "timestamp": "2026-10-25T14:38:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0405",
+    "text": "info prakiraan cuaca maritim dari bmkg untuk perairan selat sunda hari ini terima kasih penjelasannya unit 105",
+    "author": "@netizen_santun_114",
+    "timestamp": "2026-10-25T14:39:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0406",
+    "text": "apakah jalan protokol di depan kodim ditutup sementara selama gladi upacara terima kasih penjelasannya unit 106",
+    "author": "@netizen_santun_115",
+    "timestamp": "2026-10-25T14:40:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0407",
+    "text": "bisa tolong infokan nomor kontak babinsa kelurahan merdeka untuk konfirmasi bansos terima kasih penjelasannya unit 107",
+    "author": "@netizen_santun_116",
+    "timestamp": "2026-10-25T14:41:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0408",
+    "text": "terima kasih informasinya kami menunggu pernyataan pers lengkap sore nanti terima kasih penjelasannya unit 108",
+    "author": "@netizen_santun_117",
+    "timestamp": "2026-10-25T14:42:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0409",
+    "text": "bagaimana alur pengaduan masyarakat jika menemukan tindak pidana siber terima kasih penjelasannya unit 109",
+    "author": "@netizen_santun_118",
+    "timestamp": "2026-10-25T14:43:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0410",
+    "text": "lokasi donor darah bersama korem besok pagi dimulai jam berapa terima kasih penjelasannya unit 110",
+    "author": "@netizen_santun_119",
+    "timestamp": "2026-10-25T14:44:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0411",
+    "text": "apakah dokumen surat bebas narkoba wajib dibawa saat verifikasi berkas terima kasih penjelasannya unit 111",
+    "author": "@netizen_santun_120",
+    "timestamp": "2026-10-25T14:45:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0412",
+    "text": "mohon klarifikasi apakah foto latihan gabungan tersebut diambil di baturaja terima kasih penjelasannya unit 112",
+    "author": "@netizen_santun_121",
+    "timestamp": "2026-10-25T14:46:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0413",
+    "text": "link pendaftaran online rekrutmen tamtama sedang gangguan atau bisa diakses terima kasih penjelasannya unit 113",
+    "author": "@netizen_santun_122",
+    "timestamp": "2026-10-25T14:47:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0414",
+    "text": "kami warga rt 05 ingin mengajukan penyuluhan bela negara ke koramil setempat terima kasih penjelasannya unit 114",
+    "author": "@netizen_santun_123",
+    "timestamp": "2026-10-25T14:48:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0415",
+    "text": "pembagian beras stabilisasi pasokan dari bapanas hari ini dijadwalkan di kelurahan mana terima kasih penjelasannya unit 115",
+    "author": "@netizen_santun_124",
+    "timestamp": "2026-10-25T14:49:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0416",
+    "text": "apakah ada batasan usia maksimal untuk pendaftaran perwira prajurit karier terima kasih penjelasannya unit 116",
+    "author": "@netizen_santun_125",
+    "timestamp": "2026-10-25T14:50:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0417",
+    "text": "menunggu hasil investigasi resmi kepolisian dan polmil terkait insiden semalam terima kasih penjelasannya unit 117",
+    "author": "@netizen_santun_126",
+    "timestamp": "2026-10-25T14:51:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0418",
+    "text": "izin bertanya min apakah seragam dinas harian tni ada perubahan spesifikasi baru terima kasih penjelasannya unit 118",
+    "author": "@netizen_santun_127",
+    "timestamp": "2026-10-25T14:52:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0419",
+    "text": "info simulasi tanggap darurat gempa bumi besok terbuka untuk umum atau tidak terima kasih penjelasannya unit 119",
+    "author": "@netizen_santun_128",
+    "timestamp": "2026-10-25T14:53:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0420",
+    "text": "pantauan arus mudik di jalur lintas sumatera terpantau padat lancar siang ini terima kasih penjelasannya unit 120",
+    "author": "@netizen_santun_129",
+    "timestamp": "2026-10-25T14:54:05Z",
+    "category": "ORGANIC_NEUTRAL",
+    "isBuzzer": false,
+    "expectedSentiment": "NETRAL"
+  },
+  {
+    "id": "COM-0421",
+    "text": "terima kasih tni ad selalu sigap membantu evakuasi warga saat banjir bandang jaya selalu negaraku",
+    "author": "@sahabat_nkri_10",
+    "timestamp": "2026-10-25T14:20:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0422",
+    "text": "salut buat bapak babinsa yang rela jalan kaki antar bantuan ke pelosok desa jaya selalu negaraku",
+    "author": "@sahabat_nkri_11",
+    "timestamp": "2026-10-25T14:21:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0423",
+    "text": "tni bersama rakyat negara pasti kuat tetap jaga persatuan nkri harga mati jaya selalu negaraku",
+    "author": "@sahabat_nkri_12",
+    "timestamp": "2026-10-25T14:22:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0424",
+    "text": "bravo kostrad dan kopassus bangga melihat disiplin dan kesiapsiagaan prajurit jaya selalu negaraku",
+    "author": "@sahabat_nkri_13",
+    "timestamp": "2026-10-25T14:23:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0425",
+    "text": "semoga seluruh prajurit yang bertugas di perbatasan selalu dalam lindungan tuhan jaya selalu negaraku",
+    "author": "@sahabat_nkri_14",
+    "timestamp": "2026-10-25T14:24:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0426",
+    "text": "apresiasi tinggi program ketahanan pangan kodim sukses panen raya bersama warga jaya selalu negaraku",
+    "author": "@sahabat_nkri_15",
+    "timestamp": "2026-10-25T14:25:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0427",
+    "text": "keren sekali pelayanan medis satgas pamtas sangat membantu warga pedalaman jaya selalu negaraku",
+    "author": "@sahabat_nkri_16",
+    "timestamp": "2026-10-25T14:26:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0428",
+    "text": "terharu melihat kekompakan tni dan polri bahu membahu bedah rumah warga miskin jaya selalu negaraku",
+    "author": "@sahabat_nkri_17",
+    "timestamp": "2026-10-25T14:27:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0429",
+    "text": "indonesia damai persatuan bangsa nomor satu jangan mau dipecah belah adu domba jaya selalu negaraku",
+    "author": "@sahabat_nkri_18",
+    "timestamp": "2026-10-25T14:28:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0430",
+    "text": "semangat terus bapak tni pengabdianmu untuk tanah air tak ternilai harganya jaya selalu negaraku",
+    "author": "@sahabat_nkri_19",
+    "timestamp": "2026-10-25T14:29:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0431",
+    "text": "alhamdulillah daerah kami sekarang aman berkat patroli rutin satgas teritorial jaya selalu negaraku",
+    "author": "@sahabat_nkri_20",
+    "timestamp": "2026-10-25T14:30:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0432",
+    "text": "sangat bangga dengan profesionalisme tni saat latihan tempur gabungan jaya selalu negaraku",
+    "author": "@sahabat_nkri_21",
+    "timestamp": "2026-10-25T14:31:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0433",
+    "text": "terima kasih bantuan sumur bor air bersih dari korem warga desa sangat terbantu jaya selalu negaraku",
+    "author": "@sahabat_nkri_22",
+    "timestamp": "2026-10-25T14:32:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0434",
+    "text": "lanjutkan pengabdian tulus untuk rakyat tni tetap dicintai dan membanggakan jaya selalu negaraku",
+    "author": "@sahabat_nkri_23",
+    "timestamp": "2026-10-25T14:33:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0435",
+    "text": "doa kami menyertai setiap langkah prajurit yang menjaga keutuhan nusantara jaya selalu negaraku",
+    "author": "@sahabat_nkri_24",
+    "timestamp": "2026-10-25T14:34:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0436",
+    "text": "gotong royong babinsa bersama warga membersihkan saluran air patut dicontoh jaya selalu negaraku",
+    "author": "@sahabat_nkri_25",
+    "timestamp": "2026-10-25T14:35:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0437",
+    "text": "terima kasih tni ad selalu sigap membantu evakuasi warga saat banjir bandang jaya selalu negaraku",
+    "author": "@sahabat_nkri_26",
+    "timestamp": "2026-10-25T14:36:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0438",
+    "text": "salut buat bapak babinsa yang rela jalan kaki antar bantuan ke pelosok desa jaya selalu negaraku",
+    "author": "@sahabat_nkri_27",
+    "timestamp": "2026-10-25T14:37:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0439",
+    "text": "tni bersama rakyat negara pasti kuat tetap jaga persatuan nkri harga mati jaya selalu negaraku",
+    "author": "@sahabat_nkri_28",
+    "timestamp": "2026-10-25T14:38:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0440",
+    "text": "bravo kostrad dan kopassus bangga melihat disiplin dan kesiapsiagaan prajurit jaya selalu negaraku",
+    "author": "@sahabat_nkri_29",
+    "timestamp": "2026-10-25T14:39:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0441",
+    "text": "semoga seluruh prajurit yang bertugas di perbatasan selalu dalam lindungan tuhan jaya selalu negaraku",
+    "author": "@sahabat_nkri_30",
+    "timestamp": "2026-10-25T14:40:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0442",
+    "text": "apresiasi tinggi program ketahanan pangan kodim sukses panen raya bersama warga jaya selalu negaraku",
+    "author": "@sahabat_nkri_31",
+    "timestamp": "2026-10-25T14:41:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0443",
+    "text": "keren sekali pelayanan medis satgas pamtas sangat membantu warga pedalaman jaya selalu negaraku",
+    "author": "@sahabat_nkri_32",
+    "timestamp": "2026-10-25T14:42:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0444",
+    "text": "terharu melihat kekompakan tni dan polri bahu membahu bedah rumah warga miskin jaya selalu negaraku",
+    "author": "@sahabat_nkri_33",
+    "timestamp": "2026-10-25T14:43:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0445",
+    "text": "indonesia damai persatuan bangsa nomor satu jangan mau dipecah belah adu domba jaya selalu negaraku",
+    "author": "@sahabat_nkri_34",
+    "timestamp": "2026-10-25T14:44:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0446",
+    "text": "semangat terus bapak tni pengabdianmu untuk tanah air tak ternilai harganya jaya selalu negaraku",
+    "author": "@sahabat_nkri_35",
+    "timestamp": "2026-10-25T14:45:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0447",
+    "text": "alhamdulillah daerah kami sekarang aman berkat patroli rutin satgas teritorial jaya selalu negaraku",
+    "author": "@sahabat_nkri_36",
+    "timestamp": "2026-10-25T14:46:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0448",
+    "text": "sangat bangga dengan profesionalisme tni saat latihan tempur gabungan jaya selalu negaraku",
+    "author": "@sahabat_nkri_37",
+    "timestamp": "2026-10-25T14:47:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0449",
+    "text": "terima kasih bantuan sumur bor air bersih dari korem warga desa sangat terbantu jaya selalu negaraku",
+    "author": "@sahabat_nkri_38",
+    "timestamp": "2026-10-25T14:48:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0450",
+    "text": "lanjutkan pengabdian tulus untuk rakyat tni tetap dicintai dan membanggakan jaya selalu negaraku",
+    "author": "@sahabat_nkri_39",
+    "timestamp": "2026-10-25T14:49:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0451",
+    "text": "doa kami menyertai setiap langkah prajurit yang menjaga keutuhan nusantara jaya selalu negaraku",
+    "author": "@sahabat_nkri_40",
+    "timestamp": "2026-10-25T14:50:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0452",
+    "text": "gotong royong babinsa bersama warga membersihkan saluran air patut dicontoh jaya selalu negaraku",
+    "author": "@sahabat_nkri_41",
+    "timestamp": "2026-10-25T14:51:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0453",
+    "text": "terima kasih tni ad selalu sigap membantu evakuasi warga saat banjir bandang jaya selalu negaraku",
+    "author": "@sahabat_nkri_42",
+    "timestamp": "2026-10-25T14:52:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0454",
+    "text": "salut buat bapak babinsa yang rela jalan kaki antar bantuan ke pelosok desa jaya selalu negaraku",
+    "author": "@sahabat_nkri_43",
+    "timestamp": "2026-10-25T14:53:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0455",
+    "text": "tni bersama rakyat negara pasti kuat tetap jaga persatuan nkri harga mati jaya selalu negaraku",
+    "author": "@sahabat_nkri_44",
+    "timestamp": "2026-10-25T14:54:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0456",
+    "text": "bravo kostrad dan kopassus bangga melihat disiplin dan kesiapsiagaan prajurit jaya selalu negaraku",
+    "author": "@sahabat_nkri_45",
+    "timestamp": "2026-10-25T14:20:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0457",
+    "text": "semoga seluruh prajurit yang bertugas di perbatasan selalu dalam lindungan tuhan jaya selalu negaraku",
+    "author": "@sahabat_nkri_46",
+    "timestamp": "2026-10-25T14:21:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0458",
+    "text": "apresiasi tinggi program ketahanan pangan kodim sukses panen raya bersama warga jaya selalu negaraku",
+    "author": "@sahabat_nkri_47",
+    "timestamp": "2026-10-25T14:22:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0459",
+    "text": "keren sekali pelayanan medis satgas pamtas sangat membantu warga pedalaman jaya selalu negaraku",
+    "author": "@sahabat_nkri_48",
+    "timestamp": "2026-10-25T14:23:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0460",
+    "text": "terharu melihat kekompakan tni dan polri bahu membahu bedah rumah warga miskin jaya selalu negaraku",
+    "author": "@sahabat_nkri_49",
+    "timestamp": "2026-10-25T14:24:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0461",
+    "text": "indonesia damai persatuan bangsa nomor satu jangan mau dipecah belah adu domba sukses selalu tni ad kebanggaan kita (41)",
+    "author": "@sahabat_nkri_50",
+    "timestamp": "2026-10-25T14:25:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0462",
+    "text": "semangat terus bapak tni pengabdianmu untuk tanah air tak ternilai harganya sukses selalu tni ad kebanggaan kita (42)",
+    "author": "@sahabat_nkri_51",
+    "timestamp": "2026-10-25T14:26:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0463",
+    "text": "alhamdulillah daerah kami sekarang aman berkat patroli rutin satgas teritorial sukses selalu tni ad kebanggaan kita (43)",
+    "author": "@sahabat_nkri_52",
+    "timestamp": "2026-10-25T14:27:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0464",
+    "text": "sangat bangga dengan profesionalisme tni saat latihan tempur gabungan sukses selalu tni ad kebanggaan kita (44)",
+    "author": "@sahabat_nkri_53",
+    "timestamp": "2026-10-25T14:28:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0465",
+    "text": "terima kasih bantuan sumur bor air bersih dari korem warga desa sangat terbantu sukses selalu tni ad kebanggaan kita (45)",
+    "author": "@sahabat_nkri_54",
+    "timestamp": "2026-10-25T14:29:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0466",
+    "text": "lanjutkan pengabdian tulus untuk rakyat tni tetap dicintai dan membanggakan sukses selalu tni ad kebanggaan kita (46)",
+    "author": "@sahabat_nkri_55",
+    "timestamp": "2026-10-25T14:30:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0467",
+    "text": "doa kami menyertai setiap langkah prajurit yang menjaga keutuhan nusantara sukses selalu tni ad kebanggaan kita (47)",
+    "author": "@sahabat_nkri_56",
+    "timestamp": "2026-10-25T14:31:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0468",
+    "text": "gotong royong babinsa bersama warga membersihkan saluran air patut dicontoh sukses selalu tni ad kebanggaan kita (48)",
+    "author": "@sahabat_nkri_57",
+    "timestamp": "2026-10-25T14:32:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0469",
+    "text": "terima kasih tni ad selalu sigap membantu evakuasi warga saat banjir bandang sukses selalu tni ad kebanggaan kita (49)",
+    "author": "@sahabat_nkri_58",
+    "timestamp": "2026-10-25T14:33:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0470",
+    "text": "salut buat bapak babinsa yang rela jalan kaki antar bantuan ke pelosok desa sukses selalu tni ad kebanggaan kita (50)",
+    "author": "@sahabat_nkri_59",
+    "timestamp": "2026-10-25T14:34:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0471",
+    "text": "tni bersama rakyat negara pasti kuat tetap jaga persatuan nkri harga mati sukses selalu tni ad kebanggaan kita (51)",
+    "author": "@sahabat_nkri_60",
+    "timestamp": "2026-10-25T14:35:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0472",
+    "text": "bravo kostrad dan kopassus bangga melihat disiplin dan kesiapsiagaan prajurit sukses selalu tni ad kebanggaan kita (52)",
+    "author": "@sahabat_nkri_61",
+    "timestamp": "2026-10-25T14:36:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0473",
+    "text": "semoga seluruh prajurit yang bertugas di perbatasan selalu dalam lindungan tuhan sukses selalu tni ad kebanggaan kita (53)",
+    "author": "@sahabat_nkri_62",
+    "timestamp": "2026-10-25T14:37:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0474",
+    "text": "apresiasi tinggi program ketahanan pangan kodim sukses panen raya bersama warga sukses selalu tni ad kebanggaan kita (54)",
+    "author": "@sahabat_nkri_63",
+    "timestamp": "2026-10-25T14:38:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0475",
+    "text": "keren sekali pelayanan medis satgas pamtas sangat membantu warga pedalaman sukses selalu tni ad kebanggaan kita (55)",
+    "author": "@sahabat_nkri_64",
+    "timestamp": "2026-10-25T14:39:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0476",
+    "text": "terharu melihat kekompakan tni dan polri bahu membahu bedah rumah warga miskin sukses selalu tni ad kebanggaan kita (56)",
+    "author": "@sahabat_nkri_65",
+    "timestamp": "2026-10-25T14:40:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0477",
+    "text": "indonesia damai persatuan bangsa nomor satu jangan mau dipecah belah adu domba sukses selalu tni ad kebanggaan kita (57)",
+    "author": "@sahabat_nkri_66",
+    "timestamp": "2026-10-25T14:41:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0478",
+    "text": "semangat terus bapak tni pengabdianmu untuk tanah air tak ternilai harganya sukses selalu tni ad kebanggaan kita (58)",
+    "author": "@sahabat_nkri_67",
+    "timestamp": "2026-10-25T14:42:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0479",
+    "text": "alhamdulillah daerah kami sekarang aman berkat patroli rutin satgas teritorial sukses selalu tni ad kebanggaan kita (59)",
+    "author": "@sahabat_nkri_68",
+    "timestamp": "2026-10-25T14:43:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0480",
+    "text": "sangat bangga dengan profesionalisme tni saat latihan tempur gabungan sukses selalu tni ad kebanggaan kita (60)",
+    "author": "@sahabat_nkri_69",
+    "timestamp": "2026-10-25T14:44:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0481",
+    "text": "terima kasih bantuan sumur bor air bersih dari korem warga desa sangat terbantu sukses selalu tni ad kebanggaan kita (61)",
+    "author": "@sahabat_nkri_70",
+    "timestamp": "2026-10-25T14:45:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0482",
+    "text": "lanjutkan pengabdian tulus untuk rakyat tni tetap dicintai dan membanggakan sukses selalu tni ad kebanggaan kita (62)",
+    "author": "@sahabat_nkri_71",
+    "timestamp": "2026-10-25T14:46:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0483",
+    "text": "doa kami menyertai setiap langkah prajurit yang menjaga keutuhan nusantara sukses selalu tni ad kebanggaan kita (63)",
+    "author": "@sahabat_nkri_72",
+    "timestamp": "2026-10-25T14:47:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0484",
+    "text": "gotong royong babinsa bersama warga membersihkan saluran air patut dicontoh sukses selalu tni ad kebanggaan kita (64)",
+    "author": "@sahabat_nkri_73",
+    "timestamp": "2026-10-25T14:48:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0485",
+    "text": "terima kasih tni ad selalu sigap membantu evakuasi warga saat banjir bandang sukses selalu tni ad kebanggaan kita (65)",
+    "author": "@sahabat_nkri_74",
+    "timestamp": "2026-10-25T14:49:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0486",
+    "text": "salut buat bapak babinsa yang rela jalan kaki antar bantuan ke pelosok desa sukses selalu tni ad kebanggaan kita (66)",
+    "author": "@sahabat_nkri_75",
+    "timestamp": "2026-10-25T14:50:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0487",
+    "text": "tni bersama rakyat negara pasti kuat tetap jaga persatuan nkri harga mati sukses selalu tni ad kebanggaan kita (67)",
+    "author": "@sahabat_nkri_76",
+    "timestamp": "2026-10-25T14:51:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0488",
+    "text": "bravo kostrad dan kopassus bangga melihat disiplin dan kesiapsiagaan prajurit sukses selalu tni ad kebanggaan kita (68)",
+    "author": "@sahabat_nkri_77",
+    "timestamp": "2026-10-25T14:52:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0489",
+    "text": "semoga seluruh prajurit yang bertugas di perbatasan selalu dalam lindungan tuhan sukses selalu tni ad kebanggaan kita (69)",
+    "author": "@sahabat_nkri_78",
+    "timestamp": "2026-10-25T14:53:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0490",
+    "text": "apresiasi tinggi program ketahanan pangan kodim sukses panen raya bersama warga sukses selalu tni ad kebanggaan kita (70)",
+    "author": "@sahabat_nkri_79",
+    "timestamp": "2026-10-25T14:54:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0491",
+    "text": "keren sekali pelayanan medis satgas pamtas sangat membantu warga pedalaman sukses selalu tni ad kebanggaan kita (71)",
+    "author": "@sahabat_nkri_80",
+    "timestamp": "2026-10-25T14:20:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0492",
+    "text": "terharu melihat kekompakan tni dan polri bahu membahu bedah rumah warga miskin sukses selalu tni ad kebanggaan kita (72)",
+    "author": "@sahabat_nkri_81",
+    "timestamp": "2026-10-25T14:21:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0493",
+    "text": "indonesia damai persatuan bangsa nomor satu jangan mau dipecah belah adu domba sukses selalu tni ad kebanggaan kita (73)",
+    "author": "@sahabat_nkri_82",
+    "timestamp": "2026-10-25T14:22:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0494",
+    "text": "semangat terus bapak tni pengabdianmu untuk tanah air tak ternilai harganya sukses selalu tni ad kebanggaan kita (74)",
+    "author": "@sahabat_nkri_83",
+    "timestamp": "2026-10-25T14:23:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0495",
+    "text": "alhamdulillah daerah kami sekarang aman berkat patroli rutin satgas teritorial sukses selalu tni ad kebanggaan kita (75)",
+    "author": "@sahabat_nkri_84",
+    "timestamp": "2026-10-25T14:24:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0496",
+    "text": "sangat bangga dengan profesionalisme tni saat latihan tempur gabungan sukses selalu tni ad kebanggaan kita (76)",
+    "author": "@sahabat_nkri_85",
+    "timestamp": "2026-10-25T14:25:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0497",
+    "text": "terima kasih bantuan sumur bor air bersih dari korem warga desa sangat terbantu sukses selalu tni ad kebanggaan kita (77)",
+    "author": "@sahabat_nkri_86",
+    "timestamp": "2026-10-25T14:26:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0498",
+    "text": "lanjutkan pengabdian tulus untuk rakyat tni tetap dicintai dan membanggakan sukses selalu tni ad kebanggaan kita (78)",
+    "author": "@sahabat_nkri_87",
+    "timestamp": "2026-10-25T14:27:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0499",
+    "text": "doa kami menyertai setiap langkah prajurit yang menjaga keutuhan nusantara sukses selalu tni ad kebanggaan kita (79)",
+    "author": "@sahabat_nkri_88",
+    "timestamp": "2026-10-25T14:28:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  },
+  {
+    "id": "COM-0500",
+    "text": "gotong royong babinsa bersama warga membersihkan saluran air patut dicontoh sukses selalu tni ad kebanggaan kita (80)",
+    "author": "@sahabat_nkri_89",
+    "timestamp": "2026-10-25T14:29:50Z",
+    "category": "ORGANIC_POSITIVE",
+    "isBuzzer": false,
+    "expectedSentiment": "POSITIF"
+  }
+]

@@ -152,8 +152,15 @@ export function clusterComments(
     }
   }
 
+  // Optimasi Memori & Komputasi: Pre-ekstraksi N-Gram O(N) untuk seluruh komentar
+  const commentNgrams = new Map<string, Set<string>>()
+  for (const c of comments) {
+    commentNgrams.set(c.id, extractNgrams(c.text))
+  }
+
   const rawClusters: Array<{
     representativeText: string
+    representativeNgrams: Set<string>
     handles: Set<string>
     memberIds: string[]
     count: number
@@ -162,11 +169,39 @@ export function clusterComments(
   const commentClassificationMap = new Map<string, { isCopypasta: boolean; pattern?: string }>()
 
   for (const item of comments) {
+    const itemNgrams = commentNgrams.get(item.id) || extractNgrams(item.text)
     let matchedIndex = -1
+
     for (let i = 0; i < rawClusters.length; i++) {
-      if (isCopypastaMatch(item.text, rawClusters[i].representativeText)) {
+      const cluster = rawClusters[i]
+
+      // Cek kesamaan string mutlak instan
+      if (item.text === cluster.representativeText) {
         matchedIndex = i
         break
+      }
+
+      // Fast Jaccard menggunakan Set N-Gram ter-cache
+      let intersection = 0
+      itemNgrams.forEach(gram => {
+        if (cluster.representativeNgrams.has(gram)) intersection++
+      })
+      const union = itemNgrams.size + cluster.representativeNgrams.size - intersection
+      const jaccard = union > 0 ? intersection / union : 0
+
+      // Ambang batas kemiripan Jaccard >= 65%
+      if (jaccard >= 0.65) {
+        matchedIndex = i
+        break
+      }
+
+      // Ambang batas fuzzy Levenshtein untuk typo spoofing (Jaccard >= 35% & Levenshtein Ratio >= 70%)
+      if (jaccard >= 0.35) {
+        const levRatio = calculateLevenshteinRatio(item.text, cluster.representativeText)
+        if (levRatio >= 0.70) {
+          matchedIndex = i
+          break
+        }
       }
     }
 
@@ -178,6 +213,7 @@ export function clusterComments(
     } else {
       rawClusters.push({
         representativeText: item.text,
+        representativeNgrams: itemNgrams,
         handles: new Set([item.author]),
         memberIds: [item.id],
         count: 1
