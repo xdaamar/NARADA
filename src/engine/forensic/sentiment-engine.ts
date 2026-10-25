@@ -48,7 +48,7 @@ const PROVOCATIVE_LEXICON: Record<string, number> = {
   hoaks: -3.0, palsu: -3.0, fitnah: -4.0, adu: -2.0, domba: -2.0, pecah: -3.0,
   belah: -3.0, provokasi: -3.5, provokator: -4.0, separatis: -4.0, teroris: -4.5,
   boikot: -3.0, panik: -2.5, bubarkan: -3.5, mogok: -2.5, bangkrut: -3.0, kolaps: -3.0,
-  antek: -3.5, asing: -1.5, antek-antek: -4.0, penjilat: -4.0, buzzer: -3.0, buzzerrp: -3.5,
+  antek: -3.5, asing: -1.5, 'antek-antek': -4.0, penjilat: -4.0, buzzer: -3.0, buzzerrp: -3.5,
   botnet: -3.0, boneka: -3.0, pembual: -3.5, penipu: -4.0, manipulasi: -3.0, kebohongan: -3.5,
   bobrok: -3.5, busuk: -3.5, hancur: -3.0, musnahkan: -4.0, laknat: -4.5, mampus: -4.5
 }

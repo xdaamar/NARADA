@@ -23,6 +23,7 @@ import {
 import {
   detectSocialPlatform,
   analyzeSocialPost,
+  injectBuzzerSwarm,
   SOCIAL_PRESET_SCENARIOS,
   type SocialPostForensicResult,
   type SocialPlatform
@@ -48,6 +49,11 @@ export default function SocialForensic() {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
   const [copiedDraft, setCopiedDraft] = useState<boolean>(false)
 
+  // State 4-Kanal Kontranarasi & Simulasi Buzzer Swarm (Sprint 7C)
+  const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
+  const [isSimulatedSwarmActive, setIsSimulatedSwarmActive] = useState<boolean>(false)
+  const [baseOriginalResult, setBaseOriginalResult] = useState<SocialPostForensicResult | null>(null)
+
   // Deteksi platform aktif dari URL saat ini
   const detectedPlatform = detectSocialPlatform(urlInput)
 
@@ -67,6 +73,8 @@ export default function SocialForensic() {
         setCustomCaption('')
         setCustomComments('')
         setShowCustomDrawer(false)
+        setIsSimulatedSwarmActive(false)
+        setBaseOriginalResult(null)
         setResult(preset)
       }
     }
@@ -76,6 +84,8 @@ export default function SocialForensic() {
   const handleExecuteForensic = async (targetUrl = urlInput) => {
     if (!targetUrl.trim() && !customCaption.trim()) return
     setIsAnalyzing(true)
+    setIsSimulatedSwarmActive(false)
+    setBaseOriginalResult(null)
 
     try {
       const data = await analyzeSocialPost(
@@ -97,15 +107,46 @@ export default function SocialForensic() {
     setCustomCaption('')
     setCustomComments('')
     setShowCustomDrawer(false)
+    setIsSimulatedSwarmActive(false)
+    setBaseOriginalResult(null)
     startTransition(() => {
       setResult(preset)
     })
   }
 
-  // Handler salin draf klarifikasi
+  // Handler simulasi injeksi buzzer swarm
+  const handleToggleSwarmSimulation = () => {
+    if (isSimulatedSwarmActive) {
+      if (baseOriginalResult) {
+        setResult(baseOriginalResult)
+        setBaseOriginalResult(null)
+      }
+      setIsSimulatedSwarmActive(false)
+    } else {
+      setBaseOriginalResult(result)
+      const simulated = injectBuzzerSwarm(result)
+      setResult(simulated)
+      setIsSimulatedSwarmActive(true)
+    }
+  }
+
+  // Draf aktif berdasarkan tab kanal yang dipilih
+  const activeDraftText = useMemo(() => {
+    const channels = result?.tacticalRecommendation?.counterNarratives
+    if (!channels) return result?.tacticalRecommendation?.officialClarificationDraft || ''
+    switch (activeCounterTab) {
+      case 'dispenad': return channels.dispenadOfficial
+      case 'babinsa': return channels.babinsaTerritorial
+      case 'whatsapp': return channels.whatsappCivilian
+      case 'social': return channels.socialTactical
+      default: return channels.dispenadOfficial
+    }
+  }, [result?.tacticalRecommendation, activeCounterTab])
+
+  // Handler salin draf klarifikasi aktif
   const handleCopyDraft = () => {
-    if (!result?.tacticalRecommendation?.officialClarificationDraft) return
-    navigator.clipboard.writeText(result.tacticalRecommendation.officialClarificationDraft)
+    if (!activeDraftText) return
+    navigator.clipboard.writeText(activeDraftText)
     setCopiedDraft(true)
     setTimeout(() => setCopiedDraft(false), 2200)
   }
@@ -858,7 +899,7 @@ export default function SocialForensic() {
           <span className="bolt-br" />
 
           {/* Header Deck 3 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1C2532', paddingBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1C2532', paddingBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Bot size={18} color="#EF4444" />
               <span style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#F1F5F9' }}>
@@ -866,13 +907,39 @@ export default function SocialForensic() {
               </span>
             </div>
 
-            <span style={{
-              fontSize: '10px',
-              fontFamily: 'var(--font-mono)',
-              color: '#94A3B8'
-            }}>
-              AMBANG BATAS ALARM: &ge; 15% COPYPASTA
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={handleToggleSwarmSimulation}
+                title="Klik untuk mensimulasikan serbuan botnet copypasta seketika dan melihat aktivasi alarm siaga"
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: isSimulatedSwarmActive ? '#7F1D1D' : '#1E293B',
+                  color: isSimulatedSwarmActive ? '#FCA5A5' : '#E2E8F0',
+                  border: isSimulatedSwarmActive ? '1px solid #EF4444' : '1px solid #334155',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Flame size={12} color={isSimulatedSwarmActive ? '#EF4444' : '#F59E0B'} />
+                {isSimulatedSwarmActive ? 'BATALKAN SIMULASI BUZZER' : '⚡ SIMULASI INJEKSI BUZZER SWARM (+25)'}
+              </button>
+
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                color: '#94A3B8'
+              }}>
+                AMBANG BATAS ALARM: &ge; 15% COPYPASTA
+              </span>
+            </div>
           </div>
 
           {/* Alarm Banner Status Box */}
@@ -1187,11 +1254,11 @@ export default function SocialForensic() {
             </span>
           </div>
 
-          {/* Draf Naskah Kontra-Narasi Siap Salin */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* ─── 4-Kanal Draf Kontranarasi Taktis (Sprint 7C) ─── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
               <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8', fontWeight: 600 }}>
-                DRAF RESMI KLARIFIKASI / SANGGAHAN DISPENAD (SIAP DIPOSTING DI KOLOM KOMENTAR):
+                PILIH KANAL FORMULASI KONTRANARASI:
               </span>
 
               <button
@@ -1199,7 +1266,7 @@ export default function SocialForensic() {
                 className="btn btn-secondary"
                 onClick={handleCopyDraft}
                 style={{
-                  padding: '4px 10px',
+                  padding: '5px 12px',
                   fontSize: '10px',
                   fontFamily: 'var(--font-mono)',
                   display: 'flex',
@@ -1207,7 +1274,8 @@ export default function SocialForensic() {
                   gap: '6px',
                   background: copiedDraft ? '#065F46' : '#141B24',
                   color: copiedDraft ? '#6EE7B7' : '#F1F5F9',
-                  borderColor: copiedDraft ? '#10B981' : '#2D3949'
+                  borderColor: copiedDraft ? '#10B981' : '#2D3949',
+                  cursor: 'pointer'
                 }}
               >
                 {copiedDraft ? (
@@ -1218,24 +1286,71 @@ export default function SocialForensic() {
                 ) : (
                   <>
                     <Copy size={12} />
-                    SALIN NASKAH KLARIFIKASI
+                    SALIN NASKAH KANAL INI
                   </>
                 )}
               </button>
             </div>
 
+            {/* 4 Kanal Tab Bar */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: '6px'
+            }}>
+              {[
+                { id: 'dispenad', label: '1. SIARAN PERS DISPENAD', badge: 'Format Dinas Komando', icon: '🏛️' },
+                { id: 'babinsa', label: '2. KOMSOS BABINSA', badge: 'Poin Sambang Warga', icon: '🎖️' },
+                { id: 'whatsapp', label: '3. PESAN WA WARGA', badge: 'Forward Grup Keluarga', icon: '💬' },
+                { id: 'social', label: '4. MEDSOS TAKTIS', badge: 'Cuitan <280 Karakter', icon: '⚡' }
+              ].map((tab) => {
+                const isActive = activeCounterTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveCounterTab(tab.id as 'dispenad' | 'babinsa' | 'whatsapp' | 'social')}
+                    style={{
+                      padding: '8px 10px',
+                      background: isActive ? '#1E293B' : '#0B0F15',
+                      border: isActive ? '1px solid #10B981' : '1px solid #1C2430',
+                      borderRadius: '4px',
+                      color: isActive ? '#34D399' : '#94A3B8',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                      {tab.icon} {tab.label}
+                    </span>
+                    <span style={{ fontSize: '9px', color: isActive ? '#A7F3D0' : '#64748B' }}>
+                      {tab.badge}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Active Draft Inset Tray */}
             <div
               className="steel-sunken-tray"
               style={{
-                padding: '14px',
+                padding: '16px',
                 fontFamily: 'var(--font-mono)',
                 fontSize: '12px',
                 color: '#F1F5F9',
-                lineHeight: 1.5,
-                borderLeft: '4px solid #10B981'
+                lineHeight: 1.6,
+                borderLeft: '4px solid #10B981',
+                whiteSpace: 'pre-wrap',
+                maxHeight: '320px',
+                overflowY: 'auto'
               }}
             >
-              {result.tacticalRecommendation.officialClarificationDraft}
+              {activeDraftText}
             </div>
           </div>
 
