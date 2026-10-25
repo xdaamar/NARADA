@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "test:e2e": "node scripts/test-e2e-qualification.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "electron:build": "tsc -b && vite build && electron-builder --win"
   },

@@ -9,16 +9,17 @@ const RAGE_BAIT_PATTERNS = [
   'serang', 'bunuh', 'mampus', 'darah', 'bantai', 'bangsat', 'keparat',
   'bajingan', 'rezim lalim', 'penindas', 'laknat', 'usir', 'kutuk',
   'biadabnya', 'darah pejuang', 'tumpas', 'laknatullah', 'kurang ajar',
-  'keji', 'dzalim', 'zalim', 'pengkhianat'
+  'keji', 'dzalim', 'zalim', 'pengkhianat', 'fiktif', 'rongsokan',
+  'korupsi', 'skandal', 'kebohongan', 'bobrok', 'dibungkam', 'tanpa izin'
 ]
 
 const URGENCY_PATTERNS = [
   'viralkan', 'jangan ditunda', 'sebelum dihapus', 'info darurat', 'bahaya besar',
   'sebarkan ke semua grup', 'sebar cepat', 'darurat', 'awas', 'waspada',
-  'detik-detik', 'bocor', 'rahasia terbongkar', 'jangan sampai lolos',
-  'sekarang juga', 'jangan tunggu', 'segera sebarkan', 'tonton sebelum diblokir',
-  'cepat simpan', 'share sebanyak-banyaknya', 'viralkan kawan', 'kabar mengejutkan',
-  'sebelum kominfo blokir', 'jangan diabaikan'
+  'detik-detik', 'bocor', 'bocoran', 'rahasia', 'rahasia terbongkar', 'jangan sampai lolos',
+  'sekarang juga', 'jangan tunggu', 'segera sebarkan', 'sebarkan', 'sebelum dibungkam',
+  'tonton sebelum diblokir', 'cepat simpan', 'share sebanyak-banyaknya', 'viralkan kawan',
+  'kabar mengejutkan', 'sebelum kominfo blokir', 'jangan diabaikan'
 ]
 
 const SOCIAL_CLEAVAGE_PATTERNS = [
@@ -49,16 +50,17 @@ export function calculatePsychologyVectors(text: string): CognitivePsychologyVec
   // 1. Hitung Rage-Bait Index (Agitasi Kemarahan & Kebencian)
   let ragePoints = 0
   for (const pattern of RAGE_BAIT_PATTERNS) {
-    const regex = new RegExp(`\\b${pattern}\\b`, 'i')
-    if (regex.test(normalized)) {
+    const isMulti = pattern.includes(' ')
+    const matched = isMulti ? normalized.includes(pattern) : new RegExp(`\\b${pattern}\\b`, 'i').test(normalized)
+    if (matched) {
       ragePoints += 18
     }
   }
 
-  // Tanda seru berulang (e.g. !!, !!!)
-  const exclamationMatches = text.match(/!{2,}/g)
+  // Tanda seru (e.g. !, !!, !!!)
+  const exclamationMatches = text.match(/!+/g)
   if (exclamationMatches) {
-    ragePoints += Math.min(25, exclamationMatches.length * 10)
+    ragePoints += Math.min(25, exclamationMatches.length * 8)
   }
 
   // Tanda tanya bertubi-tubi (e.g. ???)
@@ -78,14 +80,15 @@ export function calculatePsychologyVectors(text: string): CognitivePsychologyVec
   // 2. Hitung Artificial Urgency (Manipulasi Kepanikan / FOMO)
   let urgencyPoints = 0
   for (const pattern of URGENCY_PATTERNS) {
-    const regex = new RegExp(`\\b${pattern}\\b`, 'i')
-    if (regex.test(normalized)) {
+    const isMulti = pattern.includes(' ')
+    const matched = isMulti ? normalized.includes(pattern) : new RegExp(`\\b${pattern}\\b`, 'i').test(normalized)
+    if (matched) {
       urgencyPoints += 20
     }
   }
 
-  // Kata penunjuk waktu mendesak
-  if (/\b(sekarang|malam ini|hari ini|detik ini|secepatnya)\b/i.test(normalized)) {
+  // Kata penunjuk waktu mendesak / call to action
+  if (/\b(sekarang|malam ini|hari ini|detik ini|secepatnya|sebarkan|viralkan)\b/i.test(normalized)) {
     urgencyPoints += 12
   }
 
@@ -94,8 +97,9 @@ export function calculatePsychologyVectors(text: string): CognitivePsychologyVec
   // 3. Hitung Social Cleavage (Polarisasi Sosial & Adu Domba Identitas)
   let cleavagePoints = 0
   for (const pattern of SOCIAL_CLEAVAGE_PATTERNS) {
-    const regex = new RegExp(`\\b${pattern}\\b`, 'i')
-    if (regex.test(normalized)) {
+    const isMulti = pattern.includes(' ')
+    const matched = isMulti ? normalized.includes(pattern) : new RegExp(`\\b${pattern}\\b`, 'i').test(normalized)
+    if (matched) {
       cleavagePoints += 24
     }
   }
