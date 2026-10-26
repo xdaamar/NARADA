@@ -585,32 +585,80 @@ body, #root, .app-layout {
   z-index: 10;
 }
 
-/* ─── TOPBAR ─── */
+/* ─── TOPBAR (Sejajar & Harmonis dengan Sidebar Header) ─── */
 .topbar {
-  height: var(--topbar-height);
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-subtle);
+  height: var(--topbar-height, 56px);
+  min-height: var(--topbar-height, 56px);
+  max-height: var(--topbar-height, 56px);
+  box-sizing: border-box;
+  background: rgba(10, 14, 20, 0.95);
+  border-bottom: 1px solid #1C2534;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px;
   flex-shrink: 0;
   z-index: 30;
+  gap: 16px;
 }
 
 .topbar-title-wrap {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.tactical-slashes {
+  color: var(--accent-gold, #D4AF37);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  user-select: none;
+  opacity: 0.85;
 }
 
 .topbar-title {
   font-family: var(--font-display);
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
   letter-spacing: 1.5px;
-  color: var(--text-primary);
+  color: #F8FAFC;
   text-transform: uppercase;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.topbar-subtitle {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: #64748B;
+  letter-spacing: 0.8px;
+  line-height: 1;
+  margin-top: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.topbar-time-wrap {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.topbar-time-text {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: #94A3B8;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  padding: 5px 12px;
+  background: #090C10;
+  border: 1px solid #1C2430;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
 }
 
 .topbar-actions {
