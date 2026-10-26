@@ -73,7 +73,7 @@ export interface DebunkKnowledgeEntry {
   claim: string
   normalizedQuery: string
   cluster: ThreatSpectrumCluster
-  verdict: 'HOAKS' | 'DISINFORMASI' | 'PROPAGANDA'
+  verdict: 'HOAKS' | 'DISINFORMASI' | 'PROPAGANDA' | 'FAKTA' | 'NETRAL' | 'UNVERIFIED'
   threatLevel: ThreatLevel
   clarification: string
   officialSource: string
@@ -83,6 +83,8 @@ export interface DebunkKnowledgeEntry {
   tacticalResponseMilitary: string
   isLive?: boolean
   publishedDate?: string
+  trendTraffic?: string
+  cognitiveScore?: number
 }
 
 export interface InstitutionalLogicAnomaly {

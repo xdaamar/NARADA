@@ -139,7 +139,7 @@ export function analyzeHybrid(text: string, options: HybridOptions = {}): Analys
   // ─── TIER 1: TRUTH PRIORITY HIERARCHY (CEK FAKTA NYATA TERVERIFIKASI) ───
   if (localDebunk.matched && localDebunk.entry) {
     const entry = localDebunk.entry
-    winnerCategory = entry.verdict
+    winnerCategory = (entry.verdict === 'FAKTA' || entry.verdict === 'UNVERIFIED') ? 'NETRAL' : entry.verdict
     confidence = Math.max(92, localDebunk.confidence)
     threatLevel = entry.threatLevel
     explanation = `[TERVERIFIKASI MAFINDO/CEK FAKTA] ${entry.clarification} (Rujukan: ${entry.officialSource})`

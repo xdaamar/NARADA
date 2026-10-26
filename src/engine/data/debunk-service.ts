@@ -1,5 +1,5 @@
-import type { DebunkKnowledgeEntry } from '../../types'
-import databaseJson from './debunk-database.json'
+import type { DebunkKnowledgeEntry } from '../../types.ts'
+import databaseJson from './debunk-database.json' with { type: 'json' }
 
 const LOCAL_ARCHIVE_ENTRIES: DebunkKnowledgeEntry[] = (databaseJson as DebunkKnowledgeEntry[]).map(e => ({
   ...e,

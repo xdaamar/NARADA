@@ -256,6 +256,38 @@ export async function getCachedRadarItems(): Promise<DebunkKnowledgeEntry[]> {
   }
 }
 
+/**
+ * Menghapus satu entri radar tertentu dari cache lokal
+ */
+export async function deleteRadarItemFromDB(id: string): Promise<void> {
+  memoryFallback.radarCache.delete(id)
+  try {
+    await performTransaction<undefined>(
+      STORES.RADAR_CACHE,
+      'readwrite',
+      (store) => store.delete(id)
+    )
+  } catch {
+    // Abaikan kegagalan bila fallback mode aktif
+  }
+}
+
+/**
+ * Mengosongkan seluruh antrean buffer radar di cache lokal
+ */
+export async function clearRadarCacheDB(): Promise<void> {
+  memoryFallback.radarCache.clear()
+  try {
+    await performTransaction<undefined>(
+      STORES.RADAR_CACHE,
+      'readwrite',
+      (store) => store.clear()
+    )
+  } catch {
+    // Abaikan kegagalan bila fallback mode aktif
+  }
+}
+
 // ─── CRUD IMAGE STORE ───
 
 /**
