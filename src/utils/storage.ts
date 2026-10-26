@@ -339,6 +339,7 @@ export function seedDemoAnalyses(): AnalysisResult[] {
   })
 
   try {
+    memoryCacheAnalyses = enhancedItems
     sessionStorage.setItem(STORAGE_KEYS.ANALYSES, JSON.stringify(enhancedItems))
     window.dispatchEvent(new CustomEvent('narada:analyses-updated', { detail: enhancedItems }))
   } catch (err) {

@@ -134,7 +134,7 @@ const s2AllPass = s2CopypastaPass && s2ProvocativePass && s2AlarmPass && s2Laten
 console.log(`• Rasio Copypasta   : ${s2CopypastaPass ? GREEN : RED}${clusterResult.copypastaPercent}%${RESET} (Ambang Batas: >= 15%)`);
 console.log(`• Sentimen Dominan  : ${s2ProvocativePass ? GREEN : RED}${sentimentMatrix.dominantSentiment} (${sentimentMatrix.provocativePercent}% provokatif)${RESET} (Harapan: >= 60%)`);
 console.log(`• Alarm Buzzer Swarm: ${s2AlarmPass ? GREEN : RED}${clusterResult.isBuzzerAlarmActive ? 'SIAGA MERAH AKTIF' : 'NON-AKTIF'}${RESET} (Harapan: TRUE)`);
-console.log(`• Klaster Terdeteksi: ${GREEN}${clusterResult.clusters.length} klaster pola seragam (Burst: ${burstVelocity.burstIndex} kmntr/menit)${RESET}`);
+console.log(`• Klaster Terdeteksi: ${GREEN}${clusterResult.clusters.length} klaster pola seragam (Burst: ${burstVelocity.burstVelocityPerMinute} kmntr/menit)${RESET}`);
 console.log(`• Waktu Komputasi   : ${s2LatencyPass ? GREEN : RED}${s2Duration.toFixed(2)} ms${RESET} (Batas: < 100.00 ms)`);
 console.log(`• Status Skenario 2 : ${s2AllPass ? `${GREEN}${BOLD}✓ LULUS (PASS)${RESET}` : `${RED}${BOLD}✗ GAGAL (FAIL)${RESET}`}\n`);
 

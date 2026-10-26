@@ -54,12 +54,23 @@ function getClusterVisuals(cluster: ThreatSpectrumCluster) {
 export default function TrendingDebunkGrid({ onSelectDebunk, disabled = false }: TrendingDebunkGridProps) {
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL')
 
-  // Ambil data entri dan filter berdasarkan tab yang dipilih
   const filteredEntries = useMemo(() => {
     const all = debunkData as DebunkKnowledgeEntry[]
     if (activeTab === 'ALL') {
-      // Ambil 8 entri representatif lintas klaster untuk tampilan utama yang padat
-      return all.slice(0, 8)
+      // Ambil perwakilan seimbang dari setiap klaster spektrum (Hankam, Bencana, Bansos, Kesehatan, Politik)
+      const clusters: ThreatSpectrumCluster[] = [
+        'KEDAULATAN_MILITER',
+        'POLITIK_NEGARA',
+        'BENCANA_DARURAT',
+        'PENIPUAN_BANSOS',
+        'KESEHATAN_PANGAN'
+      ]
+      const balanced: DebunkKnowledgeEntry[] = []
+      clusters.forEach(c => {
+        const found = all.filter(e => e.cluster === c).slice(0, 2)
+        balanced.push(...found)
+      })
+      return balanced.slice(0, 8)
     }
     return all.filter(e => e.cluster === activeTab).slice(0, 8)
   }, [activeTab])
