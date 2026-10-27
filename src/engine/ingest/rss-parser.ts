@@ -173,6 +173,50 @@ function extractKeywords(text: string): string[] {
     .slice(0, 8)
 }
 
+
+/**
+ * Penapis Intelijen Kognitif (Cognitive Threat & Virality Gatekeeper)
+ * Membuang berita seremonial, humas instansi, beasiswa, dan kegiatan dinas rutin yang TIDAK berpotensi
+ * memicu krisis kognitif atau penggiringan opini publik.
+ */
+export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): boolean {
+  const norm = (title + ' ' + sourceName).toLowerCase()
+
+  // 1. BLACKLIST FILTER: Berita Humas Kampus/Daerah, Seremonial, Olahraga, & Rutinitas Dinas
+  const ceremonialBlacklist = [
+    'kuliah', 'beasiswa', 'lldikti', 'politeknik', 'wisuda', 'mahasiswa kkn', 'pelajar magang',
+    'tmmd', 'tni manunggal', 'bakti tni', 'sinergi pemda dan tni', 'tim wasev',
+    'kunjungan kerja', 'terima perwakilan', 'audiensi', 'lepas sambut', 'sertijab', 'ziarah',
+    'futsal', 'sepak bola', 'kejuaraan', 'turnamen', 'gowes', 'senam bersama', 'lomba',
+    'panen raya', 'tanam jagung', 'tanam padi', 'bibit', 'buka jalan 25 pemuda', 'baksos donor darah',
+    'peringatan hut', 'upacara bendera 17', 'apel pagi', 'berbaur dalam latihan'
+  ]
+
+  for (const b of ceremonialBlacklist) {
+    if (norm.includes(b)) {
+      return false
+    }
+  }
+
+  // 2. WHITELIST TRIGGERS: Harus memiliki indikasi hoaks, kontroversi, polemik, atau penggiringan opini
+  const threatTriggers = [
+    'hoaks', 'hoax', 'disinformasi', 'palsu', 'bohong', 'fitnah', 'manipulasi',
+    'viral', 'heboh', 'geger', 'kontroversi', 'polemik', 'debat', 'tuding', 'tuduhan',
+    'desak', 'tuntut', 'kecam', 'protes', 'demo', 'tolak', 'ricuh', 'bentrok',
+    'gugur', 'serangan', 'ditembak', 'penyanderaan', 'korban', 'opm', 'kkb',
+    'krisis', 'batal', 'dicopot', 'pemakzulan', 'mundur', 'korupsi', 'skandal',
+    'bocoran', 'rahasia', 'sabotase', 'perang terbuka', 'ijazah', 'mbg', 'bansos'
+  ]
+
+  for (const t of threatTriggers) {
+    if (norm.includes(t)) {
+      return true
+    }
+  }
+
+  return false
+}
+
 /**
  * 1. Parser Live RSS Feed TurnBackHoax (MAFINDO)
  * Menghasilkan entri klarifikasi fakta resmi dengan CANONICAL ARTICLE URL
@@ -232,7 +276,8 @@ export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
         tacticalResponseMilitary: `Atensi Teritorial: Narasi "${claim}" terkonfirmasi ${verdict}. Segera aktifkan pengawasan opini publik di wilayah binaan.`,
         isLive: true,
         publishedDate,
-        cognitiveScore: 85
+        cognitiveScore: 85,
+        viralityReason: '🚨 LAPORAN MAFINDO: Isu Disinformasi Viral Medsos'
       })
     } catch {
       // Lewati item yang korup
@@ -243,8 +288,8 @@ export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
 }
 
 /**
- * 2. Parser Live RSS Feed Google News (Hankam & Isu Nasional)
- * Menghasilkan isu viral/berita terpanas yang sedang bergulir sebelum terbukti hoaks atau fakta
+ * 2. Parser Live RSS Feed Google News (Hankam & Isu Nasional Tertarget)
+ * Menyaring secara ketat agar HANYA isu kontroversial, polemik, atau potensi ancaman yang lolos
  */
 export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
   if (!xmlText || !xmlText.includes('<item>')) return []
@@ -266,6 +311,11 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
       const sourceName = sourceMatch ? cleanHtmlText(sourceMatch[2]) : 'Portal Berita Nasional'
       const cleanClaim = cleanTitle.replace(new RegExp(`\\s*-\\s*${sourceName}\\s*$`, 'i'), '').trim()
 
+      // PENAPIS INTELIJEN KOGNITIF: Buang berita humas/seremonial kampus/TMMD!
+      if (!isEligibleCognitiveRadarItem(cleanClaim, sourceName)) {
+        return
+      }
+
       const cluster = classifyCluster(cleanTitle, '')
       const keywords = extractKeywords(cleanClaim)
 
@@ -275,7 +325,8 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
                          sourceName.toUpperCase().includes('BMKG') ||
                          sourceName.toUpperCase().includes('BAWASLU')
 
-      const verdict: DebunkKnowledgeEntry['verdict'] = isOfficial ? 'FAKTA' : 'UNVERIFIED'
+      const isHoaxInTitle = cleanTitle.toLowerCase().includes('hoaks') || cleanTitle.toLowerCase().includes('hoax')
+      const verdict: DebunkKnowledgeEntry['verdict'] = isHoaxInTitle ? 'HOAKS' : isOfficial ? 'FAKTA' : 'UNVERIFIED'
 
       const dateStr = rawPubDate ? new Date(rawPubDate).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10)
 
@@ -285,10 +336,12 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
         normalizedQuery: cleanClaim.toLowerCase(),
         cluster,
         verdict,
-        threatLevel: cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
+        threatLevel: isHoaxInTitle || cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
         clarification: isOfficial 
           ? `Pernyataan dan rilis resmi langsung dari ${sourceName}. Isi berita merupakan informasi terkonfirmasi kedinasan.`
-          : `Isu sedang bergulir di ranah publik via ${sourceName}. Memerlukan verifikasi silang terhadap dokumen intelijen dan otoritas terkait.`,
+          : isHoaxInTitle
+          ? `Judul berita mengonfirmasi indikasi hoaks/disinformasi yang sedang beredar luas di media daring.`
+          : `Isu polemik/kontroversial sedang bergulir di ranah publik via ${sourceName}. Memerlukan verifikasi silang terhadap dokumen intelijen dan otoritas terkait.`,
         officialSource: sourceName,
         sourceUrl: cleanLink, // CANONICAL REDIRECT LANGSUNG KE ARTIKEL PERS!
         keywords,
@@ -298,7 +351,12 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
         tacticalResponseMilitary: `Pantau pergerakan narasi "${cleanClaim}" yang dipublikasikan oleh ${sourceName}. Waspadai upaya framing asimetris.`,
         isLive: true,
         publishedDate: dateStr,
-        cognitiveScore: isOfficial ? 30 : 65
+        cognitiveScore: isHoaxInTitle ? 85 : isOfficial ? 30 : 70,
+        viralityReason: isHoaxInTitle 
+          ? '🚨 ADUAN MASIF: Terindikasi Hoaks Media Daring'
+          : isOfficial 
+          ? '📢 KLARIFIKASI RESMI: Pernyataan Otoritas Kedinasan'
+          : '⚠️ POLEMIK OPINI: Kontroversi Kebijakan / Hankam'
       })
     } catch {
       // Lewati item yang korup
@@ -353,7 +411,8 @@ export function parseGoogleTrendsRss(xmlText: string): DebunkKnowledgeEntry[] {
         isLive: true,
         publishedDate: new Date().toISOString().substring(0, 10),
         trendTraffic: `+${traffic} pencarian`,
-        cognitiveScore: 60
+        cognitiveScore: 65,
+        viralityReason: `🔥 TREN VIRAL: +${traffic} Penelusuran Netizen`
       })
     } catch {
       // Lewati item yang korup

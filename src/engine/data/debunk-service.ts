@@ -4,6 +4,7 @@ import databaseJson from './debunk-database.json' with { type: 'json' }
 const LOCAL_ARCHIVE_ENTRIES: DebunkKnowledgeEntry[] = (databaseJson as DebunkKnowledgeEntry[]).map(e => ({
   ...e,
   isLive: false,
+  viralityReason: e.viralityReason || (e.verdict === 'HOAKS' ? '🚨 PUSSIBERAD ARSIP: Disinformasi Terverifikasi' : '🛡️ PUSSIBERAD ARSIP: Klarifikasi Resmi Hankam')
 }))
 
 let activeDebunkDatabase: DebunkKnowledgeEntry[] = [...LOCAL_ARCHIVE_ENTRIES]

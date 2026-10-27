@@ -85,6 +85,7 @@ export interface DebunkKnowledgeEntry {
   publishedDate?: string
   trendTraffic?: string
   cognitiveScore?: number
+  viralityReason?: string
 }
 
 export interface InstitutionalLogicAnomaly {

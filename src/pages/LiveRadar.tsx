@@ -701,6 +701,27 @@ export default function LiveRadar() {
                     </div>
                   </div>
 
+                  {/* Dasar Kelayakan Masuk Radar Viral (Virality Reason) */}
+                  {item.viralityReason && (
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '9px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      color: item.viralityReason.includes('🚨') ? '#FCA5A5' : item.viralityReason.includes('🔥') ? '#FCD34D' : '#93C5FD',
+                      background: item.viralityReason.includes('🚨') ? 'rgba(239, 68, 68, 0.14)' : item.viralityReason.includes('🔥') ? 'rgba(245, 158, 11, 0.14)' : 'rgba(59, 130, 246, 0.14)',
+                      border: `1px solid ${item.viralityReason.includes('🚨') ? 'rgba(239, 68, 68, 0.35)' : item.viralityReason.includes('🔥') ? 'rgba(245, 158, 11, 0.35)' : 'rgba(59, 130, 246, 0.35)'}`,
+                      padding: '2px 7px',
+                      borderRadius: '3px',
+                      marginBottom: '8px',
+                      letterSpacing: '0.3px'
+                    }}>
+                      <span>{item.viralityReason}</span>
+                    </div>
+                  )}
+
                   {/* Naskah / Klaim Isu Viral */}
                   <div style={{
                     fontSize: '13px',
@@ -1047,6 +1068,23 @@ export default function LiveRadar() {
                 <div style={{ fontSize: '9.5px', color: '#64748B', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
                   NETRAL / UMUM
                 </div>
+              </div>
+            </div>
+
+            {/* Protokol Penapisan Radar (Gatekeeper Criteria) */}
+            <div style={{
+              background: '#0B111A',
+              border: '1px solid #1E293B',
+              borderRadius: '4px',
+              padding: '10px 14px',
+              marginBottom: '16px'
+            }}>
+              <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8', fontWeight: 800, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ShieldCheck size={14} color="#38BDF8" />
+                KRITERIA KELAYAKAN RADAR VIRAL & ANCAMAN KOGNITIF (LEFT-OF-BANG):
+              </div>
+              <div style={{ fontSize: '10.5px', color: '#94A3B8', lineHeight: 1.5 }}>
+                Radar ini tidak memuat rilis humas atau seremonial biasa. Isu yang masuk wajib memenuhi minimal 1 dari 3 gerbang: (1) <strong>Lonjakan Penelusuran Publik</strong> (+2K–+200K netizen via Google Trends ID), (2) <strong>Laporan Disinformasi Masif</strong> (TurnBackHoax/Mafindo), atau (3) <strong>Polemik Kebijakan/Hankam Berisiko Tinggi</strong> dengan skor ancaman kognitif R ≥ 50.
               </div>
             </div>
 

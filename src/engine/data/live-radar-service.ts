@@ -124,8 +124,8 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
         4500
       ),
       fetchXmlWithFallback(
-        '/api/rss/google-news/search?q=TNI+OR+alutsista+OR+papua+OR+hoaks+when:2d&hl=id&gl=ID&ceid=ID:id',
-        'https://news.google.com/rss/search?q=TNI+OR+alutsista+OR+papua+OR+hoaks+when:2d&hl=id&gl=ID&ceid=ID:id',
+        '/api/rss/google-news/search?q=(TNI+OR+alutsista+OR+Papua+OR+Prabowo+OR+Gibran+OR+bansos)+AND+(hoaks+OR+viral+OR+heboh+OR+polemik+OR+kontroversi+OR+dibantah+OR+desak+OR+tuding+OR+manipulasi+OR+bentrok+OR+krisis)+when:2d&hl=id&gl=ID&ceid=ID:id',
+        'https://news.google.com/rss/search?q=(TNI+OR+alutsista+OR+Papua+OR+Prabowo+OR+Gibran+OR+bansos)+AND+(hoaks+OR+viral+OR+heboh+OR+polemik+OR+kontroversi+OR+dibantah+OR+desak+OR+tuding+OR+manipulasi+OR+bentrok+OR+krisis)+when:2d&hl=id&gl=ID&ceid=ID:id',
         4500
       ),
       fetchXmlWithFallback(

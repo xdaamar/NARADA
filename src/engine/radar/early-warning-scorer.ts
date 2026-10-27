@@ -28,27 +28,40 @@ export interface TacticalBriefingSummary {
 
 /**
  * 1. Evaluasi Sensitivitas Entitas Sasaran (E)
+ * Menilai tingkat sensitivitas entitas yang menjadi sasaran narasi.
+ * Kedaulatan Militer dan Lembaga Negara hanya mendapat bobot kritis (80-100) jika berkorelasi
+ * dengan ancaman, konflik, separatisme, hoaks, atau polemik.
  */
 export function calculateEntitySensitivity(text: string): number {
   const norm = text.toLowerCase()
 
-  // Prioritas Tertinggi (100): Kedaulatan Militer, Hankam, dan Separatis
+  // Prioritas Kritis (100): Separatisme Bersenjata, Ancaman Perbatasan, & Serangan Alutsista/Militer
   if (
-    norm.includes('tni') ||
-    norm.includes('panglima tni') ||
-    norm.includes('kasad') ||
-    norm.includes('kopassus') ||
-    norm.includes('alutsista') ||
-    norm.includes('kemhan') ||
-    norm.includes('papua') ||
     norm.includes('opm') ||
     norm.includes('kkb') ||
-    norm.includes('pangkalan militer') ||
-    norm.includes('radar militer') ||
+    norm.includes('separatis') ||
+    norm.includes('pemberontak') ||
+    norm.includes('baku tembak') ||
+    norm.includes('penyanderaan') ||
+    norm.includes('sabotase') ||
+    norm.includes('rahasia intelijen') ||
+    norm.includes('dokumen rahasia') ||
+    norm.includes('pangkalan militer diserang') ||
     norm.includes('perbatasan natuna') ||
-    norm.includes('senjata')
+    (norm.includes('alutsista') && (norm.includes('rongsokan') || norm.includes('fiktif') || norm.includes('korupsi') || norm.includes('jatuh')))
   ) {
     return 100
+  }
+
+  // Prioritas Sangat Tinggi (85): Lembaga Hankam/TNI yang Menjadi Sasaran Tudingan / Hoaks / Polemik / Operasi Kedaulatan
+  const hasMilitaryEntity = norm.includes('tni') || norm.includes('panglima tni') || norm.includes('kasad') || norm.includes('kopassus') || norm.includes('kemhan')
+  const hasConflictTrigger = norm.includes('hoaks') || norm.includes('hoax') || norm.includes('viral') || norm.includes('polemik') || 
+                             norm.includes('kontroversi') || norm.includes('bentrok') || norm.includes('tuding') || norm.includes('dicopot') || 
+                             norm.includes('korupsi') || norm.includes('desak') || norm.includes('skandal') || norm.includes('provokasi') ||
+                             norm.includes('kedaulatan') || norm.includes('perbatasan') || norm.includes('ancaman')
+
+  if (hasMilitaryEntity && hasConflictTrigger) {
+    return 85
   }
 
   // Prioritas Tinggi (75): Lembaga Kepresidenan, Intelijen, & Bencana Kritis
@@ -58,11 +71,8 @@ export function calculateEntitySensitivity(text: string): number {
     norm.includes('gibran') ||
     norm.includes('prabowo') ||
     norm.includes('jokowi') ||
-    norm.includes('polri') ||
-    norm.includes('kapolri') ||
     norm.includes('bin') ||
     norm.includes('bssn') ||
-    norm.includes('bmkg') ||
     norm.includes('megathrust') ||
     norm.includes('tsunami') ||
     norm.includes('erupsi merapi')
@@ -70,7 +80,7 @@ export function calculateEntitySensitivity(text: string): number {
     return 75
   }
 
-  // Prioritas Menengah (50): Kementerian, Bansos, Pangan, & Pemilu
+  // Prioritas Menengah-Tinggi (50): Kementerian Strategis, Bansos, Pangan, & Kebijakan Sensitif
   if (
     norm.includes('kemensos') ||
     norm.includes('bansos') ||
@@ -80,12 +90,18 @@ export function calculateEntitySensitivity(text: string): number {
     norm.includes('kpu') ||
     norm.includes('bawaslu') ||
     norm.includes('vaksin') ||
-    norm.includes('beras')
+    norm.includes('beras') ||
+    norm.includes('papua')
   ) {
     return 50
   }
 
-  // Prioritas Standar (20): Isu Umum Publik
+  // Sebutan militer/instansi dalam kegiatan biasa/kedinasan tanpa konflik (30)
+  if (hasMilitaryEntity) {
+    return 30
+  }
+
+  // Prioritas Standar (20): Isu Publik Umum
   return 20
 }
 
