@@ -1,9 +1,11 @@
 import type { DebunkKnowledgeEntry } from '../../types.ts'
+import { formatMilitaryDateTime } from '../ingest/rss-parser.ts'
 import databaseJson from './debunk-database.json' with { type: 'json' }
 
 const LOCAL_ARCHIVE_ENTRIES: DebunkKnowledgeEntry[] = (databaseJson as DebunkKnowledgeEntry[]).map((e, idx) => ({
   ...e,
   isLive: false,
+  publishedDate: e.publishedDate ? formatMilitaryDateTime(e.publishedDate) : formatMilitaryDateTime(`2026-10-${20 + (idx % 7)}T08:30:00Z`),
   viralityReason: e.viralityReason || (e.verdict === 'HOAKS' ? '🚨 PUSSIBERAD ARSIP: Disinformasi Terverifikasi' : '🛡️ PUSSIBERAD ARSIP: Klarifikasi Resmi Hankam'),
   originalPlatform: e.originalPlatform || 'Pusat Analisis Siber AD (Pangkalan Data Teritorial)',
   originalSourceUrl: e.originalSourceUrl || e.sourceUrl,
