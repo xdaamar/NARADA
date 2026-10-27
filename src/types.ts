@@ -68,6 +68,13 @@ export type ThreatSpectrumCluster =
   | 'KEDAULATAN_MILITER'   // Separatis OPM, alutsista rongsokan, sabotase
   | 'UMUM_NETRAL'          // Berita faktual kedinasan/sosial
 
+export interface EngagementMetrics {
+  views: string          // Estimasi jangkauan tayangan netizen (e.g. "+75K tayangan")
+  shares: string         // Estimasi reposts / share berantai (e.g. "4.2K sebaran")
+  velocityRate: string   // Akselerasi per jam (e.g. "+160%/jam")
+  timeElapsed: string    // Rentang waktu viralitas (e.g. "2 jam lalu")
+}
+
 export interface DebunkKnowledgeEntry {
   id: string
   claim: string
@@ -77,7 +84,11 @@ export interface DebunkKnowledgeEntry {
   threatLevel: ThreatLevel
   clarification: string
   officialSource: string
-  sourceUrl: string
+  sourceUrl: string               // Rujukan verifikasi resmi (Mafindo, Dispenad, Setpres, BMKG)
+  originalSourceUrl?: string      // Tautan ke artikel/postingan pantauan asli (tempat isu pertama kali beredar)
+  originalPlatform?: string       // Platform asal penangkapan (Google Trends ID, Google News Hankam, Antara, X/Twitter)
+  interceptedAt?: string          // Waktu isu pertama kali ditangkap oleh radar (e.g. "18:20 WIB")
+  verifiedAt?: string            // Waktu isu berhasil diverifikasi/diklasifikasikan (e.g. "18:24 WIB")
   keywords: string[]
   tacticalResponseCivilian: string
   tacticalResponseMilitary: string
@@ -86,6 +97,8 @@ export interface DebunkKnowledgeEntry {
   trendTraffic?: string
   cognitiveScore?: number
   viralityReason?: string
+  viralVelocity?: string         // Ringkasan kecepatan viral (e.g. "+50K pencarian dlm 3 jam")
+  engagement?: EngagementMetrics  // Rincian kuantitatif metrik media sosial / viralitas
 }
 
 export interface InstitutionalLogicAnomaly {
