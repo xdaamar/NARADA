@@ -1,293 +1,317 @@
-import { useState, useTransition, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
-  MessageSquareQuote,
-  Search,
-  Zap,
+  ArrowLeft,
+  Radio,
+  ExternalLink,
   ShieldAlert,
   CheckCircle2,
+  Flame,
+  Zap,
   Copy,
   Check,
-  TrendingUp,
   Share2,
-  Heart,
-  MessageCircle,
-  Eye,
+  Users,
   Bot,
-  Sparkles,
-  ChevronRight,
-  UserCheck,
-  AlertOctagon,
-  Flame
+  Clock,
+  Building,
+  MessageSquare,
+  Eye,
+  Heart,
+  FileText,
+  X
 } from 'lucide-react'
+import type { DebunkKnowledgeEntry } from '../types'
 import {
-  detectSocialPlatform,
-  analyzeSocialPost,
-  injectBuzzerSwarm,
-  SOCIAL_PRESET_SCENARIOS,
-  type SocialPostForensicResult,
-  type SocialPlatform
-} from '../engine/social-forensic'
-import { predictNaiveBayes } from '../engine/ml/naive-bayes'
-import ResilientIngestionBanner from '../components/ResilientIngestionBanner'
-import XAIInspectorDrawer from '../components/XAIInspectorDrawer'
-import CountermeasureAdvisoryBox from '../components/CountermeasureAdvisoryBox'
+  generateSocialThreatDossier,
+  type SocialThreatDossier,
+  type CommentTriageCategory
+} from '../engine/social-threat-dossier'
+import {
+  generateCounterNarratives,
+  type CounterNarrativeChannels
+} from '../engine/forensic/counter-narrative-generator'
+import { getCuratedArchiveDebunks } from '../engine/data/debunk-service'
+import { getCachedRadarItems, updateRadarItemStatus } from '../utils/db-adapter'
 
 export default function SocialForensic() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [, startTransition] = useTransition()
 
-  // State input
-  const [urlInput, setUrlInput] = useState<string>(SOCIAL_PRESET_SCENARIOS[0].url)
-  const [customCaption, setCustomCaption] = useState<string>('')
-  const [customComments, setCustomComments] = useState<string>('')
-  const [showCustomDrawer, setShowCustomDrawer] = useState<boolean>(false)
+  // ─── 1. Resolusi Target Isu dari Radar / Cache ───
+  const [targetItem, setTargetItem] = useState<DebunkKnowledgeEntry | null>(() => {
+    const locState = location.state as { targetItem?: DebunkKnowledgeEntry; item?: DebunkKnowledgeEntry } | null
+    if (locState?.targetItem) return locState.targetItem
+    if (locState?.item) return locState.item
 
-  // State hasil analisis (default ke preset 1 alutsista 24T agar langsung siap audit)
-  const [result, setResult] = useState<SocialPostForensicResult>(SOCIAL_PRESET_SCENARIOS[0])
-  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
-  const [copiedDraft, setCopiedDraft] = useState<boolean>(false)
+    const archives = getCuratedArchiveDebunks()
+    // Ambil isu pertama yang belum terverifikasi / isu aktif radar
+    const unverified = archives.find(a => a.verdict === 'UNVERIFIED')
+    return unverified || archives[0] || null
+  })
 
-  // State 4-Kanal Kontranarasi & Simulasi Buzzer Swarm (Sprint 7C)
-  const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
-  const [isSimulatedSwarmActive, setIsSimulatedSwarmActive] = useState<boolean>(false)
-  const [baseOriginalResult, setBaseOriginalResult] = useState<SocialPostForensicResult | null>(null)
-
-  // Deteksi platform aktif dari URL saat ini
-  const detectedPlatform = detectSocialPlatform(urlInput)
-
-  // Hitung salience tokens takarir postingan menggunakan Naive Bayes Engine (Sprint 7A)
-  const captionSalience = useMemo(() => {
-    if (!result?.post?.caption) return undefined
-    return predictNaiveBayes(result.post.caption)
-  }, [result?.post?.caption])
-
-  // Tangani navigasi 1-Click Scenario dari TacticalTopBar
+  // Sinkronisasi dengan IndexedDB jika diperlukan
   useEffect(() => {
-    const state = location.state as { scenarioId?: string } | null
-    if (state?.scenarioId) {
-      const preset = SOCIAL_PRESET_SCENARIOS.find((p) => p.id === state.scenarioId)
-      if (preset) {
-        setUrlInput(preset.url)
-        setCustomCaption('')
-        setCustomComments('')
-        setShowCustomDrawer(false)
-        setIsSimulatedSwarmActive(false)
-        setBaseOriginalResult(null)
-        setResult(preset)
+    if (!targetItem) {
+      getCachedRadarItems().then(items => {
+        if (items && items.length > 0) {
+          const unverified = items.find(a => a.verdict === 'UNVERIFIED')
+          setTargetItem(unverified || items[0])
+        }
+      })
+    }
+  }, [targetItem])
+
+  // Generator Dossier Forensik Dinamis
+  const dossier: SocialThreatDossier = useMemo(() => {
+    return generateSocialThreatDossier(targetItem || {})
+  }, [targetItem])
+
+  // ─── 2. State Filter & Interaktivitas UI ───
+  const [activePlatformTab, setActivePlatformTab] = useState<'TWITTER' | 'TIKTOK' | 'INSTAGRAM' | 'WHATSAPP'>('TWITTER')
+  const [activeCommentFilter, setActiveCommentFilter] = useState<'ALL' | CommentTriageCategory>('ALL')
+  const [selectedClusterPattern, setSelectedClusterPattern] = useState<string | null>(null)
+  const [statusUpdateMessage, setStatusUpdateMessage] = useState<string | null>(null)
+
+  // ─── 3. State Modal Kontranarasi Dispenad ───
+  const [isCounterModalOpen, setIsCounterModalOpen] = useState<boolean>(false)
+  const [counterChannels, setCounterChannels] = useState<CounterNarrativeChannels | null>(null)
+  const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
+  const [copiedSuccess, setCopiedSuccess] = useState<boolean>(false)
+
+  // Keyboard shortcut: tombol Escape untuk kembali ke radar
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isCounterModalOpen) {
+          setIsCounterModalOpen(false)
+        } else {
+          navigate('/radar')
+        }
       }
     }
-  }, [location.state])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isCounterModalOpen, navigate])
 
-  // Handler eksekusi analisis
-  const handleExecuteForensic = async (targetUrl = urlInput) => {
-    if (!targetUrl.trim() && !customCaption.trim()) return
-    setIsAnalyzing(true)
-    setIsSimulatedSwarmActive(false)
-    setBaseOriginalResult(null)
-
-    try {
-      const data = await analyzeSocialPost(
-        targetUrl,
-        customCaption.trim() ? customCaption : undefined,
-        customComments.trim() ? customComments : undefined
-      )
-      setResult(data)
-    } catch (err) {
-      console.error('[SocialForensic] Gagal menganalisis postingan:', err)
-    } finally {
-      setIsAnalyzing(false)
-    }
+  // Handler Buka Modal Kontranarasi
+  const handleOpenCounterModal = () => {
+    if (!targetItem) return
+    const drafts = generateCounterNarratives(
+      targetItem.claim,
+      {
+        claim: targetItem.claim,
+        clarification: targetItem.clarification,
+        officialSource: targetItem.officialSource,
+        sourceUrl: targetItem.sourceUrl,
+        cluster: targetItem.cluster
+      },
+      targetItem.originalPlatform || 'MEDIA SOSIAL'
+    )
+    setCounterChannels(drafts)
+    setActiveCounterTab('dispenad')
+    setIsCounterModalOpen(true)
   }
 
-  // Handler memilih preset skenario
-  const handleSelectPreset = (preset: SocialPostForensicResult) => {
-    setUrlInput(preset.url)
-    setCustomCaption('')
-    setCustomComments('')
-    setShowCustomDrawer(false)
-    setIsSimulatedSwarmActive(false)
-    setBaseOriginalResult(null)
-    startTransition(() => {
-      setResult(preset)
-    })
+  // Handler Salin Teks Draf
+  const handleCopyDraft = (text: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedSuccess(true)
+    setTimeout(() => setCopiedSuccess(false), 2200)
   }
 
-  // Handler simulasi injeksi buzzer swarm
-  const handleToggleSwarmSimulation = () => {
-    if (isSimulatedSwarmActive) {
-      if (baseOriginalResult) {
-        setResult(baseOriginalResult)
-        setBaseOriginalResult(null)
-      }
-      setIsSimulatedSwarmActive(false)
-    } else {
-      setBaseOriginalResult(result)
-      const simulated = injectBuzzerSwarm(result)
-      setResult(simulated)
-      setIsSimulatedSwarmActive(true)
-    }
-  }
-
-  // Draf aktif berdasarkan tab kanal yang dipilih
-  const activeDraftText = useMemo(() => {
-    const channels = result?.tacticalRecommendation?.counterNarratives
-    if (!channels) return result?.tacticalRecommendation?.officialClarificationDraft || ''
-    switch (activeCounterTab) {
-      case 'dispenad': return channels.dispenadOfficial
-      case 'babinsa': return channels.babinsaTerritorial
-      case 'whatsapp': return channels.whatsappCivilian
-      case 'social': return channels.socialTactical
-      default: return channels.dispenadOfficial
-    }
-  }, [result?.tacticalRecommendation, activeCounterTab])
-
-  // Handler salin draf klarifikasi aktif
-  const handleCopyDraft = () => {
-    if (!activeDraftText) return
-    navigator.clipboard.writeText(activeDraftText)
-    setCopiedDraft(true)
-    setTimeout(() => setCopiedDraft(false), 2200)
-  }
-
-  // Handler navigasi ke Analyzer
+  // Handler Kirim ke Multi-Input Analyzer
   const handleSendToAnalyzer = () => {
-    if (!result) return
+    if (!targetItem) return
     navigate('/analyzer', {
       state: {
-        prefill: result.post.caption,
-        sourceUrl: result.url
+        prefill: targetItem.claim,
+        sourceUrl: targetItem.originalSourceUrl || targetItem.sourceUrl
       }
     })
   }
 
-  // Platform styling badge
-  const getPlatformBadge = (platform: SocialPlatform) => {
-    switch (platform) {
-      case 'INSTAGRAM':
-        return { label: 'INSTAGRAM REELS', color: '#E1306C', bg: 'rgba(225, 48, 108, 0.15)' }
-      case 'TIKTOK':
-        return { label: 'TIKTOK VIDEO', color: '#00F2FE', bg: 'rgba(0, 242, 254, 0.15)' }
-      case 'TWITTER':
-        return { label: 'X (TWITTER)', color: '#1DA1F2', bg: 'rgba(29, 161, 242, 0.15)' }
-      case 'FACEBOOK':
-        return { label: 'FACEBOOK POST', color: '#1877F2', bg: 'rgba(24, 119, 242, 0.15)' }
-      case 'THREADS':
-        return { label: 'THREADS', color: '#FFFFFF', bg: 'rgba(255, 255, 255, 0.15)' }
-      default:
-        return { label: 'WEB SOCIAL LINK', color: '#94A3B8', bg: 'rgba(148, 163, 184, 0.15)' }
-    }
+  // Handler Kirim ke Laporan Intelijen A4
+  const handleSendToReports = () => {
+    if (!targetItem) return
+    navigate('/reports', {
+      state: {
+        prefillClaim: targetItem.claim,
+        prefillCluster: targetItem.cluster,
+        prefillConfidence: dossier.cibCoordinationIndex
+      }
+    })
   }
 
-  // Threat level badge
-  const getThreatStyle = (level: string) => {
-    switch (level) {
-      case 'CRITICAL':
-        return { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.15)', border: '#DC2626' }
-      case 'HIGH':
-        return { color: '#F97316', bg: 'rgba(249, 115, 22, 0.15)', border: '#EA580C' }
-      case 'MEDIUM':
-        return { color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.15)', border: '#D97706' }
-      default:
-        return { color: '#10B981', bg: 'rgba(16, 185, 129, 0.15)', border: '#059669' }
-    }
+  // Handler Update Status Isu Langsung (Triage Taktis)
+  const handleUpdateTriage = async (newStatus: 'HOAKS' | 'FAKTA') => {
+    if (!targetItem) return
+    await updateRadarItemStatus(targetItem.id, newStatus)
+    setStatusUpdateMessage(`Status isu berhasil diubah menjadi: ${newStatus}`)
+    setTimeout(() => setStatusUpdateMessage(null), 3000)
   }
 
-  const platformBadge = getPlatformBadge(result.platform)
-  const threatStyle = getThreatStyle(result.cognitiveVerdict.threatLevel)
+  // Filter Aliran Komentar
+  const filteredComments = useMemo(() => {
+    let list = dossier.commentsStream
+
+    // Filter berdasarkan kategori triage
+    if (activeCommentFilter !== 'ALL') {
+      list = list.filter(c => c.triageCategory === activeCommentFilter)
+    }
+
+    // Filter berdasarkan klaster template copypasta
+    if (selectedClusterPattern) {
+      list = list.filter(c => c.matchedClusterPattern === selectedClusterPattern)
+    }
+
+    return list
+  }, [dossier.commentsStream, activeCommentFilter, selectedClusterPattern])
+
+  // Postingan aktif terpilih
+  const currentPreview = useMemo(() => {
+    return dossier.platformPreviews.find(p => p.platform === activePlatformTab) || dossier.platformPreviews[0]
+  }, [dossier.platformPreviews, activePlatformTab])
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '60px' }}>
+    <div className="fade-in" style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '60px' }}>
       
-      {/* ─── 1. Header Komando Forensik Medsos ─── */}
+      {/* ─── 1. TOP COMMAND BAR: BREADCRUMB & CONTEXT TELMETRY ─── */}
       <div style={{
         display: 'flex',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '16px',
-        marginBottom: '20px'
+        gap: '12px',
+        marginBottom: '16px',
+        borderBottom: '1px solid #1E2734',
+        paddingBottom: '14px'
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/radar')}
+            title="Kembali ke Radar Berita Viral [Esc]"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              background: '#121822',
+              border: '1px solid #2B384E',
+              color: '#94A3B8',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#F1F5F9'
+              e.currentTarget.style.borderColor = '#38BDF8'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#94A3B8'
+              e.currentTarget.style.borderColor = '#2B384E'
+            }}
+          >
+            <ArrowLeft size={13} />
+            <span>KEMBALI KE RADAR</span>
+            <span style={{ fontSize: '9px', opacity: 0.6, border: '1px solid #334155', padding: '0 4px', borderRadius: '2px' }}>ESC</span>
+          </button>
+
+          <span style={{ color: '#2B384E' }}>│</span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{
               fontSize: '10px',
               fontFamily: 'var(--font-mono)',
-              padding: '2px 8px',
+              fontWeight: 800,
+              padding: '3px 8px',
               borderRadius: '3px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              color: '#F87171',
-              border: '1px solid rgba(239, 68, 68, 0.4)',
-              letterSpacing: '1.5px',
-              textTransform: 'uppercase',
-              fontWeight: 700
+              background: 'rgba(245, 158, 11, 0.18)',
+              color: '#FBBF24',
+              border: '1px solid rgba(245, 158, 11, 0.45)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
             }}>
-              MODUL 4: FORENSIK POSTINGAN MEDSOS & BUZZER
+              <Radio size={11} className="spin-animation" />
+              STATUS: SEDANG DIPANTAU (UNVERIFIED)
             </span>
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-              DISPENAD × PUSSIBERAD OSINT SUITE
+
+            <span style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: '3px',
+              background: `${dossier.clusterColor}20`,
+              color: dossier.clusterColor,
+              border: `1px solid ${dossier.clusterColor}40`
+            }}>
+              {dossier.clusterLabel}
             </span>
           </div>
-
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '24px',
-            fontWeight: 800,
-            letterSpacing: '1.2px',
-            textTransform: 'uppercase',
-            color: 'var(--text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}>
-            <MessageSquareQuote size={24} color="#EF4444" />
-            Social Post Forensic & Buzzer Swarm Detector
-          </h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '820px', marginTop: '2px' }}>
-            Kamar bedah forensik postingan media sosial spesifik. Mengidentifikasi keaslian konten, rasio polarisasi sentimen komentar, deteksi kampanye buzzer copypasta template (ambang batas &ge; 15%), dan perumusan draf netralisir taktis Dispenad.
-          </p>
         </div>
 
-        {/* Telemetri Live Engine */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '8px 14px',
-          background: '#121822',
-          border: '1px solid #1E2734',
-          borderRadius: 'var(--radius-pill)',
-          boxShadow: 'var(--shadow-steel-plate)'
-        }}>
-          <span style={{
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: '#10B981',
-            boxShadow: '0 0 8px #10B981',
-            display: 'inline-block'
-          }} />
-          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9' }}>
-            BUZZER SWARM DETECTOR READY
-          </span>
-          <span style={{ color: '#2D3848' }}>│</span>
-          <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-            JACCARD THRESHOLD: 65%
-          </span>
+        {/* Telemetri Live & Timestamp Penangkapan */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 12px',
+            background: '#0D141F',
+            border: '1px solid #1E2734',
+            borderRadius: 'var(--radius-pill)',
+            fontSize: '10.5px',
+            fontFamily: 'var(--font-mono)'
+          }}>
+            <span style={{ color: '#64748B' }}>DITANGKAP:</span>
+            <strong style={{ color: '#38BDF8' }}>{dossier.interceptedAt}</strong>
+            <span style={{ color: '#2B3846' }}>│</span>
+            <span style={{ color: '#64748B' }}>VIEWS:</span>
+            <strong style={{ color: '#F59E0B' }}>{dossier.viewsEstimate}</strong>
+            <span style={{ color: '#2B3846' }}>│</span>
+            <span style={{ color: '#64748B' }}>AKSELERASI:</span>
+            <strong style={{ color: '#10B981' }}>{dossier.velocityRate}</strong>
+          </div>
         </div>
       </div>
 
-      {/* ─── 2. Input Console Plat Baja (URL Postingan & Preset Kasus) ─── */}
-      <div
+      {/* Pesan Notifikasi Perubahan Status (Flash Bar) */}
+      {statusUpdateMessage && (
+        <div style={{
+          marginBottom: '14px',
+          padding: '8px 14px',
+          background: 'rgba(16, 185, 129, 0.15)',
+          border: '1px solid #10B981',
+          borderRadius: '4px',
+          color: '#34D399',
+          fontSize: '11px',
+          fontFamily: 'var(--font-mono)',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <CheckCircle2 size={14} />
+          <span>{statusUpdateMessage}</span>
+        </div>
+      )}
+
+      {/* ─── 2. TARGET HEADLINE & COMMAND ACTION HUB ─── */}
+      <div 
         className="steel-chassis-card"
         style={{
-          padding: '16px 20px',
-          marginBottom: '22px',
+          padding: '18px 22px',
+          marginBottom: '20px',
+          position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          gap: '14px',
-          position: 'relative'
+          gap: '14px'
         }}
       >
         <span className="bolt-tl" />
@@ -295,1157 +319,1246 @@ export default function SocialForensic() {
         <span className="bolt-bl" />
         <span className="bolt-br" />
 
-        {/* Baris Input URL Bersih */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <div style={{
-            flex: 1,
-            minWidth: '280px',
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <div style={{
-              position: 'absolute',
-              left: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              paddingRight: '10px',
-              borderRight: '1px solid #232D3B'
-            }}>
-              <span style={{
-                fontSize: '9px',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                color: getPlatformBadge(detectedPlatform).color,
-                background: getPlatformBadge(detectedPlatform).bg,
-                padding: '2px 6px',
-                borderRadius: '3px'
-              }}>
-                {detectedPlatform}
-              </span>
-            </div>
-
-            <input
-              type="text"
-              className="input-field"
-              placeholder="Tempelkan URL postingan medsos (Instagram Reels, TikTok, X Thread, Facebook)..."
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleExecuteForensic()}
-              style={{
-                width: '100%',
-                paddingLeft: '115px',
-                paddingRight: '14px',
-                paddingTop: '10px',
-                paddingBottom: '10px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '12px',
-                background: '#090C10',
-                borderColor: '#263342',
-                color: '#F8FAFC'
-              }}
-            />
-          </div>
-
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => handleExecuteForensic()}
-            disabled={isAnalyzing}
-            style={{
-              padding: '10px 18px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '11px',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: '#C8102E',
-              borderColor: '#DC2626'
-            }}
-          >
-            {isAnalyzing ? (
-              <>
-                <Sparkles size={14} className="animate-spin" />
-                MEMBEDAH POSTINGAN...
-              </>
-            ) : (
-              <>
-                <Search size={14} />
-                JALANKAN FORENSIK POSTINGAN
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Preset Sampel Postingan Medsos Siap Uji */}
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
           flexWrap: 'wrap',
-          paddingTop: '6px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)'
+          gap: '14px'
         }}>
-          <span style={{
-            fontSize: '10px',
-            fontFamily: 'var(--font-mono)',
-            color: '#64748B',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.8px'
-          }}>
-            PRESET SAMPEL SIAP AUDIT:
-          </span>
-
-          {SOCIAL_PRESET_SCENARIOS.map((preset) => {
-            const isSelected = result?.id === preset.id
-            const pBadge = getPlatformBadge(preset.platform)
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => handleSelectPreset(preset)}
-                style={{
-                  padding: '5px 10px',
-                  borderRadius: '4px',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  background: isSelected ? 'rgba(239, 68, 68, 0.15)' : '#121822',
-                  border: isSelected ? '1px solid #DC2626' : '1px solid #1C2532',
-                  color: isSelected ? '#FCA5A5' : '#94A3B8'
-                }}
-              >
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: pBadge.color }} />
-                <span>{preset.platform === 'INSTAGRAM' ? 'IG Reels (Alutsista 24T)' : preset.platform === 'TIKTOK' ? 'TikTok (Megathrust 23.00)' : preset.platform === 'TWITTER' ? 'X (Pilkada Papua)' : 'Facebook (Bansos 5 Juta)'}</span>
-              </button>
-            )
-          })}
-
-          <button
-            type="button"
-            onClick={() => setShowCustomDrawer(!showCustomDrawer)}
-            style={{
-              marginLeft: 'auto',
+          <div style={{ flex: 1, minWidth: '320px' }}>
+            <div style={{
               fontSize: '10px',
               fontFamily: 'var(--font-mono)',
-              color: showCustomDrawer ? '#F59E0B' : '#64748B',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'underline'
-            }}
-          >
-            {showCustomDrawer ? '[-] Tutup Opsi Lanjutan' : '[+] Tempel Takarir / Sampel Komentar Manual'}
-          </button>
-        </div>
-
-        {/* Drawer Tambahan untuk Custom Caption / Komentar */}
-        {showCustomDrawer && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '12px',
-            padding: '12px',
-            background: '#090C10',
-            borderRadius: '6px',
-            border: '1px solid #1C2430',
-            marginTop: '4px'
-          }}>
-            <div>
-              <label style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>
-                KONTEN / TAKARIR POSTINGAN (OPSIONAL):
-              </label>
-              <textarea
-                className="input-field"
-                rows={3}
-                placeholder="Tempelkan takarir lengkap jika URL tidak dapat diakses secara publik..."
-                value={customCaption}
-                onChange={(e) => setCustomCaption(e.target.value)}
-                style={{ width: '100%', fontSize: '11px', fontFamily: 'var(--font-mono)' }}
-              />
-            </div>
-            <div>
-              <label style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>
-                SAMPEL KOMENTAR UNTUK UJI JACCARD COPYPASTA (1 BARIS = 1 KOMENTAR):
-              </label>
-              <textarea
-                className="input-field"
-                rows={3}
-                placeholder="Bongkar terus rezim panik!&#10;Bongkar terus rezim panik! Viralkan!&#10;Ini video lama tahun 2012 deh min..."
-                value={customComments}
-                onChange={(e) => setCustomComments(e.target.value)}
-                style={{ width: '100%', fontSize: '11px', fontFamily: 'var(--font-mono)' }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Banner Ketahanan Ingesti Multi-Tier (Palantir Pattern) jika target medsos terdeteksi */}
-        {detectedPlatform !== 'GENERIC_WEB' && (
-          <ResilientIngestionBanner
-            platformName={detectedPlatform}
-            url={urlInput}
-            onBypassWithOCR={() => {
-              navigate('/analyzer', {
-                state: {
-                  openTab: 'image',
-                  sourceUrl: urlInput
-                }
-              })
-            }}
-            onLoadLocalSnapshot={() => {
-              const matched = SOCIAL_PRESET_SCENARIOS.find((p) => p.platform === detectedPlatform) || SOCIAL_PRESET_SCENARIOS[0]
-              handleSelectPreset(matched)
-            }}
-            onPasteManualText={() => {
-              setShowCustomDrawer(true)
-            }}
-          />
-        )}
-      </div>
-
-      {/* ─── 3. Grid 4 Deck Plat Baja Forensik ─── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        
-        {/* BARIS ATAS: DECK 1 (Ringkasan Postingan) & DECK 2 (Rasio Sentimen) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
-          gap: '20px'
-        }}>
-          
-          {/* ─── DECK 1: RINGKASAN POSTINGAN & VONIS ISI ─── */}
-          <div
-            className="steel-chassis-card"
-            style={{
-              padding: '20px',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px'
-            }}
-          >
-            <span className="bolt-tl" />
-            <span className="bolt-tr" />
-            <span className="bolt-bl" />
-            <span className="bolt-br" />
-
-            {/* Header Deck 1 */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1C2532', paddingBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  color: platformBadge.color,
-                  background: platformBadge.bg,
-                  padding: '2px 8px',
-                  borderRadius: '3px'
-                }}>
-                  {platformBadge.label}
-                </span>
-                <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                  DECK 1: RINGKASAN ARTIFAK
-                </span>
-              </div>
-
-              <span style={{
-                fontSize: '10px',
-                fontFamily: 'var(--font-mono)',
-                color: threatStyle.color,
-                background: threatStyle.bg,
-                border: `1px solid ${threatStyle.border}`,
-                padding: '2px 8px',
-                borderRadius: '3px',
-                fontWeight: 700
-              }}>
-                DEFCON THREAT: {result.cognitiveVerdict.threatLevel}
-              </span>
-            </div>
-
-            {/* Author Profile Card */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: '50%',
-                background: result.author.avatarColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '18px',
-                fontWeight: 800,
-                color: '#FFF',
-                border: '2px solid rgba(255, 255, 255, 0.2)'
-              }}>
-                {result.author.avatarLetter}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F9' }}>
-                    {result.author.displayName}
-                  </span>
-                  {result.author.isVerified && <UserCheck size={14} color="#38BDF8" />}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '2px' }}>
-                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                    {result.author.handle}
-                  </span>
-                  <span style={{ color: '#2B3746' }}>•</span>
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                    {result.author.followersCount.toLocaleString('id-ID')} Pengikut
-                  </span>
-                  <span style={{ color: '#2B3746' }}>•</span>
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                    Akun: {result.author.accountAgeDays} hari
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Takarir Postingan (Caption Inset Tray) */}
-            <div className="steel-sunken-tray" style={{ padding: '12px 14px' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', marginBottom: '4px' }}>
-                TAKARIR / NARASI POSTINGAN:
-              </div>
-              <p style={{
-                fontSize: '12px',
-                color: '#E2E8F0',
-                lineHeight: 1.5,
-                fontFamily: 'var(--font-ui)',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {result.post.caption}
-              </p>
-            </div>
-
-            {/* Metrik Engagement Counters */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '8px'
-            }}>
-              <div className="steel-sunken-tray" style={{ padding: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '10px', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                  <Eye size={12} /> Dilihat
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F8FAFC', marginTop: '2px' }}>
-                  {result.post.viewsCount ? result.post.viewsCount.toLocaleString('id-ID') : 'N/A'}
-                </div>
-              </div>
-
-              <div className="steel-sunken-tray" style={{ padding: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '10px', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                  <Heart size={12} /> Disukai
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F8FAFC', marginTop: '2px' }}>
-                  {result.post.likesCount.toLocaleString('id-ID')}
-                </div>
-              </div>
-
-              <div className="steel-sunken-tray" style={{ padding: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '10px', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                  <MessageCircle size={12} /> Komentar
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F8FAFC', marginTop: '2px' }}>
-                  {result.post.commentsCount.toLocaleString('id-ID')}
-                </div>
-              </div>
-
-              <div className="steel-sunken-tray" style={{ padding: '8px', textAlign: 'center' }}>
-                <div style={{ fontSize: '10px', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                  <Share2 size={12} /> Dibagikan
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F8FAFC', marginTop: '2px' }}>
-                  {result.post.sharesCount.toLocaleString('id-ID')}
-                </div>
-              </div>
-            </div>
-
-            {/* Box Vonis AI Cognitive */}
-            <div style={{
-              padding: '12px 14px',
-              borderRadius: '6px',
-              background: threatStyle.bg,
-              border: `1px solid ${threatStyle.border}`,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldAlert size={16} color={threatStyle.color} />
-                  <span style={{ fontSize: '12px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: threatStyle.color }}>
-                    VONIS: {result.cognitiveVerdict.status.replace(/_/g, ' ')}
-                  </span>
-                </div>
-                <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: threatStyle.color }}>
-                  KEYAKINAN {result.cognitiveVerdict.confidenceScore}%
-                </span>
-              </div>
-              <p style={{ fontSize: '11px', color: '#E2E8F0', lineHeight: 1.4, margin: 0 }}>
-                {result.cognitiveVerdict.summaryReason}
-              </p>
-            </div>
-          </div>
-
-          {/* ─── DECK 2: RASIO SENTIMEN KOMENTAR (Chunky Mechanical LED Meter) ─── */}
-          <div
-            className="steel-chassis-card"
-            style={{
-              padding: '20px',
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px'
-            }}
-          >
-            <span className="bolt-tl" />
-            <span className="bolt-tr" />
-            <span className="bolt-bl" />
-            <span className="bolt-br" />
-
-            {/* Header Deck 2 */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1C2532', paddingBottom: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <TrendingUp size={16} color="#F59E0B" />
-                <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F1F5F9' }}>
-                  DECK 2: RASIO SENTIMEN KOMENTAR
-                </span>
-              </div>
-
-              <span style={{
-                fontSize: '10px',
-                fontFamily: 'var(--font-mono)',
-                color: result.sentimentMatrix.dominantSentiment === 'PROVOKATIF' ? '#F87171' : '#34D399',
-                background: result.sentimentMatrix.dominantSentiment === 'PROVOKATIF' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
-                padding: '2px 8px',
-                borderRadius: '3px',
-                fontWeight: 700
-              }}>
-                DOMINAN: {result.sentimentMatrix.dominantSentiment}
-              </span>
-            </div>
-
-            {/* Chunky Mechanical Bar Visualization */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                <span>POLARISASI OPINI PUBLIK</span>
-                <span>TOTAL: 100% SPEKTRUM</span>
-              </div>
-
-              <div style={{
-                height: '24px',
-                display: 'flex',
-                borderRadius: '4px',
-                overflow: 'hidden',
-                border: '1px solid #283548',
-                boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.8)'
-              }}>
-                {/* Positif Bar */}
-                <div
-                  title={`Positif / Organik: ${result.sentimentMatrix.positivePercent}%`}
-                  style={{
-                    width: `${result.sentimentMatrix.positivePercent}%`,
-                    background: 'linear-gradient(180deg, #10B981 0%, #059669 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFF',
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    transition: 'width 0.4s ease'
-                  }}
-                >
-                  {result.sentimentMatrix.positivePercent > 8 && `${result.sentimentMatrix.positivePercent}%`}
-                </div>
-
-                {/* Netral Bar */}
-                <div
-                  title={`Netral: ${result.sentimentMatrix.neutralPercent}%`}
-                  style={{
-                    width: `${result.sentimentMatrix.neutralPercent}%`,
-                    background: 'linear-gradient(180deg, #64748B 0%, #475569 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFF',
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    transition: 'width 0.4s ease'
-                  }}
-                >
-                  {result.sentimentMatrix.neutralPercent > 8 && `${result.sentimentMatrix.neutralPercent}%`}
-                </div>
-
-                {/* Provokatif Bar */}
-                <div
-                  title={`Provokatif / Hujatan: ${result.sentimentMatrix.provocativePercent}%`}
-                  style={{
-                    width: `${result.sentimentMatrix.provocativePercent}%`,
-                    background: 'linear-gradient(180deg, #EF4444 0%, #B91C1C 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#FFF',
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    transition: 'width 0.4s ease'
-                  }}
-                >
-                  {result.sentimentMatrix.provocativePercent > 8 && `${result.sentimentMatrix.provocativePercent}%`}
-                </div>
-              </div>
-            </div>
-
-            {/* 3 Detail Segment Cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '4px' }}>
-              
-              {/* Positif */}
-              <div className="steel-sunken-tray" style={{ padding: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981' }} />
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>POSITIF</span>
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#34D399' }}>
-                  {result.sentimentMatrix.positivePercent}%
-                </div>
-                <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
-                  Dukungan organik / testimoni
-                </div>
-              </div>
-
-              {/* Netral */}
-              <div className="steel-sunken-tray" style={{ padding: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#64748B' }} />
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>NETRAL</span>
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#CBD5E1' }}>
-                  {result.sentimentMatrix.neutralPercent}%
-                </div>
-                <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
-                  Tanya jawab & klarifikasi
-                </div>
-              </div>
-
-              {/* Provokatif */}
-              <div className="steel-sunken-tray" style={{ padding: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444' }} />
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>PROVOKATIF</span>
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#F87171' }}>
-                  {result.sentimentMatrix.provocativePercent}%
-                </div>
-                <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
-                  Serangan & hasutan publik
-                </div>
-              </div>
-            </div>
-
-            {/* Catatan Analisis Sentimen */}
-            <div style={{
-              padding: '10px 12px',
-              borderRadius: '4px',
-              background: '#0B0F15',
-              border: '1px solid #1C2430',
-              fontSize: '11px',
+              fontWeight: 800,
               color: '#94A3B8',
-              lineHeight: 1.4
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              marginBottom: '4px'
             }}>
-              <span style={{ color: '#F1F5F9', fontWeight: 600 }}>Diagnostik Polarisasi: </span>
-              {result.sentimentMatrix.provocativePercent >= 50
-                ? 'Terjadi dominasi narasi bermusuhan (hostile narrative) yang berpotensi mencederai kepercayaan publik terhadap institusi pertahanan dan pemerintah.'
-                : 'Arus komentar masih didominasi diskusi rasional publik tanpa tanda pembelahan opini kritis.'}
+              ISU SPESIFIK DALAM RADAR PEMANTAUAN INTELIJEN:
             </div>
-          </div>
-        </div>
-
-        {/* ─── XAI ENGINE INSPECTOR: TELEMETRI PEMBOBOTAN MODEL (NAIVE BAYES & HEATMAP) ─── */}
-        <XAIInspectorDrawer
-          text={result.post.caption}
-          category={result.cognitiveVerdict.status}
-          confidence={result.cognitiveVerdict.confidenceScore}
-          salienceTokens={captionSalience?.salienceTokens}
-          latencyMs={captionSalience?.inferenceLatencyMs}
-          title="XAI ENGINE INSPECTOR: TELEMETRI PEMBOBOTAN TAKARIR POSTINGAN (SALIENCE & LOG-LIKELIHOOD)"
-        />
-
-        {/* BARIS TENGAH: DECK 3 (Detektor Buzzer & Bukti Copypasta Template) */}
-        <div
-          className="steel-chassis-card"
-          style={{
-            padding: '22px',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px'
-          }}
-        >
-          <span className="bolt-tl" />
-          <span className="bolt-tr" />
-          <span className="bolt-bl" />
-          <span className="bolt-br" />
-
-          {/* Header Deck 3 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1C2532', paddingBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Bot size={18} color="#EF4444" />
-              <span style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#F1F5F9' }}>
-                DECK 3: KARTU FORENSIK BUZZER & COPYPASTA TEMPLATE SWARM
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={handleToggleSwarmSimulation}
-                title="Klik untuk mensimulasikan serbuan botnet copypasta seketika dan melihat aktivasi alarm siaga"
-                style={{
-                  padding: '4px 10px',
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: isSimulatedSwarmActive ? '#7F1D1D' : '#1E293B',
-                  color: isSimulatedSwarmActive ? '#FCA5A5' : '#E2E8F0',
-                  border: isSimulatedSwarmActive ? '1px solid #EF4444' : '1px solid #334155',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                <Flame size={12} color={isSimulatedSwarmActive ? '#EF4444' : '#F59E0B'} />
-                {isSimulatedSwarmActive ? 'BATALKAN SIMULASI BUZZER' : '⚡ SIMULASI INJEKSI BUZZER SWARM (+25)'}
-              </button>
-
-              <span style={{
-                fontSize: '10px',
-                fontFamily: 'var(--font-mono)',
-                color: '#94A3B8'
-              }}>
-                AMBANG BATAS ALARM: &ge; 15% COPYPASTA
-              </span>
-            </div>
-          </div>
-
-          {/* Alarm Banner Status Box */}
-          <div style={{
-            padding: '14px 18px',
-            borderRadius: '6px',
-            background: result.buzzerForensic.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.10)',
-            border: result.buzzerForensic.isBuzzerAlarmActive ? '2px solid #EF4444' : '1px solid #10B981',
-            boxShadow: result.buzzerForensic.isBuzzerAlarmActive ? '0 0 16px rgba(239, 68, 68, 0.25)' : 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {result.buzzerForensic.isBuzzerAlarmActive ? (
-                <AlertOctagon size={28} color="#EF4444" style={{ animation: 'pulse-critical 1.5s infinite' }} />
-              ) : (
-                <CheckCircle2 size={28} color="#10B981" />
-              )}
-              <div>
-                <div style={{
-                  fontSize: '13px',
-                  fontWeight: 800,
-                  fontFamily: 'var(--font-mono)',
-                  color: result.buzzerForensic.isBuzzerAlarmActive ? '#FCA5A5' : '#6EE7B7'
-                }}>
-                  {result.buzzerForensic.isBuzzerAlarmActive
-                    ? '🚨 ALARM BUZZER AKTIF: TERDETEKSI KAMPANYE KOMENTAR TEMPLATE (COORDINATED SWARM)'
-                    : 'STATUS NORMAL: POLA INTERAKSI KONTEN TERPANTAU ORGANIK'}
-                </div>
-                <div style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '2px' }}>
-                  {result.buzzerForensic.swarmAnomalyDescription}
-                </div>
-              </div>
-            </div>
-
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '20px',
+              fontWeight: 800,
+              color: '#F8FAFC',
+              lineHeight: 1.4,
+              margin: 0
+            }}>
+              "{dossier.targetClaim}"
+            </h1>
             <div style={{
-              fontSize: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '8px',
+              fontSize: '11px',
               fontFamily: 'var(--font-mono)',
-              fontWeight: 700,
-              padding: '6px 12px',
-              borderRadius: '4px',
-              background: result.buzzerForensic.isBuzzerAlarmActive ? '#991B1B' : '#065F46',
-              color: '#FFF'
+              color: '#64748B'
             }}>
-              KOORDINASI: {result.buzzerForensic.coordinationIndex} / 100
+              <span>Sumber Rujukan Awal: <strong style={{ color: '#CBD5E1' }}>{targetItem?.originalPlatform || 'Portal Berita / Google Trends'}</strong></span>
+              <span>•</span>
+              <span>Rujukan Verifikasi: <strong style={{ color: '#10B981' }}>{targetItem?.officialSource || 'TurnBackHoax & Otoritas'}</strong></span>
             </div>
           </div>
 
-          {/* 4 Telemetri Cepat Forensik Buzzer */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '12px'
-          }}>
-            
-            {/* Copypasta % */}
-            <div className="steel-sunken-tray" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                PERSENTASE COPYPASTA
-              </div>
-              <div style={{
-                fontSize: '22px',
-                fontWeight: 800,
+          {/* Action Command Hub Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleSendToAnalyzer}
+              style={{
+                background: 'rgba(200, 16, 46, 0.16)',
+                border: '1px solid #DC2626',
+                color: '#F87171',
+                fontSize: '11px',
                 fontFamily: 'var(--font-mono)',
-                color: result.buzzerForensic.copypastaPercent >= 15 ? '#EF4444' : '#10B981',
-                marginTop: '2px'
-              }}>
-                {result.buzzerForensic.copypastaPercent}%
-              </div>
-              <div style={{ fontSize: '10px', color: '#64748B', marginTop: '2px' }}>
-                {result.buzzerForensic.copypastaPercent >= 15 ? '⚠️ Melebihi batas aman 15%' : 'Dalam ambang normal'}
-              </div>
-            </div>
+                fontWeight: 700,
+                padding: '8px 14px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#C8102E'
+                e.currentTarget.style.color = '#FFFFFF'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(200, 16, 46, 0.16)'
+                e.currentTarget.style.color = '#F87171'
+              }}
+              title="Bawa teks klaim dan narasi ini ke Multi-Input Analyzer untuk pembuktian mendalam"
+            >
+              <Zap size={13} />
+              <span>Uji di Analyzer</span>
+            </button>
 
-            {/* Burst Velocity */}
-            <div className="steel-sunken-tray" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                BURST VELOCITY KOMENTAR
-              </div>
-              <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#F59E0B', marginTop: '2px' }}>
-                {result.buzzerForensic.burstVelocityPerMinute} <span style={{ fontSize: '12px' }}>komentar/menit</span>
-              </div>
-              <div style={{ fontSize: '10px', color: '#64748B', marginTop: '2px' }}>
-                Kecepatan semburan komentar
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={handleOpenCounterModal}
+              style={{
+                background: 'rgba(239, 68, 68, 0.16)',
+                border: '1px solid rgba(239, 68, 68, 0.45)',
+                color: '#FCA5A5',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                padding: '8px 14px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#DC2626'
+                e.currentTarget.style.color = '#FFFFFF'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.16)'
+                e.currentTarget.style.color = '#FCA5A5'
+              }}
+              title="Formulasikan draf rilis resmi bantahan Dispenad dan panduan Babinsa"
+            >
+              <ShieldAlert size={13} />
+              <span>Draf Kontranarasi Dispenad</span>
+            </button>
 
-            {/* Rasio Akun Bot */}
-            <div className="steel-sunken-tray" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                ESTIMASI RASIO AKUN BOT
-              </div>
-              <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#EC4899', marginTop: '2px' }}>
-                {result.buzzerForensic.botAccountRatioPercent}%
-              </div>
-              <div style={{ fontSize: '10px', color: '#64748B', marginTop: '2px' }}>
-                Profil anonim & tanpa avatar
-              </div>
-            </div>
-
-            {/* Jumlah Klaster Template */}
-            <div className="steel-sunken-tray" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                KLASTER TEMPLATE DITANGKAP
-              </div>
-              <div style={{ fontSize: '22px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#60A5FA', marginTop: '2px' }}>
-                {result.buzzerForensic.detectedClusters.length} <span style={{ fontSize: '12px' }}>varian teks</span>
-              </div>
-              <div style={{ fontSize: '10px', color: '#64748B', marginTop: '2px' }}>
-                Kalimat seragam berulang
-              </div>
-            </div>
-          </div>
-
-          {/* Daftar Klaster Kalimat Template yang Ditangkap */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Flame size={14} color="#EF4444" />
-              BUKTI KLASTER KALIMAT TEMPLATE BUZZER (JACCARD OVERLAP &ge; 65%):
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {result.buzzerForensic.detectedClusters.map((cluster, idx) => (
-                <div
-                  key={idx}
-                  className="steel-sunken-tray"
-                  style={{
-                    padding: '12px 14px',
-                    borderLeft: '3px solid #EF4444'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#F87171', fontWeight: 700 }}>
-                      KLASTER TEMPLATE #{idx + 1}
-                    </span>
-                    <span style={{
-                      fontSize: '10px',
-                      fontFamily: 'var(--font-mono)',
-                      background: 'rgba(239, 68, 68, 0.2)',
-                      color: '#FCA5A5',
-                      padding: '1px 6px',
-                      borderRadius: '3px'
-                    }}>
-                      {cluster.occurrences} KALI ({cluster.percentageOfTotal}% DARI TOTAL KOMENTAR)
-                    </span>
-                  </div>
-
-                  <div style={{
-                    fontSize: '12px',
-                    fontFamily: 'var(--font-mono)',
-                    color: '#FFF',
-                    background: '#040608',
-                    padding: '8px 10px',
-                    borderRadius: '4px',
-                    border: '1px solid #1C2430',
-                    lineHeight: 1.4
-                  }}>
-                    "{cluster.templateText}"
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                      CONTOH AKUN PENYEBAR:
-                    </span>
-                    {cluster.sampleHandles.map((handle, hIdx) => (
-                      <span
-                        key={hIdx}
-                        style={{
-                          fontSize: '9px',
-                          fontFamily: 'var(--font-mono)',
-                          color: '#94A3B8',
-                          background: '#141B24',
-                          padding: '1px 5px',
-                          borderRadius: '2px'
-                        }}
-                      >
-                        {handle}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Sampel Komentar Terperiksa dengan Tag Suspect */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-              LOG SAMPEL KOMENTAR TERINSPEKSI SISTEM:
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto' }}>
-              {result.commentsSample.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '10px',
-                    padding: '8px 10px',
-                    background: '#090C10',
-                    borderRadius: '4px',
-                    border: '1px solid #161D26'
-                  }}
-                >
-                  <div style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    background: c.avatarColor,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    color: '#FFF',
-                    flexShrink: 0
-                  }}>
-                    {c.avatarLetter}
-                  </div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#E2E8F0' }}>
-                        {c.authorName}
-                      </span>
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                        {c.authorHandle}
-                      </span>
-                      <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#475569' }}>
-                        {c.timestamp}
-                      </span>
-
-                      {c.isSuspiciousBot && (
-                        <span style={{
-                          fontSize: '8px',
-                          fontFamily: 'var(--font-mono)',
-                          background: 'rgba(239, 68, 68, 0.25)',
-                          color: '#F87171',
-                          padding: '1px 4px',
-                          borderRadius: '2px',
-                          fontWeight: 700
-                        }}>
-                          🚨 SUSPECT BOT
-                        </span>
-                      )}
-
-                      {c.isCopypastaTemplate && (
-                        <span style={{
-                          fontSize: '8px',
-                          fontFamily: 'var(--font-mono)',
-                          background: 'rgba(245, 158, 11, 0.25)',
-                          color: '#FBBF24',
-                          padding: '1px 4px',
-                          borderRadius: '2px',
-                          fontWeight: 700
-                        }}>
-                          📋 TEMPLATE
-                        </span>
-                      )}
-                    </div>
-
-                    <p style={{ fontSize: '11px', color: '#CBD5E1', margin: '3px 0 0 0', lineHeight: 1.35 }}>
-                      {c.content}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={handleSendToReports}
+              style={{
+                background: '#121822',
+                border: '1px solid #2B384E',
+                color: '#94A3B8',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                padding: '8px 12px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Buat berkas intelijen format A4 standar Mabesad"
+            >
+              <FileText size={13} />
+              <span>Ekspor Berkas A4</span>
+            </button>
           </div>
         </div>
 
-        {/* BARIS BAWAH: DECK 4 (Draf Rekomendasi Netralisir Taktis Dispenad) */}
-        <div
-          className="steel-chassis-card"
-          style={{
-            padding: '22px',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '16px'
-          }}
-        >
-          <span className="bolt-tl" />
-          <span className="bolt-tr" />
-          <span className="bolt-bl" />
-          <span className="bolt-br" />
-
-          {/* Header Deck 4 */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1C2532', paddingBottom: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldAlert size={18} color="#10B981" />
-              <span style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#F1F5F9' }}>
-                DECK 4: REKOMENDASI PENANGGULANGAN TAKTIS (DISPENAD PROTOCOL)
-              </span>
-            </div>
-
-            <span style={{
-              fontSize: '10px',
-              fontFamily: 'var(--font-mono)',
-              color: '#34D399',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.4)',
-              padding: '2px 8px',
-              borderRadius: '3px',
-              fontWeight: 700
-            }}>
-              POSTUR: {result.tacticalRecommendation.posture.replace(/_/g, ' ')}
+        {/* Alarm Banner & Anomali Jeda Waktu */}
+        <div style={{
+          background: dossier.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+          border: `1px solid ${dossier.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
+          borderRadius: '4px',
+          padding: '10px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ShieldAlert size={16} color={dossier.isBuzzerAlarmActive ? '#EF4444' : '#10B981'} />
+            <span style={{ fontSize: '11px', color: '#F1F5F9', fontWeight: 600 }}>
+              {dossier.anomalyAlert}
             </span>
           </div>
 
-          {/* ─── 4-Kanal Draf Kontranarasi Taktis (Sprint 7C) ─── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8', fontWeight: 600 }}>
-                PILIH KANAL FORMULASI KONTRANARASI:
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: '3px',
+              background: '#0D141F',
+              color: '#CBD5E1',
+              border: '1px solid #1E2734'
+            }}>
+              INDEKS KOORDINASI CIB: <strong style={{ color: dossier.isBuzzerAlarmActive ? '#EF4444' : '#10B981' }}>{dossier.cibCoordinationIndex}/100</strong>
+            </span>
+            <span style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: '3px',
+              background: dossier.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+              color: dossier.isBuzzerAlarmActive ? '#FCA5A5' : '#6EE7B7'
+            }}>
+              {dossier.escalationLevel}
+            </span>
+          </div>
+        </div>
+      </div>
 
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleCopyDraft}
-                style={{
-                  padding: '5px 12px',
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-mono)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: copiedDraft ? '#065F46' : '#141B24',
-                  color: copiedDraft ? '#6EE7B7' : '#F1F5F9',
-                  borderColor: copiedDraft ? '#10B981' : '#2D3949',
-                  cursor: 'pointer'
-                }}
-              >
-                {copiedDraft ? (
-                  <>
-                    <Check size={12} color="#10B981" />
-                    BERHASIL DISALIN!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={12} />
-                    SALIN NASKAH KANAL INI
-                  </>
-                )}
-              </button>
+      {/* ─── 3. BARIS UTAMA: DECK 1 (MULTI-PLATFORM PREVIEWS) & DECK 2 (REKAP STATUS KOMENTAR) ─── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
+        gap: '20px',
+        marginBottom: '20px'
+      }}>
+        
+        {/* ─── DECK 1: 4 MULTI-PLATFORM SOCIAL THREAT PREVIEWS ─── */}
+        <div 
+          className="steel-chassis-card"
+          style={{
+            padding: '18px',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
+          {/* Header Deck 1 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #1E2734',
+            paddingBottom: '10px',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 800,
+                color: '#38BDF8',
+                background: 'rgba(56, 189, 248, 0.15)',
+                padding: '2px 7px',
+                borderRadius: '3px'
+              }}>
+                VEKTOR MEDSOS
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
+                Preview Postingan Terkait di Lapangan
+              </span>
             </div>
 
-            {/* 4 Kanal Tab Bar */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '6px'
-            }}>
+            {/* Platform Selector Tabs */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               {[
-                { id: 'dispenad', label: '1. SIARAN PERS DISPENAD', badge: 'Format Dinas Komando', icon: '🏛️' },
-                { id: 'babinsa', label: '2. KOMSOS BABINSA', badge: 'Poin Sambang Warga', icon: '🎖️' },
-                { id: 'whatsapp', label: '3. PESAN WA WARGA', badge: 'Forward Grup Keluarga', icon: '💬' },
-                { id: 'social', label: '4. MEDSOS TAKTIS', badge: 'Cuitan <280 Karakter', icon: '⚡' }
-              ].map((tab) => {
-                const isActive = activeCounterTab === tab.id
+                { key: 'TWITTER', label: 'X (Twitter)', color: '#1DA1F2' },
+                { key: 'TIKTOK', label: 'TikTok', color: '#00F2FE' },
+                { key: 'INSTAGRAM', label: 'Instagram', color: '#E1306C' },
+                { key: 'WHATSAPP', label: 'WhatsApp', color: '#25D366' }
+              ].map(tab => {
+                const isSelected = activePlatformTab === tab.key
                 return (
                   <button
-                    key={tab.id}
+                    key={tab.key}
                     type="button"
-                    onClick={() => setActiveCounterTab(tab.id as 'dispenad' | 'babinsa' | 'whatsapp' | 'social')}
+                    onClick={() => setActivePlatformTab(tab.key as any)}
                     style={{
-                      padding: '8px 10px',
-                      background: isActive ? '#1E293B' : '#0B0F15',
-                      border: isActive ? '1px solid #10B981' : '1px solid #1C2430',
-                      borderRadius: '4px',
-                      color: isActive ? '#34D399' : '#94A3B8',
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      padding: '4px 8px',
+                      borderRadius: '3px',
+                      border: '1px solid',
+                      borderColor: isSelected ? tab.color : '#1E2734',
+                      background: isSelected ? `${tab.color}20` : '#0B1017',
+                      color: isSelected ? '#FFFFFF' : '#64748B',
                       cursor: 'pointer',
-                      textAlign: 'left',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '2px',
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                      {tab.icon} {tab.label}
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Visual Mockup Card Postingan Aktif */}
+          <div style={{
+            background: currentPreview.platform === 'WHATSAPP' ? '#0B141B' : '#0B1017',
+            border: `1px solid ${currentPreview.accentColor}40`,
+            borderRadius: '6px',
+            padding: '16px',
+            position: 'relative'
+          }}>
+            {/* Top Post Meta */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: currentPreview.platform === 'TIKTOK' || currentPreview.platform === 'TWITTER' ? '50%' : '6px',
+                  background: currentPreview.avatarColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#FFFFFF',
+                  fontWeight: 800,
+                  fontSize: '14px'
+                }}>
+                  {currentPreview.authorDisplayName.charAt(0)}
+                </div>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC' }}>
+                    {currentPreview.authorDisplayName}
+                  </div>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                    {currentPreview.authorHandle} • {currentPreview.accountMeta}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {currentPreview.mediaBadge && (
+                  <span style={{
+                    fontSize: '9px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: '2px',
+                    background: '#16202C',
+                    color: '#94A3B8',
+                    border: '1px solid #28374D'
+                  }}>
+                    {currentPreview.mediaBadge}
+                  </span>
+                )}
+                {currentPreview.specialTag && (
+                  <span style={{
+                    fontSize: '9px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: '2px',
+                    background: 'rgba(245, 158, 11, 0.2)',
+                    color: '#FBBF24',
+                    border: '1px solid rgba(245, 158, 11, 0.4)'
+                  }}>
+                    {currentPreview.specialTag}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Post Caption Body */}
+            <div style={{
+              fontSize: '12.5px',
+              color: '#E2E8F0',
+              lineHeight: 1.55,
+              whiteSpace: 'pre-wrap',
+              marginBottom: '14px',
+              fontFamily: currentPreview.platform === 'WHATSAPP' ? 'var(--font-mono)' : 'inherit'
+            }}>
+              {currentPreview.captionText}
+            </div>
+
+            {/* Hashtag List */}
+            {currentPreview.hashtags.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                {currentPreview.hashtags.map((h, i) => (
+                  <span key={i} style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: currentPreview.accentColor }}>
+                    {h}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Engagement Strip & Link ke Platform Asli */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderTop: '1px solid #1C2532',
+              paddingTop: '10px',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Eye size={12} color="#64748B" /> {currentPreview.metrics.viewsOrPlays}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Heart size={12} color="#EC4899" /> {currentPreview.metrics.likesOrFavs}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Share2 size={12} color="#38BDF8" /> {currentPreview.metrics.sharesOrForwards}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <MessageSquare size={12} color="#F59E0B" /> {currentPreview.metrics.commentsCount}
+                </span>
+              </div>
+
+              <a
+                href={currentPreview.directSearchUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: currentPreview.accentColor,
+                  background: `${currentPreview.accentColor}18`,
+                  border: `1px solid ${currentPreview.accentColor}40`,
+                  padding: '4px 10px',
+                  borderRadius: '3px',
+                  textDecoration: 'none',
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <span>Buka di {currentPreview.platformLabel}</span>
+                <ExternalLink size={10} />
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── DECK 2: REKAPITULASI STATUS KOMENTAR & CIB ANOMALY SCORECARD ─── */}
+        <div 
+          className="steel-chassis-card"
+          style={{
+            padding: '18px',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
+          {/* Header Deck 2 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #1E2734',
+            paddingBottom: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 800,
+                color: '#F59E0B',
+                background: 'rgba(245, 158, 11, 0.15)',
+                padding: '2px 7px',
+                borderRadius: '3px'
+              }}>
+                REKAPITULASI STATUS
+              </span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
+                Komposisi Opini: Organik vs Buzzer
+              </span>
+            </div>
+
+            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+              TOTAL SAMPEL: <strong>{dossier.rekapKomentar.totalScanned} KOMENTAR</strong>
+            </span>
+          </div>
+
+          {/* Interactive 3-Segment Distribution Bar */}
+          <div>
+            <div style={{
+              height: '14px',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              display: 'flex',
+              background: '#090D14',
+              border: '1px solid #1E2734',
+              marginBottom: '10px'
+            }}>
+              <div 
+                style={{ width: `${dossier.rekapKomentar.organikPercent}%`, background: '#10B981', transition: 'width 0.3s' }} 
+                title={`Warganet Organik: ${dossier.rekapKomentar.organikPercent}%`}
+              />
+              <div 
+                style={{ width: `${dossier.rekapKomentar.rawanPercent}%`, background: '#F59E0B', transition: 'width 0.3s' }} 
+                title={`Rawan Buzzer: ${dossier.rekapKomentar.rawanPercent}%`}
+              />
+              <div 
+                style={{ width: `${dossier.rekapKomentar.botPercent}%`, background: '#EF4444', transition: 'width 0.3s' }} 
+                title={`Sindikat Bot Copypasta: ${dossier.rekapKomentar.botPercent}%`}
+              />
+            </div>
+
+            {/* Rekapitulasi 3 Status Box (Bisa Diklik untuk Filter Komentar) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCommentFilter(activeCommentFilter === 'ORGANIK' ? 'ALL' : 'ORGANIK')
+                  setSelectedClusterPattern(null)
+                }}
+                style={{
+                  background: activeCommentFilter === 'ORGANIK' ? 'rgba(16, 185, 129, 0.2)' : '#0B111A',
+                  border: `1px solid ${activeCommentFilter === 'ORGANIK' ? '#10B981' : '#1E2734'}`,
+                  borderRadius: '4px',
+                  padding: '8px 10px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#10B981', fontWeight: 800 }}>
+                  🟢 WARGANET ORGANIK
+                </div>
+                <div style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
+                  {dossier.rekapKomentar.organikPercent}%
+                </div>
+                <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
+                  {dossier.rekapKomentar.organikCount} akun wajar
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCommentFilter(activeCommentFilter === 'RAWAN_BUZZER' ? 'ALL' : 'RAWAN_BUZZER')
+                  setSelectedClusterPattern(null)
+                }}
+                style={{
+                  background: activeCommentFilter === 'RAWAN_BUZZER' ? 'rgba(245, 158, 11, 0.2)' : '#0B111A',
+                  border: `1px solid ${activeCommentFilter === 'RAWAN_BUZZER' ? '#F59E0B' : '#1E2734'}`,
+                  borderRadius: '4px',
+                  padding: '8px 10px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#F59E0B', fontWeight: 800 }}>
+                  🟡 RAWAN BUZZER
+                </div>
+                <div style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
+                  {dossier.rekapKomentar.rawanPercent}%
+                </div>
+                <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
+                  {dossier.rekapKomentar.rawanCount} akun provokatif
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCommentFilter(activeCommentFilter === 'BOT_COPYPASTA' ? 'ALL' : 'BOT_COPYPASTA')
+                  setSelectedClusterPattern(null)
+                }}
+                style={{
+                  background: activeCommentFilter === 'BOT_COPYPASTA' ? 'rgba(239, 68, 68, 0.2)' : '#0B111A',
+                  border: `1px solid ${activeCommentFilter === 'BOT_COPYPASTA' ? '#EF4444' : '#1E2734'}`,
+                  borderRadius: '4px',
+                  padding: '8px 10px',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#EF4444', fontWeight: 800 }}>
+                  🔴 SINDIKAT BOT
+                </div>
+                <div style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
+                  {dossier.rekapKomentar.botPercent}%
+                </div>
+                <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
+                  {dossier.rekapKomentar.botCount} template copypasta
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Temporal Anomaly & Jeda Waktu Detik */}
+          <div style={{
+            background: '#0B111A',
+            border: '1px solid #1E2734',
+            borderRadius: '4px',
+            padding: '10px 12px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '12px'
+          }}>
+            <div>
+              <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                RATA-RATA JEDA WAKTU ANTAR-AKUN:
+              </div>
+              <div style={{
+                fontSize: '15px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 800,
+                color: dossier.rekapKomentar.averageIntervalSeconds <= 4.0 ? '#EF4444' : '#10B981',
+                marginTop: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <Clock size={14} />
+                <span>{dossier.rekapKomentar.averageIntervalSeconds} Detik / Komentar</span>
+              </div>
+              <div style={{ fontSize: '9.5px', color: '#94A3B8', marginTop: '2px' }}>
+                {dossier.rekapKomentar.averageIntervalSeconds <= 4.0 ? '🚨 Anomali: Terlalu cepat untuk manusia' : 'Normal: Waktu ketik organik'}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                BURST VELOCITY (INJEKSI MASIF):
+              </div>
+              <div style={{
+                fontSize: '15px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 800,
+                color: '#F59E0B',
+                marginTop: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <Flame size={14} />
+                <span>{dossier.rekapKomentar.burstVelocityPerMinute} Komentar / Menit</span>
+              </div>
+              <div style={{ fontSize: '9.5px', color: '#94A3B8', marginTop: '2px' }}>
+                Laju lonjakan arus pembicaraan medsos
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 4. BARIS KEDUA: DECK 3 (KLASTER TEMPLATE COPYPASTA) & DECK 4 (FEED INSPEKSI KOMENTAR) ─── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
+        gap: '20px'
+      }}>
+        
+        {/* ─── DECK 3: KLASTER TEMPLATE COPYPASTA (JACCARD >= 65%) ─── */}
+        <div 
+          className="steel-chassis-card"
+          style={{
+            padding: '18px',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #1E2734',
+            paddingBottom: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Bot size={15} color="#EF4444" />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
+                Klaster Kalimat Template Copypasta Terdeteksi
+              </span>
+            </div>
+            <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+              AMBANG JACCARD ≥ 65%
+            </span>
+          </div>
+
+          <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+            Klik pada klaster template di bawah untuk menyorot seluruh komentar akun bot yang menyuarakan kalimat tersebut:
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {dossier.copypastaClusters.map((cluster, idx) => {
+              const isSelected = selectedClusterPattern === cluster.templateText
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedClusterPattern(null)
+                    } else {
+                      setSelectedClusterPattern(cluster.templateText)
+                      setActiveCommentFilter('ALL')
+                    }
+                  }}
+                  style={{
+                    background: isSelected ? 'rgba(239, 68, 68, 0.15)' : '#0B111A',
+                    border: `1px solid ${isSelected ? '#EF4444' : '#1E2734'}`,
+                    borderRadius: '4px',
+                    padding: '10px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '11.5px', color: isSelected ? '#FCA5A5' : '#E2E8F0', fontStyle: 'italic', lineHeight: 1.4 }}>
+                      "{cluster.templateText}"
+                    </div>
+                    <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', marginTop: '4px' }}>
+                      Akun teridentifikasi: {cluster.sampleHandles.slice(0, 3).join(', ')}...
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <span style={{
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 800,
+                      padding: '2px 7px',
+                      borderRadius: '2px',
+                      background: 'rgba(239, 68, 68, 0.25)',
+                      color: '#EF4444'
+                    }}>
+                      {cluster.occurrences}x Terulang
                     </span>
-                    <span style={{ fontSize: '9px', color: isActive ? '#A7F3D0' : '#64748B' }}>
-                      {tab.badge}
+                    <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', marginTop: '2px' }}>
+                      ({cluster.percentageOfTotal}% Total)
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Quick Action Triage Button (Pussiberad Intervention) */}
+          <div style={{
+            marginTop: 'auto',
+            paddingTop: '12px',
+            borderTop: '1px solid #1E2734',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '8px',
+            flexWrap: 'wrap'
+          }}>
+            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+              VONIS OPERATOR LANGSUNG:
+            </span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <button
+                type="button"
+                onClick={() => handleUpdateTriage('HOAKS')}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.18)',
+                  border: '1px solid #DC2626',
+                  color: '#F87171',
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  padding: '5px 10px',
+                  borderRadius: '3px',
+                  cursor: 'pointer'
+                }}
+              >
+                Tandai Terbukti Hoaks
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleUpdateTriage('FAKTA')}
+                style={{
+                  background: 'rgba(16, 185, 129, 0.18)',
+                  border: '1px solid #10B981',
+                  color: '#34D399',
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  padding: '5px 10px',
+                  borderRadius: '3px',
+                  cursor: 'pointer'
+                }}
+              >
+                Tandai Fakta Aman
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── DECK 4: FEED INSPEKSI KOMENTAR INTERAKTIF DENGAN FILTER ─── */}
+        <div 
+          className="steel-chassis-card"
+          style={{
+            padding: '18px',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
+          {/* Header Deck 4 & Filter Selector */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #1E2734',
+            paddingBottom: '10px',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <MessageSquare size={14} color="#38BDF8" />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
+                Feed Komentar Lapangan ({filteredComments.length})
+              </span>
+            </div>
+
+            {/* Tombol Filter Kategori */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCommentFilter('ALL')
+                  setSelectedClusterPattern(null)
+                }}
+                style={{
+                  fontSize: '9.5px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  padding: '3px 7px',
+                  borderRadius: '3px',
+                  background: activeCommentFilter === 'ALL' && !selectedClusterPattern ? '#38BDF8' : '#0B1017',
+                  color: activeCommentFilter === 'ALL' && !selectedClusterPattern ? '#000000' : '#64748B',
+                  border: '1px solid #1E2734',
+                  cursor: 'pointer'
+                }}
+              >
+                Semua
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCommentFilter('BOT_COPYPASTA')
+                  setSelectedClusterPattern(null)
+                }}
+                style={{
+                  fontSize: '9.5px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  padding: '3px 7px',
+                  borderRadius: '3px',
+                  background: activeCommentFilter === 'BOT_COPYPASTA' ? '#EF4444' : '#0B1017',
+                  color: activeCommentFilter === 'BOT_COPYPASTA' ? '#FFFFFF' : '#EF4444',
+                  border: '1px solid #1E2734',
+                  cursor: 'pointer'
+                }}
+              >
+                🔴 Bot ({dossier.rekapKomentar.botCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCommentFilter('RAWAN_BUZZER')
+                  setSelectedClusterPattern(null)
+                }}
+                style={{
+                  fontSize: '9.5px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  padding: '3px 7px',
+                  borderRadius: '3px',
+                  background: activeCommentFilter === 'RAWAN_BUZZER' ? '#F59E0B' : '#0B1017',
+                  color: activeCommentFilter === 'RAWAN_BUZZER' ? '#000000' : '#F59E0B',
+                  border: '1px solid #1E2734',
+                  cursor: 'pointer'
+                }}
+              >
+                🟡 Rawan ({dossier.rekapKomentar.rawanCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCommentFilter('ORGANIK')
+                  setSelectedClusterPattern(null)
+                }}
+                style={{
+                  fontSize: '9.5px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  padding: '3px 7px',
+                  borderRadius: '3px',
+                  background: activeCommentFilter === 'ORGANIK' ? '#10B981' : '#0B1017',
+                  color: activeCommentFilter === 'ORGANIK' ? '#000000' : '#10B981',
+                  border: '1px solid #1E2734',
+                  cursor: 'pointer'
+                }}
+              >
+                🟢 Organik ({dossier.rekapKomentar.organikCount})
+              </button>
+            </div>
+          </div>
+
+          {/* List Item Komentar */}
+          <div style={{
+            maxHeight: '440px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            paddingRight: '4px'
+          }}>
+            {filteredComments.map((c) => {
+              const isHighlighted = selectedClusterPattern && c.matchedClusterPattern === selectedClusterPattern
+              return (
+                <div
+                  key={c.id}
+                  style={{
+                    background: isHighlighted ? 'rgba(239, 68, 68, 0.15)' : c.isCopypasta ? 'rgba(239, 68, 68, 0.06)' : '#0B111A',
+                    border: `1px solid ${isHighlighted ? '#EF4444' : c.isCopypasta ? 'rgba(239, 68, 68, 0.3)' : '#1E2734'}`,
+                    borderRadius: '4px',
+                    padding: '10px 12px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'space-between',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', flex: 1 }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      background: c.avatarColor,
+                      color: '#FFFFFF',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: '2px'
+                    }}>
+                      {c.avatarLetter}
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9' }}>
+                          {c.authorHandle}
+                        </span>
+                        <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                          • {c.timestampFormatted}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '11.5px', color: '#CBD5E1', lineHeight: 1.45, marginTop: '3px' }}>
+                        {c.content}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lencana Status Komentar */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                    <span style={{
+                      fontSize: '8.5px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 800,
+                      padding: '2px 5px',
+                      borderRadius: '2px',
+                      background: c.triageCategory === 'BOT_COPYPASTA' ? 'rgba(239, 68, 68, 0.25)' : c.triageCategory === 'RAWAN_BUZZER' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+                      color: c.triageCategory === 'BOT_COPYPASTA' ? '#EF4444' : c.triageCategory === 'RAWAN_BUZZER' ? '#F59E0B' : '#10B981'
+                    }}>
+                      {c.triageCategory === 'BOT_COPYPASTA' ? '🔴 BOT/BUZZER' : c.triageCategory === 'RAWAN_BUZZER' ? '🟡 RAWAN' : '🟢 ORGANIK'}
                     </span>
+
+                    <span style={{
+                      fontSize: '8px',
+                      fontFamily: 'var(--font-mono)',
+                      color: '#64748B'
+                    }}>
+                      {c.sentiment}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 5. MODAL INTEGRASI DRAF KONTRANARASI DISPENAD & BABINSA ─── */}
+      {isCounterModalOpen && counterChannels && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(5, 8, 14, 0.85)',
+          backdropFilter: 'blur(6px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div
+            className="steel-chassis-card"
+            style={{
+              maxWidth: '780px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              padding: '24px',
+              position: 'relative',
+              background: '#0D131C',
+              border: '1px solid #1E2734',
+              borderRadius: '8px',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
+            }}
+          >
+            <span className="bolt-tl" />
+            <span className="bolt-tr" />
+            <span className="bolt-bl" />
+            <span className="bolt-br" />
+
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              borderBottom: '1px solid #1E2734',
+              paddingBottom: '14px',
+              marginBottom: '16px',
+              gap: '12px'
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <ShieldAlert size={18} color="#EF4444" />
+                  <span style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '15px',
+                    fontWeight: 800,
+                    letterSpacing: '0.8px',
+                    textTransform: 'uppercase',
+                    color: '#F1F5F9'
+                  }}>
+                    DRAF KONTRANARASI TAKTIS DISPENAD & BABINSA
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                  Respon cepat menangkal disinformasi: <strong style={{ color: '#E2E8F0' }}>"{dossier.targetClaim}"</strong>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsCounterModalOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #334155',
+                  color: '#94A3B8',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Kanal Selector Tabs (4 Kanal Komando & Sipil) */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              marginBottom: '14px'
+            }}>
+              {[
+                { key: 'dispenad', label: 'Siaran Pers Dispenad', icon: Building, color: '#EF4444' },
+                { key: 'babinsa', label: 'Panduan Komsos Babinsa', icon: Users, color: '#38BDF8' },
+                { key: 'whatsapp', label: 'Pesan Warga (WA Forward)', icon: MessageSquare, color: '#10B981' },
+                { key: 'social', label: 'Medsos Kilat (<280 Karakter)', icon: Share2, color: '#F59E0B' }
+              ].map(tab => {
+                const isSelected = activeCounterTab === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setActiveCounterTab(tab.key as any)}
+                    style={{
+                      padding: '7px 12px',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      border: '1px solid',
+                      borderColor: isSelected ? tab.color : '#1E2734',
+                      background: isSelected ? `${tab.color}20` : '#0B1017',
+                      color: isSelected ? '#FFFFFF' : '#64748B',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <tab.icon size={12} color={isSelected ? tab.color : '#64748B'} />
+                    <span>{tab.label}</span>
                   </button>
                 )
               })}
             </div>
 
-            {/* Active Draft Inset Tray */}
-            <div
-              className="steel-sunken-tray"
-              style={{
-                padding: '16px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '12px',
-                color: '#F1F5F9',
-                lineHeight: 1.6,
-                borderLeft: '4px solid #10B981',
-                whiteSpace: 'pre-wrap',
-                maxHeight: '320px',
-                overflowY: 'auto'
-              }}
-            >
-              {activeDraftText}
-            </div>
-          </div>
-
-          {/* Langkah Protokol Operasional & Kanal Target */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: '14px'
-          }}>
-            <div className="steel-sunken-tray" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8', marginBottom: '4px' }}>
-                LANGKAH PROTOKOL OPERASIONAL DISPENAD:
-              </div>
-              <p style={{ fontSize: '11px', color: '#CBD5E1', lineHeight: 1.45, margin: 0 }}>
-                {result.tacticalRecommendation.recommendedDispenadProtocol}
-              </p>
-            </div>
-
-            <div className="steel-sunken-tray" style={{ padding: '12px' }}>
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8', marginBottom: '4px' }}>
-                TARGET KANAL DISTRIBUSI NETRALISIR:
-              </div>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-                {result.tacticalRecommendation.targetChannels.map((channel, cIdx) => (
-                  <span
-                    key={cIdx}
-                    style={{
-                      fontSize: '10px',
-                      fontFamily: 'var(--font-mono)',
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      color: '#60A5FA',
-                      border: '1px solid rgba(59, 130, 246, 0.35)',
-                      padding: '2px 8px',
-                      borderRadius: '3px'
-                    }}
-                  >
-                    {channel}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Rekomendasi Operasional Militer Berjenjang (Babinsa, Dispenad, Pussiberad) */}
-          <CountermeasureAdvisoryBox
-            threatLevel={result.cognitiveVerdict.threatLevel.toLowerCase()}
-            cluster={
-              result.id.includes('megathrust')
-                ? 'BENCANA_DARURAT'
-                : result.id.includes('bansos')
-                ? 'PENIPUAN_BANSOS'
-                : 'KEDAULATAN_MILITER'
-            }
-            claim={result.post.caption}
-            customAdvice={result.tacticalRecommendation.recommendedDispenadProtocol}
-          />
-
-          {/* Tombol Aksi Taktis Menuju Analyzer */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '10px',
-            paddingTop: '10px',
-            borderTop: '1px solid rgba(255, 255, 255, 0.06)'
-          }}>
-            <span style={{ fontSize: '11px', color: '#64748B' }}>
-              Butuh verifikasi naskah mendalam pada dokumen resmi atau tautan berita eksternal?
-            </span>
-
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleSendToAnalyzer}
-              style={{
-                padding: '8px 16px',
-                fontSize: '11px',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
+            {/* Content Display Box (Naskah Terpilih) */}
+            <div style={{
+              background: '#070B11',
+              border: '1px solid #1A2330',
+              borderRadius: '6px',
+              padding: '16px',
+              marginBottom: '16px',
+              position: 'relative'
+            }}>
+              <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                background: '#C8102E',
-                borderColor: '#DC2626'
-              }}
-            >
-              <Zap size={14} />
-              BAWA KE MULTI-INPUT ANALYZER
-              <ChevronRight size={14} />
-            </button>
+                justifyContent: 'space-between',
+                marginBottom: '10px',
+                paddingBottom: '8px',
+                borderBottom: '1px solid #141C26'
+              }}>
+                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700 }}>
+                  FORMAT DOKUMEN: {activeCounterTab.toUpperCase()} PROTOCOL
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const textToCopy = 
+                      activeCounterTab === 'dispenad' ? counterChannels.dispenadOfficial :
+                      activeCounterTab === 'babinsa' ? counterChannels.babinsaTerritorial :
+                      activeCounterTab === 'whatsapp' ? counterChannels.whatsappCivilian :
+                      counterChannels.socialTactical
+                    handleCopyDraft(textToCopy)
+                  }}
+                  style={{
+                    background: copiedSuccess ? '#10B981' : '#1E293B',
+                    border: `1px solid ${copiedSuccess ? '#10B981' : '#334155'}`,
+                    color: copiedSuccess ? '#000000' : '#E2E8F0',
+                    fontSize: '10.5px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '3px',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {copiedSuccess ? <Check size={12} /> : <Copy size={12} />}
+                  <span>{copiedSuccess ? 'Tersalin ke Clipboard!' : 'Salin Teks Draf'}</span>
+                </button>
+              </div>
+
+              <pre style={{
+                margin: 0,
+                fontSize: '12px',
+                fontFamily: 'var(--font-mono)',
+                color: '#CBD5E1',
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '340px',
+                overflowY: 'auto'
+              }}>
+                {activeCounterTab === 'dispenad' && counterChannels.dispenadOfficial}
+                {activeCounterTab === 'babinsa' && counterChannels.babinsaTerritorial}
+                {activeCounterTab === 'whatsapp' && counterChannels.whatsappCivilian}
+                {activeCounterTab === 'social' && counterChannels.socialTactical}
+              </pre>
+            </div>
+
+            {/* Modal Action Footer */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              borderTop: '1px solid #1E2734',
+              paddingTop: '14px',
+              flexWrap: 'wrap',
+              gap: '10px'
+            }}>
+              {targetItem?.sourceUrl ? (
+                <a
+                  href={targetItem.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    color: '#10B981',
+                    textDecoration: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontWeight: 700
+                  }}
+                >
+                  <ExternalLink size={12} />
+                  <span>Buka Dokumen Rujukan Validasi Resmi</span>
+                </a>
+              ) : <div />}
+
+              <button
+                type="button"
+                onClick={() => setIsCounterModalOpen(false)}
+                style={{
+                  background: '#0F172A',
+                  border: '1px solid #334155',
+                  color: '#E2E8F0',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Tutup Jendela
+              </button>
+            </div>
           </div>
         </div>
-
-      </div>
+      )}
     </div>
   )
 }

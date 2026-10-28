@@ -5,7 +5,6 @@ import {
   RefreshCw,
   Search,
   ExternalLink,
-  Zap,
   ShieldCheck,
   Building,
   Clock,
@@ -22,7 +21,6 @@ import {
   Megaphone,
   Copy,
   Check,
-  Bot,
   Users,
   Share2,
   MessageSquare
@@ -38,8 +36,7 @@ import {
   type TacticalBriefingSummary,
   type RadarTriageStatus 
 } from '../engine/radar/early-warning-scorer.ts'
-import { generateCounterNarratives, type CounterNarrativeChannels } from '../engine/forensic/counter-narrative-generator.ts'
-import { analyzeSocialPost, type SocialPostForensicResult } from '../engine/social-forensic.ts'
+import { type CounterNarrativeChannels, generateCounterNarratives } from '../engine/forensic/counter-narrative-generator.ts'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterFilterOption {
@@ -79,12 +76,6 @@ export default function LiveRadar() {
   // State Pop-up Notifikasi Intelijen Taktis
   const [isBriefingModalOpen, setIsBriefingModalOpen] = useState<boolean>(false)
   const [briefingSummary, setBriefingSummary] = useState<TacticalBriefingSummary | null>(null)
-
-  // State Pop-up Forensik Medsos & Deteksi Buzzer (untuk Isu SEDANG DIPANTAU)
-  const [selectedForensicItem, setSelectedForensicItem] = useState<DebunkKnowledgeEntry | null>(null)
-  const [forensicData, setForensicData] = useState<SocialPostForensicResult | null>(null)
-  const [isForensicModalOpen, setIsForensicModalOpen] = useState<boolean>(false)
-  const [isAnalyzingForensic, setIsAnalyzingForensic] = useState<boolean>(false)
 
   // State Pop-up Draf Kontranarasi Dispenad (untuk Isu TERINDIKASI HOAKS)
   const [selectedCounterItem, setSelectedCounterItem] = useState<DebunkKnowledgeEntry | null>(null)
@@ -165,26 +156,24 @@ export default function LiveRadar() {
     }
   }, [syncIntervalHours])
 
-  // Navigasikan klaim terpilih ke Multi-Input Analyzer
-  const handleLaunchToAnalyzer = (claimText: string) => {
-    navigate('/analyzer', { state: { prefill: claimText } })
+  // Handler Buka Halaman Khusus Bedah Buzzer & Medsos (untuk Isu SEDANG DIPANTAU)
+  const handleOpenBuzzerModal = (item: DebunkKnowledgeEntry) => {
+    navigate('/social-forensic', { state: { targetItem: item, item } })
   }
 
-  // Handler Buka Modal Bedah Buzzer & Medsos (untuk Isu SEDANG DIPANTAU)
-  const handleOpenBuzzerModal = async (item: DebunkKnowledgeEntry) => {
-    setSelectedForensicItem(item)
-    setIsForensicModalOpen(true)
-    setIsAnalyzingForensic(true)
-
-    try {
-      const res = await analyzeSocialPost(item.originalSourceUrl || item.sourceUrl || '', item.claim)
-      setForensicData(res)
-    } catch (e) {
-      console.error('[LiveRadar] Gagal memuat analisis forensik medsos:', e)
-    } finally {
-      setIsAnalyzingForensic(false)
+  // Sinkronisasi pembaruan status isu seketika dari Monitoring Chamber
+  useEffect(() => {
+    const handleStatusChange = (e: Event) => {
+      const detail = (e as CustomEvent<{ id: string; status: string }>).detail
+      if (detail?.id && detail?.status) {
+        setDebunkItems((prev) =>
+          prev.map((it) => (it.id === detail.id ? { ...it, triageStatus: detail.status as any } : it))
+        )
+      }
     }
-  }
+    window.addEventListener('narada:radar-status-changed', handleStatusChange)
+    return () => window.removeEventListener('narada:radar-status-changed', handleStatusChange)
+  }, [])
 
   // Handler Buka Modal Draf Kontranarasi Dispenad (untuk Isu TERINDIKASI HOAKS)
   const handleOpenCounterModal = (item: DebunkKnowledgeEntry) => {
@@ -385,15 +374,15 @@ export default function LiveRadar() {
         </div>
       </div>
 
-      {/* ─── 2. Control Bar Sasis Plat Baja (Sync, Auto-Update, Search, Buffer Purge) ─── */}
+      {/* ─── 2A. Sasis Plat Baja: Deck Operasi Kontrol Buffer & Sinkronisasi ─── */}
       <div 
         className="steel-chassis-card"
         style={{
-          padding: '14px 18px',
-          marginBottom: '16px',
+          padding: '12px 18px',
+          marginBottom: '12px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '10px',
           position: 'relative'
         }}
       >
@@ -402,15 +391,32 @@ export default function LiveRadar() {
         <span className="bolt-bl" />
         <span className="bolt-br" />
 
+        {/* Header Label Deck Operasi */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1E2734', paddingBottom: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: 'var(--accent-gold)', fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px' }}>///</span>
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9', letterSpacing: '0.5px' }}>
+              DECK OPERASI KONTROL BUFFER & SINKRONISASI
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+            <span>TELEMETRI KANAL:</span>
+            <span style={{ color: telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B', fontWeight: 700 }}>
+              {telemetry.status} ({telemetry.latencyMs}ms)
+            </span>
+          </div>
+        </div>
+
+        {/* Baris Tombol Aksi Siklus Hidup Buffer (Sesuai Permintaan Pengguna) */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '12px'
+          gap: '10px'
         }}>
-          {/* Tombol Sinkronisasi Manual, Selector Interval, & Bersihkan Buffer */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Tombol Pindai Isu Terkini */}
             <button
               type="button"
               className="btn btn-primary"
@@ -500,10 +506,48 @@ export default function LiveRadar() {
             </div>
           </div>
 
+          <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+            STATUS SINKRONISASI: <span style={{ color: '#94A3B8', fontWeight: 600 }}>{lastSyncTime}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 2B. Sasis Plat Baja: Deck Filter Spektrum & Konsol Pencarian ─── */}
+      <div 
+        className="steel-chassis-card"
+        style={{
+          padding: '14px 18px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          position: 'relative'
+        }}
+      >
+        <span className="bolt-tl" />
+        <span className="bolt-tr" />
+        <span className="bolt-bl" />
+        <span className="bolt-br" />
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          {/* Label Filter Spektrum */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: 'var(--accent-gold)', fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px' }}>///</span>
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9', letterSpacing: '0.5px' }}>
+              DECK FILTER SPEKTRUM & KONSOL PENCARIAN
+            </span>
+          </div>
+
           {/* Input Pencarian Klaim / Kata Kunci */}
           <div style={{
             position: 'relative',
-            width: '280px',
+            width: '320px',
             maxWidth: '100%'
           }}>
             <Search size={14} color="#64748B" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
@@ -1390,536 +1434,7 @@ export default function LiveRadar() {
         </div>
       )}
 
-      {/* ─── 5. MODAL TACTICAL SOCIAL DOSSIER & DETEKSI BUZZER TERKOORDINASI (Untuk Isu SEDANG DIPANTAU) ─── */}
-      {isForensicModalOpen && selectedForensicItem && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(5, 8, 14, 0.85)',
-          backdropFilter: 'blur(6px)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div
-            className="steel-chassis-card"
-            style={{
-              maxWidth: '820px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              padding: '24px',
-              position: 'relative',
-              background: '#0D131C',
-              border: '1px solid #1E2734',
-              borderRadius: '8px',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)'
-            }}
-          >
-            <span className="bolt-tl" />
-            <span className="bolt-tr" />
-            <span className="bolt-bl" />
-            <span className="bolt-br" />
-
-            {/* Modal Header */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              borderBottom: '1px solid #1E2734',
-              paddingBottom: '14px',
-              marginBottom: '16px',
-              gap: '12px'
-            }}>
-              <div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '4px'
-                }}>
-                  <Microscope size={18} color="#F59E0B" />
-                  <span style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: '15px',
-                    fontWeight: 800,
-                    letterSpacing: '0.8px',
-                    textTransform: 'uppercase',
-                    color: '#F1F5F9'
-                  }}>
-                    DOSSIER FORENSIK MEDSOS & DETEKSI BUZZER TERKOORDINASI
-                  </span>
-                  <span style={{
-                    fontSize: '9.5px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: '2px',
-                    background: 'rgba(245, 158, 11, 0.2)',
-                    color: '#FBBF24',
-                    border: '1px solid rgba(245, 158, 11, 0.4)'
-                  }}>
-                    STATUS: SEDANG DIPANTAU
-                  </span>
-                  {isAnalyzingForensic && (
-                    <span style={{
-                      fontSize: '9.5px',
-                      fontFamily: 'var(--font-mono)',
-                      color: '#F59E0B',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
-                      <RefreshCw size={11} className="spin-animation" />
-                      <span>Scanning Medsos...</span>
-                    </span>
-                  )}
-                </div>
-                <div style={{ fontSize: '11px', color: '#94A3B8' }}>
-                  Analisis sebaran organik vs fabrikasi bot swarm pada isu: <strong style={{ color: '#E2E8F0' }}>"{selectedForensicItem.claim}"</strong>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsForensicModalOpen(false)
-                  setSelectedForensicItem(null)
-                  setForensicData(null)
-                }}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid #334155',
-                  color: '#94A3B8',
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Platform Live Search Links */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              flexWrap: 'wrap',
-              marginBottom: '16px',
-              padding: '10px 12px',
-              background: '#0B1017',
-              borderRadius: '4px',
-              border: '1px solid #1A2330'
-            }}>
-              <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700 }}>
-                PANTAU THREAD ASLI:
-              </span>
-              <a
-                href={`https://twitter.com/search?q=${encodeURIComponent(selectedForensicItem.claim)}&f=live`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  color: '#38BDF8',
-                  background: 'rgba(56, 189, 248, 0.1)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
-                  padding: '4px 9px',
-                  borderRadius: '3px',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span>X / Twitter Live Feed</span>
-                <ExternalLink size={10} />
-              </a>
-              <a
-                href={`https://www.tiktok.com/search?q=${encodeURIComponent(selectedForensicItem.claim)}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  color: '#F43F5E',
-                  background: 'rgba(244, 63, 94, 0.1)',
-                  border: '1px solid rgba(244, 63, 94, 0.3)',
-                  padding: '4px 9px',
-                  borderRadius: '3px',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span>TikTok Search Hub</span>
-                <ExternalLink size={10} />
-              </a>
-              <a
-                href={`https://news.google.com/search?q=${encodeURIComponent(selectedForensicItem.claim)}&hl=id&gl=ID`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  color: '#10B981',
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                  padding: '4px 9px',
-                  borderRadius: '3px',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                <span>Google News ID</span>
-                <ExternalLink size={10} />
-              </a>
-            </div>
-
-            {/* Grid Metrik Interaksi Postingan */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '10px',
-              marginBottom: '16px'
-            }}>
-              <div style={{
-                background: '#0B111A',
-                border: '1px solid #1E2734',
-                borderRadius: '4px',
-                padding: '10px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>TOTAL ESTIMASI VIEWS</div>
-                <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F59E0B', marginTop: '2px' }}>
-                  {selectedForensicItem.engagement?.views || selectedForensicItem.trendTraffic || '+50K'}
-                </div>
-              </div>
-              <div style={{
-                background: '#0B111A',
-                border: '1px solid #1E2734',
-                borderRadius: '4px',
-                padding: '10px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>LIKE & INTERAKSI</div>
-                <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#EC4899', marginTop: '2px' }}>
-                  {forensicData?.post?.likesCount ? `${(forensicData.post.likesCount / 1000).toFixed(1)}K` : '8.4K'}
-                </div>
-              </div>
-              <div style={{
-                background: '#0B111A',
-                border: '1px solid #1E2734',
-                borderRadius: '4px',
-                padding: '10px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>REPOST / SHARE</div>
-                <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', marginTop: '2px' }}>
-                  {selectedForensicItem.engagement?.shares || '2.8K'}
-                </div>
-              </div>
-              <div style={{
-                background: '#0B111A',
-                border: '1px solid #1E2734',
-                borderRadius: '4px',
-                padding: '10px',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>BURST VELOCITY</div>
-                <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#EF4444', marginTop: '2px' }}>
-                  {forensicData?.buzzerForensic?.burstVelocityPerMinute || 48} kmt/mnt
-                </div>
-              </div>
-            </div>
-
-            {/* Kotak Alarm Astroturfing / Buzzer Swarm */}
-            <div style={{
-              background: (forensicData?.buzzerForensic?.isBuzzerAlarmActive ?? true) ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-              border: `1px solid ${(forensicData?.buzzerForensic?.isBuzzerAlarmActive ?? true) ? 'rgba(239, 68, 68, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
-              borderRadius: '6px',
-              padding: '12px 14px',
-              marginBottom: '16px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '6px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  color: (forensicData?.buzzerForensic?.isBuzzerAlarmActive ?? true) ? '#EF4444' : '#10B981'
-                }}>
-                  <ShieldAlert size={14} />
-                  <span>
-                    {(forensicData?.buzzerForensic?.isBuzzerAlarmActive ?? true) 
-                      ? 'ALARM BUZZER AKTIF: TERDETEKSI KAMPANYE PENGGIRINGAN OPINI TERKOORDINASI (CIB)' 
-                      : 'POLA OPINI NORMAL: POLA KOMENTAR MASIH BERKEMBANG ORGANIK'}
-                  </span>
-                </div>
-                <span style={{
-                  fontSize: '9.5px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  color: '#CBD5E1'
-                }}>
-                  INDEKS KOORDINASI: <strong style={{ color: '#EF4444' }}>{forensicData?.buzzerForensic?.coordinationIndex || 78}/100</strong>
-                </span>
-              </div>
-              <div style={{ fontSize: '11px', color: '#CBD5E1', lineHeight: 1.5 }}>
-                {forensicData?.buzzerForensic?.swarmAnomalyDescription || 
-                  'Terdeteksi lonjakan komentar masif dengan jeda antar-akun di bawah 4 detik. Kelompok akun anonim mengulang template kalimat yang sama untuk mengarahkan opini dan meningkatkan virality algoritma.'}
-              </div>
-            </div>
-
-            {/* Klaster Template Copypasta Terdeteksi (Jaccard Similarity Matrix) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{
-                fontSize: '11px',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                color: '#94A3B8',
-                marginBottom: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <Bot size={13} color="#F59E0B" />
-                <span>KLASTER TEMPLATE COPYPASTA TERDETEKSI (JACCARD ≥ 65%):</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {(forensicData?.buzzerForensic?.detectedClusters && forensicData.buzzerForensic.detectedClusters.length > 0) ? (
-                  forensicData.buzzerForensic.detectedClusters.map((cluster, cIdx) => (
-                    <div
-                      key={cIdx}
-                      style={{
-                        background: '#0B111A',
-                        border: '1px solid #1E2734',
-                        borderRadius: '4px',
-                        padding: '8px 10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '10px'
-                      }}
-                    >
-                      <div style={{ fontSize: '11px', color: '#E2E8F0', fontStyle: 'italic' }}>
-                        "{cluster.templateText}"
-                      </div>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        flexShrink: 0
-                      }}>
-                        <span style={{
-                          fontSize: '9.5px',
-                          fontFamily: 'var(--font-mono)',
-                          fontWeight: 800,
-                          padding: '2px 6px',
-                          borderRadius: '2px',
-                          background: 'rgba(239, 68, 68, 0.2)',
-                          color: '#EF4444'
-                        }}>
-                          {cluster.occurrences}x Terulang
-                        </span>
-                        <span style={{
-                          fontSize: '9px',
-                          fontFamily: 'var(--font-mono)',
-                          color: '#64748B'
-                        }}>
-                          ({cluster.percentageOfTotal}% Komentar)
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{
-                    background: '#0B111A',
-                    border: '1px solid #1E2734',
-                    borderRadius: '4px',
-                    padding: '8px 10px',
-                    fontSize: '11px',
-                    color: '#94A3B8'
-                  }}>
-                    Kluster template: <em>"Bongkar terus jangan mau dibodohi media rezim!"</em> (42x terulang oleh 18 akun anonim)
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Sampel Aliran Komentar Medsos (Organic vs Bot Badges) */}
-            <div>
-              <div style={{
-                fontSize: '11px',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                color: '#94A3B8',
-                marginBottom: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <MessageSquare size={13} color="#38BDF8" />
-                <span>SAMPEL ALIRAN KOMENTAR AKTIF & IDENTIFIKASI BOT:</span>
-              </div>
-              <div style={{
-                maxHeight: '200px',
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                paddingRight: '4px'
-              }}>
-                {(forensicData?.commentsSample && forensicData.commentsSample.length > 0) ? (
-                  forensicData.commentsSample.map((c) => (
-                    <div
-                      key={c.id}
-                      style={{
-                        background: c.isCopypastaTemplate ? 'rgba(239, 68, 68, 0.08)' : '#0B111A',
-                        border: `1px solid ${c.isCopypastaTemplate ? 'rgba(239, 68, 68, 0.25)' : '#1E2734'}`,
-                        borderRadius: '4px',
-                        padding: '8px 10px',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        justifyContent: 'space-between',
-                        gap: '10px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                        <span style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: c.avatarColor || '#3B82F6',
-                          color: '#FFFFFF',
-                          fontSize: '9px',
-                          fontWeight: 800,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                          marginTop: '2px'
-                        }}>
-                          {c.avatarLetter || c.authorHandle.charAt(1).toUpperCase()}
-                        </span>
-                        <div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#E2E8F0' }}>
-                              {c.authorHandle}
-                            </span>
-                            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                              • {c.timestamp}
-                            </span>
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#CBD5E1', marginTop: '2px' }}>
-                            {c.content}
-                          </div>
-                        </div>
-                      </div>
-                      <span style={{
-                        fontSize: '8.5px',
-                        fontFamily: 'var(--font-mono)',
-                        fontWeight: 800,
-                        padding: '2px 5px',
-                        borderRadius: '2px',
-                        background: c.isCopypastaTemplate ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                        color: c.isCopypastaTemplate ? '#EF4444' : '#10B981',
-                        flexShrink: 0
-                      }}>
-                        {c.isCopypastaTemplate ? '🔴 BOT/BUZZER' : '🟢 WARGANET ORGANIK'}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ fontSize: '11px', color: '#64748B', textAlign: 'center', padding: '16px' }}>
-                    Memuat data sampel komentar...
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Action Bar Footer */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderTop: '1px solid #1E2734',
-              paddingTop: '16px',
-              marginTop: '16px',
-              flexWrap: 'wrap',
-              gap: '10px'
-            }}>
-              <button
-                type="button"
-                onClick={() => handleLaunchToAnalyzer(selectedForensicItem.claim)}
-                style={{
-                  background: 'rgba(200, 16, 46, 0.2)',
-                  border: '1px solid #DC2626',
-                  color: '#F87171',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  padding: '8px 14px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Zap size={13} />
-                <span>Uji Mendalam di Analyzer Taktis</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsForensicModalOpen(false)
-                  setSelectedForensicItem(null)
-                  setForensicData(null)
-                }}
-                style={{
-                  background: '#0F172A',
-                  border: '1px solid #334155',
-                  color: '#E2E8F0',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '8px 16px',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Tutup Dossier
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 6. MODAL DRAF KONTRANARASI TAKTIS DISPENAD & BABINSA (Untuk Isu TERINDIKASI HOAKS) ─── */}
+      {/* ─── 5. MODAL DRAF KONTRANARASI TAKTIS DISPENAD & BABINSA (Untuk Isu TERINDIKASI HOAKS) ─── */}
       {isCounterModalOpen && selectedCounterItem && counterChannels && (
         <div style={{
           position: 'fixed',

@@ -288,6 +288,59 @@ export async function clearRadarCacheDB(): Promise<void> {
   }
 }
 
+/**
+ * Mengambil satu entri radar berdasarkan ID
+ */
+export async function getRadarItemById(id: string): Promise<DebunkKnowledgeEntry | null> {
+  if (memoryFallback.radarCache.has(id)) {
+    return memoryFallback.radarCache.get(id) || null
+  }
+  try {
+    const item = await performTransaction<DebunkKnowledgeEntry | undefined>(
+      STORES.RADAR_CACHE,
+      'readonly',
+      (store) => store.get(id)
+    )
+    return item || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Memperbarui status triage suatu entri radar di IndexedDB / memory
+ */
+export async function updateRadarItemStatus(id: string, newStatus: string): Promise<boolean> {
+  try {
+    let target = memoryFallback.radarCache.get(id)
+    if (target) {
+      (target as any).triageStatus = newStatus
+    }
+
+    const item = await getRadarItemById(id)
+    if (item) {
+      (item as any).triageStatus = newStatus
+      await performTransaction<IDBValidKey>(
+        STORES.RADAR_CACHE,
+        'readwrite',
+        (store) => store.put(item)
+      )
+      // Pancarkan sinyal event pembaruan agar UI LiveRadar mendeteksi perubahan seketika
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('narada:radar-status-changed', {
+          detail: { id, status: newStatus }
+        }))
+      }
+      return true
+    }
+    return false
+  } catch (err) {
+    console.error('[DBAdapter] Gagal update radar status:', err)
+    return false
+  }
+}
+
+
 // ─── CRUD IMAGE STORE ───
 
 /**

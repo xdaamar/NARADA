@@ -261,6 +261,8 @@ function AppShell() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/radar" element={<LiveRadar />} />
+            <Route path="/radar/monitor/:id" element={<SocialForensic />} />
+            <Route path="/radar/monitor" element={<SocialForensic />} />
             <Route path="/analyzer" element={<Analyzer />} />
             <Route path="/classifier" element={<Analyzer />} />
             <Route path="/social-forensic" element={<SocialForensic />} />

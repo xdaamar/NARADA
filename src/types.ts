@@ -99,6 +99,9 @@ export interface DebunkKnowledgeEntry {
   viralityReason?: string
   viralVelocity?: string         // Ringkasan kecepatan viral (e.g. "+50K pencarian dlm 3 jam")
   engagement?: EngagementMetrics  // Rincian kuantitatif metrik media sosial / viralitas
+  triageStatus?: 'UNVERIFIED' | 'HOAKS' | 'FAKTA' | 'NETRAL'
+  threatScore?: number
+  detectedAt?: string
 }
 
 export interface InstitutionalLogicAnomaly {
