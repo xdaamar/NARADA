@@ -33,6 +33,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
         rewrite: () => '/trending/rss?geo=ID'
+      },
+      '/api/osint/youtube': {
+        target: 'https://www.youtube.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/osint\/youtube/, '')
       }
     }
   }

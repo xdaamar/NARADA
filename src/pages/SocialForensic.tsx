@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -19,11 +19,14 @@ import {
   Eye,
   Heart,
   FileText,
-  X
+  X,
+  RefreshCw,
+  Play
 } from 'lucide-react'
 import type { DebunkKnowledgeEntry } from '../types'
 import {
   generateSocialThreatDossier,
+  harvestAndSynthesizeDossier,
   type SocialThreatDossier,
   type CommentTriageCategory
 } from '../engine/social-threat-dossier'
@@ -38,14 +41,13 @@ export default function SocialForensic() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // ─── 1. Resolusi Target Isu dari Radar / Cache ───
+  // ─── 1. Penentuan Entitas Target ───
   const [targetItem, setTargetItem] = useState<DebunkKnowledgeEntry | null>(() => {
-    const locState = location.state as { targetItem?: DebunkKnowledgeEntry; item?: DebunkKnowledgeEntry } | null
-    if (locState?.targetItem) return locState.targetItem
-    if (locState?.item) return locState.item
+    const state = location.state as { targetItem?: DebunkKnowledgeEntry; item?: DebunkKnowledgeEntry } | undefined
+    if (state?.targetItem) return state.targetItem
+    if (state?.item) return state.item
 
     const archives = getCuratedArchiveDebunks()
-    // Ambil isu pertama yang belum terverifikasi / isu aktif radar
     const unverified = archives.find(a => a.verdict === 'UNVERIFIED')
     return unverified || archives[0] || null
   })
@@ -62,18 +64,44 @@ export default function SocialForensic() {
     }
   }, [targetItem])
 
-  // Generator Dossier Forensik Dinamis
-  const dossier: SocialThreatDossier = useMemo(() => {
-    return generateSocialThreatDossier(targetItem || {})
-  }, [targetItem])
+  // ─── 2. State Progressive Streaming OSINT Harvester ───
+  const [isHarvesting, setIsHarvesting] = useState<boolean>(true)
+  const [harvestStage, setHarvestStage] = useState<number>(1)
+  const [harvestStageText, setHarvestStageText] = useState<string>('Inisiasi Query Entitas & Rekam Jejak OSINT...')
+  const [dossier, setDossier] = useState<SocialThreatDossier>(() => generateSocialThreatDossier(targetItem || {}))
 
-  // ─── 2. State Filter & Interaktivitas UI ───
-  const [activePlatformTab, setActivePlatformTab] = useState<'TWITTER' | 'TIKTOK' | 'INSTAGRAM' | 'WHATSAPP'>('TWITTER')
+  const executeHarvest = useCallback(async (itemToHarvest: Partial<DebunkKnowledgeEntry>) => {
+    setIsHarvesting(true)
+    setHarvestStage(1)
+    setHarvestStageText('Inisiasi Query Entitas & Rekam Jejak OSINT...')
+
+    try {
+      const res = await harvestAndSynthesizeDossier(itemToHarvest, (stage, stageName) => {
+        setHarvestStage(stage)
+        setHarvestStageText(stageName)
+      })
+      setDossier(res)
+    } catch {
+      // Fallback gracefully ke mode lokal aman
+      setDossier(generateSocialThreatDossier(itemToHarvest))
+    } finally {
+      setIsHarvesting(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (targetItem) {
+      executeHarvest(targetItem)
+    }
+  }, [targetItem, executeHarvest])
+
+  // ─── 3. State Filter & Interaktivitas UI ───
+  const [activePlatformTab, setActivePlatformTab] = useState<'YOUTUBE' | 'TWITTER' | 'TIKTOK' | 'NEWS'>('YOUTUBE')
   const [activeCommentFilter, setActiveCommentFilter] = useState<'ALL' | CommentTriageCategory>('ALL')
   const [selectedClusterPattern, setSelectedClusterPattern] = useState<string | null>(null)
   const [statusUpdateMessage, setStatusUpdateMessage] = useState<string | null>(null)
 
-  // ─── 3. State Modal Kontranarasi Dispenad ───
+  // ─── 4. State Modal Kontranarasi Dispenad ───
   const [isCounterModalOpen, setIsCounterModalOpen] = useState<boolean>(false)
   const [counterChannels, setCounterChannels] = useState<CounterNarrativeChannels | null>(null)
   const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
@@ -155,12 +183,10 @@ export default function SocialForensic() {
   const filteredComments = useMemo(() => {
     let list = dossier.commentsStream
 
-    // Filter berdasarkan kategori triage
     if (activeCommentFilter !== 'ALL') {
       list = list.filter(c => c.triageCategory === activeCommentFilter)
     }
 
-    // Filter berdasarkan klaster template copypasta
     if (selectedClusterPattern) {
       list = list.filter(c => c.matchedClusterPattern === selectedClusterPattern)
     }
@@ -168,24 +194,32 @@ export default function SocialForensic() {
     return list
   }, [dossier.commentsStream, activeCommentFilter, selectedClusterPattern])
 
-  // Postingan aktif terpilih
+  // Dapatkan Preview Postingan yang Sedang Dipilih
   const currentPreview = useMemo(() => {
-    return dossier.platformPreviews.find(p => p.platform === activePlatformTab) || dossier.platformPreviews[0]
+    const found = dossier.platformPreviews.find(p => p.platform === activePlatformTab)
+    return found || dossier.platformPreviews[0]
   }, [dossier.platformPreviews, activePlatformTab])
 
   return (
-    <div className="fade-in" style={{ maxWidth: '1440px', margin: '0 auto', paddingBottom: '60px' }}>
-      
-      {/* ─── 1. TOP COMMAND BAR: BREADCRUMB & CONTEXT TELMETRY ─── */}
+    <div style={{
+      maxWidth: '1540px',
+      margin: '0 auto',
+      padding: '24px 20px 60px',
+      color: '#E2E8F0',
+      minHeight: '100vh',
+      fontFamily: 'var(--font-sans)'
+    }}>
+
+      {/* ─── 1. TOP COMMAND BREADCRUMB BAR ─── */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
         marginBottom: '16px',
+        paddingBottom: '14px',
         borderBottom: '1px solid #1E2734',
-        paddingBottom: '14px'
+        flexWrap: 'wrap',
+        gap: '12px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
@@ -256,7 +290,7 @@ export default function SocialForensic() {
           </div>
         </div>
 
-        {/* Telemetri Live & Timestamp Penangkapan */}
+        {/* Telemetri Live & Sumber Data Asli */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <div style={{
             display: 'flex',
@@ -269,15 +303,87 @@ export default function SocialForensic() {
             fontSize: '10.5px',
             fontFamily: 'var(--font-mono)'
           }}>
-            <span style={{ color: '#64748B' }}>DITANGKAP:</span>
-            <strong style={{ color: '#38BDF8' }}>{dossier.interceptedAt}</strong>
+            <span style={{ color: '#64748B' }}>SUMBER:</span>
+            <strong style={{ color: dossier.isLiveHarvested ? '#10B981' : '#F59E0B' }}>
+              {dossier.isLiveHarvested ? 'LIVE OSINT WEB INGESTION' : 'ARSIP INTELIJEN TERVERIFIKASI'}
+            </strong>
             <span style={{ color: '#2B3846' }}>│</span>
-            <span style={{ color: '#64748B' }}>VIEWS:</span>
-            <strong style={{ color: '#F59E0B' }}>{dossier.viewsEstimate}</strong>
-            <span style={{ color: '#2B3846' }}>│</span>
-            <span style={{ color: '#64748B' }}>AKSELERASI:</span>
-            <strong style={{ color: '#10B981' }}>{dossier.velocityRate}</strong>
+            <span style={{ color: '#64748B' }}>LATENSI:</span>
+            <strong style={{ color: '#38BDF8' }}>{dossier.harvestLatencyMs}ms</strong>
           </div>
+
+          <button
+            type="button"
+            onClick={() => targetItem && executeHarvest(targetItem)}
+            disabled={isHarvesting}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 10px',
+              background: '#121822',
+              border: '1px solid #2B384E',
+              color: isHarvesting ? '#64748B' : '#38BDF8',
+              borderRadius: '4px',
+              fontSize: '10.5px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              cursor: isHarvesting ? 'wait' : 'pointer'
+            }}
+            title="Panen ulang data media sosial & komentar warganet terbaru secara real-time"
+          >
+            <RefreshCw size={12} className={isHarvesting ? 'spin-animation' : ''} />
+            <span>{isHarvesting ? 'MEMINDAI...' : 'PANEN ULANG'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ─── PROGRESSIVE STREAMING OSINT HUD STRIP ─── */}
+      <div style={{
+        background: '#0B111A',
+        border: '1px solid #1E2734',
+        borderRadius: '6px',
+        padding: '10px 14px',
+        marginBottom: '16px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: isHarvesting ? '#F59E0B' : '#10B981',
+              boxShadow: isHarvesting ? '0 0 8px #F59E0B' : '0 0 8px #10B981',
+              display: 'inline-block'
+            }} />
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9' }}>
+              PIPELINE EKSTRAKSI SIBER LAPANGAN (FASE {harvestStage}/5):
+            </span>
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: isHarvesting ? '#FBBF24' : '#34D399' }}>
+              {harvestStageText}
+            </span>
+          </div>
+
+          <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+            KATA KUNCI FOKUS: <strong style={{ color: '#38BDF8' }}>"{dossier.focusedKeywords}"</strong>
+          </span>
+        </div>
+
+        {/* Progress Bar 5 Tahap */}
+        <div style={{
+          height: '4px',
+          background: '#16202C',
+          borderRadius: '2px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            height: '100%',
+            width: `${isHarvesting ? harvestStage * 20 : 100}%`,
+            background: isHarvesting ? 'linear-gradient(90deg, #38BDF8, #F59E0B)' : '#10B981',
+            transition: 'width 0.4s ease'
+          }} />
         </div>
       </div>
 
@@ -302,16 +408,13 @@ export default function SocialForensic() {
         </div>
       )}
 
-      {/* ─── 2. TARGET HEADLINE & COMMAND ACTION HUB ─── */}
+      {/* ─── 2. DOSSIER HERO BANNER & COMMAND CONTROLS ─── */}
       <div 
         className="steel-chassis-card"
         style={{
-          padding: '18px 22px',
+          padding: '20px 24px',
           marginBottom: '20px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '14px'
+          position: 'relative'
         }}
       >
         <span className="bolt-tl" />
@@ -324,27 +427,32 @@ export default function SocialForensic() {
           alignItems: 'flex-start',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '14px'
+          gap: '16px',
+          marginBottom: '16px'
         }}>
           <div style={{ flex: 1, minWidth: '320px' }}>
             <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
               fontSize: '10px',
               fontFamily: 'var(--font-mono)',
               fontWeight: 800,
-              color: '#94A3B8',
+              color: '#38BDF8',
               letterSpacing: '1px',
               textTransform: 'uppercase',
-              marginBottom: '4px'
+              marginBottom: '6px'
             }}>
-              ISU SPESIFIK DALAM RADAR PEMANTAUAN INTELIJEN:
+              <Flame size={12} />
+              BERKAS INTELIJEN SIBER SOSIAL (LEFT-OF-BANG CHAMBER)
             </div>
             <h1 style={{
-              fontFamily: 'var(--font-display)',
               fontSize: '20px',
               fontWeight: 800,
               color: '#F8FAFC',
-              lineHeight: 1.4,
-              margin: 0
+              margin: '0 0 6px 0',
+              lineHeight: 1.35,
+              letterSpacing: '-0.3px'
             }}>
               "{dossier.targetClaim}"
             </h1>
@@ -355,7 +463,8 @@ export default function SocialForensic() {
               marginTop: '8px',
               fontSize: '11px',
               fontFamily: 'var(--font-mono)',
-              color: '#64748B'
+              color: '#64748B',
+              flexWrap: 'wrap'
             }}>
               <span>Sumber Rujukan Awal: <strong style={{ color: '#CBD5E1' }}>{targetItem?.originalPlatform || 'Portal Berita / Google Trends'}</strong></span>
               <span>•</span>
@@ -453,7 +562,7 @@ export default function SocialForensic() {
           </div>
         </div>
 
-        {/* Alarm Banner & Anomali Jeda Waktu */}
+        {/* Alarm Banner & Anomali Jeda Waktu Dinamis */}
         <div style={{
           background: dossier.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
           border: `1px solid ${dossier.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
@@ -552,12 +661,12 @@ export default function SocialForensic() {
             </div>
 
             {/* Platform Selector Tabs */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
               {[
+                { key: 'YOUTUBE', label: 'YouTube (Liputan)', color: '#FF0000' },
                 { key: 'TWITTER', label: 'X (Twitter)', color: '#1DA1F2' },
                 { key: 'TIKTOK', label: 'TikTok', color: '#00F2FE' },
-                { key: 'INSTAGRAM', label: 'Instagram', color: '#E1306C' },
-                { key: 'WHATSAPP', label: 'WhatsApp', color: '#25D366' }
+                { key: 'NEWS', label: 'Portal / Arsip', color: '#10B981' }
               ].map(tab => {
                 const isSelected = activePlatformTab === tab.key
                 return (
@@ -588,7 +697,7 @@ export default function SocialForensic() {
 
           {/* Visual Mockup Card Postingan Aktif */}
           <div style={{
-            background: currentPreview.platform === 'WHATSAPP' ? '#0B141B' : '#0B1017',
+            background: '#0B1017',
             border: `1px solid ${currentPreview.accentColor}40`,
             borderRadius: '6px',
             padding: '16px',
@@ -600,7 +709,7 @@ export default function SocialForensic() {
                 <div style={{
                   width: '36px',
                   height: '36px',
-                  borderRadius: currentPreview.platform === 'TIKTOK' || currentPreview.platform === 'TWITTER' ? '50%' : '6px',
+                  borderRadius: currentPreview.platform === 'TIKTOK' || currentPreview.platform === 'TWITTER' || currentPreview.platform === 'YOUTUBE' ? '50%' : '6px',
                   background: currentPreview.avatarColor,
                   display: 'flex',
                   alignItems: 'center',
@@ -653,14 +762,55 @@ export default function SocialForensic() {
               </div>
             </div>
 
+            {/* Thumbnail Preview jika tersedia (YouTube Video Liputan) */}
+            {currentPreview.thumbnailUrl && (
+              <div style={{
+                position: 'relative',
+                borderRadius: '6px',
+                overflow: 'hidden',
+                marginBottom: '12px',
+                maxHeight: '180px',
+                background: '#05080E'
+              }}>
+                <img
+                  src={currentPreview.thumbnailUrl}
+                  alt={currentPreview.authorDisplayName}
+                  style={{ width: '100%', height: '180px', objectFit: 'cover', opacity: 0.85 }}
+                />
+                <a
+                  href={currentPreview.directSearchUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    background: 'rgba(239, 68, 68, 0.85)',
+                    color: '#FFFFFF',
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+                    cursor: 'pointer'
+                  }}
+                  title="Putar Video Asli di YouTube"
+                >
+                  <Play size={20} fill="#FFFFFF" />
+                </a>
+              </div>
+            )}
+
             {/* Post Caption Body */}
             <div style={{
               fontSize: '12.5px',
               color: '#E2E8F0',
               lineHeight: 1.55,
               whiteSpace: 'pre-wrap',
-              marginBottom: '14px',
-              fontFamily: currentPreview.platform === 'WHATSAPP' ? 'var(--font-mono)' : 'inherit'
+              marginBottom: '14px'
             }}>
               {currentPreview.captionText}
             </div>
@@ -676,7 +826,7 @@ export default function SocialForensic() {
               </div>
             )}
 
-            {/* Engagement Strip & Link ke Platform Asli */}
+            {/* Engagement Strip & Dual-Gateway Action Buttons (Anti-Error) */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -701,29 +851,59 @@ export default function SocialForensic() {
                 </span>
               </div>
 
-              <a
-                href={currentPreview.directSearchUrl}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  color: currentPreview.accentColor,
-                  background: `${currentPreview.accentColor}18`,
-                  border: `1px solid ${currentPreview.accentColor}40`,
-                  padding: '4px 10px',
-                  borderRadius: '3px',
-                  textDecoration: 'none',
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span>Buka di {currentPreview.platformLabel}</span>
-                <ExternalLink size={10} />
-              </a>
+              {/* Dual-Gateway Buttons: Tautan Langsung & Google OSINT Dork */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <a
+                  href={currentPreview.directSearchUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    color: currentPreview.accentColor,
+                    background: `${currentPreview.accentColor}18`,
+                    border: `1px solid ${currentPreview.accentColor}40`,
+                    padding: '4px 10px',
+                    borderRadius: '3px',
+                    textDecoration: 'none',
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Buka langsung pencarian platform terkait"
+                >
+                  <span>Buka di {currentPreview.platformLabel}</span>
+                  <ExternalLink size={10} />
+                </a>
+
+                {currentPreview.backupDorkUrl && (
+                  <a
+                    href={currentPreview.backupDorkUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: '#34D399',
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      padding: '4px 8px',
+                      borderRadius: '3px',
+                      textDecoration: 'none',
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Buka via Google OSINT Dork (100% Kebal Server Error & WAF)"
+                  >
+                    <span>Google OSINT Dork 🛡️</span>
+                    <ExternalLink size={9} />
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -983,66 +1163,83 @@ export default function SocialForensic() {
           </div>
 
           <div style={{ fontSize: '11px', color: '#94A3B8' }}>
-            Klik pada klaster template di bawah untuk menyorot seluruh komentar akun bot yang menyuarakan kalimat tersebut:
+            {dossier.copypastaClusters.length > 0 
+              ? 'Klik pada klaster template di bawah untuk menyorot seluruh komentar akun bot yang menyuarakan kalimat tersebut:'
+              : 'Tidak terdeteksi klaster template copypasta masif. Dinamika opini didominasi oleh variasi kalimat organik.'}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {dossier.copypastaClusters.map((cluster, idx) => {
-              const isSelected = selectedClusterPattern === cluster.templateText
-              return (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    if (isSelected) {
-                      setSelectedClusterPattern(null)
-                    } else {
-                      setSelectedClusterPattern(cluster.templateText)
-                      setActiveCommentFilter('ALL')
-                    }
-                  }}
-                  style={{
-                    background: isSelected ? 'rgba(239, 68, 68, 0.15)' : '#0B111A',
-                    border: `1px solid ${isSelected ? '#EF4444' : '#1E2734'}`,
-                    borderRadius: '4px',
-                    padding: '10px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'space-between',
-                    gap: '10px',
-                    transition: 'all 0.15s ease'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontSize: '11.5px', color: isSelected ? '#FCA5A5' : '#E2E8F0', fontStyle: 'italic', lineHeight: 1.4 }}>
-                      "{cluster.templateText}"
+            {dossier.copypastaClusters.length === 0 ? (
+              <div style={{
+                padding: '16px',
+                background: '#0B111A',
+                border: '1px solid #1E2734',
+                borderRadius: '4px',
+                textAlign: 'center',
+                color: '#64748B',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)'
+              }}>
+                🟢 AMAN: Pola percakapan memiliki variasi leksikal alami (Jaccard &lt; 40%).
+              </div>
+            ) : (
+              dossier.copypastaClusters.map((cluster, idx) => {
+                const isSelected = selectedClusterPattern === cluster.templateText
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedClusterPattern(null)
+                      } else {
+                        setSelectedClusterPattern(cluster.templateText)
+                        setActiveCommentFilter('ALL')
+                      }
+                    }}
+                    style={{
+                      background: isSelected ? 'rgba(239, 68, 68, 0.15)' : '#0B111A',
+                      border: `1px solid ${isSelected ? '#EF4444' : '#1E2734'}`,
+                      borderRadius: '4px',
+                      padding: '10px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      gap: '10px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '11.5px', color: isSelected ? '#FCA5A5' : '#E2E8F0', fontStyle: 'italic', lineHeight: 1.4 }}>
+                        "{cluster.templateText}"
+                      </div>
+                      <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', marginTop: '4px' }}>
+                        Akun teridentifikasi: {cluster.sampleHandles.slice(0, 3).join(', ')}...
+                      </div>
                     </div>
-                    <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', marginTop: '4px' }}>
-                      Akun teridentifikasi: {cluster.sampleHandles.slice(0, 3).join(', ')}...
-                    </div>
-                  </div>
 
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <span style={{
-                      fontSize: '10px',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 800,
-                      padding: '2px 7px',
-                      borderRadius: '2px',
-                      background: 'rgba(239, 68, 68, 0.25)',
-                      color: '#EF4444'
-                    }}>
-                      {cluster.occurrences}x Terulang
-                    </span>
-                    <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', marginTop: '2px' }}>
-                      ({cluster.percentageOfTotal}% Total)
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <span style={{
+                        fontSize: '10px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 800,
+                        padding: '2px 7px',
+                        borderRadius: '2px',
+                        background: 'rgba(239, 68, 68, 0.25)',
+                        color: '#EF4444'
+                      }}>
+                        {cluster.occurrences}x Terulang
+                      </span>
+                      <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', marginTop: '2px' }}>
+                        ({cluster.percentageOfTotal}% Total)
+                      </div>
                     </div>
-                  </div>
-                </button>
-              )
-            })}
+                  </button>
+                )
+              })
+            )}
           </div>
 
           {/* Quick Action Triage Button (Pussiberad Intervention) */}
@@ -1230,7 +1427,22 @@ export default function SocialForensic() {
             gap: '8px',
             paddingRight: '4px'
           }}>
-            {filteredComments.map((c) => {
+            {isHarvesting && filteredComments.length === 0 ? (
+              <div style={{
+                padding: '30px',
+                textAlign: 'center',
+                color: '#64748B',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '11px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <RefreshCw size={18} className="spin-animation" color="#38BDF8" />
+                <span>SEDANG MEMINDAI DISKUSI DAN KOMENTAR LAPANGAN...</span>
+              </div>
+            ) : filteredComments.map((c) => {
               const isHighlighted = selectedClusterPattern && c.matchedClusterPattern === selectedClusterPattern
               return (
                 <div
@@ -1269,6 +1481,18 @@ export default function SocialForensic() {
                         <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9' }}>
                           {c.authorHandle}
                         </span>
+                        {c.platformOrigin && (
+                          <span style={{
+                            fontSize: '8.5px',
+                            fontFamily: 'var(--font-mono)',
+                            color: '#38BDF8',
+                            background: 'rgba(56, 189, 248, 0.15)',
+                            padding: '1px 4px',
+                            borderRadius: '2px'
+                          }}>
+                            [{c.platformOrigin}]
+                          </span>
+                        )}
                         <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
                           • {c.timestampFormatted}
                         </span>
