@@ -37,6 +37,9 @@ import {
   type RadarTriageStatus 
 } from '../engine/radar/early-warning-scorer.ts'
 import { type CounterNarrativeChannels, generateCounterNarratives } from '../engine/forensic/counter-narrative-generator.ts'
+import { getAllConnectorHealth } from '../engine/radar/source-registry.ts'
+import { parseSourceDate, evaluateFreshness } from '../engine/radar/freshness-engine.ts'
+import type { ConnectorHealth } from '../engine/radar/radar-types.ts'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterFilterOption {
@@ -72,6 +75,7 @@ export default function LiveRadar() {
     isUsingProxy: false,
   })
   const [sourceChannel, setSourceChannel] = useState<'API_PROXY' | 'API_DIRECT' | 'API_CORS_PROXY' | 'LOCAL_ARCHIVE'>('LOCAL_ARCHIVE')
+  const [connectorHealth, setConnectorHealth] = useState<Record<string, ConnectorHealth>>(() => getAllConnectorHealth())
 
   // State Pop-up Notifikasi Intelijen Taktis
   const [isBriefingModalOpen, setIsBriefingModalOpen] = useState<boolean>(false)
@@ -100,6 +104,7 @@ export default function LiveRadar() {
       }
       const status = radarScheduler.getStatus()
       setSourceChannel(status.lastSyncSource as typeof sourceChannel || 'LOCAL_ARCHIVE')
+      setConnectorHealth(getAllConnectorHealth())
       const now = new Date(status.lastSyncTimestamp || Date.now())
       setLastSyncTime(
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
@@ -363,8 +368,8 @@ export default function LiveRadar() {
               boxShadow: `0 0 8px ${telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B'}`,
               display: 'inline-block'
             }} />
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9' }}>
-              {sourceChannel === 'API_DIRECT' ? 'LIVE RSS MULTI-STREAM' : sourceChannel === 'API_PROXY' ? 'VITE PROXY STREAM' : 'LOCAL OFFLINE CACHE'}
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: sourceChannel === 'LOCAL_ARCHIVE' ? '#F59E0B' : '#F1F5F9' }}>
+              {sourceChannel === 'API_DIRECT' ? 'LIVE RSS MULTI-STREAM' : sourceChannel === 'API_PROXY' ? 'GATEWAY / PROXY (LIVE)' : 'STALE CACHE (OFFLINE)'}
             </span>
             <span style={{ color: '#2D3848' }}>│</span>
             <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
@@ -509,6 +514,65 @@ export default function LiveRadar() {
           <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
             STATUS SINKRONISASI: <span style={{ color: '#94A3B8', fontWeight: 600 }}>{lastSyncTime}</span>
           </div>
+        </div>
+
+        {/* ─── KESEHATAN KONEKTOR SUMBER (SPRINT 1 TRANSPARENCY STRIP) ─── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          paddingTop: '8px',
+          borderTop: '1px solid #1E2734',
+          flexWrap: 'wrap',
+          fontSize: '9.5px',
+          fontFamily: 'var(--font-mono)'
+        }}>
+          <span style={{ color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Radio size={11} color="#38BDF8" /> STATUS KONEKTOR RADAR (5 STREAM):
+          </span>
+          {Object.values(connectorHealth).filter(ch => ch.state !== 'DISABLED').map(ch => {
+            const isHealthy = ch.state === 'HEALTHY'
+            const isConnecting = ch.state === 'CONNECTING'
+            const isDegraded = ch.state === 'DEGRADED'
+            const isRateLimited = ch.state === 'RATE_LIMITED'
+            const isStale = ch.state === 'STALE'
+            const isUnknown = ch.state === 'UNKNOWN'
+            const dotColor = isHealthy ? '#10B981' : isConnecting ? '#38BDF8' : isDegraded ? '#F59E0B' : isRateLimited ? '#A855F7' : isStale ? '#38BDF8' : isUnknown ? '#94A3B8' : '#EF4444'
+            const statusLabel = isHealthy ? 'ONLINE' : isConnecting ? 'CONNECTING' : isDegraded ? 'PROXY' : isRateLimited ? 'RATE_LIMIT' : isStale ? 'CACHE' : isUnknown ? 'IDLE' : 'OFFLINE'
+            
+            const lastSuccessStr = ch.lastSuccessAt ? new Date(ch.lastSuccessAt).toLocaleTimeString('id-ID') : 'Belum Ada'
+            const tooltipText = `${ch.sourceName}\nStatus: ${ch.state}\nKeterangan: ${ch.userReadableMessage}\nLatensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nTerakhir Sukses: ${lastSuccessStr}\nKegagalan Beruntun: ${ch.consecutiveFailures || 0}`
+
+            return (
+              <div
+                key={ch.sourceId}
+                title={tooltipText}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  padding: '3px 8px',
+                  borderRadius: '3px',
+                  background: '#0B111A',
+                  border: `1px solid ${dotColor}35`,
+                  color: '#CBD5E1'
+                }}
+              >
+                <span style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: dotColor,
+                  boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none'
+                }} />
+                <span style={{ fontWeight: 700, color: '#F1F5F9' }}>{ch.sourceName.split('—')[0].replace('Google News', 'G-News').split('(')[0].trim()}</span>
+                <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
+                {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
+                  <span style={{ color: '#64748B' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -763,7 +827,7 @@ export default function LiveRadar() {
                     </span>
 
                     {/* Lencana Vonis & Indeks Ancaman */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                       <span style={{
                         fontSize: '9px',
                         fontFamily: 'var(--font-mono)',
@@ -777,23 +841,39 @@ export default function LiveRadar() {
                         {verdictLabel}
                       </span>
 
-                      {/* Skor Ancaman Kognitif */}
+                      {/* Lencana Semantic Firewall: Rujukan Fact-Check Terkait (Sprint 1C Package 3) */}
+                      {item.factCheckReference && (
+                        <span style={{
+                          fontSize: '9px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 800,
+                          padding: '2px 7px',
+                          borderRadius: '3px',
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          color: '#38BDF8',
+                          border: '1px solid rgba(56, 189, 248, 0.45)'
+                        }} title={`Rujukan Fact-Check Terkait: ${item.factCheckReference.referenceTitle}`}>
+                          REFERENSI FACT-CHECK TERKAIT — PERLU TINJAUAN
+                        </span>
+                      )}
+
+                      {/* Skor Relevansi Konteks (Sprint 1B: Skor Heuristik Deterministik, BUKAN Probabilitas Ancaman) */}
                       <span style={{
                         fontSize: '9px',
                         fontFamily: 'var(--font-mono)',
                         fontWeight: 700,
-                        padding: '2px 5px',
+                        padding: '2px 6px',
                         borderRadius: '2px',
                         background: `${scoreColor}18`,
                         color: scoreColor,
                         border: `1px solid ${scoreColor}40`
-                      }} title="Indeks Ancaman Kognitif (0 - 100)">
-                        R: {score}
+                      }} title="Skor Relevansi Konteks (0 - 100): Indikator heuristik keselarasan topik pantauan, bukan probabilitas kebenaran atau tingkat bahaya.">
+                        RELEVANSI: {score}/100
                       </span>
                     </div>
                   </div>
 
-                  {/* Audit Trail Dual-Timestamp (Penangkapan vs Verifikasi) */}
+                  {/* Audit Trail Dual-Timestamp (Penangkapan vs Penerbitan Sumber Nyata) */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -808,16 +888,46 @@ export default function LiveRadar() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94A3B8' }}>
                       <Clock size={10} color="#38BDF8" />
-                      <span>DITANGKAP: <strong style={{ color: '#E2E8F0' }}>{item.interceptedAt || '18:15 WIB'}</strong></span>
+                      <span>DITANGKAP: <strong style={{ color: '#E2E8F0' }}>{item.interceptedAt || 'Baru saja'}</strong></span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94A3B8' }}>
-                      <ShieldCheck size={10} color={verdictColor} />
-                      <span>DIKLASIFIKASI: <strong style={{ color: verdictColor }}>{item.verifiedAt || '18:22 WIB'}</strong></span>
+                      <ShieldCheck size={10} color="#10B981" />
+                      <span>TERBIT SUMBER: <strong style={{ color: item.publishedDate && item.publishedDate !== 'Waktu Publikasi Tidak Tersedia' ? '#10B981' : '#64748B' }}>{item.publishedDate || 'Waktu Tidak Tersedia'}</strong></span>
                     </div>
                   </div>
 
-                  {/* Dasar Kelayakan Masuk Radar Viral (Virality Reason) */}
+                  {/* Lencana Freshness Deterministik & Alasan Relevansi */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {/* Freshness Badge dari FreshnessEngine */}
+                    {(() => {
+                      const { timestamp: pTs } = parseSourceDate(item.publishedDate)
+                      const fresh = evaluateFreshness(pTs)
+                      const isBrk = fresh.status === 'BREAKING'
+                      const isAkt = fresh.status === 'AKTUAL'
+                      const isBerk = fresh.status === 'BERKEMBANG'
+                      const badgeColor = isBrk ? '#EF4444' : isAkt ? '#F59E0B' : isBerk ? '#38BDF8' : '#64748B'
+                      const badgeBg = isBrk ? 'rgba(239, 68, 68, 0.2)' : isAkt ? 'rgba(245, 158, 11, 0.15)' : isBerk ? 'rgba(56, 189, 248, 0.15)' : 'rgba(100, 116, 139, 0.15)'
+
+                      return (
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '9px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 800,
+                          color: badgeColor,
+                          background: badgeBg,
+                          border: `1px solid ${badgeColor}`,
+                          padding: '2px 6px',
+                          borderRadius: '3px'
+                        }}>
+                          {isBrk && <Flame size={10} />}
+                          <span>{fresh.status === 'BREAKING' ? 'BREAKING (<3 JAM)' : fresh.status === 'AKTUAL' ? 'AKTUAL (<12 JAM)' : fresh.status === 'BERKEMBANG' ? 'HARI INI (<24 JAM)' : fresh.status === 'KONTEKS' ? 'KONTEKS (>24 JAM)' : 'WAKTU TIDAK TERSEDIA'}</span>
+                        </div>
+                      )
+                    })()}
+
                     {item.viralityReason && (
                       <div style={{
                         display: 'inline-flex',
@@ -836,25 +946,6 @@ export default function LiveRadar() {
                         <span>{item.viralityReason}</span>
                       </div>
                     )}
-
-                    {item.isBreakingRecent && (
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '9px',
-                        fontFamily: 'var(--font-mono)',
-                        fontWeight: 800,
-                        color: '#EF4444',
-                        background: 'rgba(239, 68, 68, 0.2)',
-                        border: '1px solid #EF4444',
-                        padding: '2px 6px',
-                        borderRadius: '3px'
-                      }}>
-                        <Flame size={10} />
-                        <span>BREAKING HARI INI (&lt;6 JAM)</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Naskah / Klaim Isu Viral */}
@@ -868,7 +959,7 @@ export default function LiveRadar() {
                     {item.claim}
                   </div>
 
-                  {/* Esensi Viralitas Nyata (Kotak Metrik Media Sosial / Engagement Velocity) */}
+                  {/* Plat Penilaian Multidimensi & Integritas Provenance (Zero Fake Social Metrics) */}
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
@@ -881,25 +972,80 @@ export default function LiveRadar() {
                     textAlign: 'center'
                   }}>
                     <div>
-                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>ESTIMASI VIEWS</div>
-                      <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                        <Flame size={10} color="#F59E0B" />
-                        {item.engagement?.views || item.trendTraffic || '+45K'}
+                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>STATUS WAKTU</div>
+                      <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', marginTop: '2px' }}>
+                        {(() => {
+                          const { timestamp: pTs } = parseSourceDate(item.publishedDate)
+                          const fresh = evaluateFreshness(pTs)
+                          return fresh.status
+                        })()}
                       </div>
                     </div>
                     <div style={{ borderLeft: '1px solid #1A2433', borderRight: '1px solid #1A2433' }}>
-                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>SEBARAN / REPOST</div>
-                      <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8' }}>
-                        {item.engagement?.shares || '2.8K'}
+                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>DOMAIN TOPIK</div>
+                      <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F59E0B', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {clusterMeta.label}
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>AKSELERASI TREN</div>
-                      <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#10B981' }}>
-                        {item.engagement?.velocityRate || '+160%/jam'}
+                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>METADATA PROVENANCE</div>
+                      <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: item.sourceUrl ? '#10B981' : '#64748B', marginTop: '2px' }}>
+                        {item.sourceUrl ? 'CANONICAL ✓' : 'OBSERVASI'}
                       </div>
                     </div>
                   </div>
+
+                  {/* Semantic Firewall: Fact-Check Reference Card (Package 3 - Sprint 1C) */}
+                  {item.factCheckReference && (
+                    <div style={{
+                      background: '#071018',
+                      border: '1px solid #1E3A5F',
+                      borderRadius: '4px',
+                      padding: '8px 10px',
+                      marginBottom: '8px',
+                      fontSize: '9.5px',
+                      fontFamily: 'var(--font-mono)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
+                          <ShieldCheck size={11} color="#38BDF8" style={{ flexShrink: 0 }} />
+                          <span style={{ color: '#64748B' }}>Rujukan Klarifikasi:</span>
+                          <span style={{ color: '#38BDF8', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.factCheckReference.referenceTitle}
+                          </span>
+                        </div>
+                        {item.factCheckReference.referenceUrl && (
+                          <a
+                            href={item.factCheckReference.referenceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              color: '#38BDF8',
+                              background: 'rgba(56, 189, 248, 0.15)',
+                              border: '1px solid rgba(56, 189, 248, 0.35)',
+                              padding: '2px 6px',
+                              borderRadius: '3px',
+                              textDecoration: 'none',
+                              fontWeight: 700,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                              flexShrink: 0,
+                              fontSize: '9px'
+                            }}
+                          >
+                            <ExternalLink size={9} />
+                            <span>Buka Cek Fakta ↗</span>
+                          </a>
+                        )}
+                      </div>
+                      {item.factCheckReference.explanation && (
+                        <div style={{ color: '#94A3B8', marginTop: '4px', lineHeight: 1.4 }}>
+                          {item.factCheckReference.explanation}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Sunken Box Penjelasan Fakta / Status Intelijen */}
                   <div 
@@ -1090,10 +1236,10 @@ export default function LiveRadar() {
                           e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)'
                           e.currentTarget.style.color = '#FBBF24'
                         }}
-                        title="Buka investigasi medsos, periksa sebaran likes/komentar, dan deteksi buzzer/bot swarm"
+                        title="Buka Meja Bedah Bukti Digital Analis, uji pola copypasta Jaccard, dan ukur indeks koordinasi CIB"
                       >
                         <Microscope size={11} />
-                        <span>Bedah Buzzer & Medsos</span>
+                        <span>Meja Bedah Forensik Siber</span>
                       </button>
                     ) : isHoax ? (
                       <button

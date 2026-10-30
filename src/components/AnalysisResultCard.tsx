@@ -1333,7 +1333,7 @@ export default function AnalysisResultCard({ result }: AnalysisResultCardProps) 
               style={{ fontSize: '11px' }}
             >
               <UserSearch size={12} />
-              Bedah Forensik Medsos & Buzzer {authorOrUsername ? `(${authorOrUsername})` : ''}
+              Meja Bedah Forensik Siber {authorOrUsername ? `(${authorOrUsername})` : ''}
             </button>
             <button
               type="button"
