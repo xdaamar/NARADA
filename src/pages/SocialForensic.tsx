@@ -96,7 +96,7 @@ export default function SocialForensic() {
   }, [targetItem, executeHarvest])
 
   // ─── 3. State Filter & Interaktivitas UI ───
-  const [activePlatformTab, setActivePlatformTab] = useState<'YOUTUBE' | 'TWITTER' | 'TIKTOK' | 'NEWS'>('YOUTUBE')
+  const [activePlatformTab, setActivePlatformTab] = useState<'YOUTUBE' | 'NEWS'>('YOUTUBE')
   const [activeCommentFilter, setActiveCommentFilter] = useState<'ALL' | CommentTriageCategory>('ALL')
   const [selectedClusterPattern, setSelectedClusterPattern] = useState<string | null>(null)
   const [statusUpdateMessage, setStatusUpdateMessage] = useState<string | null>(null)
@@ -682,10 +682,8 @@ export default function SocialForensic() {
             {/* Platform Selector Tabs */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
               {[
-                { key: 'YOUTUBE', label: 'YouTube (Liputan)', color: '#FF0000' },
-                { key: 'TWITTER', label: 'X (Twitter)', color: '#1DA1F2' },
-                { key: 'TIKTOK', label: 'TikTok', color: '#00F2FE' },
-                { key: 'NEWS', label: 'Portal / Arsip', color: '#10B981' }
+                { key: 'YOUTUBE', label: 'YouTube (Liputan Video)', color: '#FF0000' },
+                { key: 'NEWS', label: 'Portal Berita / Arsip Pers', color: '#10B981' }
               ].map(tab => {
                 const isSelected = activePlatformTab === tab.key
                 return (
@@ -743,7 +741,7 @@ export default function SocialForensic() {
                 <div style={{
                   width: '36px',
                   height: '36px',
-                  borderRadius: currentPreview.platform === 'TIKTOK' || currentPreview.platform === 'TWITTER' || currentPreview.platform === 'YOUTUBE' ? '50%' : '6px',
+                  borderRadius: currentPreview.platform === 'YOUTUBE' ? '50%' : '6px',
                   background: currentPreview.avatarColor,
                   display: 'flex',
                   alignItems: 'center',
@@ -894,18 +892,6 @@ export default function SocialForensic() {
                     <MessageSquare size={12} color="#F59E0B" /> {currentPreview.metrics.commentsCount}
                   </span>
                 ) : null}
-                {/* Jika platform X/TikTok tanpa data nyata sama sekali — tampilkan banner jujur */}
-                {!currentPreview.hasRealData && (currentPreview.platform === 'TWITTER' || currentPreview.platform === 'TIKTOK') && (
-                  <span style={{
-                    display: 'flex', alignItems: 'center', gap: '4px',
-                    color: '#F59E0B', fontSize: '9.5px',
-                    background: 'rgba(245, 158, 11, 0.1)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
-                    padding: '3px 8px', borderRadius: '3px'
-                  }}>
-                    ⚠️ Data metrik tidak tersedia — API berbayar diperlukan
-                  </span>
-                )}
               </div>
 
             {/* Action Command Buttons */}
@@ -934,13 +920,7 @@ export default function SocialForensic() {
                 <span>
                   {currentPreview.platform === 'YOUTUBE' 
                     ? (currentPreview.isLiveHarvested ? 'Tonton Video di YouTube ▶️' : 'Pencarian YouTube (Terkini) 🔍')
-                    : currentPreview.platform === 'TIKTOK'
-                    ? 'Pencarian TikTok (Entitas) 📱'
-                    : currentPreview.platform === 'TWITTER'
-                    ? 'Linimasa Terkini di X 𝕏'
-                    : currentPreview.platform === 'NEWS'
-                    ? `Buka Laporan ${currentPreview.platformLabel} 📄`
-                    : `Buka ${currentPreview.platformLabel}`}
+                    : `Buka Artikel di ${currentPreview.platformLabel} 📄`}
                 </span>
                 <ExternalLink size={10} />
               </a>
@@ -964,16 +944,12 @@ export default function SocialForensic() {
                     alignItems: 'center',
                     gap: '4px'
                   }}
-                  title="Tautan cadangan bebas error server via Google OSINT Dork (Filter 7 Hari Terakhir)"
+                  title="Tautan penelusuran alternatif Google News (Filter Waktu Terkini)"
                 >
                   <span>
                     {currentPreview.platform === 'YOUTUBE' && currentPreview.isLiveHarvested
                       ? 'Pencarian YouTube (Terkini) 🔍'
-                      : currentPreview.platform === 'TIKTOK'
-                      ? 'Google Dork TikTok (7 Hari) 🛡️'
-                      : currentPreview.platform === 'TWITTER'
-                      ? 'Google Dork X (7 Hari) 🛡️'
-                      : 'Google OSINT Dork (7 Hari) 🛡️'}
+                      : 'Pencarian Berita Terkait 🛡️'}
                   </span>
                   <ExternalLink size={9} />
                 </a>

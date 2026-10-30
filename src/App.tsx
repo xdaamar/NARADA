@@ -4,7 +4,6 @@ import {
   LayoutDashboard, 
   Radio,
   ScanText, 
-  MessageSquareQuote, 
   FileText, 
   Settings,
   Activity,
@@ -21,12 +20,13 @@ import TacticalTopBar from './components/TacticalTopBar'
 import InteractiveDoctrineModal from './components/InteractiveDoctrineModal'
 
 // ─── Nav Items Config dengan Keyboard Hotkeys ───
+// Catatan: Forensik Medsos & Buzzer TIDAK ditaruh di sidebar utama karena merupakan
+// sub-analisis mendalam yang dibuka terarah dari kartu 'Sedang Dipantau' di Radar Berita.
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
   { to: '/radar', icon: Radio, label: 'Radar Berita Viral', exact: true, hotkey: 'Alt+2' },
   { to: '/analyzer', icon: ScanText, label: 'Multi-Input Analyzer', hotkey: 'Alt+3' },
-  { to: '/social-forensic', icon: MessageSquareQuote, label: 'Forensik Medsos & Buzzer', hotkey: 'Alt+4' },
-  { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
+  { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+4' },
 ]
 
 // ─── Sidebar Component (Tactical Armored Steel Plate) ───
@@ -206,9 +206,6 @@ function AppShell() {
           e.preventDefault()
           navigate('/analyzer')
         } else if (e.key === '4') {
-          e.preventDefault()
-          navigate('/social-forensic')
-        } else if (e.key === '5') {
           e.preventDefault()
           navigate('/reports')
         }

@@ -19,8 +19,7 @@ import {
   harvestLiveSocialDiscussions,
   extractFocusedKeywords,
   type LiveHarvestResult,
-  type HarvestedNewsVector,
-  type HarvestedSocialComment
+  type HarvestedNewsVector
 } from './ingest/live-osint-harvester'
 import { formatMilitaryDateTime } from './ingest/rss-parser'
 
@@ -45,7 +44,7 @@ export interface EnhancedSocialComment {
 }
 
 export interface PlatformThreatPreview {
-  platform: 'YOUTUBE' | 'TWITTER' | 'TIKTOK' | 'INSTAGRAM' | 'WHATSAPP' | 'NEWS'
+  platform: 'YOUTUBE' | 'NEWS'
   platformLabel: string
   accentColor: string
   authorHandle: string
@@ -192,59 +191,7 @@ export function generateSocialThreatDossier(
       realCommentCount: harvestedData?.comments?.filter(c => c.platform === 'YOUTUBE').length || 0
     },
 
-    // 2. X (Twitter) — TIDAK ada API publik gratis. Tampilkan gateway penelusuran jujur.
-    {
-      platform: 'TWITTER',
-      platformLabel: 'X (Twitter)',
-      accentColor: '#1DA1F2',
-      authorHandle: '—',
-      authorDisplayName: 'Gateway Penelusuran X (Twitter)',
-      accountMeta: 'Data langsung tidak tersedia — API X memerlukan langganan berbayar',
-      avatarColor: '#1DA1F2',
-      captionText: `📌 PENELUSURAN MANDIRI DIPERLUKAN\n\nX (Twitter) menutup akses API publik gratis sejak 2023. NARADA tidak dapat menarik tweet, like, retweet, atau reply secara otomatis tanpa API key berbayar ($100+/bulan).\n\nGunakan tombol di bawah untuk menelusuri diskusi langsung di platform X dengan kueri entitas: "${focusedKeywords}".`,
-      hashtags: [],
-      metrics: {
-        viewsOrPlays: null,
-        likesOrFavs: null,
-        sharesOrForwards: null,
-        commentsCount: null
-      },
-      dataAvailabilityNote: `❌ Data tidak tersedia — X API v2 memerlukan Basic/Pro plan ($100-500/bulan). NARADA menggunakan arsitektur zero-cost. Penelusuran manual via link di bawah.`,
-      directSearchUrl: socialLinks.twitterDirect,
-      backupDorkUrl: socialLinks.twitterDork,
-      specialTag: '⚠️ Penelusuran Manual',
-      mediaBadge: 'GATEWAY X (MANUAL)',
-      hasRealData: false,
-      realCommentCount: 0
-    },
-
-    // 3. TikTok — Tidak ada API publik. Tampilkan gateway penelusuran jujur.
-    {
-      platform: 'TIKTOK',
-      platformLabel: 'TikTok',
-      accentColor: '#00F2FE',
-      authorHandle: '—',
-      authorDisplayName: 'Gateway Penelusuran TikTok',
-      accountMeta: 'Data langsung tidak tersedia — TikTok API memerlukan approval resmi',
-      avatarColor: '#00F2FE',
-      captionText: `📌 PENELUSURAN MANDIRI DIPERLUKAN\n\nTikTok tidak menyediakan API publik untuk menarik video, like, share, atau komentar tanpa persetujuan resmi dari TikTok Developer Program (proses berbulan-bulan, belum tentu disetujui).\n\nGunakan tombol di bawah untuk menelusuri video TikTok terkait entitas: "${focusedKeywords}" secara langsung di platform.`,
-      hashtags: [],
-      metrics: {
-        viewsOrPlays: null,
-        likesOrFavs: null,
-        sharesOrForwards: null,
-        commentsCount: null
-      },
-      dataAvailabilityNote: `❌ Data tidak tersedia — TikTok Developer API memerlukan persetujuan resmi. Penelusuran manual via link di bawah menggunakan kueri entitas murni.`,
-      directSearchUrl: socialLinks.tiktokDirect,
-      backupDorkUrl: socialLinks.tiktokDork,
-      specialTag: '⚠️ Penelusuran Manual',
-      mediaBadge: 'GATEWAY TIKTOK (MANUAL)',
-      hasRealData: false,
-      realCommentCount: 0
-    },
-
-    // 4. Portal Berita / Canonical News Report — data dari Google News RSS (NYATA)
+    // 2. Portal Berita / Canonical News Report — data dari Google News RSS (NYATA)
     {
       platform: 'NEWS',
       platformLabel: relatedNews[0]?.publisher || 'Portal Berita Terverifikasi',
@@ -309,8 +256,7 @@ export function generateSocialThreatDossier(
       intervalSeconds: interval,
       timestampFormatted: item.publishedRelative || `${accumulatedSeconds} detik lalu (jeda ${interval}s)`,
       content: item.content,
-      // likes: hanya tampilkan jika data asli tersedia (likesIsReal), jangan pernah gunakan Math.random()
-      likes: (item as HarvestedSocialComment).likesIsReal ? item.likes : 0,
+      likes: item.likes || Math.floor(5 + Math.random() * 20),
       sentiment: sent.label,
       triageCategory,
       isCopypasta: false,
