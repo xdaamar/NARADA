@@ -116,16 +116,26 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
   const startTime = Date.now()
 
   try {
-    // Eksekusi penarikan 3 stream secara paralel
-    const [tbhResult, newsResult, trendsResult] = await Promise.allSettled([
+    // Eksekusi penarikan 5 stream secara paralel (Hankam, Aksi Massa/Demo, Kontroversi, TBH, Trends)
+    const [tbhResult, newsHankamResult, newsDemoResult, newsPolitikResult, trendsResult] = await Promise.allSettled([
       fetchXmlWithFallback(
         '/api/rss/turnbackhoax',
         'https://turnbackhoax.id/feed/',
         4500
       ),
       fetchXmlWithFallback(
-        '/api/rss/google-news/search?q=(TNI+OR+alutsista+OR+Papua+OR+Prabowo+OR+Gibran+OR+bansos)+AND+(hoaks+OR+viral+OR+heboh+OR+polemik+OR+kontroversi+OR+dibantah+OR+desak+OR+tuding+OR+manipulasi+OR+bentrok+OR+krisis)+when:2d&hl=id&gl=ID&ceid=ID:id',
-        'https://news.google.com/rss/search?q=(TNI+OR+alutsista+OR+Papua+OR+Prabowo+OR+Gibran+OR+bansos)+AND+(hoaks+OR+viral+OR+heboh+OR+polemik+OR+kontroversi+OR+dibantah+OR+desak+OR+tuding+OR+manipulasi+OR+bentrok+OR+krisis)+when:2d&hl=id&gl=ID&ceid=ID:id',
+        '/api/rss/google-news/search?q=(TNI+OR+alutsista+OR+Papua+OR+KKB+OR+Ambalat+OR+kapal+perang)+AND+(viral+OR+heboh+OR+polemik+OR+kontroversi+OR+hoaks)+when:2d&hl=id&gl=ID&ceid=ID:id',
+        'https://news.google.com/rss/search?q=(TNI+OR+alutsista+OR+Papua+OR+KKB+OR+Ambalat+OR+kapal+perang)+AND+(viral+OR+heboh+OR+polemik+OR+kontroversi+OR+hoaks)+when:2d&hl=id&gl=ID&ceid=ID:id',
+        4500
+      ),
+      fetchXmlWithFallback(
+        '/api/rss/google-news/search?q=(demo+OR+unjuk+rasa+OR+bentrok+OR+ricuh+OR+mahasiswa+OR+pemakzulan)+when:1d&hl=id&gl=ID&ceid=ID:id',
+        'https://news.google.com/rss/search?q=(demo+OR+unjuk+rasa+OR+bentrok+OR+ricuh+OR+mahasiswa+OR+pemakzulan)+when:1d&hl=id&gl=ID&ceid=ID:id',
+        4500
+      ),
+      fetchXmlWithFallback(
+        '/api/rss/google-news/search?q=(Prabowo+OR+Gibran+OR+bansos+OR+MBG+OR+ijazah+OR+KPK)+AND+(viral+OR+heboh+OR+polemik+OR+sidang)+when:1d&hl=id&gl=ID&ceid=ID:id',
+        'https://news.google.com/rss/search?q=(Prabowo+OR+Gibran+OR+bansos+OR+MBG+OR+ijazah+OR+KPK)+AND+(viral+OR+heboh+OR+polemik+OR+sidang)+when:1d&hl=id&gl=ID&ceid=ID:id',
         4500
       ),
       fetchXmlWithFallback(
@@ -145,19 +155,31 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
       detectedChannel = tbhResult.value.channel
     }
 
-    // 2. Ingest Google News Hankam (Sinyal Berita Terkini)
-    if (newsResult.status === 'fulfilled' && newsResult.value) {
-      const parsed = parseGoogleNewsRss(newsResult.value.xml)
-      // Ambil 12 berita pertahanan & keamanan teratas
-      allEntries.push(...parsed.slice(0, 12))
-      if (detectedChannel !== 'API_DIRECT') detectedChannel = newsResult.value.channel
+    // 2. Ingest Google News Hankam & Geopolitik
+    if (newsHankamResult.status === 'fulfilled' && newsHankamResult.value) {
+      const parsed = parseGoogleNewsRss(newsHankamResult.value.xml)
+      allEntries.push(...parsed.slice(0, 8))
+      if (detectedChannel !== 'API_DIRECT') detectedChannel = newsHankamResult.value.channel
     }
 
-    // 3. Ingest Google Trends ID (Sinyal Lonjakan Narasi Publik / Left-of-Bang)
+    // 3. Ingest Google News Aksi Massa & Demo Hari Ini (<24 Jam)
+    if (newsDemoResult.status === 'fulfilled' && newsDemoResult.value) {
+      const parsed = parseGoogleNewsRss(newsDemoResult.value.xml)
+      allEntries.push(...parsed.slice(0, 8))
+      if (detectedChannel !== 'API_DIRECT') detectedChannel = newsDemoResult.value.channel
+    }
+
+    // 4. Ingest Google News Kontroversi Nasional (<24 Jam)
+    if (newsPolitikResult.status === 'fulfilled' && newsPolitikResult.value) {
+      const parsed = parseGoogleNewsRss(newsPolitikResult.value.xml)
+      allEntries.push(...parsed.slice(0, 8))
+      if (detectedChannel !== 'API_DIRECT') detectedChannel = newsPolitikResult.value.channel
+    }
+
+    // 5. Ingest Google Trends ID (Tersaring dari Noise Sepakbola Asing)
     if (trendsResult.status === 'fulfilled' && trendsResult.value) {
       const parsed = parseGoogleTrendsRss(trendsResult.value.xml)
-      // Ambil 8 topik viral publik teratas
-      allEntries.push(...parsed.slice(0, 8))
+      allEntries.push(...parsed.slice(0, 6))
     }
 
     if (allEntries.length > 0) {

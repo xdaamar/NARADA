@@ -287,6 +287,25 @@ export default function SocialForensic() {
             }}>
               {dossier.clusterLabel}
             </span>
+
+            {targetItem?.isBreakingRecent && (
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 800,
+                padding: '3px 8px',
+                borderRadius: '3px',
+                background: 'rgba(239, 68, 68, 0.25)',
+                color: '#EF4444',
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <Flame size={11} />
+                BREAKING LAPANGAN (&lt;6 JAM)
+              </span>
+            )}
           </div>
         </div>
 
@@ -851,17 +870,53 @@ export default function SocialForensic() {
                 </span>
               </div>
 
-              {/* Dual-Gateway Buttons: Tautan Langsung & Google OSINT Dork */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {/* Action Command Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <a
+                href={currentPreview.directSearchUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  color: currentPreview.accentColor,
+                  background: `${currentPreview.accentColor}18`,
+                  border: `1px solid ${currentPreview.accentColor}40`,
+                  padding: '5px 12px',
+                  borderRadius: '3px',
+                  textDecoration: 'none',
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Buka konten / video langsung di platform terkait"
+              >
+                <span>
+                  {currentPreview.platform === 'YOUTUBE' 
+                    ? (currentPreview.isLiveHarvested ? 'Tonton Video di YouTube ▶️' : 'Pencarian YouTube (Terkini) 🔍')
+                    : currentPreview.platform === 'TIKTOK'
+                    ? 'Pencarian TikTok (Entitas) 📱'
+                    : currentPreview.platform === 'TWITTER'
+                    ? 'Linimasa Terkini di X 𝕏'
+                    : currentPreview.platform === 'NEWS'
+                    ? `Buka Laporan ${currentPreview.platformLabel} 📄`
+                    : `Buka ${currentPreview.platformLabel}`}
+                </span>
+                <ExternalLink size={10} />
+              </a>
+
+              {currentPreview.backupDorkUrl && (
                 <a
-                  href={currentPreview.directSearchUrl}
+                  href={currentPreview.backupDorkUrl}
                   target="_blank"
                   rel="noreferrer"
                   style={{
-                    color: currentPreview.accentColor,
-                    background: `${currentPreview.accentColor}18`,
-                    border: `1px solid ${currentPreview.accentColor}40`,
-                    padding: '4px 10px',
+                    color: '#34D399',
+                    background: 'rgba(16, 185, 129, 0.12)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    padding: '5px 10px',
                     borderRadius: '3px',
                     textDecoration: 'none',
                     fontSize: '10px',
@@ -869,41 +924,23 @@ export default function SocialForensic() {
                     fontWeight: 700,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.15s ease'
+                    gap: '4px'
                   }}
-                  title="Buka langsung pencarian platform terkait"
+                  title="Tautan cadangan bebas error server via Google OSINT Dork (Filter 7 Hari Terakhir)"
                 >
-                  <span>Buka di {currentPreview.platformLabel}</span>
-                  <ExternalLink size={10} />
+                  <span>
+                    {currentPreview.platform === 'YOUTUBE' && currentPreview.isLiveHarvested
+                      ? 'Pencarian YouTube (Terkini) 🔍'
+                      : currentPreview.platform === 'TIKTOK'
+                      ? 'Google Dork TikTok (7 Hari) 🛡️'
+                      : currentPreview.platform === 'TWITTER'
+                      ? 'Google Dork X (7 Hari) 🛡️'
+                      : 'Google OSINT Dork (7 Hari) 🛡️'}
+                  </span>
+                  <ExternalLink size={9} />
                 </a>
-
-                {currentPreview.backupDorkUrl && (
-                  <a
-                    href={currentPreview.backupDorkUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      color: '#34D399',
-                      background: 'rgba(16, 185, 129, 0.12)',
-                      border: '1px solid rgba(16, 185, 129, 0.35)',
-                      padding: '4px 8px',
-                      borderRadius: '3px',
-                      textDecoration: 'none',
-                      fontSize: '10px',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 700,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                    title="Buka via Google OSINT Dork (100% Kebal Server Error & WAF)"
-                  >
-                    <span>Google OSINT Dork 🛡️</span>
-                    <ExternalLink size={9} />
-                  </a>
-                )}
-              </div>
+              )}
+            </div>
             </div>
           </div>
         </div>

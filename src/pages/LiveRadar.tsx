@@ -817,25 +817,45 @@ export default function LiveRadar() {
                   </div>
 
                   {/* Dasar Kelayakan Masuk Radar Viral (Virality Reason) */}
-                  {item.viralityReason && (
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      fontSize: '9px',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 700,
-                      color: item.viralityReason.includes('🚨') ? '#FCA5A5' : item.viralityReason.includes('🔥') ? '#FCD34D' : '#93C5FD',
-                      background: item.viralityReason.includes('🚨') ? 'rgba(239, 68, 68, 0.14)' : item.viralityReason.includes('🔥') ? 'rgba(245, 158, 11, 0.14)' : 'rgba(59, 130, 246, 0.14)',
-                      border: `1px solid ${item.viralityReason.includes('🚨') ? 'rgba(239, 68, 68, 0.35)' : item.viralityReason.includes('🔥') ? 'rgba(245, 158, 11, 0.35)' : 'rgba(59, 130, 246, 0.35)'}`,
-                      padding: '2px 7px',
-                      borderRadius: '3px',
-                      marginBottom: '8px',
-                      letterSpacing: '0.3px'
-                    }}>
-                      <span>{item.viralityReason}</span>
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {item.viralityReason && (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        fontSize: '9px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 700,
+                        color: item.viralityReason.includes('🚨') ? '#FCA5A5' : item.viralityReason.includes('🔥') ? '#FCD34D' : '#93C5FD',
+                        background: item.viralityReason.includes('🚨') ? 'rgba(239, 68, 68, 0.14)' : item.viralityReason.includes('🔥') ? 'rgba(245, 158, 11, 0.14)' : 'rgba(59, 130, 246, 0.14)',
+                        border: `1px solid ${item.viralityReason.includes('🚨') ? 'rgba(239, 68, 68, 0.35)' : item.viralityReason.includes('🔥') ? 'rgba(245, 158, 11, 0.35)' : 'rgba(59, 130, 246, 0.35)'}`,
+                        padding: '2px 7px',
+                        borderRadius: '3px',
+                        letterSpacing: '0.3px'
+                      }}>
+                        <span>{item.viralityReason}</span>
+                      </div>
+                    )}
+
+                    {item.isBreakingRecent && (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '9px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 800,
+                        color: '#EF4444',
+                        background: 'rgba(239, 68, 68, 0.2)',
+                        border: '1px solid #EF4444',
+                        padding: '2px 6px',
+                        borderRadius: '3px'
+                      }}>
+                        <Flame size={10} />
+                        <span>BREAKING HARI INI (&lt;6 JAM)</span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Naskah / Klaim Isu Viral */}
                   <div style={{

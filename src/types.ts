@@ -102,6 +102,7 @@ export interface DebunkKnowledgeEntry {
   triageStatus?: 'UNVERIFIED' | 'HOAKS' | 'FAKTA' | 'NETRAL'
   threatScore?: number
   detectedAt?: string
+  isBreakingRecent?: boolean
 }
 
 export interface InstitutionalLogicAnomaly {

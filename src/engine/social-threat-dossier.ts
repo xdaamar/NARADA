@@ -21,6 +21,7 @@ import {
   type LiveHarvestResult,
   type HarvestedNewsVector
 } from './ingest/live-osint-harvester'
+import { formatMilitaryDateTime } from './ingest/rss-parser'
 
 export type CommentTriageCategory = 'ORGANIK' | 'RAWAN_BUZZER' | 'BOT_COPYPASTA'
 
@@ -143,7 +144,7 @@ export function generateSocialThreatDossier(
   }
 
   const platformPreviews: PlatformThreatPreview[] = [
-    // 1. YouTube Video Vektor (Bisa Berupa Video Asli Hasil Panen)
+    // 1. YouTube Video Vektor (Liputan Nyata Hasil Panen Lapangan)
     {
       platform: 'YOUTUBE',
       platformLabel: ytVideo ? 'YouTube Video (Liputan Nyata)' : 'YouTube Stream & Reaksi Publik',
@@ -153,38 +154,38 @@ export function generateSocialThreatDossier(
       accountMeta: ytVideo ? `${ytVideo.views} • Diunggah ${ytVideo.published}` : 'Siaran Publik • Verifikasi Terbuka',
       avatarColor: '#FF0000',
       captionText: ytVideo
-        ? `🔴 LIPUTAN LAPANGAN: "${ytVideo.title}". Simak diskusi warganet dan tanggapan publik di kolom komentar video ini.`
+        ? `🔴 LIPUTAN LAPANGAN: "${ytVideo.title}". Disiarkan oleh kanal ${ytVideo.channel} (${ytVideo.published}). Simak diskusi warganet dan tanggapan publik di kolom komentar video ini.`
         : `Simak tayangan video dan penelusuran fakta terkini mengenai "${claim}". Pantau reaksi publik di kanal video YouTube.`,
       hashtags: [`#KawalFakta`, `#${focusedKeywords.split(' ')[0] || 'Isu'}`, `#BeritaTerkini`],
       metrics: {
         viewsOrPlays: ytVideo ? ytVideo.views : viewsEstimate,
-        likesOrFavs: '8.9K',
-        sharesOrForwards: sharesEstimate,
-        commentsCount: '1.4K'
+        likesOrFavs: ytVideo ? 'Kanal Terverifikasi' : 'Liputan Resmi',
+        sharesOrForwards: ytVideo ? ytVideo.published : 'Terkini',
+        commentsCount: `${harvestedData?.comments?.length || 20} Komentar Terekstraksi`
       },
       directSearchUrl: ytVideo ? ytVideo.url : socialLinks.youtubeDirect,
-      backupDorkUrl: socialLinks.googleDork,
-      mediaBadge: ytVideo ? 'VIDEO VERIFIKASI (YOUTUBE)' : 'PENCARIAN VIDEO',
+      backupDorkUrl: socialLinks.youtubeDirect,
+      mediaBadge: ytVideo?.isFreshRecent ? 'LIPUTAN BARU (YOUTUBE)' : 'VIDEO TERVERIFIKASI',
       thumbnailUrl: ytVideo?.thumbnailUrl,
       isLiveHarvested: Boolean(ytVideo)
     },
 
-    // 2. X (Twitter Discussion) dengan Dual Gateway
+    // 2. X (Twitter Discussion) dengan Dual Gateway & Kueri Entitas Murni
     {
       platform: 'TWITTER',
       platformLabel: 'X (Twitter Thread & Cuitan)',
       accentColor: '#1DA1F2',
       authorHandle: `@diskusi_${focusedKeywords.split(' ')[0]?.toLowerCase() || 'rakyat'}`,
-      authorDisplayName: 'Diskusi Warganet X',
-      accountMeta: 'Trending Tagar ID • Dinamika Opini',
+      authorDisplayName: 'Diskusi Linimasa X (Twitter)',
+      accountMeta: 'Trending Tagar ID • Dinamika Opini Publik',
       avatarColor: '#1DA1F2',
-      captionText: `🚨 PANTAUAN OPINI: Diskusi hangat seputar "${focusedKeywords}". Perhatikan pola pembentukan opini, cuitan pro/kontra, dan indikasi amplifikasi narasi di linimasa.`,
+      captionText: `🚨 PANTAUAN OPINI: Diskusi hangat seputar topik "${focusedKeywords}". Perhatikan pembentukan opini, cuitan pro/kontra, dan indikasi amplifikasi narasi di linimasa.`,
       hashtags: [`#${focusedKeywords.replace(/\s+/g, '')}`, `#KawalIsu`, `#OpiniNetizen`],
       metrics: {
-        viewsOrPlays: viewsEstimate,
-        likesOrFavs: '12.4K',
-        sharesOrForwards: sharesEstimate,
-        commentsCount: '3.1K'
+        viewsOrPlays: `Kueri Entitas: "${focusedKeywords}"`,
+        likesOrFavs: 'Filter: 24 Jam Terakhir',
+        sharesOrForwards: 'Status: Live Query',
+        commentsCount: 'Linimasa Aktif'
       },
       directSearchUrl: socialLinks.twitterDirect,
       backupDorkUrl: socialLinks.twitterDork,
@@ -192,7 +193,7 @@ export function generateSocialThreatDossier(
       mediaBadge: 'THREAT VECTOR (X)'
     },
 
-    // 3. TikTok (Video Pendek & Sound Viral) dengan Focused Keyword
+    // 3. TikTok (Video Pendek FYP) dengan Focused Keyword & Google Dork 7 Hari
     {
       platform: 'TIKTOK',
       platformLabel: 'TikTok Video (VT Pendek)',
@@ -201,13 +202,13 @@ export function generateSocialThreatDossier(
       authorDisplayName: 'Warganet FYP Indonesia',
       accountMeta: 'Video Pendek • Algoritma FYP',
       avatarColor: '#00F2FE',
-      captionText: `Simak sorotan video pendek yang beredar di TikTok mengenai "${focusedKeywords}". Selalu bandingkan isi video dengan rujukan resmi otoritas sebelum menyimpulkan.`,
+      captionText: `Sorotan video pendek yang beredar di TikTok seputar entitas "${focusedKeywords}". Selalu bandingkan isi video dengan rujukan resmi otoritas sebelum menyimpulkan.`,
       hashtags: [`#fyp`, `#beritatiktok`, `#${focusedKeywords.split(' ')[0]?.toLowerCase() || 'viral'}`],
       metrics: {
-        viewsOrPlays: viewsEstimate,
-        likesOrFavs: '18.1K',
-        sharesOrForwards: '7.5K',
-        commentsCount: '2.8K'
+        viewsOrPlays: `Kueri Entitas: "${focusedKeywords}"`,
+        likesOrFavs: 'Filter: 7 Hari Terakhir',
+        sharesOrForwards: 'Algoritma: FYP',
+        commentsCount: 'Siap Ditelusuri'
       },
       directSearchUrl: socialLinks.tiktokDirect,
       backupDorkUrl: socialLinks.tiktokDork,
@@ -215,28 +216,28 @@ export function generateSocialThreatDossier(
       mediaBadge: 'VIDEO VERTIKAL (TIKTOK)'
     },
 
-    // 4. Portal Berita / WhatsApp Laporan
+    // 4. Portal Berita / Canonical News Report
     {
       platform: 'NEWS',
-      platformLabel: entry.sourceUrl?.includes('turnbackhoax') ? 'Mafindo Fact-Check Archive' : 'Portal Berita Terverifikasi',
+      platformLabel: relatedNews[0]?.publisher || (entry.sourceUrl?.includes('turnbackhoax') ? 'Mafindo Fact-Check Archive' : 'Portal Berita Terverifikasi'),
       accentColor: '#10B981',
-      authorHandle: entry.officialSource || 'Rujukan Resmi Otoritas',
+      authorHandle: relatedNews[0]?.publisher || entry.officialSource || 'Rujukan Resmi Otoritas',
       authorDisplayName: entry.originalPlatform || 'Portal Jurnalistik Nasional',
-      accountMeta: 'Arsip Jurnalisme & Cek Fakta',
+      accountMeta: 'Arsip Jurnalisme & Dokumen Resmi',
       avatarColor: '#10B981',
       captionText: relatedNews[0]
-        ? `Laporan terkait: "${relatedNews[0].title}". Diterbitkan oleh ${relatedNews[0].publisher}. Gunakan artikel ini sebagai rujukan verifikasi silang.`
+        ? `Laporan jurnalistik pers: "${relatedNews[0].title}". Diterbitkan oleh ${relatedNews[0].publisher}. Gunakan artikel ini sebagai rujukan verifikasi silang.`
         : `Informasi dan penelusuran fakta terdaftar untuk klaim: "${claim}". Hubungi pihak berwenang untuk konfirmasi rujukan A1.`,
       hashtags: ['#CekFakta', '#VerifikasiResmi', '#JurnalismeData'],
       metrics: {
-        viewsOrPlays: 'Otoritas Tinggi',
-        likesOrFavs: 'Valid',
-        sharesOrForwards: 'Rujukan A1',
-        commentsCount: 'Terbuka'
+        viewsOrPlays: `Penerbit: ${relatedNews[0]?.publisher || 'Pers Nasional'}`,
+        likesOrFavs: 'Integritas: Terverifikasi',
+        sharesOrForwards: `Waktu: ${relatedNews[0]?.publishedDate ? formatMilitaryDateTime(relatedNews[0].publishedDate) : 'Hari ini'}`,
+        commentsCount: 'Liputan Pers A1'
       },
       directSearchUrl: relatedNews[0]?.url || entry.sourceUrl || socialLinks.googleDork,
       backupDorkUrl: socialLinks.googleDork,
-      specialTag: '🛡️ Rujukan Otoritatif Terverifikasi',
+      specialTag: '🛡️ Rujukan Jurnalistik Terverifikasi',
       mediaBadge: 'CANONICAL REPORT'
     }
   ]

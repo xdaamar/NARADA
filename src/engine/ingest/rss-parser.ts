@@ -189,7 +189,10 @@ export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): bo
     'kunjungan kerja', 'terima perwakilan', 'audiensi', 'lepas sambut', 'sertijab', 'ziarah',
     'futsal', 'sepak bola', 'kejuaraan', 'turnamen', 'gowes', 'senam bersama', 'lomba',
     'panen raya', 'tanam jagung', 'tanam padi', 'bibit', 'buka jalan 25 pemuda', 'baksos donor darah',
-    'peringatan hut', 'upacara bendera 17', 'apel pagi', 'berbaur dalam latihan'
+    'peringatan hut', 'upacara bendera 17', 'apel pagi', 'berbaur dalam latihan',
+    'serie a', 'la liga', 'premier league', 'liga inggris', 'liga champion', 'acl two',
+    'kitchee', 'frosinone', 'lecce', 'bellingham', 'kroos', 'el clasico', 'chelsea', 'liverpool',
+    'prediksi skor', 'skor dan lineup', 'rumah hantu'
   ]
 
   for (const b of ceremonialBlacklist) {
@@ -198,14 +201,15 @@ export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): bo
     }
   }
 
-  // 2. WHITELIST TRIGGERS: Harus memiliki indikasi hoaks, kontroversi, polemik, atau penggiringan opini
+  // 2. WHITELIST TRIGGERS: Harus memiliki indikasi hoaks, kontroversi, polemik, aksi massa, atau penggiringan opini
   const threatTriggers = [
     'hoaks', 'hoax', 'disinformasi', 'palsu', 'bohong', 'fitnah', 'manipulasi',
     'viral', 'heboh', 'geger', 'kontroversi', 'polemik', 'debat', 'tuding', 'tuduhan',
-    'desak', 'tuntut', 'kecam', 'protes', 'demo', 'tolak', 'ricuh', 'bentrok',
-    'gugur', 'serangan', 'ditembak', 'penyanderaan', 'korban', 'opm', 'kkb',
-    'krisis', 'batal', 'dicopot', 'pemakzulan', 'mundur', 'korupsi', 'skandal',
-    'bocoran', 'rahasia', 'sabotase', 'perang terbuka', 'ijazah', 'mbg', 'bansos'
+    'desak', 'tuntut', 'kecam', 'protes', 'demo', 'unjuk rasa', 'mahasiswa', 'massa',
+    'tolak', 'ricuh', 'bentrok', 'kericuhan', 'bakar', 'tangkap', 'gugur', 'serangan',
+    'ditembak', 'penyanderaan', 'korban', 'opm', 'kkb', 'krisis', 'batal', 'dicopot',
+    'pemakzulan', 'mundur', 'korupsi', 'skandal', 'bocoran', 'rahasia', 'sabotase',
+    'perang terbuka', 'ijazah', 'mbg', 'bansos', 'ambalat', 'kapal perang'
   ]
 
   for (const t of threatTriggers) {
@@ -446,6 +450,11 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
       const publishedDate = formatMilitaryDateTime(rawPubDate)
       const auditMeta = createViralAuditMeta('+30K', 15 + idx * 5, isHoaxInTitle ? '+210%/jam' : '+120%/jam')
 
+      // Deteksi kehangatan waktu terbit (< 6 jam)
+      const pubTimestamp = rawPubDate ? new Date(rawPubDate).getTime() : Date.now()
+      const hoursAgo = !isNaN(pubTimestamp) ? (Date.now() - pubTimestamp) / (1000 * 60 * 60) : 2
+      const isBreakingRecent = hoursAgo >= 0 && hoursAgo <= 6
+
       entries.push({
         id: `GNEWS-${idx + 1}-${Date.now().toString().slice(-4)}`,
         claim: cleanClaim,
@@ -473,8 +482,11 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
         tacticalResponseMilitary: `Pantau pergerakan narasi "${cleanClaim}" yang dipublikasikan oleh ${sourceName}. Waspadai upaya framing asimetris.`,
         isLive: true,
         publishedDate,
+        isBreakingRecent,
         cognitiveScore: isHoaxInTitle ? 85 : isOfficial ? 30 : 70,
-        viralityReason: isHoaxInTitle 
+        viralityReason: isBreakingRecent
+          ? '🔥 BREAKING NEWS LAPANGAN (<6 JAM)'
+          : isHoaxInTitle 
           ? '🚨 ADUAN MASIF: Terindikasi Hoaks Media Daring'
           : isOfficial 
           ? '📢 KLARIFIKASI RESMI: Pernyataan Otoritas Kedinasan'
