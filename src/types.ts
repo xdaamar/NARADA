@@ -103,6 +103,15 @@ export interface DebunkKnowledgeEntry {
   threatScore?: number
   detectedAt?: string
   isBreakingRecent?: boolean
+  claimAssessment?: any
+  requiresAnalystReview?: boolean
+  factCheckReference?: {
+    referenceId: string
+    referenceTitle: string
+    referenceUrl: string
+    verdict: string
+    explanation: string
+  }
 }
 
 export interface InstitutionalLogicAnomaly {

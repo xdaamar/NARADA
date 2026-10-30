@@ -1,4 +1,6 @@
-import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../../types'
+import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../../types.ts'
+import { parseSourceDate, formatMilitaryDate, evaluateFreshness } from '../radar/freshness-engine.ts'
+import type { SearchTrendSignal } from '../radar/radar-types.ts'
 
 /**
  * Membersihkan entitas HTML, XML CDATA, dan tag markup dari teks mentah
@@ -221,38 +223,22 @@ export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): bo
   return false
 }
 
-const INDO_MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-
 /**
  * Memformat tanggal dan jam unggah/terbit presisi militer (e.g. "27 Okt 2026, 14:22 WIB")
+ * Menggunakan parseSourceDate deterministik tanpa fallback ke waktu saat ini.
  */
-export function formatMilitaryDateTime(rawDateStr?: string): string {
-  if (rawDateStr && /\d{1,2}\s+[A-Za-z]{3}\s+\d{4},\s+\d{2}:\d{2}\s+WIB/.test(rawDateStr)) {
+export function formatMilitaryDateTime(rawDateStr?: string | null): string {
+  if (!rawDateStr) return 'Waktu Publikasi Tidak Tersedia'
+  if (/\d{1,2}\s+[A-Za-z]{3}\s+\d{4},\s+\d{2}:\d{2}\s+WIB/.test(rawDateStr)) {
     return rawDateStr
   }
 
-  let d: Date
-  if (!rawDateStr) {
-    d = new Date()
-  } else {
-    d = new Date(rawDateStr)
-    if (isNaN(d.getTime())) {
-      const match = rawDateStr.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/)
-      if (match) {
-        d = new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10), 14, 25)
-      } else {
-        d = new Date()
-      }
-    }
+  const { timestamp, status } = parseSourceDate(rawDateStr)
+  if (status !== 'VALID' || timestamp === null) {
+    return 'Waktu Publikasi Tidak Tersedia'
   }
 
-  const day = String(d.getDate()).padStart(2, '0')
-  const month = INDO_MONTH_NAMES[d.getMonth()] || 'Okt'
-  const year = d.getFullYear()
-  const hours = String(d.getHours()).padStart(2, '0')
-  const mins = String(d.getMinutes()).padStart(2, '0')
-
-  return `${day} ${month} ${year}, ${hours}:${mins} WIB`
+  return formatMilitaryDate(timestamp)
 }
 
 /**
@@ -275,7 +261,7 @@ export function sanitizePlatformName(rawSource?: string, platformHint?: string):
   }
 
   // Hapus karakter kurung pembuka/penutup yang tidak rapi
-  cleaned = cleaned.replace(/^[\(\[\{"'\s]+|[\)\]\}"'\s]+$/g, '').trim()
+  cleaned = cleaned.replace(/^[({\["'\s]+|[)}\]"'\s]+$/g, '').trim()
 
   if (platformHint === 'Google Trends') {
     if (cleaned.toLowerCase().includes('google trends')) {
@@ -288,41 +274,23 @@ export function sanitizePlatformName(rawSource?: string, platformHint?: string):
 }
 
 /**
- * Helper pembuat metrik viralitas dan audit timestamp penangkapan vs verifikasi
+ * Helper metadata audit penangkapan vs verifikasi nyata (Zero Fake Data)
+ * Catatan: Metrik engagement sosial fiktif (views/shares acak) telah dihapus 100%.
  */
-export function createViralAuditMeta(trafficStr?: string, minutesAgo = 18, baseVelocity = '+140%/jam') {
+export function createViralAuditMeta(trafficStr?: string, minutesAgo = 18, _baseVelocity = '+140%/jam') {
   const now = Date.now()
   const interceptTime = new Date(now - minutesAgo * 60 * 1000)
-  const verifyTime = new Date(now - Math.max(1, Math.round(minutesAgo * 0.15)) * 60 * 1000)
 
   const formatWib = (d: Date) => 
     `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} WIB`
 
   const interceptedAt = formatWib(interceptTime)
-  const verifiedAt = formatWib(verifyTime)
-
-  let views = '+50K'
-  let shares = '2.8K'
-  let velocityRate = baseVelocity
-  const timeElapsed = minutesAgo >= 60 ? `${Math.round(minutesAgo / 60)} jam lalu` : `${minutesAgo} mnt lalu`
-
-  if (trafficStr) {
-    views = trafficStr.includes('+') ? trafficStr : `+${trafficStr}`
-    const num = parseInt(trafficStr.replace(/[^0-9]/g, ''), 10) || 50
-    shares = `${(num * 0.075).toFixed(1)}K`
-    velocityRate = `+${Math.min(350, Math.round(num * 2.8))}%/jam`
-  }
 
   return {
     interceptedAt,
-    verifiedAt,
-    engagement: {
-      views,
-      shares,
-      velocityRate,
-      timeElapsed
-    },
-    viralVelocity: `${views} tayangan (${velocityRate})`
+    verifiedAt: undefined,
+    engagement: undefined, // Tidak mengarang views atau shares
+    viralVelocity: trafficStr ? `${trafficStr} penelusuran (Google Trends)` : undefined
   }
 }
 
@@ -367,11 +335,13 @@ export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
       const cluster = classifyCluster(cleanTitle, rawDesc)
       const keywords = extractKeywords(claim)
 
-      // Format tanggal dan jam unggah presisi
+      // Format tanggal dan jam unggah presisi menggunakan Freshness Engine
       const dateMatch = rawDesc.match(/\b(202\d[-/]\d{2}[-/]\d{2})\b/)
-      const publishedDate = formatMilitaryDateTime(rawPubDate || (dateMatch ? dateMatch[1] : undefined))
-
-      const auditMeta = createViralAuditMeta('+45K', 35 + idx * 4, '+185%/jam')
+      const rawDateToParse = rawPubDate || (dateMatch ? dateMatch[1] : undefined)
+      const { timestamp: pubTimestamp } = parseSourceDate(rawDateToParse)
+      const publishedDate = formatMilitaryDate(pubTimestamp)
+      const freshness = evaluateFreshness(pubTimestamp)
+      const isBreakingRecent = freshness.status === 'BREAKING'
 
       entries.push({
         id: `TBH-CANONICAL-${idx + 1}-${Date.now().toString().slice(-4)}`,
@@ -385,17 +355,18 @@ export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
         sourceUrl: cleanLink, // Rujukan verifikasi resmi Mafindo
         originalPlatform: 'Media Sosial & Pesan Berantai (X / TikTok / WA)',
         originalSourceUrl: cleanLink, // Arsip tangkapan layar & bukti di Mafindo
-        interceptedAt: auditMeta.interceptedAt,
-        verifiedAt: auditMeta.verifiedAt,
-        viralVelocity: auditMeta.viralVelocity,
-        engagement: auditMeta.engagement,
+        interceptedAt: formatMilitaryDate(Date.now()),
+        verifiedAt: formatMilitaryDate(pubTimestamp),
         keywords,
         tacticalResponseCivilian: `Informasi mengenai "${claim}" telah dikonfirmasi sebagai ${verdict}. Rujukan resmi dari ${officialSource}: ${clarification}`,
         tacticalResponseMilitary: `Atensi Teritorial: Narasi "${claim}" terkonfirmasi ${verdict}. Segera aktifkan pengawasan opini publik di wilayah binaan.`,
         isLive: true,
         publishedDate,
+        isBreakingRecent,
         cognitiveScore: 85,
-        viralityReason: '🚨 LAPORAN MAFINDO: Isu Disinformasi Viral Medsos'
+        viralityReason: isBreakingRecent 
+          ? '🔥 KLARIFIKASI HOAKS TERKINI (<3 JAM)'
+          : '🚨 LAPORAN MAFINDO: Isu Disinformasi Terverifikasi'
       })
     } catch {
       // Lewati item yang korup
@@ -447,13 +418,10 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
       const isHoaxInTitle = cleanTitle.toLowerCase().includes('hoaks') || cleanTitle.toLowerCase().includes('hoax')
       const verdict: DebunkKnowledgeEntry['verdict'] = isHoaxInTitle ? 'HOAKS' : isOfficial ? 'FAKTA' : 'UNVERIFIED'
 
-      const publishedDate = formatMilitaryDateTime(rawPubDate)
-      const auditMeta = createViralAuditMeta('+30K', 15 + idx * 5, isHoaxInTitle ? '+210%/jam' : '+120%/jam')
-
-      // Deteksi kehangatan waktu terbit (< 6 jam)
-      const pubTimestamp = rawPubDate ? new Date(rawPubDate).getTime() : Date.now()
-      const hoursAgo = !isNaN(pubTimestamp) ? (Date.now() - pubTimestamp) / (1000 * 60 * 60) : 2
-      const isBreakingRecent = hoursAgo >= 0 && hoursAgo <= 6
+      const { timestamp: pubTimestamp } = parseSourceDate(rawPubDate)
+      const publishedDate = formatMilitaryDate(pubTimestamp)
+      const freshness = evaluateFreshness(pubTimestamp)
+      const isBreakingRecent = freshness.status === 'BREAKING'
 
       entries.push({
         id: `GNEWS-${idx + 1}-${Date.now().toString().slice(-4)}`,
@@ -471,10 +439,7 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
         sourceUrl: cleanLink, // CANONICAL REDIRECT LANGSUNG KE ARTIKEL PERS!
         originalPlatform: sourceName,
         originalSourceUrl: cleanLink, // Tempat artikel pertama kali dipantau
-        interceptedAt: auditMeta.interceptedAt,
-        verifiedAt: auditMeta.verifiedAt,
-        viralVelocity: auditMeta.viralVelocity,
-        engagement: auditMeta.engagement,
+        interceptedAt: formatMilitaryDate(Date.now()),
         keywords,
         tacticalResponseCivilian: isOfficial
           ? `Informasi resmi dari ${sourceName} mengenai: "${cleanClaim}". Gunakan rujukan resmi ini sebagai acuan.`
@@ -485,7 +450,7 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
         isBreakingRecent,
         cognitiveScore: isHoaxInTitle ? 85 : isOfficial ? 30 : 70,
         viralityReason: isBreakingRecent
-          ? '🔥 BREAKING NEWS LAPANGAN (<6 JAM)'
+          ? '🔥 BREAKING NEWS LAPANGAN (<3 JAM)'
           : isHoaxInTitle 
           ? '🚨 ADUAN MASIF: Terindikasi Hoaks Media Daring'
           : isOfficial 
@@ -501,8 +466,72 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
 }
 
 /**
- * 3. Parser Live RSS Feed Google Trends Indonesia
- * Menghasilkan lonjakan narasi pencarian viral masyarakat (Left-of-Bang Early Warning)
+ * 3. Parser Live RSS Feed Google Trends Indonesia sebagai SearchTrendSignal (Sprint 1B)
+ * Menghasilkan sinyal minat penelusuran publik agregat (Left-of-Bang Early Warning),
+ * BUKAN entitas artikel berita, BUKAN bukti klaim, dan BUKAN metrik media sosial.
+ */
+export function parseGoogleTrendsRssAsSignals(xmlText: string): SearchTrendSignal[] {
+  if (!xmlText || !xmlText.includes('<item>')) return []
+
+  const itemsRaw = xmlText.split('<item>').slice(1)
+  const signals: SearchTrendSignal[] = []
+  const now = Date.now()
+
+  itemsRaw.forEach((itemBlock, idx) => {
+    try {
+      const rawTrendTitle = (itemBlock.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1] || ''
+      const traffic = (itemBlock.match(/<ht:approx_traffic>([\s\S]*?)<\/ht:approx_traffic>/) || [])[1] || ''
+      const rawNewsUrl = (itemBlock.match(/<ht:news_item_url>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_url>/) || [])[1] || ''
+      const rawNewsSource = (itemBlock.match(/<ht:news_item_source>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_source>/) || [])[1] || ''
+      const rawPubDate = (itemBlock.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || ''
+
+      const trendTitle = cleanHtmlText(rawTrendTitle)
+      if (!trendTitle) return
+
+      const cleanPlatform = sanitizePlatformName(rawNewsSource, 'Google Trends')
+      const canonicalUrl = rawNewsUrl ? cleanHtmlText(rawNewsUrl) : 'https://trends.google.com/trending?geo=ID'
+
+      let startedAt: string | undefined = undefined
+      let timestampStatus: 'VALID' | 'UNKNOWN_DATE' | 'INVALID_TIMESTAMP' = 'UNKNOWN_DATE'
+
+      if (rawPubDate && rawPubDate.trim()) {
+        const parsed = parseSourceDate(rawPubDate)
+        if (parsed.status === 'VALID' && parsed.timestamp !== null) {
+          startedAt = new Date(parsed.timestamp).toISOString()
+          timestampStatus = 'VALID'
+        } else {
+          timestampStatus = parsed.status === 'INVALID' ? 'INVALID_TIMESTAMP' : 'UNKNOWN_DATE'
+        }
+      }
+
+      signals.push({
+        id: `SIG-GTREND-${idx + 1}-${now.toString().slice(-4)}`,
+        sourceId: 'src-gtrends-id',
+        query: trendTitle,
+        searchVolumeBand: traffic || undefined,
+        startedAt,
+        observedAt: now,
+        retrievedAt: now,
+        trendStatus: 'ACTIVE',
+        sourceUrl: canonicalUrl,
+        sourceLabel: cleanPlatform,
+        timestampStatus,
+        limitations: [
+          'Agregat volume penelusuran Google Search saja',
+          'Bukan volume percakapan media sosial',
+          'Bukan bukti kebenaran atau kepalsuan klaim narasi'
+        ]
+      })
+    } catch {
+      // Lewati item yang korup
+    }
+  })
+
+  return signals
+}
+
+/**
+ * 3b. Parser Legacy Google Trends untuk kompatibilitas mundur
  */
 export function parseGoogleTrendsRss(xmlText: string): DebunkKnowledgeEntry[] {
   if (!xmlText || !xmlText.includes('<item>')) return []
@@ -517,6 +546,7 @@ export function parseGoogleTrendsRss(xmlText: string): DebunkKnowledgeEntry[] {
       const rawNewsTitle = (itemBlock.match(/<ht:news_item_title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_title>/) || [])[1] || ''
       const rawNewsUrl = (itemBlock.match(/<ht:news_item_url>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_url>/) || [])[1] || ''
       const rawNewsSource = (itemBlock.match(/<ht:news_item_source>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_source>/) || [])[1] || ''
+      const rawPubDate = (itemBlock.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || ''
 
       const trendTitle = cleanHtmlText(rawTrendTitle)
       if (!trendTitle) return
@@ -525,12 +555,18 @@ export function parseGoogleTrendsRss(xmlText: string): DebunkKnowledgeEntry[] {
       const cleanPlatform = sanitizePlatformName(rawNewsSource, 'Google Trends')
       const canonicalUrl = rawNewsUrl ? cleanHtmlText(rawNewsUrl) : 'https://trends.google.com/trending?geo=ID'
 
-      const claim = newsTitle || `Lonjakan Pencarian Viral Publik: "${trendTitle}"`
+      const claim = newsTitle || `Lonjakan Minat Penelusuran Google: "${trendTitle}"`
       const cluster = classifyCluster(trendTitle, newsTitle)
       const keywords = [trendTitle.toLowerCase(), ...extractKeywords(claim)]
 
-      const auditMeta = createViralAuditMeta(traffic, 20 + idx * 8, '+240%/jam')
-      const publishedDate = formatMilitaryDateTime()
+      // Gunakan tanggal publikasi asli jika tersedia, jika tidak tandai tidak tersedia (tanpa Date.now() palsu)
+      let publishedDate = 'Waktu Publikasi Tidak Tersedia'
+      if (rawPubDate && rawPubDate.trim()) {
+        const parsed = parseSourceDate(rawPubDate)
+        if (parsed.status === 'VALID' && parsed.timestamp !== null) {
+          publishedDate = formatMilitaryDate(parsed.timestamp)
+        }
+      }
 
       entries.push({
         id: `GTREND-${idx + 1}-${Date.now().toString().slice(-4)}`,
@@ -539,23 +575,21 @@ export function parseGoogleTrendsRss(xmlText: string): DebunkKnowledgeEntry[] {
         cluster,
         verdict: 'UNVERIFIED',
         threatLevel: cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
-        clarification: `Topik "${trendTitle}" mengalami lonjakan pencarian publik (+${traffic} penelusuran). Dilaporkan melalui ${cleanPlatform}. Status narasi masih berkembang di media sosial.`,
+        clarification: `Topik "${trendTitle}" mengalami peningkatan penelusuran publik (${traffic} pencarian Google Indonesia). Sinyal minat pencarian agregat, bukan bukti viralitas media sosial.`,
         officialSource: cleanPlatform,
-        sourceUrl: canonicalUrl, // Rujukan verifikasi berita asli
+        sourceUrl: canonicalUrl,
         originalPlatform: cleanPlatform,
         originalSourceUrl: canonicalUrl,
-        interceptedAt: auditMeta.interceptedAt,
-        verifiedAt: auditMeta.verifiedAt,
-        viralVelocity: `+${traffic} pencarian (${auditMeta.engagement.velocityRate})`,
-        engagement: auditMeta.engagement,
+        interceptedAt: formatMilitaryDate(Date.now()),
+        viralVelocity: `${traffic} penelusuran (Google Search)`,
         keywords,
-        tacticalResponseCivilian: `Topik "${trendTitle}" saat ini sedang viral di internet dengan lonjakan tinggi. Pastikan menyaring informasi sebelum membagikan.`,
-        tacticalResponseMilitary: `Deteksi Sinyal Lemah: Terjadi lonjakan penelusuran masyarakat mengenai "${trendTitle}" (+${traffic}). Antisipasi potensi penggiringan narasi.`,
+        tacticalResponseCivilian: `Topik "${trendTitle}" mengalami peningkatan pencarian di Google. Tetap verifikasi sumber sebelum menyebarkan.`,
+        tacticalResponseMilitary: `Indikator Sinyal Lemah: Terdeteksi tren pencarian Google untuk "${trendTitle}" (${traffic}).`,
         isLive: true,
         publishedDate,
-        trendTraffic: `+${traffic} pencarian`,
-        cognitiveScore: 65,
-        viralityReason: `🔥 TREN VIRAL: +${traffic} Penelusuran Netizen`
+        trendTraffic: `${traffic} penelusuran Google Search`,
+        cognitiveScore: 50,
+        viralityReason: `📊 TREN PENELUSURAN GOOGLE: ${traffic}`
       })
     } catch {
       // Lewati item yang korup

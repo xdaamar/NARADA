@@ -1,18 +1,44 @@
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * NARADA — RADAR ASSESSMENT & TRIAGE ADAPTER
+ * SPRINT 1: EVIDENCE-DRIVEN TRIAGE WITHOUT ARBITRARY THREAT SCORING
+ * PUSSIBERAD TNI AD × CODEPOLITAN (Kartika Cyber Hackathon 2026)
+ * ══════════════════════════════════════════════════════════════════════════
+ * 
+ * Mengintegrasikan:
+ * 1. FreshnessEngine (penilaian waktu deterministik)
+ * 2. RadarAssessment (relevansi konteks & transparansi metadata)
+ * 3. Cross-Matching Cek Fakta dengan pangkalan data arsip MAFINDO
+ * 
+ * Kompatibilitas:
+ * Mempertahankan interface publik untuk consumer existing (LiveRadar.tsx)
+ * dengan meniadakan formula ancaman spekulatif dan virality fiktif.
+ * ══════════════════════════════════════════════════════════════════════════
+ */
+
 import type { DebunkKnowledgeEntry, ThreatLevel } from '../../types.ts'
 import { analyzeSentiment } from '../forensic/sentiment-engine.ts'
+import { evaluateContextRelevance, evaluateMetadataTransparency } from './radar-assessment.ts'
+import { parseSourceDate, evaluateFreshness } from './freshness-engine.ts'
+import { extractSubstantiveTokens, calculateJaccardSimilarity } from './clustering-engine.ts'
+import { evaluateClaimFirewall } from './claim-firewall.ts'
+import type { ClaimMatchCandidate } from './radar-types.ts'
 
 export type EarlyWarningAlertLevel = 'SIAGA_KRITIS' | 'ATENSI_INTELIJEN' | 'MONITORING_RUTIN'
 export type RadarTriageStatus = 'UNVERIFIED' | 'HOAKS' | 'FAKTA' | 'NETRAL'
 
 export interface EarlyWarningScoreResult {
-  threatIndex: number            // 0 - 100: Total Indeks Ancaman Kognitif
-  entitySensitivity: number      // 0 - 100: Skor Sensitivitas Entitas (TNI, Negara, Bencana)
-  agitationScore: number         // 0 - 100: Skor Sentimen Agitasi & Provokasi Bahasa
-  trendVelocityScore: number     // 0 - 100: Skor Kecepatan & Volume Viralitas
+  threatIndex: number            // 0 - 100: Relevansi Konteks Strategis & Prioritas Telaah
+  entitySensitivity: number      // 0 - 100: Kesesuaian Entitas Strategis Pertahanan
+  agitationScore: number         // 0 - 100: Skor Sentimen Agitasi Bahasa (Informasional)
+  trendVelocityScore: number     // 0 - 100: Sinyal Tren Terverifikasi dari Sumber
   alertLevel: EarlyWarningAlertLevel
   triageStatus: RadarTriageStatus
   matchedDebunkId?: string
   strategicAdvice: string
+  reasonCodes?: string[]
+  claimMatchCandidate?: ClaimMatchCandidate
+  requiresAnalystReview?: boolean
 }
 
 export interface TacticalBriefingSummary {
@@ -28,9 +54,7 @@ export interface TacticalBriefingSummary {
 
 /**
  * 1. Evaluasi Sensitivitas Entitas Sasaran (E)
- * Menilai tingkat sensitivitas entitas yang menjadi sasaran narasi.
- * Kedaulatan Militer dan Lembaga Negara hanya mendapat bobot kritis (80-100) jika berkorelasi
- * dengan ancaman, konflik, separatisme, hoaks, atau polemik.
+ * Mengukur keterkaitan topik dengan kedaulatan, lembaga pertahanan, dan institusi negara.
  */
 export function calculateEntitySensitivity(text: string): number {
   const norm = text.toLowerCase()
@@ -53,7 +77,7 @@ export function calculateEntitySensitivity(text: string): number {
     return 100
   }
 
-  // Prioritas Sangat Tinggi (85): Lembaga Hankam/TNI yang Menjadi Sasaran Tudingan / Hoaks / Polemik / Operasi Kedaulatan
+  // Prioritas Sangat Tinggi (85): Lembaga Hankam/TNI yang Menjadi Sasaran Tudingan / Hoaks / Polemik
   const hasMilitaryEntity = norm.includes('tni') || norm.includes('panglima tni') || norm.includes('kasad') || norm.includes('kopassus') || norm.includes('kemhan')
   const hasConflictTrigger = norm.includes('hoaks') || norm.includes('hoax') || norm.includes('viral') || norm.includes('polemik') || 
                              norm.includes('kontroversi') || norm.includes('bentrok') || norm.includes('tuding') || norm.includes('dicopot') || 
@@ -80,7 +104,7 @@ export function calculateEntitySensitivity(text: string): number {
     return 75
   }
 
-  // Prioritas Menengah-Tinggi (50): Kementerian Strategis, Bansos, Pangan, & Kebijakan Sensitif
+  // Prioritas Menengah (50): Kementerian Strategis, Bansos, Pangan, & Kebijakan Sensitif
   if (
     norm.includes('kemensos') ||
     norm.includes('bansos') ||
@@ -96,18 +120,16 @@ export function calculateEntitySensitivity(text: string): number {
     return 50
   }
 
-  // Sebutan militer/instansi dalam kegiatan biasa/kedinasan tanpa konflik (30)
   if (hasMilitaryEntity) {
     return 30
   }
 
-  // Prioritas Standar (20): Isu Publik Umum
   return 20
 }
 
 /**
- * 2. Evaluasi Sentimen Agitasi & Provokasi Bahasa (S)
- * Menggunakan InSet Lexicon dari sentiment-engine.ts
+ * 2. Evaluasi Sentimen Agitasi & Bahasa Provokatif (S)
+ * Sentimen dianalisis sebagai indikator gaya bahasa, BUKAN bukti langsung ancaman.
  */
 export function calculateAgitationSentiment(text: string): number {
   const norm = text.toLowerCase()
@@ -116,13 +138,11 @@ export function calculateAgitationSentiment(text: string): number {
   let baseAgitation = 25
 
   if (sentiment.label === 'PROVOKATIF') {
-    // Semakin negatif skor sentimen, semakin tinggi skor agitasi
     baseAgitation = Math.min(100, Math.round(55 + Math.abs(sentiment.score) * 8))
   } else if (sentiment.label === 'POSITIF') {
     baseAgitation = Math.max(5, Math.round(25 - sentiment.score * 4))
   }
 
-  // Kata pemicu kepanikan sosial tambahan
   const panicWords = [
     'panik', 'darurat', 'bahaya', 'dicopot', 'teror', 'pecat', 'serbu', 
     'bakar', 'bohong', 'palsu', 'penipuan', 'gulingkan', 'kudeta', 'racun',
@@ -140,7 +160,8 @@ export function calculateAgitationSentiment(text: string): number {
 }
 
 /**
- * 3. Evaluasi Kecepatan & Volume Tren Viralitas (T)
+ * 3. Evaluasi Sinyal Tren Publik Terverifikasi (T)
+ * Menggunakan angka volume nyata dari Google Trends (jika ada), bukan perkiraan RSS.
  */
 export function calculateTrendVelocity(trafficStr?: string, isLiveNews?: boolean): number {
   if (!trafficStr && !isLiveNews) return 30
@@ -155,79 +176,147 @@ export function calculateTrendVelocity(trafficStr?: string, isLiveNews?: boolean
   }
 
   if (isLiveNews) {
-    return 60
+    return 50
   }
 
   return 35
 }
 
 /**
- * 4. Komputasi Skor Peringatan Dini Kognitif (Left-of-Bang Scorer)
- * Formula: R = 0.40 * E + 0.35 * S + 0.25 * T
+ * 4. Komputasi Skor Prioritas Penelaahan Radar (Multidimensional Assessor)
+ * Menghitung tingkat urgensi telaah berdasarkan kombinasi Relevansi Konteks,
+ * Kebaruan Waktu (Freshness), dan Keberadaan Klarifikasi Resmi.
  */
 export function computeEarlyWarningScore(
   item: DebunkKnowledgeEntry, 
   knownDebunks: DebunkKnowledgeEntry[] = []
 ): EarlyWarningScoreResult {
-  const fullText = `${item.claim} ${item.clarification} ${item.officialSource}`
+  const fullText = `${item.claim} ${item.clarification || ''} ${item.officialSource || ''}`
   
+  // 1. Evaluasi Komponen Atomik
   const E = calculateEntitySensitivity(fullText)
   const S = calculateAgitationSentiment(fullText)
   const T = calculateTrendVelocity(item.trendTraffic, item.isLive)
 
-  // Indeks Ancaman Kognitif Gabungan (0 - 100)
-  const threatIndex = Math.min(100, Math.round(0.40 * E + 0.35 * S + 0.25 * T))
+  // 2. Evaluasi Multidimensi Resmi
+  const contextRelevance = evaluateContextRelevance(
+    item.claim,
+    item.clarification || '',
+    item.cluster || 'UMUM_NETRAL',
+    item.sourceUrl?.includes('turnbackhoax') ? 'fact_check' : 'rss'
+  )
 
-  // Tentukan Level Siaga
+  const { timestamp: pubTimestamp } = parseSourceDate(item.publishedDate)
+  const freshness = evaluateFreshness(pubTimestamp)
+  const transparency = evaluateMetadataTransparency(
+    item.originalSourceUrl || '',
+    item.sourceUrl || '',
+    item.officialSource || '',
+    pubTimestamp
+  )
+
+  // Skor Prioritas Telaah (0 - 100): Menggabungkan Relevansi Konteks & Kebaruan
+  let effectiveRelevance = Math.max(contextRelevance.score, E)
+  let freshnessWeight = 30
+  if (freshness.status === 'BREAKING') freshnessWeight = 50
+  else if (freshness.status === 'AKTUAL') freshnessWeight = 40
+  else if (freshness.status === 'BERKEMBANG') freshnessWeight = 30
+  else if (item.isLive && freshness.status === 'UNKNOWN_DATE') freshnessWeight = 45 // Fresh live observation
+  else freshnessWeight = 15
+
+  if (T >= 75) {
+    freshnessWeight = Math.min(55, freshnessWeight + 10)
+  }
+
+  // Skala deterministik yang transparan (tanpa membuat klaim ancaman sepihak)
+  const threatIndex = Math.min(100, Math.round(0.60 * effectiveRelevance + 0.40 * freshnessWeight))
+
+  // 3. Menentukan Level Siaga berdasarkan urgensi telaah
   let alertLevel: EarlyWarningAlertLevel = 'MONITORING_RUTIN'
-  if (threatIndex >= 75) {
+  if (threatIndex >= 70 && (E >= 80 || freshness.status === 'BREAKING' || item.verdict === 'HOAKS')) {
     alertLevel = 'SIAGA_KRITIS'
   } else if (threatIndex >= 50) {
     alertLevel = 'ATENSI_INTELIJEN'
   }
 
-  // Cross-Matching Cerdas dengan Pangkalan Data Cek Fakta Resmi
+  // 4. Cross-Matching Cek Fakta dengan Pangkalan Data Resmi (MAFINDO)
+  // Penerapan Claim vs Publication Semantic Firewall (Package 3 - Sprint 1C)
   let matchedDebunkId: string | undefined = undefined
   let triageStatus: RadarTriageStatus = item.verdict as RadarTriageStatus
+  const extraReasonCodes: string[] = []
 
-  // Jika item masih bertatus UNVERIFIED, lakukan pencocokan silang dengan arsip fakta
-  if (item.verdict === 'UNVERIFIED' && knownDebunks.length > 0) {
-    const claimKeywords = item.keywords.filter(k => k.length >= 4)
+  const claimEvaluation = evaluateClaimFirewall(
+    item.claim,
+    (item as any).summary || item.clarification || '',
+    knownDebunks
+  )
+
+  if (claimEvaluation.matchedReference) {
+    matchedDebunkId = claimEvaluation.matchedReference.referenceId
+  }
+
+  // Jika publikasi adalah artikel cek fakta resmi (TurnBackHoax)
+  if (item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA') {
+    triageStatus = 'HOAKS'
+  } else if (item.verdict === 'FAKTA') {
+    triageStatus = 'FAKTA'
+  } else if (claimEvaluation.stance === 'DEBUNKING_HOAX') {
+    // FIREWALL: Artikel membantah/meluruskan hoaks TIDAK BOLEH dicap sebagai HOAKS!
+    triageStatus = 'NETRAL'
+    extraReasonCodes.push('PUBLICATION_DEBUNKS_CLAIM', 'FIREWALL_PROTECTED_NOT_HOAX')
+  } else if (claimEvaluation.stance === 'REPORTING_CIVIL') {
+    // FIREWALL: Berita jurnalistik yang melaporkan peristiwa dilindungi dari cap hoaks otomatis
+    triageStatus = 'NETRAL'
+    extraReasonCodes.push('CIVIL_REPORTING_PRESERVED')
+  } else if (item.verdict === 'UNVERIFIED' && knownDebunks.length > 0) {
+    const itemTokens = extractSubstantiveTokens(item.claim)
     
     for (const known of knownDebunks) {
       if (known.id === item.id) continue
-      
-      const common = known.keywords.filter(k => claimKeywords.includes(k))
-      const matchRatio = common.length / Math.max(1, Math.min(claimKeywords.length, known.keywords.length))
+      if (known.verdict !== 'HOAKS' && known.verdict !== 'DISINFORMASI') continue
 
-      // Jika ada kecocokan kata kunci >= 60% dengan kasus hoaks yang sudah terbukti
-      if (matchRatio >= 0.60 && (known.verdict === 'HOAKS' || known.verdict === 'DISINFORMASI')) {
-        triageStatus = 'HOAKS'
-        matchedDebunkId = known.id
-        break
+      const knownTokens = extractSubstantiveTokens(known.claim)
+      const similarity = calculateJaccardSimilarity(itemTokens, knownTokens)
+
+      const setItem = new Set(itemTokens)
+      const setKnown = new Set(knownTokens)
+      let sharedCount = 0
+      setItem.forEach(t => { if (setKnown.has(t)) sharedCount++ })
+      const minTokens = Math.min(setItem.size, setKnown.size)
+      const overlapRatio = minTokens > 0 ? sharedCount / minTokens : 0
+
+      // Syarat ketat terverifikasi: Jaccard >= 0.45 ATAU overlap klaim substantif >= 0.60 dengan min 4 kata bersama
+      if (similarity >= 0.45 || (sharedCount >= 4 && overlapRatio >= 0.60)) {
+        if (item.cluster === 'PENIPUAN_BANSOS' || (item.keywords && item.keywords.includes('palsu'))) {
+          triageStatus = 'HOAKS'
+          matchedDebunkId = known.id
+          break
+        } else {
+          triageStatus = 'UNVERIFIED'
+          matchedDebunkId = known.id
+          extraReasonCodes.push('CLAIM_MATCH_REVIEW_REQUIRED')
+          break
+        }
       }
     }
   }
 
-  // Jika tetap UNVERIFIED, klasifikasikan berdasarkan entitas dan sentimen
   if (!triageStatus || triageStatus === 'UNVERIFIED') {
-    if (item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA') {
-      triageStatus = 'HOAKS'
-    } else if (item.verdict === 'FAKTA') {
-      triageStatus = 'FAKTA'
-    } else if (S <= 30 && E <= 35) {
+    if (S <= 35 && E <= 40) {
       triageStatus = 'NETRAL'
     } else {
-      triageStatus = 'UNVERIFIED'
+      triageStatus = 'NETRAL' // Default netral jika tidak ada bukti hoaks (Package 5)
     }
   }
 
-  // Rekomendasi Tindakan Taktis Militer
-  let strategicAdvice = 'Situasi terkendali. Lakukan pemantauan rutin pada sentimen publik.'
-  if (alertLevel === 'SIAGA_KRITIS') {
-    strategicAdvice = 'ATENSI DISPENAD: Narasi memiliki potensi eskalasi krisis kognitif tinggi. Siapkan draf rilis klarifikasi teritorial sebelum opini publik terbelah.'
+  // Rekomendasi Alur Tindakan
+  let strategicAdvice = 'Pantauan rutin: Narasi umum terkendali dalam batas wajar.'
+  if (triageStatus === 'HOAKS') {
+    strategicAdvice = 'ATENSI DISPENAD: Disinformasi terverifikasi. Siapkan materi klarifikasi resmi agar persepsi publik tidak terdistorsi.'
+  } else if (alertLevel === 'SIAGA_KRITIS') {
+    strategicAdvice = 'PRIORITAS TELAAH TINGGI: Isu breaking terkini dengan relevansi konteks tinggi. Lakukan pemantauan perkembangan narasi.'
   } else if (alertLevel === 'ATENSI_INTELIJEN') {
-    strategicAdvice = 'ATENSI INTELIJEN TERITORIAL: Pantau penyebaran akun pendengung (buzzer) dan awasi narasi di media sosial binaan.'
+    strategicAdvice = 'ATENSI INFORMASI: Lakukan verifikasi silang terhadap otoritas terkait dan pantau konvergensi media.'
   }
 
   return {
@@ -238,7 +327,15 @@ export function computeEarlyWarningScore(
     alertLevel,
     triageStatus,
     matchedDebunkId,
-    strategicAdvice
+    strategicAdvice,
+    claimMatchCandidate: claimEvaluation,
+    requiresAnalystReview: claimEvaluation.requiresAnalystReview,
+    reasonCodes: [
+      ...contextRelevance.reasonCodes,
+      freshness.reasonCode,
+      ...transparency.reasonCodes,
+      ...extraReasonCodes
+    ]
   }
 }
 
@@ -262,7 +359,16 @@ export function scoreAndTriageRadarEntries(
       verdict: scoreResult.triageStatus,
       threatLevel,
       cognitiveScore: scoreResult.threatIndex,
-      tacticalResponseMilitary: scoreResult.strategicAdvice
+      tacticalResponseMilitary: scoreResult.strategicAdvice,
+      claimAssessment: scoreResult.claimMatchCandidate,
+      requiresAnalystReview: scoreResult.requiresAnalystReview,
+      factCheckReference: scoreResult.claimMatchCandidate?.matchedReference ? {
+        referenceId: scoreResult.claimMatchCandidate.matchedReference.referenceId,
+        referenceTitle: scoreResult.claimMatchCandidate.matchedReference.claimReviewed || scoreResult.claimMatchCandidate.matchedReference.referenceId,
+        referenceUrl: scoreResult.claimMatchCandidate.matchedReference.referenceUrl,
+        verdict: scoreResult.claimMatchCandidate.matchedReference.verdict,
+        explanation: scoreResult.claimMatchCandidate.matchExplanation
+      } : undefined
     }
   })
 }
@@ -289,7 +395,7 @@ export function getTacticalBriefingSummary(entries: DebunkKnowledgeEntry[]): Tac
     }
   })
 
-  // Urutkan headline: ambil 3 isu paling kritis
+  // Urutkan headline berdasarkan urgensi telaah
   const sorted = [...entries].sort((a, b) => (b.cognitiveScore || 0) - (a.cognitiveScore || 0))
   const headlineItems = sorted.slice(0, 3)
 
