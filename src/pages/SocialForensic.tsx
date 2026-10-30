@@ -19,23 +19,30 @@ import {
   Sparkles,
   Trash2,
   Building,
-  MessageSquare
+  MessageSquare,
+  Lock,
+  AlertTriangle,
+  History
 } from 'lucide-react'
 import type { DebunkKnowledgeEntry } from '../types'
 import {
   synthesizeInvestigationDossier,
   parseRawCommentsText,
-  INVESTIGATION_PRESETS,
+  SYNTHETIC_BENCHMARKS,
+  recordClaimAssessment,
+  getClaimAssessments,
   type SocialThreatDossier,
-  type CommentTriageCategory,
-  type InvestigationPreset
+  type PatternCategory,
+  type SyntheticBenchmarkPreset,
+  type ClaimAssessmentStatus,
+  type ClaimAssessmentRecord
 } from '../engine/social-threat-dossier'
 import {
   generateCounterNarratives,
   type CounterNarrativeChannels
 } from '../engine/forensic/counter-narrative-generator'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service'
-import { getCachedRadarItems, updateRadarItemStatus } from '../utils/db-adapter'
+import { getCachedRadarItems } from '../utils/db-adapter'
 
 export default function SocialForensic() {
   const navigate = useNavigate()
@@ -64,37 +71,45 @@ export default function SocialForensic() {
     }
   }, [targetItem])
 
-  // ─── 2. State Evidence Ingestion Console (Option B - Controlled Sandbox) ───
-  const [activeIngestionTab, setActiveIngestionTab] = useState<'CUSTOM' | 'PRESET' | 'RADAR'>('PRESET')
-  const [selectedPresetId, setSelectedPresetId] = useState<string>(INVESTIGATION_PRESETS[0].id)
+  // ─── 2. State Evidence Ingestion Console (Sprint 1D - Package A, C, D) ───
+  const [activeIngestionTab, setActiveIngestionTab] = useState<'PRESET' | 'CUSTOM' | 'RADAR'>('PRESET')
+  const [selectedPresetId, setSelectedPresetId] = useState<string>(SYNTHETIC_BENCHMARKS[0].id)
   const [rawPastedText, setRawPastedText] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState<boolean>(false)
-  const [, setEvidenceSourceMeta] = useState<{
-    sourceName: string
-    sourceKind: 'INPUT_ANALIS' | 'PRESET_TERUJI' | 'RADAR_EARLY_WARNING'
-  }>({
-    sourceName: INVESTIGATION_PRESETS[0].name,
-    sourceKind: 'PRESET_TERUJI'
-  })
 
   // ─── 3. State Dossier Forensik Utama ───
   const [dossier, setDossier] = useState<SocialThreatDossier>(() => {
-    const initialPreset = INVESTIGATION_PRESETS[0]
+    const initialPreset = SYNTHETIC_BENCHMARKS[0]
     return synthesizeInvestigationDossier(
       targetItem || { claim: initialPreset.claimTitle, cluster: initialPreset.category },
-      initialPreset.rawComments,
-      { sourceName: initialPreset.name, sourceKind: 'PRESET_TERUJI' }
+      initialPreset.syntheticRecords,
+      {
+        sourceName: initialPreset.name,
+        sourceKind: 'SYNTHETIC_BENCHMARK',
+        isSimulation: true,
+        watermark: initialPreset.simulationWatermark
+      }
     )
   })
 
-  // Handler: Muat Preset Investigasi
-  const handleLoadPreset = useCallback((preset: InvestigationPreset) => {
+  // ─── 4. State Claim Assessment Panel (Package E - Semantic Separation) ───
+  const [isClaimReviewOpen, setIsClaimReviewOpen] = useState<boolean>(false)
+  const [selectedVerdict, setSelectedVerdict] = useState<ClaimAssessmentStatus>('UNVERIFIED')
+  const [assessmentRationale, setAssessmentRationale] = useState<string>('')
+  const [assessmentSuccessMsg, setAssessmentSuccessMsg] = useState<string | null>(null)
+  const [claimHistory, setClaimHistory] = useState<ClaimAssessmentRecord[]>([])
+
+  // Refresh riwayat assessment klaim saat dossier berubah
+  useEffect(() => {
+    if (dossier.claimId) {
+      setClaimHistory(getClaimAssessments(dossier.claimId))
+    }
+  }, [dossier.claimId])
+
+  // Handler: Muat Preset Benchmark Sintetis (Package A - Simulation Firewall)
+  const handleLoadPreset = useCallback((preset: SyntheticBenchmarkPreset) => {
     setIsProcessing(true)
     setSelectedPresetId(preset.id)
-    setEvidenceSourceMeta({
-      sourceName: preset.name,
-      sourceKind: 'PRESET_TERUJI'
-    })
 
     const newTarget = {
       ...(targetItem || {}),
@@ -106,34 +121,39 @@ export default function SocialForensic() {
     setTimeout(() => {
       const res = synthesizeInvestigationDossier(
         newTarget,
-        preset.rawComments,
-        { sourceName: preset.name, sourceKind: 'PRESET_TERUJI' }
+        preset.syntheticRecords,
+        {
+          sourceName: preset.name,
+          sourceKind: 'SYNTHETIC_BENCHMARK',
+          isSimulation: true,
+          watermark: preset.simulationWatermark
+        }
       )
       setDossier(res)
       setIsProcessing(false)
-    }, 120)
+    }, 100)
   }, [targetItem])
 
-  // Handler: Jalankan Analisis Masukan Teks Custom Analis
+  // Handler: Jalankan Analisis Masukan Teks Operator (Package C & D)
   const handleRunCustomAnalysis = useCallback(() => {
     if (!rawPastedText.trim()) return
     setIsProcessing(true)
 
-    const parsedComments = parseRawCommentsText(rawPastedText)
-    setEvidenceSourceMeta({
-      sourceName: `Masukan Analis (${parsedComments.length} komentar)`,
-      sourceKind: 'INPUT_ANALIS'
-    })
+    const parsedRecords = parseRawCommentsText(rawPastedText)
 
     setTimeout(() => {
       const res = synthesizeInvestigationDossier(
-        targetItem || { claim: 'Bukti Masukan Analis Lapangan', cluster: 'POLITIK_NEGARA' },
-        parsedComments,
-        { sourceName: `Masukan Analis (${parsedComments.length} komentar)`, sourceKind: 'INPUT_ANALIS' }
+        targetItem || { claim: 'Bukti Masukan Operator Lapangan', cluster: 'POLITIK_NEGARA' },
+        parsedRecords,
+        {
+          sourceName: `Masukan Operator (${parsedRecords.length} record)`,
+          sourceKind: 'USER_SUBMITTED',
+          isSimulation: false
+        }
       )
       setDossier(res)
       setIsProcessing(false)
-    }, 140)
+    }, 120)
   }, [rawPastedText, targetItem])
 
   // Handler: Bersihkan Teks Masukan
@@ -141,12 +161,33 @@ export default function SocialForensic() {
     setRawPastedText('')
   }
 
-  // ─── 4. State Filter & Interaktivitas UI ───
-  const [activeCommentFilter, setActiveCommentFilter] = useState<'ALL' | CommentTriageCategory>('ALL')
-  const [selectedClusterPattern, setSelectedClusterPattern] = useState<string | null>(null)
-  const [statusUpdateMessage, setStatusUpdateMessage] = useState<string | null>(null)
+  // Handler: Simpan Penilaian Klaim Spesifik (Package E)
+  const handleSaveClaimAssessment = () => {
+    if (!dossier.claimId) return
 
-  // ─── 5. State Modal Kontranarasi Dispenad ───
+    const record: ClaimAssessmentRecord = {
+      assessmentId: `ASM-${Date.now()}`,
+      claimId: dossier.claimId,
+      claimText: dossier.targetClaim,
+      verdict: selectedVerdict,
+      rationale: assessmentRationale.trim() || 'Penilaian berdasarkan analisis pola kemiripan leksikal dan bukti rujukan.',
+      supportingEvidenceIds: dossier.commentsStream.slice(0, 3).map(c => c.pseudonymId),
+      assessedBy: 'Operator Analis Lokal',
+      assessedAt: new Date().toISOString()
+    }
+
+    recordClaimAssessment(record)
+    setClaimHistory(getClaimAssessments(dossier.claimId))
+    setAssessmentSuccessMsg(`Penilaian klaim "${selectedVerdict}" berhasil dicatat dalam audit trail.`)
+    setTimeout(() => setAssessmentSuccessMsg(null), 3500)
+    setAssessmentRationale('')
+  }
+
+  // ─── 5. State Filter & Interaktivitas UI ───
+  const [activePatternFilter, setActivePatternFilter] = useState<'ALL' | PatternCategory>('ALL')
+  const [selectedClusterPattern, setSelectedClusterPattern] = useState<string | null>(null)
+
+  // ─── 6. State Modal Kontranarasi Dispenad (Package I) ───
   const [isCounterModalOpen, setIsCounterModalOpen] = useState<boolean>(false)
   const [counterChannels, setCounterChannels] = useState<CounterNarrativeChannels | null>(null)
   const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
@@ -158,6 +199,8 @@ export default function SocialForensic() {
       if (e.key === 'Escape') {
         if (isCounterModalOpen) {
           setIsCounterModalOpen(false)
+        } else if (isClaimReviewOpen) {
+          setIsClaimReviewOpen(false)
         } else {
           navigate('/radar')
         }
@@ -165,21 +208,20 @@ export default function SocialForensic() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isCounterModalOpen, navigate])
+  }, [isCounterModalOpen, isClaimReviewOpen, navigate])
 
   // Handler Buka Modal Kontranarasi
   const handleOpenCounterModal = () => {
-    if (!targetItem) return
     const drafts = generateCounterNarratives(
       dossier.targetClaim,
       {
         claim: dossier.targetClaim,
-        clarification: targetItem.clarification || 'Klarifikasi resmi sedang diproses oleh satuan intelijen pertahanan.',
-        officialSource: targetItem.officialSource || 'Pusat Siber & Dinas Penerangan TNI AD',
-        sourceUrl: targetItem.sourceUrl,
+        clarification: targetItem?.clarification || 'Klarifikasi faktual dalam peninjauan resmi satuan penerangan pertahanan.',
+        officialSource: targetItem?.officialSource || 'Pusat Siber & Dinas Penerangan TNI AD',
+        sourceUrl: targetItem?.sourceUrl,
         cluster: dossier.cluster
       },
-      targetItem.originalPlatform || 'MEDIA SOSIAL'
+      targetItem?.originalPlatform || 'MEDIA SOSIAL'
     )
     setCounterChannels(drafts)
     setActiveCounterTab('dispenad')
@@ -209,25 +251,20 @@ export default function SocialForensic() {
       state: {
         prefillClaim: dossier.targetClaim,
         prefillCluster: dossier.cluster,
-        prefillConfidence: dossier.cibCoordinationIndex
+        prefillConfidence: dossier.ncsIndex,
+        isSimulation: dossier.isSimulation,
+        simulationWatermark: dossier.simulationWatermark,
+        evidenceMode: dossier.evidenceMode
       }
     })
-  }
-
-  // Handler Update Status Isu Langsung (Triage Taktis)
-  const handleUpdateTriage = async (newStatus: 'HOAKS' | 'FAKTA') => {
-    if (!targetItem?.id) return
-    await updateRadarItemStatus(targetItem.id, newStatus)
-    setStatusUpdateMessage(`Status isu berhasil diubah menjadi: ${newStatus}`)
-    setTimeout(() => setStatusUpdateMessage(null), 3000)
   }
 
   // Filter Aliran Komentar
   const filteredComments = useMemo(() => {
     let list = dossier.commentsStream
 
-    if (activeCommentFilter !== 'ALL') {
-      list = list.filter(c => c.triageCategory === activeCommentFilter)
+    if (activePatternFilter !== 'ALL') {
+      list = list.filter(c => c.patternCategory === activePatternFilter)
     }
 
     if (selectedClusterPattern) {
@@ -235,7 +272,7 @@ export default function SocialForensic() {
     }
 
     return list
-  }, [dossier.commentsStream, activeCommentFilter, selectedClusterPattern])
+  }, [dossier.commentsStream, activePatternFilter, selectedClusterPattern])
 
   const detectedLineCount = useMemo(() => {
     if (!rawPastedText.trim()) return 0
@@ -251,6 +288,41 @@ export default function SocialForensic() {
       minHeight: '100vh',
       fontFamily: 'var(--font-sans)'
     }}>
+
+      {/* ─── PACKAGE A: SIMULATION FIREWALL WATERMARK BANNER ─── */}
+      {dossier.isSimulation && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.12)',
+          border: '1px solid #DC2626',
+          borderRadius: '4px',
+          padding: '8px 14px',
+          marginBottom: '14px',
+          color: '#FCA5A5',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '11px',
+          fontWeight: 800,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertTriangle size={15} color="#EF4444" />
+            <span>{dossier.simulationWatermark}</span>
+          </div>
+          <span style={{
+            fontSize: '9.5px',
+            background: 'rgba(220, 38, 38, 0.25)',
+            border: '1px solid rgba(220, 38, 38, 0.5)',
+            padding: '2px 8px',
+            borderRadius: '2px',
+            letterSpacing: '0.5px'
+          }}>
+            TERISOLASI DARI RADAR LIVE & PERSISTENSI
+          </span>
+        </div>
+      )}
 
       {/* ─── 1. TOP COMMAND BREADCRUMB BAR ─── */}
       <div style={{
@@ -299,7 +371,7 @@ export default function SocialForensic() {
 
           <span style={{ color: '#2B384E' }}>│</span>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <span style={{
               fontSize: '10px',
               fontFamily: 'var(--font-mono)',
@@ -314,7 +386,34 @@ export default function SocialForensic() {
               gap: '4px'
             }}>
               <Radio size={11} />
-              MEJA BEDAH BUKTI SIBER SOSIAL (INVESTIGATION SANDBOX)
+              MEJA BEDAH BUKTI SIBER SOSIAL (INVESTIGATION WORKBENCH)
+            </span>
+
+            <span style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 800,
+              padding: '3px 8px',
+              borderRadius: '3px',
+              background: dossier.evidenceMode === 'SYNTHETIC_BENCHMARK'
+                ? 'rgba(239, 68, 68, 0.2)'
+                : dossier.evidenceMode === 'USER_SUBMITTED'
+                ? 'rgba(245, 158, 11, 0.2)'
+                : 'rgba(16, 185, 129, 0.2)',
+              color: dossier.evidenceMode === 'SYNTHETIC_BENCHMARK'
+                ? '#F87171'
+                : dossier.evidenceMode === 'USER_SUBMITTED'
+                ? '#FBBF24'
+                : '#34D399',
+              border: `1px solid ${
+                dossier.evidenceMode === 'SYNTHETIC_BENCHMARK'
+                  ? 'rgba(239, 68, 68, 0.4)'
+                  : dossier.evidenceMode === 'USER_SUBMITTED'
+                  ? 'rgba(245, 158, 11, 0.4)'
+                  : 'rgba(16, 185, 129, 0.4)'
+              }`
+            }}>
+              MODE: {dossier.evidenceMode}
             </span>
 
             <span style={{
@@ -346,15 +445,17 @@ export default function SocialForensic() {
             fontFamily: 'var(--font-mono)'
           }}>
             <span style={{ color: '#64748B' }}>SUMBER BUKTI:</span>
-            <strong style={{ color: '#D4AF37' }}>{dossier.evidenceSourceName}</strong>
+            <strong style={{ color: dossier.isSimulation ? '#F87171' : '#D4AF37' }}>
+              {dossier.evidenceSourceName}
+            </strong>
             <span style={{ color: '#2B3846' }}>│</span>
-            <span style={{ color: '#64748B' }}>SAMPEL:</span>
-            <strong style={{ color: '#38BDF8' }}>{dossier.rekapKomentar.totalScanned} AKUN</strong>
+            <span style={{ color: '#64748B' }}>SAMPEL RECORD:</span>
+            <strong style={{ color: '#38BDF8' }}>{dossier.rekapPolaTeks.totalScanned}</strong>
           </div>
         </div>
       </div>
 
-      {/* ─── 2. EVIDENCE INGESTION CONSOLE (BILAH MASUKAN BUKTI TAKTIS) ─── */}
+      {/* ─── 2. EVIDENCE INGESTION CONSOLE (PACKAGE A, C, D) ─── */}
       <div 
         className="steel-chassis-card"
         style={{
@@ -383,15 +484,15 @@ export default function SocialForensic() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Database size={14} color="#D4AF37" />
             <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#F1F5F9', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>
-              PANEL INGESTI & MANAJEMEN BUKTI DIGITAL (ZERO-FAKE SCRAPING)
+              PANEL INGESTI BUKTI DIGITAL & BENCHMARK SINTETIS
             </span>
           </div>
 
           {/* Mode Selector Tabs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             {[
-              { id: 'PRESET', label: '🧪 3 Sampel Kasus Audit (Benchmark)', desc: 'Gunakan dataset verifikasi teruji' },
-              { id: 'CUSTOM', label: '📋 Masukan Bukti Lapangan (Custom Paste)', desc: 'Tempel komentar dari WhatsApp/Medsos' },
+              { id: 'PRESET', label: '🧪 Benchmark Sintetis (Simulasi)', desc: 'Fixture sintetis terisolasi' },
+              { id: 'CUSTOM', label: '📋 Masukan Bukti Operator', desc: 'Input teks dengan provenance jujur' },
               { id: 'RADAR', label: '📡 Konteks Isu Radar Aktif', desc: 'Analisis dari peringatan dini' }
             ].map(tab => {
               const isSelected = activeIngestionTab === tab.id
@@ -422,14 +523,14 @@ export default function SocialForensic() {
           </div>
         </div>
 
-        {/* Tab 1: 3 Preset Kasus Teruji */}
+        {/* Tab 1: 3 Benchmark Sintetis */}
         {activeIngestionTab === 'PRESET' && (
           <div>
             <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '10px' }}>
-              Pilih salah satu kasus nyata terverifikasi di bawah ini untuk menguji algoritma Jaccard Copypasta Matrix, Burst Velocity, dan Indeks CIB secara instan:
+              Pilih salah satu dataset sintetis di bawah ini untuk menguji algoritma Jaccard dan indikator pola koordinasi tanpa mencemari data lapangan:
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '10px' }}>
-              {INVESTIGATION_PRESETS.map((preset) => {
+              {SYNTHETIC_BENCHMARKS.map((preset) => {
                 const isSelected = selectedPresetId === preset.id
                 return (
                   <div
@@ -447,10 +548,10 @@ export default function SocialForensic() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span style={{
-                        fontSize: '10px',
+                        fontSize: '9.5px',
                         fontFamily: 'var(--font-mono)',
                         fontWeight: 800,
-                        color: preset.expectedCib === 'TINGGI' ? '#EF4444' : preset.expectedCib === 'SEDANG' ? '#F59E0B' : '#10B981'
+                        color: '#EF4444'
                       }}>
                         {preset.shortLabel}
                       </span>
@@ -463,7 +564,7 @@ export default function SocialForensic() {
                         color: '#94A3B8',
                         border: '1px solid #1E2734'
                       }}>
-                        {preset.rawComments.length} Akun Sampel
+                        {preset.syntheticRecords.length} Record Sintetis
                       </span>
                     </div>
 
@@ -490,7 +591,7 @@ export default function SocialForensic() {
                           cursor: 'pointer'
                         }}
                       >
-                        {isSelected ? '✓ KASUS AKTIF DI MEJA BEDAH' : 'MUAT KASUS INI'}
+                        {isSelected ? '✓ BENCHMARK AKTIF DI MEJA BEDAH' : 'MUAT BENCHMARK INI'}
                       </button>
                     </div>
                   </div>
@@ -500,17 +601,37 @@ export default function SocialForensic() {
           </div>
         )}
 
-        {/* Tab 2: Custom Text Ingestion */}
+        {/* Tab 2: Custom Text Ingestion (Package D - Privacy Notice) */}
         {activeIngestionTab === 'CUSTOM' && (
           <div>
+            {/* Pre-ingestion Privacy & Authorization Notice */}
+            <div style={{
+              background: 'rgba(56, 189, 248, 0.08)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '4px',
+              padding: '8px 12px',
+              marginBottom: '10px',
+              fontSize: '10.5px',
+              color: '#93C5FD',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '8px',
+              lineHeight: 1.45
+            }}>
+              <Lock size={14} style={{ marginTop: '2px', flexShrink: 0 }} />
+              <div>
+                <strong>PEMBERITAHUAN PRIVASI & LEGALITAS OPERATOR:</strong> Pastikan bukti yang dimasukkan diperoleh secara sah dan memiliki izin/dasar kewenangan pemrosesan. Dilarang mengunggah rekaman percakapan privat tanpa otorisasi. Data identitas pengguna (handle/nama) akan diminimalisasi dan diproses secara lokal.
+              </div>
+            </div>
+
             <div style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '8px' }}>
-              Tempelkan rentetan teks komentar warganet dari tangkapan layar WhatsApp, TikTok, X, atau Facebook. Format: <code style={{ color: '#38BDF8' }}>@handle: komentar</code> atau satu komentar per baris.
+              Format masukan teks bebas: <code style={{ color: '#38BDF8' }}>@handle: komentar</code> atau satu komentar per baris. Jika tersedia timestamp, awali dengan format ISO: <code style={{ color: '#34D399' }}>[2026-10-30T10:15:00Z] komentar</code>.
             </div>
 
             <textarea
               value={rawPastedText}
               onChange={(e) => setRawPastedText(e.target.value)}
-              placeholder={`Contoh:\n@user_01: Info pendaftaran bintara tni ad jalur khusus chat wa di bio kuota terbatas!\n@user_02: Info pendaftaran bintara tni ad jalur khusus chat wa di bio kuota terbatas!\n@user_03: Hati-hati penipuan pendaftaran resmi hanya lewat ad.rekrutmen-tni.mil.id`}
+              placeholder={`Contoh:\n[2026-10-30T10:00:00Z] @user_01: Info pendaftaran bintara tni ad jalur khusus chat wa kuota terbatas!\n[2026-10-30T10:00:03Z] @user_02: Info pendaftaran bintara tni ad jalur khusus chat wa kuota terbatas!\n@user_03: Hati-hati penipuan pendaftaran resmi hanya lewat ad.rekrutmen-tni.mil.id`}
               rows={4}
               style={{
                 width: '100%',
@@ -530,7 +651,7 @@ export default function SocialForensic() {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', flexWrap: 'wrap', gap: '8px' }}>
               <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                STATUS: <strong style={{ color: detectedLineCount > 0 ? '#10B981' : '#64748B' }}>{detectedLineCount} Baris Komentar Terdeteksi</strong>
+                STATUS: <strong style={{ color: detectedLineCount > 0 ? '#10B981' : '#64748B' }}>{detectedLineCount} Baris Record Terdeteksi</strong>
               </span>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -578,7 +699,7 @@ export default function SocialForensic() {
                   }}
                 >
                   <Sparkles size={12} />
-                  <span>{isProcessing ? 'MEMPROSES JACCARD...' : 'JALANKAN ANALISIS FORENSIK BUKTI'}</span>
+                  <span>{isProcessing ? 'MEMPROSES...' : 'JALANKAN ANALISIS POLA TEKS'}</span>
                 </button>
               </div>
             </div>
@@ -589,40 +710,19 @@ export default function SocialForensic() {
         {activeIngestionTab === 'RADAR' && (
           <div style={{ background: '#070B11', padding: '12px', borderRadius: '4px', border: '1px solid #1A2330' }}>
             <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8', fontWeight: 700, marginBottom: '4px' }}>
-              ISU DARI RADAR BERITA VIRAL:
+              ISU DARI RADAR BERITA:
             </div>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', marginBottom: '6px' }}>
               "{targetItem?.claim || dossier.targetClaim}"
             </div>
             <div style={{ fontSize: '11px', color: '#94A3B8', lineHeight: 1.5 }}>
               Kategori: <strong style={{ color: dossier.clusterColor }}>{dossier.clusterLabel}</strong> •
-              Rujukan Resmi: <strong style={{ color: '#10B981' }}>{targetItem?.officialSource || 'TurnBackHoax & Portal Pers Kredibel'}</strong> •
-              Status Awal: <strong style={{ color: '#FBBF24' }}>{targetItem?.triageStatus || 'SEDANG DIPANTAU'}</strong>
+              Rujukan Cek Fakta: <strong style={{ color: '#10B981' }}>{targetItem?.officialSource || 'TurnBackHoax & Portal Pers'}</strong> •
+              Status Radar: <strong style={{ color: '#FBBF24' }}>{targetItem?.triageStatus || 'SEDANG DIPANTAU'}</strong>
             </div>
           </div>
         )}
       </div>
-
-      {/* Pesan Notifikasi Perubahan Status (Flash Bar) */}
-      {statusUpdateMessage && (
-        <div style={{
-          marginBottom: '14px',
-          padding: '8px 14px',
-          background: 'rgba(16, 185, 129, 0.15)',
-          border: '1px solid #10B981',
-          borderRadius: '4px',
-          color: '#34D399',
-          fontSize: '11px',
-          fontFamily: 'var(--font-mono)',
-          fontWeight: 700,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <CheckCircle2 size={14} />
-          <span>{statusUpdateMessage}</span>
-        </div>
-      )}
 
       {/* ─── 3. DOSSIER HERO BANNER & COMMAND CONTROLS ─── */}
       <div 
@@ -660,7 +760,7 @@ export default function SocialForensic() {
               marginBottom: '6px'
             }}>
               <Flame size={12} />
-              BERKAS INTELIJEN SIBER SOSIAL (INVESTIGATION DOSSIER)
+              BERKAS ANALISIS POLA SIBER SOSIAL (INVESTIGATION DOSSIER)
             </div>
             <h1 style={{
               fontSize: '20px',
@@ -682,9 +782,9 @@ export default function SocialForensic() {
               color: '#64748B',
               flexWrap: 'wrap'
             }}>
-              <span>Konteks Bukti: <strong style={{ color: '#CBD5E1' }}>{dossier.evidenceSourceName}</strong></span>
+              <span>Sumber Bukti: <strong style={{ color: '#CBD5E1' }}>{dossier.evidenceSourceName}</strong></span>
               <span>•</span>
-              <span>Rujukan Verifikasi: <strong style={{ color: '#10B981' }}>{targetItem?.officialSource || 'TurnBackHoax & Pangkalan Cek Fakta'}</strong></span>
+              <span>Rujukan Verifikasi: <strong style={{ color: '#10B981' }}>{targetItem?.officialSource || 'TurnBackHoax & Arsip Resmi'}</strong></span>
             </div>
           </div>
 
@@ -708,18 +808,33 @@ export default function SocialForensic() {
                 gap: '6px',
                 transition: 'all 0.15s ease'
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#C8102E'
-                e.currentTarget.style.color = '#FFFFFF'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(200, 16, 46, 0.16)'
-                e.currentTarget.style.color = '#F87171'
-              }}
               title="Bawa teks klaim ini ke Multi-Input Analyzer untuk pengujian NLP & leksikon hoaks"
             >
               <Zap size={13} />
               <span>Uji di Analyzer</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsClaimReviewOpen(prev => !prev)}
+              style={{
+                background: isClaimReviewOpen ? 'rgba(56, 189, 248, 0.25)' : 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid #38BDF8',
+                color: '#38BDF8',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                padding: '8px 14px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Buka panel penilaian status klaim spesifik berbasis bukti"
+            >
+              <CheckCircle2 size={13} />
+              <span>Penilaian Klaim Spesifik</span>
             </button>
 
             <button
@@ -738,14 +853,6 @@ export default function SocialForensic() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#DC2626'
-                e.currentTarget.style.color = '#FFFFFF'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.16)'
-                e.currentTarget.style.color = '#FCA5A5'
               }}
               title="Formulasikan draf rilis resmi bantahan Dispenad dan panduan Babinsa"
             >
@@ -775,54 +882,148 @@ export default function SocialForensic() {
               <FileText size={13} />
               <span>Ekspor Berkas A4</span>
             </button>
-
-            {targetItem?.id && (
-              <div style={{ display: 'inline-flex', gap: '4px', borderLeft: '1px solid #2B384E', paddingLeft: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateTriage('HOAKS')}
-                  style={{
-                    background: 'rgba(239, 68, 68, 0.15)',
-                    border: '1px solid #EF4444',
-                    color: '#F87171',
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    padding: '8px 10px',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                  title="Tetapkan vonis HOAKS untuk isu ini di Radar"
-                >
-                  VONIS HOAKS
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateTriage('FAKTA')}
-                  style={{
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    border: '1px solid #10B981',
-                    color: '#34D399',
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    padding: '8px 10px',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                  title="Tetapkan vonis FAKTA / NETRAL untuk isu ini di Radar"
-                >
-                  VONIS FAKTA
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
-        {/* Alarm Banner & Anomali Koordinasi CIB */}
+        {/* ─── PACKAGE E: CLAIM ASSESSMENT PANEL (EXPANDABLE) ─── */}
+        {isClaimReviewOpen && (
+          <div style={{
+            background: '#070B11',
+            border: '1px solid #1E2734',
+            borderRadius: '6px',
+            padding: '16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <div style={{ fontSize: '11.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8' }}>
+                FORMULIR PENILAIAN KLAIM SPESIFIK (CLAIM-LEVEL REVIEW)
+              </div>
+              <span style={{ fontSize: '10px', color: '#64748B' }}>
+                Penilaian melekat pada KLAIM, bukan pada publikasi atau event global
+              </span>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ fontSize: '10.5px', color: '#94A3B8', marginBottom: '4px' }}>Klaim yang Dievaluasi:</div>
+              <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#FFFFFF', padding: '6px 10px', background: '#0F1622', borderRadius: '4px' }}>
+                "{dossier.targetClaim}"
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              {(['CONTRADICTED', 'SUPPORTED', 'MIXED', 'UNVERIFIED', 'INCONCLUSIVE'] as ClaimAssessmentStatus[]).map(verdict => {
+                const isSel = selectedVerdict === verdict
+                const color = verdict === 'CONTRADICTED' ? '#EF4444' : verdict === 'SUPPORTED' ? '#10B981' : verdict === 'MIXED' ? '#F59E0B' : '#94A3B8'
+                return (
+                  <button
+                    key={verdict}
+                    type="button"
+                    onClick={() => setSelectedVerdict(verdict)}
+                    style={{
+                      background: isSel ? `${color}25` : '#0B1017',
+                      border: `1px solid ${isSel ? color : '#1E2734'}`,
+                      color: isSel ? color : '#64748B',
+                      fontSize: '10.5px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 800,
+                      padding: '5px 10px',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {verdict}
+                  </button>
+                )
+              })}
+            </div>
+
+            <textarea
+              value={assessmentRationale}
+              onChange={(e) => setAssessmentRationale(e.target.value)}
+              placeholder="Tuliskan alasan pertimbangan penilaian dan rujukan bukti pendukung..."
+              rows={2}
+              style={{
+                width: '100%',
+                background: '#0B1017',
+                border: '1px solid #28374D',
+                borderRadius: '4px',
+                padding: '8px 10px',
+                color: '#E2E8F0',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                marginBottom: '10px',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <span style={{ fontSize: '10px', color: '#64748B' }}>
+                Bukti pendukung otomatis ditautkan dari record yang diekstrak
+              </span>
+              <button
+                type="button"
+                onClick={handleSaveClaimAssessment}
+                style={{
+                  background: '#10B981',
+                  color: '#000000',
+                  border: 'none',
+                  padding: '6px 14px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                Simpan Penilaian Klaim
+              </button>
+            </div>
+
+            {/* Riwayat Penilaian Klaim */}
+            {claimHistory.length > 0 && (
+              <div style={{ marginTop: '14px', borderTop: '1px solid #1E2734', paddingTop: '10px' }}>
+                <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#D4AF37', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <History size={12} />
+                  <span>RIWAYAT AUDIT PENILAIAN KLAIM INI:</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {claimHistory.map(item => (
+                    <div key={item.assessmentId} style={{ background: '#0B1017', padding: '6px 10px', borderRadius: '4px', border: '1px solid #16202C', fontSize: '10px', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: item.verdict === 'CONTRADICTED' ? '#EF4444' : item.verdict === 'SUPPORTED' ? '#10B981' : '#F59E0B', fontWeight: 800 }}>
+                        [{item.verdict}]
+                      </span>{' '}
+                      <span style={{ color: '#CBD5E1' }}>{item.rationale}</span>{' '}
+                      <span style={{ color: '#475569' }}>— {new Date(item.assessedAt).toLocaleTimeString('id-ID')} ({item.assessedBy})</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Notifikasi Sukses Penilaian */}
+        {assessmentSuccessMsg && (
+          <div style={{
+            marginBottom: '10px',
+            padding: '6px 12px',
+            background: 'rgba(16, 185, 129, 0.15)',
+            border: '1px solid #10B981',
+            borderRadius: '4px',
+            color: '#34D399',
+            fontSize: '10.5px',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 700
+          }}>
+            ✓ {assessmentSuccessMsg}
+          </div>
+        )}
+
+        {/* Alarm Banner & Indikator Koordinasi Narasi (NCS) */}
         <div style={{
-          background: dossier.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-          border: `1px solid ${dossier.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
+          background: dossier.isPatternAnomalyFlagged ? 'rgba(239, 68, 68, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+          border: `1px solid ${dossier.isPatternAnomalyFlagged ? 'rgba(239, 68, 68, 0.45)' : 'rgba(16, 185, 129, 0.45)'}`,
           borderRadius: '4px',
           padding: '10px 14px',
           display: 'flex',
@@ -832,9 +1033,9 @@ export default function SocialForensic() {
           gap: '10px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldAlert size={16} color={dossier.isBuzzerAlarmActive ? '#EF4444' : '#10B981'} />
+            <ShieldAlert size={16} color={dossier.isPatternAnomalyFlagged ? '#EF4444' : '#10B981'} />
             <span style={{ fontSize: '11px', color: '#F1F5F9', fontWeight: 600 }}>
-              {dossier.anomalyAlert}
+              {dossier.patternSummary}
             </span>
           </div>
 
@@ -849,7 +1050,7 @@ export default function SocialForensic() {
               color: '#CBD5E1',
               border: '1px solid #1E2734'
             }}>
-              INDEKS KOORDINASI CIB: <strong style={{ color: dossier.isBuzzerAlarmActive ? '#EF4444' : '#10B981' }}>{dossier.cibCoordinationIndex}/100</strong>
+              SINYAL KOORDINASI NARASI (NCS): <strong style={{ color: dossier.isPatternAnomalyFlagged ? '#EF4444' : '#10B981' }}>{dossier.ncsIndex}/100</strong>
             </span>
             <span style={{
               fontSize: '10px',
@@ -857,8 +1058,8 @@ export default function SocialForensic() {
               fontWeight: 800,
               padding: '2px 8px',
               borderRadius: '3px',
-              background: dossier.isBuzzerAlarmActive ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)',
-              color: dossier.isBuzzerAlarmActive ? '#FCA5A5' : '#6EE7B7'
+              background: dossier.isPatternAnomalyFlagged ? 'rgba(239, 68, 68, 0.25)' : 'rgba(16, 185, 129, 0.25)',
+              color: dossier.isPatternAnomalyFlagged ? '#FCA5A5' : '#6EE7B7'
             }}>
               {dossier.escalationLevel}
             </span>
@@ -866,7 +1067,7 @@ export default function SocialForensic() {
         </div>
       </div>
 
-      {/* ─── 4. BARIS UTAMA: DECK 1 (PROFIL BUKTI & OSINT DORKS) & DECK 2 (REKAP STATUS KOMENTAR) ─── */}
+      {/* ─── 4. BARIS UTAMA: DECK 1 (PROFIL BUKTI & OSINT DORKS) & DECK 2 (REKAP STATUS POLA TEKS) ─── */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
@@ -874,7 +1075,7 @@ export default function SocialForensic() {
         marginBottom: '20px'
       }}>
         
-        {/* ─── DECK 1: PROFIL BUKTI & VERIFIKASI OSINT RESMI (REPLACES BROKEN VIDEO PLAYER) ─── */}
+        {/* ─── DECK 1: PROFIL BUKTI & VERIFIKASI OSINT RESMI ─── */}
         <div 
           className="steel-chassis-card"
           style={{
@@ -913,7 +1114,7 @@ export default function SocialForensic() {
                 PROFIL BUKTI DIGITAL
               </span>
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
-                Validasi OSINT & Parameter Lapangan
+                Integritas Byte & Batas Pembuktian
               </span>
             </div>
 
@@ -922,12 +1123,12 @@ export default function SocialForensic() {
               fontFamily: 'var(--font-mono)',
               padding: '2px 6px',
               borderRadius: '2px',
-              background: '#10B98115',
-              color: '#10B981',
-              border: '1px solid #10B98135',
+              background: dossier.isSimulation ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+              color: dossier.isSimulation ? '#F87171' : '#34D399',
+              border: `1px solid ${dossier.isSimulation ? 'rgba(239, 68, 68, 0.35)' : 'rgba(16, 185, 129, 0.35)'}`,
               fontWeight: 700
             }}>
-              ✓ 100% DATA TERVERIFIKASI
+              {dossier.isSimulation ? 'BENCHMARK SIMULASI' : 'BUKTI OPERATOR LAPANGAN'}
             </span>
           </div>
 
@@ -956,16 +1157,20 @@ export default function SocialForensic() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>JUMLAH AKUN DIUJI:</span>
-              <strong style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#10B981' }}>
-                {dossier.rekapKomentar.totalScanned} Akun Warganet
-              </strong>
+              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>INTEGRITAS BYTES HASH:</span>
+              <code style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#D4AF37' }}>
+                {dossier.contentHash}
+              </code>
+            </div>
+
+            <div style={{ fontSize: '9px', color: '#64748B', lineHeight: 1.4, borderTop: '1px dashed #1E2734', paddingTop: '6px' }}>
+              ℹ️ {dossier.hashDisclaimer}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>STATUS INTEGRITAS DATA:</span>
-              <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#34D399', fontWeight: 700 }}>
-                Bebas Rekayasa & Scraper Rapuh
+              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>CAKUPAN TIMESTAMP:</span>
+              <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: dossier.rekapPolaTeks.timestampCoveragePercent > 0 ? '#34D399' : '#F59E0B', fontWeight: 700 }}>
+                {dossier.rekapPolaTeks.validTimestampCount} / {dossier.rekapPolaTeks.totalScanned} record ({dossier.rekapPolaTeks.timestampCoveragePercent}%)
               </span>
             </div>
           </div>
@@ -1002,12 +1207,8 @@ export default function SocialForensic() {
                   fontFamily: 'var(--font-mono)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.15s ease'
+                  justifyContent: 'space-between'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#38BDF8'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1E2734'}
-                title="Cek liputan pers Google News 2 hari terakhir"
               >
                 <span>Google News (when:2d) 📰</span>
                 <ExternalLink size={10} />
@@ -1028,12 +1229,8 @@ export default function SocialForensic() {
                   fontFamily: 'var(--font-mono)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.15s ease'
+                  justifyContent: 'space-between'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#34D399'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1E2734'}
-                title="Cek pencarian web 24 jam terakhir"
               >
                 <span>Web Search 24 Jam (&tbs=qdr:d) 🔍</span>
                 <ExternalLink size={10} />
@@ -1054,12 +1251,8 @@ export default function SocialForensic() {
                   fontFamily: 'var(--font-mono)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.15s ease'
+                  justifyContent: 'space-between'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#FBBF24'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1E2734'}
-                title="Cari klarifikasi di pangkalan data TurnBackHoax"
               >
                 <span>Arsip TurnBackHoax.id 🛡️</span>
                 <ExternalLink size={10} />
@@ -1080,12 +1273,8 @@ export default function SocialForensic() {
                   fontFamily: 'var(--font-mono)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.15s ease'
+                  justifyContent: 'space-between'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = '#EF4444'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1E2734'}
-                title="Cari pernyataan resmi di situs TNI AD"
               >
                 <span>Rilis Resmi TNI AD (tniad.mil.id) 🇮🇩</span>
                 <ExternalLink size={10} />
@@ -1094,7 +1283,7 @@ export default function SocialForensic() {
           </div>
         </div>
 
-        {/* ─── DECK 2: REKAPITULASI STATUS KOMENTAR & CIB ANOMALY SCORECARD ─── */}
+        {/* ─── DECK 2: REKAPITULASI POLA TEKS & NCS SCORECARD ─── */}
         <div 
           className="steel-chassis-card"
           style={{
@@ -1128,15 +1317,15 @@ export default function SocialForensic() {
                 padding: '2px 7px',
                 borderRadius: '3px'
               }}>
-                REKAPITULASI STATUS
+                REKAPITULASI POLA TEKS
               </span>
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
-                Komposisi Opini: Organik vs Buzzer
+                Distribusi Kesamaan Leksikal Agregat
               </span>
             </div>
 
             <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-              TOTAL SAMPEL: <strong>{dossier.rekapKomentar.totalScanned} KOMENTAR</strong>
+              SAMPEL: <strong>{dossier.rekapPolaTeks.totalScanned} RECORD</strong>
             </span>
           </div>
 
@@ -1152,105 +1341,102 @@ export default function SocialForensic() {
               marginBottom: '10px'
             }}>
               <div 
-                style={{ width: `${dossier.rekapKomentar.organikPercent}%`, background: '#10B981', transition: 'width 0.3s' }} 
-                title={`Warganet Organik: ${dossier.rekapKomentar.organikPercent}%`}
+                style={{ width: `${dossier.rekapPolaTeks.distinctPercent}%`, background: '#10B981', transition: 'width 0.3s' }} 
+                title={`Pola Teks Beragam: ${dossier.rekapPolaTeks.distinctPercent}%`}
               />
               <div 
-                style={{ width: `${dossier.rekapKomentar.rawanPercent}%`, background: '#F59E0B', transition: 'width 0.3s' }} 
-                title={`Rawan Buzzer: ${dossier.rekapKomentar.rawanPercent}%`}
+                style={{ width: `${dossier.rekapPolaTeks.highSimilarityPercent}%`, background: '#F59E0B', transition: 'width 0.3s' }} 
+                title={`Kemiripan Tinggi: ${dossier.rekapPolaTeks.highSimilarityPercent}%`}
               />
               <div 
-                style={{ width: `${dossier.rekapKomentar.botPercent}%`, background: '#EF4444', transition: 'width 0.3s' }} 
-                title={`Sindikat Bot Copypasta: ${dossier.rekapKomentar.botPercent}%`}
+                style={{ width: `${dossier.rekapPolaTeks.nearDuplicatePercent}%`, background: '#EF4444', transition: 'width 0.3s' }} 
+                title={`Near-Duplicate Pattern: ${dossier.rekapPolaTeks.nearDuplicatePercent}%`}
               />
             </div>
 
-            {/* Rekapitulasi 3 Status Box (Bisa Diklik untuk Filter Komentar) */}
+            {/* 3 Status Filter Box */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
               <button
                 type="button"
                 onClick={() => {
-                  setActiveCommentFilter(activeCommentFilter === 'ORGANIK' ? 'ALL' : 'ORGANIK')
+                  setActivePatternFilter(activePatternFilter === 'DISTINCT' ? 'ALL' : 'DISTINCT')
                   setSelectedClusterPattern(null)
                 }}
                 style={{
-                  background: activeCommentFilter === 'ORGANIK' ? 'rgba(16, 185, 129, 0.2)' : '#0B111A',
-                  border: `1px solid ${activeCommentFilter === 'ORGANIK' ? '#10B981' : '#1E2734'}`,
+                  background: activePatternFilter === 'DISTINCT' ? 'rgba(16, 185, 129, 0.2)' : '#0B111A',
+                  border: `1px solid ${activePatternFilter === 'DISTINCT' ? '#10B981' : '#1E2734'}`,
                   borderRadius: '4px',
                   padding: '8px 10px',
                   textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  cursor: 'pointer'
                 }}
               >
                 <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#10B981', fontWeight: 800 }}>
-                  🟢 WARGANET ORGANIK
+                  🟢 TEKS BERAGAM
                 </div>
                 <div style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
-                  {dossier.rekapKomentar.organikPercent}%
+                  {dossier.rekapPolaTeks.distinctPercent}%
                 </div>
                 <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
-                  {dossier.rekapKomentar.organikCount} akun wajar
+                  {dossier.rekapPolaTeks.distinctCount} record variatif
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setActiveCommentFilter(activeCommentFilter === 'RAWAN_BUZZER' ? 'ALL' : 'RAWAN_BUZZER')
+                  setActivePatternFilter(activePatternFilter === 'HIGH_SIMILARITY' ? 'ALL' : 'HIGH_SIMILARITY')
                   setSelectedClusterPattern(null)
                 }}
                 style={{
-                  background: activeCommentFilter === 'RAWAN_BUZZER' ? 'rgba(245, 158, 11, 0.2)' : '#0B111A',
-                  border: `1px solid ${activeCommentFilter === 'RAWAN_BUZZER' ? '#F59E0B' : '#1E2734'}`,
+                  background: activePatternFilter === 'HIGH_SIMILARITY' ? 'rgba(245, 158, 11, 0.2)' : '#0B111A',
+                  border: `1px solid ${activePatternFilter === 'HIGH_SIMILARITY' ? '#F59E0B' : '#1E2734'}`,
                   borderRadius: '4px',
                   padding: '8px 10px',
                   textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  cursor: 'pointer'
                 }}
               >
                 <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#F59E0B', fontWeight: 800 }}>
-                  🟡 RAWAN BUZZER
+                  🟡 KEMIRIPAN TINGGI
                 </div>
                 <div style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
-                  {dossier.rekapKomentar.rawanPercent}%
+                  {dossier.rekapPolaTeks.highSimilarityPercent}%
                 </div>
                 <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
-                  {dossier.rekapKomentar.rawanCount} akun provokatif
+                  {dossier.rekapPolaTeks.highSimilarityCount} record serupa
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
-                  setActiveCommentFilter(activeCommentFilter === 'BOT_COPYPASTA' ? 'ALL' : 'BOT_COPYPASTA')
+                  setActivePatternFilter(activePatternFilter === 'NEAR_DUPLICATE' ? 'ALL' : 'NEAR_DUPLICATE')
                   setSelectedClusterPattern(null)
                 }}
                 style={{
-                  background: activeCommentFilter === 'BOT_COPYPASTA' ? 'rgba(239, 68, 68, 0.2)' : '#0B111A',
-                  border: `1px solid ${activeCommentFilter === 'BOT_COPYPASTA' ? '#EF4444' : '#1E2734'}`,
+                  background: activePatternFilter === 'NEAR_DUPLICATE' ? 'rgba(239, 68, 68, 0.2)' : '#0B111A',
+                  border: `1px solid ${activePatternFilter === 'NEAR_DUPLICATE' ? '#EF4444' : '#1E2734'}`,
                   borderRadius: '4px',
                   padding: '8px 10px',
                   textAlign: 'left',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
+                  cursor: 'pointer'
                 }}
               >
                 <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#EF4444', fontWeight: 800 }}>
-                  🔴 SINDIKAT BOT
+                  🔴 NEAR-DUPLICATE
                 </div>
                 <div style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#FFFFFF', marginTop: '2px' }}>
-                  {dossier.rekapKomentar.botPercent}%
+                  {dossier.rekapPolaTeks.nearDuplicatePercent}%
                 </div>
                 <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px' }}>
-                  {dossier.rekapKomentar.botCount} template copypasta
+                  {dossier.rekapPolaTeks.nearDuplicateCount} template terduplikasi
                 </div>
               </button>
             </div>
           </div>
 
-          {/* Temporal Anomaly & Jeda Waktu Detik */}
+          {/* Temporal Metrics / Honest Not Available (Package C) */}
           <div style={{
             background: '#0B111A',
             border: '1px solid #1E2734',
@@ -1262,52 +1448,66 @@ export default function SocialForensic() {
           }}>
             <div>
               <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                RATA-RATA JEDA WAKTU ANTAR-AKUN:
+                RATA-RATA INTERVAL WAKTU:
               </div>
               <div style={{
-                fontSize: '15px',
+                fontSize: '13px',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 800,
-                color: dossier.rekapKomentar.averageIntervalSeconds <= 4.0 ? '#EF4444' : '#10B981',
-                marginTop: '2px',
+                color: dossier.rekapPolaTeks.averageIntervalSeconds !== null ? '#38BDF8' : '#64748B',
+                marginTop: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px'
               }}>
                 <Clock size={14} />
-                <span>{dossier.rekapKomentar.averageIntervalSeconds} Detik / Komentar</span>
+                <span>
+                  {dossier.rekapPolaTeks.averageIntervalSeconds !== null
+                    ? `${dossier.rekapPolaTeks.averageIntervalSeconds}s / record`
+                    : 'TIDAK TERSEDIA'}
+                </span>
               </div>
-              <div style={{ fontSize: '9.5px', color: '#94A3B8', marginTop: '2px' }}>
-                {dossier.rekapKomentar.averageIntervalSeconds <= 4.0 ? '🚨 Anomali: Injeksi cepat non-manusia' : 'Normal: Waktu ketik organik wajar'}
+              <div style={{ fontSize: '9.5px', color: '#64748B', marginTop: '2px' }}>
+                {dossier.rekapPolaTeks.temporalStatus === 'NOT_AVAILABLE_NO_SOURCE_TIMESTAMP'
+                  ? 'Tanpa timestamp sumber platform'
+                  : dossier.rekapPolaTeks.temporalStatus === 'VALID_SOURCE_TIMESTAMP'
+                  ? 'Dihitung dari timestamp benchmark'
+                  : 'Operator-supplied unverified'}
               </div>
             </div>
 
             <div>
               <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                BURST VELOCITY (INJEKSI MASIF):
+                BURST VELOCITY:
               </div>
               <div style={{
-                fontSize: '15px',
+                fontSize: '13px',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 800,
-                color: '#F59E0B',
-                marginTop: '2px',
+                color: dossier.rekapPolaTeks.burstVelocityPerMinute !== null ? '#F59E0B' : '#64748B',
+                marginTop: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px'
               }}>
                 <Flame size={14} />
-                <span>{dossier.rekapKomentar.burstVelocityPerMinute} Komentar / Menit</span>
+                <span>
+                  {dossier.rekapPolaTeks.burstVelocityPerMinute !== null
+                    ? `${dossier.rekapPolaTeks.burstVelocityPerMinute} rec/menit`
+                    : 'TIDAK TERSEDIA'}
+                </span>
               </div>
-              <div style={{ fontSize: '9.5px', color: '#94A3B8', marginTop: '2px' }}>
-                Laju lonjakan arus pembicaraan medsos
+              <div style={{ fontSize: '9.5px', color: '#64748B', marginTop: '2px' }}>
+                {dossier.rekapPolaTeks.burstVelocityPerMinute !== null
+                  ? 'Laju konsentrasi waktu terhitung'
+                  : 'Data waktu tidak memadai'}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── 5. BARIS KEDUA: DECK 3 (KLASTER TEMPLATE COPYPASTA) & DECK 4 (FEED INSPEKSI KOMENTAR) ─── */}
+      {/* ─── 5. BARIS KEDUA: DECK 3 (KLASTER TEMPLATE) & DECK 4 (FEED RECORD BUKTI) ─── */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(460px, 1fr))',
@@ -1340,7 +1540,7 @@ export default function SocialForensic() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Bot size={15} color="#EF4444" />
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
-                Klaster Kalimat Template Copypasta Terdeteksi
+                Klaster Template Teks Near-Duplicate
               </span>
             </div>
             <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
@@ -1350,8 +1550,8 @@ export default function SocialForensic() {
 
           <div style={{ fontSize: '11px', color: '#94A3B8' }}>
             {dossier.copypastaClusters.length > 0 
-              ? 'Klik pada klaster template di bawah untuk menyorot seluruh akun bot yang menyuarakan kalimat tersebut:'
-              : 'Tidak terdeteksi klaster template copypasta masif. Dinamika opini didominasi oleh variasi kalimat organik.'}
+              ? 'Klik pada klaster template di bawah untuk menyorot seluruh record yang memuat teks serupa:'
+              : 'Tidak terdeteksi klaster template berulang signifikan. Variasi leksikal teks dominan beragam.'}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1366,7 +1566,7 @@ export default function SocialForensic() {
                 fontSize: '11px',
                 fontFamily: 'var(--font-mono)'
               }}>
-                🟢 AMAN: Pola percakapan memiliki variasi leksikal alami (Jaccard &lt; 40%).
+                🟢 POLA BERAGAM: Variasi leksikal alami (Jaccard &lt; 40%).
               </div>
             ) : (
               dossier.copypastaClusters.map((cluster, idx) => {
@@ -1380,7 +1580,7 @@ export default function SocialForensic() {
                         setSelectedClusterPattern(null)
                       } else {
                         setSelectedClusterPattern(cluster.templateText)
-                        setActiveCommentFilter('ALL')
+                        setActivePatternFilter('ALL')
                       }
                     }}
                     style={{
@@ -1389,8 +1589,7 @@ export default function SocialForensic() {
                       borderRadius: '4px',
                       padding: '10px 12px',
                       textAlign: 'left',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
+                      cursor: 'pointer'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -1410,7 +1609,7 @@ export default function SocialForensic() {
                         padding: '1px 6px',
                         borderRadius: '2px'
                       }}>
-                        {cluster.occurrences} Akun Menyuarakan ({cluster.percentageOfTotal}%)
+                        {cluster.occurrences} Record ({cluster.percentageOfTotal}%)
                       </span>
                     </div>
 
@@ -1419,7 +1618,7 @@ export default function SocialForensic() {
                     </div>
 
                     <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                      Sampel Akun: {cluster.sampleHandles.slice(0, 4).join(', ')}
+                      ID Record: {cluster.memberIds.slice(0, 5).join(', ')}
                     </div>
                   </button>
                 )
@@ -1428,7 +1627,7 @@ export default function SocialForensic() {
           </div>
         </div>
 
-        {/* ─── DECK 4: FEED INSPEKSI BUKTI KOMENTAR ─── */}
+        {/* ─── DECK 4: FEED RECORD BUKTI DIGITAL (DATA MINIMIZATION) ─── */}
         <div 
           className="steel-chassis-card"
           style={{
@@ -1456,7 +1655,7 @@ export default function SocialForensic() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Users size={15} color="#38BDF8" />
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
-                Feed Bukti Komentar Terekstraksi ({filteredComments.length})
+                Feed Record Bukti Terekstraksi ({filteredComments.length})
               </span>
             </div>
 
@@ -1480,7 +1679,7 @@ export default function SocialForensic() {
             )}
           </div>
 
-          {/* List Komentar */}
+          {/* List Komentar dengan Pseudonym ID & Redacted Handle */}
           <div style={{
             maxHeight: '480px',
             overflowY: 'auto',
@@ -1493,33 +1692,27 @@ export default function SocialForensic() {
               <div
                 key={c.id}
                 style={{
-                  background: c.isCopypasta ? 'rgba(239, 68, 68, 0.08)' : '#070B11',
-                  border: `1px solid ${c.isCopypasta ? 'rgba(239, 68, 68, 0.4)' : '#1E2734'}`,
+                  background: c.isNearDuplicate ? 'rgba(239, 68, 68, 0.08)' : '#070B11',
+                  border: `1px solid ${c.isNearDuplicate ? 'rgba(239, 68, 68, 0.4)' : '#1E2734'}`,
                   borderRadius: '4px',
                   padding: '10px 12px'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: c.avatarColor,
-                      color: '#FFFFFF',
-                      fontSize: '10px',
+                    <span style={{
+                      fontSize: '9.5px',
+                      fontFamily: 'var(--font-mono)',
                       fontWeight: 800,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      color: '#38BDF8',
+                      background: '#162232',
+                      padding: '1px 5px',
+                      borderRadius: '2px'
                     }}>
-                      {c.avatarLetter}
-                    </div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F1F5F9' }}>
-                      {c.authorName}
+                      {c.pseudonymId}
                     </span>
                     <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                      {c.authorHandle}
+                      {c.redactedHandle}
                     </span>
                   </div>
 
@@ -1530,11 +1723,11 @@ export default function SocialForensic() {
                       fontWeight: 800,
                       padding: '1px 5px',
                       borderRadius: '2px',
-                      background: c.triageCategory === 'BOT_COPYPASTA' ? '#EF444425' : c.triageCategory === 'RAWAN_BUZZER' ? '#F59E0B25' : '#10B98125',
-                      color: c.triageCategory === 'BOT_COPYPASTA' ? '#F87171' : c.triageCategory === 'RAWAN_BUZZER' ? '#FBBF24' : '#34D399',
-                      border: `1px solid ${c.triageCategory === 'BOT_COPYPASTA' ? '#EF444450' : c.triageCategory === 'RAWAN_BUZZER' ? '#F59E0B50' : '#10B98150'}`
+                      background: c.patternCategory === 'NEAR_DUPLICATE' ? '#EF444425' : c.patternCategory === 'HIGH_SIMILARITY' ? '#F59E0B25' : '#10B98125',
+                      color: c.patternCategory === 'NEAR_DUPLICATE' ? '#F87171' : c.patternCategory === 'HIGH_SIMILARITY' ? '#FBBF24' : '#34D399',
+                      border: `1px solid ${c.patternCategory === 'NEAR_DUPLICATE' ? '#EF444450' : c.patternCategory === 'HIGH_SIMILARITY' ? '#F59E0B50' : '#10B98150'}`
                     }}>
-                      {c.triageCategory}
+                      {c.patternCategory === 'NEAR_DUPLICATE' ? 'NEAR-DUPLICATE' : c.patternCategory === 'HIGH_SIMILARITY' ? 'HIGH SIMILARITY' : 'DISTINCT'}
                     </span>
                     <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#475569' }}>
                       {c.timestampFormatted}
@@ -1551,7 +1744,7 @@ export default function SocialForensic() {
         </div>
       </div>
 
-      {/* ─── 6. MODAL DRAF KONTRANARASI DISPENAD (4 SALURAN) ─── */}
+      {/* ─── 6. MODAL DRAF KONTRANARASI DISPENAD (PACKAGE I - GUARDRAILS) ─── */}
       {isCounterModalOpen && counterChannels && (
         <div style={{
           position: 'fixed',
@@ -1597,7 +1790,7 @@ export default function SocialForensic() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShieldAlert size={18} color="#EF4444" />
                 <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9' }}>
-                  GENERATOR KONTRANARASI DISPENAD (4 PROTOKOL SALURAN)
+                  GENERATOR DRAF RESPON KONTRA (DRAFT — WAJIB REVIEW MANUSIA)
                 </span>
               </div>
 
@@ -1615,6 +1808,20 @@ export default function SocialForensic() {
               >
                 ✕
               </button>
+            </div>
+
+            {/* Disclaimer Guardrail */}
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.3)',
+              borderRadius: '4px',
+              padding: '6px 12px',
+              marginBottom: '12px',
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              color: '#FBBF24'
+            }}>
+              ⚠️ Draf hanya bersifat saran klarifikasi faktual. Tidak ada auto-posting atau pengiriman massal. Seluruh naskah wajib diverifikasi oleh perwira penerangan sebelum disebarkan.
             </div>
 
             {/* Tab Selector 4 Protokol */}
@@ -1644,8 +1851,7 @@ export default function SocialForensic() {
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '6px',
-                      transition: 'all 0.15s ease'
+                      gap: '6px'
                     }}
                   >
                     <tab.icon size={12} color={isSelected ? tab.color : '#64748B'} />
@@ -1673,7 +1879,7 @@ export default function SocialForensic() {
                 borderBottom: '1px solid #141C26'
               }}>
                 <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700 }}>
-                  FORMAT PROTOKOL: {activeCounterTab.toUpperCase()}
+                  FORMAT PROTOKOL: {activeCounterTab.toUpperCase()} (DRAFT ONLY)
                 </span>
 
                 <button
@@ -1698,8 +1904,7 @@ export default function SocialForensic() {
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '5px',
-                    transition: 'all 0.15s ease'
+                    gap: '5px'
                   }}
                 >
                   {copiedSuccess ? <Check size={12} /> : <Copy size={12} />}

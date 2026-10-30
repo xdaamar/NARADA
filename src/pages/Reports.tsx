@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useLocation } from 'react-router-dom'
 import {
   Printer,
   RotateCcw,
@@ -10,7 +11,8 @@ import {
   User,
   Hash,
   Award,
-  Lock
+  Lock,
+  AlertTriangle
 } from 'lucide-react'
 import type { AnalysisResult, IntelReportConfig, ReportClassification } from '../types'
 import { getStoredAnalyses, getUserSettings, seedDemoAnalyses } from '../utils/storage'
@@ -19,6 +21,15 @@ import { generateSHA256 } from '../utils/crypto'
 import { generateCounterNarratives } from '../engine/forensic/counter-narrative-generator'
 
 export default function Reports() {
+  const location = useLocation()
+  const navState = (location.state || {}) as {
+    isSimulation?: boolean
+    simulationWatermark?: string
+    evidenceMode?: string
+    prefillClaim?: string
+  }
+  const isSimulationMode = Boolean(navState.isSimulation)
+
   const [analyses, setAnalyses] = useState<AnalysisResult[]>(() => getStoredAnalyses())
   const userSettings = useMemo(() => getUserSettings(), [])
   const [reportHash, setReportHash] = useState<string>('')
@@ -157,6 +168,30 @@ export default function Reports() {
           Penyusunan berkas produk intelijen resmi standar militer siap cetak dan siap dilaporkan ke pimpinan komando.
         </p>
       </div>
+
+      {/* ─── Banner Peringatan Simulasi Sintetis (Sprint 1D Firewall) ─── */}
+      {isSimulationMode && (
+        <div className="no-print" style={{
+          marginBottom: '16px',
+          padding: '12px 16px',
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.4)',
+          borderRadius: '6px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <AlertTriangle size={18} style={{ color: '#F59E0B', flexShrink: 0 }} />
+          <div style={{ fontSize: '11px', lineHeight: 1.5, color: '#FDE68A' }}>
+            <span style={{ fontWeight: 800, letterSpacing: '0.8px', color: '#F59E0B' }}>
+              FIREWALL INTEGRITAS: PRESET SIMULASI SINTETIS AKTIF
+            </span>
+            <div style={{ color: '#94A3B8', marginTop: '2px' }}>
+              Dokumen ini dibangkitkan dari benchmark sintetis terkontrol. Tanda air "SIMULASI" tercantum permanen pada cetakan A4 dan ekspor data sesuai doktrin integritas bukti.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Layout 2 Kolom: Kiri Panel Konfigurasi, Kanan Pratinjau Kertas Resmi ─── */}
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
@@ -390,6 +425,31 @@ export default function Reports() {
             }}>
               DOKUMEN INTELIJEN PUSSIBERAD - KLASIFIKASI: {config.classification}
             </div>
+
+            {/* ─── WATERMARK SIMULASI BENCHMARK (SPRINT 1D FIREWALL) ─── */}
+            {isSimulationMode && (
+              <div className="watermark-simulation" style={{
+                position: 'absolute',
+                top: '40%',
+                left: '50%',
+                transform: 'translate(-50%, -50%) rotate(-25deg)',
+                fontSize: '22px',
+                fontWeight: '900',
+                letterSpacing: '3px',
+                fontFamily: '"Rajdhani", sans-serif',
+                color: 'rgba(245, 158, 11, 0.18)',
+                border: '3px dashed rgba(245, 158, 11, 0.3)',
+                padding: '12px 24px',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                whiteSpace: 'nowrap',
+                zIndex: 1,
+                textAlign: 'center',
+                textTransform: 'uppercase'
+              }}>
+                SIMULASI — SYNTHETIC BENCHMARK — BUKAN DATA LIVE / BUKAN KASUS NYATA
+              </div>
+            )}
 
             {/* ─── KOP SURAT RESMI MILITER TNI AD ─── */}
             <div className="report-header" style={{ borderBottom: '3px solid #C8102E', paddingBottom: '16px', marginBottom: '24px' }}>
