@@ -714,6 +714,21 @@ export default function SocialForensic() {
             </div>
           </div>
 
+          {/* DATA AVAILABILITY TRANSPARENCY STRIP — wajib tampil untuk audit/juri */}
+          <div style={{
+            background: currentPreview.hasRealData ? 'rgba(16, 185, 129, 0.06)' : 'rgba(245, 158, 11, 0.06)',
+            border: `1px solid ${currentPreview.hasRealData ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+            borderRadius: '4px',
+            padding: '7px 12px',
+            marginTop: '-2px',
+            fontSize: '9.5px',
+            fontFamily: 'var(--font-mono)',
+            color: currentPreview.hasRealData ? '#34D399' : '#F59E0B',
+            lineHeight: 1.5
+          }}>
+            {currentPreview.dataAvailabilityNote}
+          </div>
+
           {/* Visual Mockup Card Postingan Aktif */}
           <div style={{
             background: '#0B1017',
@@ -855,19 +870,42 @@ export default function SocialForensic() {
               flexWrap: 'wrap',
               gap: '10px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Eye size={12} color="#64748B" /> {currentPreview.metrics.viewsOrPlays}
+              {/* Metrics strip — hanya tampil data nyata; null = "Tidak Tersedia" */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#94A3B8', flexWrap: 'wrap' }}>
+                {/* Views — tampil jika ada data nyata */}
+                {currentPreview.metrics.viewsOrPlays !== null ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Eye size={12} color="#64748B" /> {currentPreview.metrics.viewsOrPlays}
+                  </span>
+                ) : null}
+                {/* Likes — tampil "—" jika null (platform tidak ekspos, bukan data palsu) */}
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: currentPreview.metrics.likesOrFavs ? '#94A3B8' : '#475569' }}>
+                  <Heart size={12} color={currentPreview.metrics.likesOrFavs ? '#EC4899' : '#475569'} />
+                  {currentPreview.metrics.likesOrFavs ?? <span style={{ color: '#475569', fontSize: '9px' }}>Tidak Tersedia</span>}
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Heart size={12} color="#EC4899" /> {currentPreview.metrics.likesOrFavs}
+                {/* Shares — tampil "—" jika null */}
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: currentPreview.metrics.sharesOrForwards ? '#94A3B8' : '#475569' }}>
+                  <Share2 size={12} color={currentPreview.metrics.sharesOrForwards ? '#38BDF8' : '#475569'} />
+                  {currentPreview.metrics.sharesOrForwards ?? <span style={{ color: '#475569', fontSize: '9px' }}>Tidak Tersedia</span>}
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Share2 size={12} color="#38BDF8" /> {currentPreview.metrics.sharesOrForwards}
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <MessageSquare size={12} color="#F59E0B" /> {currentPreview.metrics.commentsCount}
-                </span>
+                {/* Comments */}
+                {currentPreview.metrics.commentsCount !== null ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <MessageSquare size={12} color="#F59E0B" /> {currentPreview.metrics.commentsCount}
+                  </span>
+                ) : null}
+                {/* Jika platform X/TikTok tanpa data nyata sama sekali — tampilkan banner jujur */}
+                {!currentPreview.hasRealData && (currentPreview.platform === 'TWITTER' || currentPreview.platform === 'TIKTOK') && (
+                  <span style={{
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                    color: '#F59E0B', fontSize: '9.5px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    padding: '3px 8px', borderRadius: '3px'
+                  }}>
+                    ⚠️ Data metrik tidak tersedia — API berbayar diperlukan
+                  </span>
+                )}
               </div>
 
             {/* Action Command Buttons */}

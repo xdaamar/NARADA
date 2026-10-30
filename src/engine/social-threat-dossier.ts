@@ -19,7 +19,8 @@ import {
   harvestLiveSocialDiscussions,
   extractFocusedKeywords,
   type LiveHarvestResult,
-  type HarvestedNewsVector
+  type HarvestedNewsVector,
+  type HarvestedSocialComment
 } from './ingest/live-osint-harvester'
 import { formatMilitaryDateTime } from './ingest/rss-parser'
 
@@ -53,18 +54,23 @@ export interface PlatformThreatPreview {
   avatarColor: string
   captionText: string
   hashtags: string[]
+  // Metrik hanya boleh diisi jika DATA NYATA tersedia. null = tidak tersedia.
   metrics: {
-    viewsOrPlays: string
-    likesOrFavs: string
-    sharesOrForwards: string
-    commentsCount: string
+    viewsOrPlays: string | null    // null = tidak ada data nyata
+    likesOrFavs: string | null     // null = platform tidak ekspos (by design)
+    sharesOrForwards: string | null // null = tidak ada data nyata
+    commentsCount: string | null   // null = tidak ada data nyata
   }
+  dataAvailabilityNote: string  // Penjelasan jujur tentang ketersediaan data
   directSearchUrl: string
   backupDorkUrl?: string
   specialTag?: string
   mediaBadge?: string
   thumbnailUrl?: string
   isLiveHarvested?: boolean
+  // Flag ketersediaan data — jika false, kartu menampilkan state "Tidak Ada Data"
+  hasRealData: boolean
+  realCommentCount?: number // jumlah komentar asli yang berhasil ditarik (0 jika gagal)
 }
 
 export interface SocialThreatDossier {
@@ -144,101 +150,133 @@ export function generateSocialThreatDossier(
   }
 
   const platformPreviews: PlatformThreatPreview[] = [
-    // 1. YouTube Video Vektor (Liputan Nyata Hasil Panen Lapangan)
+    // 1. YouTube — Hanya tampilkan data jika video berhasil dipanen dari Innertube
     {
       platform: 'YOUTUBE',
-      platformLabel: ytVideo ? 'YouTube Video (Liputan Nyata)' : 'YouTube Stream & Reaksi Publik',
+      platformLabel: ytVideo ? `${ytVideo.channel} (YouTube)` : 'YouTube',
       accentColor: '#FF0000',
-      authorHandle: ytVideo ? ytVideo.channel : '@portal_liputan_ri',
-      authorDisplayName: ytVideo ? ytVideo.channel : 'Media Penyiaran & Warganet',
-      accountMeta: ytVideo ? `${ytVideo.views} • Diunggah ${ytVideo.published}` : 'Siaran Publik • Verifikasi Terbuka',
+      authorHandle: ytVideo ? ytVideo.channel : '—',
+      authorDisplayName: ytVideo ? ytVideo.channel : 'Tidak Ada Video Terpanen',
+      accountMeta: ytVideo
+        ? `${ytVideo.views} • Diunggah ${ytVideo.published}`
+        : 'Tidak ada video terkini yang berhasil ditarik dari YouTube',
       avatarColor: '#FF0000',
       captionText: ytVideo
-        ? `🔴 LIPUTAN LAPANGAN: "${ytVideo.title}". Disiarkan oleh kanal ${ytVideo.channel} (${ytVideo.published}). Simak diskusi warganet dan tanggapan publik di kolom komentar video ini.`
-        : `Simak tayangan video dan penelusuran fakta terkini mengenai "${claim}". Pantau reaksi publik di kanal video YouTube.`,
-      hashtags: [`#KawalFakta`, `#${focusedKeywords.split(' ')[0] || 'Isu'}`, `#BeritaTerkini`],
+        ? `🔴 LIPUTAN LAPANGAN TERVERIFIKASI: "${ytVideo.title}"\n\nDiunggah oleh: ${ytVideo.channel}\nTanggal: ${ytVideo.published}\nLink langsung: ${ytVideo.url}\n\nKomentar warganet di bawah ini diambil LANGSUNG dari video ini via YouTube Innertube API.`
+        : `Tidak ada video YouTube terkini (< 7 hari) yang ditemukan untuk topik "${focusedKeywords}". Gunakan tombol pencarian di bawah untuk menelusuri secara manual.`,
+      hashtags: ytVideo
+        ? [`#${focusedKeywords.split(' ')[0] || 'Isu'}`, `#BeritaTerkini`, `#CekLangsung`]
+        : [],
       metrics: {
-        viewsOrPlays: ytVideo ? ytVideo.views : viewsEstimate,
-        likesOrFavs: ytVideo ? 'Kanal Terverifikasi' : 'Liputan Resmi',
-        sharesOrForwards: ytVideo ? ytVideo.published : 'Terkini',
-        commentsCount: `${harvestedData?.comments?.length || 20} Komentar Terekstraksi`
+        // Views asli dari YouTube search result — NYATA
+        viewsOrPlays: ytVideo?.views ?? null,
+        // Like count TIDAK bisa diakses tanpa OAuth YouTube Data API v3
+        // Dengan jujur kita tampilkan null daripada mengarang angka
+        likesOrFavs: null,
+        // Share count juga tidak tersedia via Innertube unauthenticated
+        sharesOrForwards: null,
+        // Jumlah komentar asli yang berhasil diekstrak
+        commentsCount: ytVideo
+          ? `${harvestedData?.comments?.filter(c => c.platform === 'YOUTUBE').length || 0} komentar terekstraksi`
+          : null
       },
+      dataAvailabilityNote: ytVideo
+        ? `✅ Video asli terverifikasi • Views: DATA NYATA dari YouTube • Like/Share: Tidak tersedia tanpa YouTube Data API v3 (memerlukan OAuth)`
+        : `⚠️ Tidak ada video ditemukan untuk entitas "${focusedKeywords}" dalam 7 hari terakhir`,
       directSearchUrl: ytVideo ? ytVideo.url : socialLinks.youtubeDirect,
       backupDorkUrl: socialLinks.youtubeDirect,
-      mediaBadge: ytVideo?.isFreshRecent ? 'LIPUTAN BARU (YOUTUBE)' : 'VIDEO TERVERIFIKASI',
+      mediaBadge: ytVideo?.isFreshRecent ? 'LIPUTAN BARU (YOUTUBE)' : 'PENCARIAN YOUTUBE',
       thumbnailUrl: ytVideo?.thumbnailUrl,
-      isLiveHarvested: Boolean(ytVideo)
+      isLiveHarvested: Boolean(ytVideo),
+      hasRealData: Boolean(ytVideo),
+      realCommentCount: harvestedData?.comments?.filter(c => c.platform === 'YOUTUBE').length || 0
     },
 
-    // 2. X (Twitter Discussion) dengan Dual Gateway & Kueri Entitas Murni
+    // 2. X (Twitter) — TIDAK ada API publik gratis. Tampilkan gateway penelusuran jujur.
     {
       platform: 'TWITTER',
-      platformLabel: 'X (Twitter Thread & Cuitan)',
+      platformLabel: 'X (Twitter)',
       accentColor: '#1DA1F2',
-      authorHandle: `@diskusi_${focusedKeywords.split(' ')[0]?.toLowerCase() || 'rakyat'}`,
-      authorDisplayName: 'Diskusi Linimasa X (Twitter)',
-      accountMeta: 'Trending Tagar ID • Dinamika Opini Publik',
+      authorHandle: '—',
+      authorDisplayName: 'Gateway Penelusuran X (Twitter)',
+      accountMeta: 'Data langsung tidak tersedia — API X memerlukan langganan berbayar',
       avatarColor: '#1DA1F2',
-      captionText: `🚨 PANTAUAN OPINI: Diskusi hangat seputar topik "${focusedKeywords}". Perhatikan pembentukan opini, cuitan pro/kontra, dan indikasi amplifikasi narasi di linimasa.`,
-      hashtags: [`#${focusedKeywords.replace(/\s+/g, '')}`, `#KawalIsu`, `#OpiniNetizen`],
+      captionText: `📌 PENELUSURAN MANDIRI DIPERLUKAN\n\nX (Twitter) menutup akses API publik gratis sejak 2023. NARADA tidak dapat menarik tweet, like, retweet, atau reply secara otomatis tanpa API key berbayar ($100+/bulan).\n\nGunakan tombol di bawah untuk menelusuri diskusi langsung di platform X dengan kueri entitas: "${focusedKeywords}".`,
+      hashtags: [],
       metrics: {
-        viewsOrPlays: `Kueri Entitas: "${focusedKeywords}"`,
-        likesOrFavs: 'Filter: 24 Jam Terakhir',
-        sharesOrForwards: 'Status: Live Query',
-        commentsCount: 'Linimasa Aktif'
+        viewsOrPlays: null,
+        likesOrFavs: null,
+        sharesOrForwards: null,
+        commentsCount: null
       },
+      dataAvailabilityNote: `❌ Data tidak tersedia — X API v2 memerlukan Basic/Pro plan ($100-500/bulan). NARADA menggunakan arsitektur zero-cost. Penelusuran manual via link di bawah.`,
       directSearchUrl: socialLinks.twitterDirect,
       backupDorkUrl: socialLinks.twitterDork,
-      specialTag: '⚡ Cuitan Terkini (Live Feed)',
-      mediaBadge: 'THREAT VECTOR (X)'
+      specialTag: '⚠️ Penelusuran Manual',
+      mediaBadge: 'GATEWAY X (MANUAL)',
+      hasRealData: false,
+      realCommentCount: 0
     },
 
-    // 3. TikTok (Video Pendek FYP) dengan Focused Keyword & Google Dork 7 Hari
+    // 3. TikTok — Tidak ada API publik. Tampilkan gateway penelusuran jujur.
     {
       platform: 'TIKTOK',
-      platformLabel: 'TikTok Video (VT Pendek)',
+      platformLabel: 'TikTok',
       accentColor: '#00F2FE',
-      authorHandle: `@info_viral_${Math.floor(10 + Math.random() * 89)}`,
-      authorDisplayName: 'Warganet FYP Indonesia',
-      accountMeta: 'Video Pendek • Algoritma FYP',
+      authorHandle: '—',
+      authorDisplayName: 'Gateway Penelusuran TikTok',
+      accountMeta: 'Data langsung tidak tersedia — TikTok API memerlukan approval resmi',
       avatarColor: '#00F2FE',
-      captionText: `Sorotan video pendek yang beredar di TikTok seputar entitas "${focusedKeywords}". Selalu bandingkan isi video dengan rujukan resmi otoritas sebelum menyimpulkan.`,
-      hashtags: [`#fyp`, `#beritatiktok`, `#${focusedKeywords.split(' ')[0]?.toLowerCase() || 'viral'}`],
+      captionText: `📌 PENELUSURAN MANDIRI DIPERLUKAN\n\nTikTok tidak menyediakan API publik untuk menarik video, like, share, atau komentar tanpa persetujuan resmi dari TikTok Developer Program (proses berbulan-bulan, belum tentu disetujui).\n\nGunakan tombol di bawah untuk menelusuri video TikTok terkait entitas: "${focusedKeywords}" secara langsung di platform.`,
+      hashtags: [],
       metrics: {
-        viewsOrPlays: `Kueri Entitas: "${focusedKeywords}"`,
-        likesOrFavs: 'Filter: 7 Hari Terakhir',
-        sharesOrForwards: 'Algoritma: FYP',
-        commentsCount: 'Siap Ditelusuri'
+        viewsOrPlays: null,
+        likesOrFavs: null,
+        sharesOrForwards: null,
+        commentsCount: null
       },
+      dataAvailabilityNote: `❌ Data tidak tersedia — TikTok Developer API memerlukan persetujuan resmi. Penelusuran manual via link di bawah menggunakan kueri entitas murni.`,
       directSearchUrl: socialLinks.tiktokDirect,
       backupDorkUrl: socialLinks.tiktokDork,
-      specialTag: '🔥 FYP Algorithm',
-      mediaBadge: 'VIDEO VERTIKAL (TIKTOK)'
+      specialTag: '⚠️ Penelusuran Manual',
+      mediaBadge: 'GATEWAY TIKTOK (MANUAL)',
+      hasRealData: false,
+      realCommentCount: 0
     },
 
-    // 4. Portal Berita / Canonical News Report
+    // 4. Portal Berita / Canonical News Report — data dari Google News RSS (NYATA)
     {
       platform: 'NEWS',
-      platformLabel: relatedNews[0]?.publisher || (entry.sourceUrl?.includes('turnbackhoax') ? 'Mafindo Fact-Check Archive' : 'Portal Berita Terverifikasi'),
+      platformLabel: relatedNews[0]?.publisher || 'Portal Berita Terverifikasi',
       accentColor: '#10B981',
-      authorHandle: relatedNews[0]?.publisher || entry.officialSource || 'Rujukan Resmi Otoritas',
-      authorDisplayName: entry.originalPlatform || 'Portal Jurnalistik Nasional',
-      accountMeta: 'Arsip Jurnalisme & Dokumen Resmi',
+      authorHandle: relatedNews[0]?.publisher || 'Pers Nasional',
+      authorDisplayName: relatedNews[0]?.publisher || 'Portal Jurnalistik Nasional',
+      accountMeta: relatedNews[0]
+        ? `Diterbitkan: ${formatMilitaryDateTime(relatedNews[0].publishedDate)}`
+        : 'Tidak ada berita terkini ditemukan',
       avatarColor: '#10B981',
       captionText: relatedNews[0]
-        ? `Laporan jurnalistik pers: "${relatedNews[0].title}". Diterbitkan oleh ${relatedNews[0].publisher}. Gunakan artikel ini sebagai rujukan verifikasi silang.`
-        : `Informasi dan penelusuran fakta terdaftar untuk klaim: "${claim}". Hubungi pihak berwenang untuk konfirmasi rujukan A1.`,
-      hashtags: ['#CekFakta', '#VerifikasiResmi', '#JurnalismeData'],
+        ? `📰 LIPUTAN PERS TERVERIFIKASI:\n\n"${relatedNews[0].title}"\n\nDiterbitkan oleh: ${relatedNews[0].publisher}\nWaktu: ${relatedNews[0].publishedDate}\n\nData dari Google News RSS feed resmi. Klik tombol untuk membaca artikel lengkap.`
+        : `Tidak ada artikel berita terkini ditemukan untuk topik "${focusedKeywords}" dalam 2 hari terakhir di Google News.`,
+      hashtags: relatedNews.length > 0
+        ? ['#BeritaVerifikasi', '#JurnalismeData', '#CekFakta']
+        : [],
       metrics: {
-        viewsOrPlays: `Penerbit: ${relatedNews[0]?.publisher || 'Pers Nasional'}`,
-        likesOrFavs: 'Integritas: Terverifikasi',
-        sharesOrForwards: `Waktu: ${relatedNews[0]?.publishedDate ? formatMilitaryDateTime(relatedNews[0].publishedDate) : 'Hari ini'}`,
-        commentsCount: 'Liputan Pers A1'
+        viewsOrPlays: relatedNews.length > 0 ? `${relatedNews.length} artikel terpanen` : null,
+        // Portal berita tidak mengekspos view/like count via RSS
+        likesOrFavs: null,
+        sharesOrForwards: null,
+        commentsCount: null
       },
+      dataAvailabilityNote: relatedNews.length > 0
+        ? `✅ ${relatedNews.length} artikel dari Google News RSS (data nyata) • Judul, publisher, tanggal: NYATA • View/Like/Share: tidak tersedia via RSS`
+        : `⚠️ Tidak ada berita ditemukan untuk "${focusedKeywords}" di Google News dalam 2 hari terakhir`,
       directSearchUrl: relatedNews[0]?.url || entry.sourceUrl || socialLinks.googleDork,
       backupDorkUrl: socialLinks.googleDork,
-      specialTag: '🛡️ Rujukan Jurnalistik Terverifikasi',
-      mediaBadge: 'CANONICAL REPORT'
+      specialTag: relatedNews.length > 0 ? '✅ Data Pers Terverifikasi' : '⚠️ Tidak Ada Data',
+      mediaBadge: relatedNews.length > 0 ? 'CANONICAL REPORT' : 'TIDAK ADA BERITA',
+      hasRealData: relatedNews.length > 0,
+      realCommentCount: 0
     }
   ]
 
@@ -271,7 +309,8 @@ export function generateSocialThreatDossier(
       intervalSeconds: interval,
       timestampFormatted: item.publishedRelative || `${accumulatedSeconds} detik lalu (jeda ${interval}s)`,
       content: item.content,
-      likes: item.likes || Math.floor(5 + Math.random() * 20),
+      // likes: hanya tampilkan jika data asli tersedia (likesIsReal), jangan pernah gunakan Math.random()
+      likes: (item as HarvestedSocialComment).likesIsReal ? item.likes : 0,
       sentiment: sent.label,
       triageCategory,
       isCopypasta: false,

@@ -21,6 +21,9 @@ export interface HarvestedSocialComment {
   publishedRelative: string
   platform: 'YOUTUBE' | 'TWITTER' | 'TIKTOK' | 'NEWS_QUOTE'
   likes: number
+  likesIsReal: boolean // true = angka asli dari API, false = tidak tersedia
+  sourceVideoUrl?: string // URL video asli komentar ini berasal
+  sourceVideoTitle?: string // judul video asli
 }
 
 export interface HarvestedVideoVector {
@@ -28,6 +31,9 @@ export interface HarvestedVideoVector {
   videoId: string
   channel: string
   views: string
+  viewsRaw: number | null // angka asli jika berhasil diparse, null jika tidak tersedia
+  likesCount: string | null // null = YouTube tidak ekspos like di search page (by design)
+  commentCountLabel: string | null // dari label search result jika tersedia
   published: string
   url: string
   thumbnailUrl: string
@@ -245,11 +251,22 @@ async function harvestYouTubeDiscussions(
     const publishedRelative = freshVr.publishedTimeText?.simpleText || 'Baru saja'
     const isFreshRecent = !publishedRelative.includes('bln') && !publishedRelative.includes('thn')
 
+    // Ekstrak views asli dan coba parse ke angka
+    const viewsRawStr = freshVr.viewCountText?.simpleText || ''
+    const viewsNumMatch = viewsRawStr.replace(/\./g, '').match(/(\d+)/)
+    const viewsRaw = viewsNumMatch ? parseInt(viewsNumMatch[1], 10) : null
+
     const video: HarvestedVideoVector = {
       title: freshVr.title?.runs?.[0]?.text || keywords,
       videoId,
       channel: freshVr.ownerText?.runs?.[0]?.text || 'Kanal Berita Terverifikasi',
-      views: freshVr.viewCountText?.simpleText || 'Liputan Terkini',
+      views: viewsRawStr || 'Tayangan tersedia',
+      viewsRaw,
+      // YouTube secara by-design TIDAK menampilkan like count di halaman search result
+      // Likes hanya tersedia via YouTube Data API v3 yang memerlukan OAuth key
+      // Jadi kita tampilkan null = tidak tersedia, bukan angka palsu
+      likesCount: null,
+      commentCountLabel: null,
       published: publishedRelative,
       url: `https://www.youtube.com/watch?v=${videoId}`,
       thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
@@ -323,9 +340,18 @@ async function harvestYouTubeDiscussions(
 
       commentEntities.forEach((ce: any, idx: number) => {
         const c = ce.payload?.commentEntityPayload
-        const author = c.author?.displayName || `@warganet_${idx + 1}`
+        const author = c.author?.displayName || `Warganet ${idx + 1}`
         const text = c.properties?.content?.content
         const pubTime = c.properties?.publishedTime || 'Baru saja'
+
+        // Ekstrak like count ASLI dari Innertube payload
+        // Innertube menyimpan like count di toolbar.likeButton.likeCount atau engagementToolbarSurfaceEntityPayload
+        const likeCountRaw = c.toolbar?.likeCountLiked?.content
+          || c.toolbar?.likeCountNotLiked?.content
+          || null
+        const realLikes = likeCountRaw
+          ? (parseInt(likeCountRaw.replace(/[^0-9]/g, ''), 10) || 0)
+          : -1 // -1 = tidak tersedia (bukan 0, supaya UI bisa bedakan)
 
         if (text && text.trim().length > 6) {
           comments.push({
@@ -335,7 +361,10 @@ async function harvestYouTubeDiscussions(
             content: text.replace(/\n+/g, ' ').trim(),
             publishedRelative: pubTime,
             platform: 'YOUTUBE',
-            likes: Math.floor(Math.random() * 45) + 1
+            likes: realLikes >= 0 ? realLikes : 0,
+            likesIsReal: realLikes >= 0,
+            sourceVideoUrl: `https://www.youtube.com/watch?v=${videoId}`,
+            sourceVideoTitle: video.title
           })
         }
       })
@@ -392,122 +421,31 @@ async function harvestGoogleNewsRelated(
 }
 
 /**
- * Komentar otentik warganet Indonesia sebagai cadangan pertahanan (High-Fidelity Corpus)
- * Hanya aktif jika lingkungan demo offline/airgap total
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ZERO DUMMY DATA POLICY — TIDAK ADA AKUN FIKTIF / KOMENTAR BUATAN
+ * ═══════════════════════════════════════════════════════════════════════════
+ * Fungsi ini sebelumnya menyuntikkan komentar buatan (@trisakti_bergerak,
+ * @garuda_patriot, dll.) sebagai "corpus cadangan". Kebijakan NARADA 2.0:
+ * 
+ * Jika YouTube Innertube TIDAK berhasil ditarik, HANYA kutipan laporan pers
+ * nyata dari Google News RSS yang ditampilkan, dengan label [BERITA PERS].
+ * Jika Google News RSS juga kosong, tampilkan state "TIDAK ADA DATA" yang
+ * jujur dan bisa diverifikasi — TIDAK boleh ada rekayasa data.
+ * ═══════════════════════════════════════════════════════════════════════════
  */
-function getRealisticDefenseCorpus(cluster: string, topic: string): HarvestedSocialComment[] {
-  const isMilitary = cluster === 'KEDAULATAN_MILITER'
-  const isFinance = cluster === 'PENIPUAN_BANSOS' || topic.toLowerCase().includes('saham') || topic.toLowerCase().includes('investor')
-  const isDemo = topic.toLowerCase().includes('demo') || topic.toLowerCase().includes('unjuk rasa') || topic.toLowerCase().includes('mahasiswa')
-  
-  if (isDemo) {
-    return [
-      {
-        id: 'CORPUS-DEMO-1',
-        authorName: 'Suara Trisakti',
-        authorHandle: '@trisakti_bergerak',
-        content: `Massa aksi mahasiswa tetap tertib suarakan aspirasi di Patung Kuda. Tolong pihak aparat dan satpam fasilitas umum saling jaga kondusivitas.`,
-        publishedRelative: '1 jam lalu',
-        platform: 'TWITTER',
-        likes: 124
-      },
-      {
-        id: 'CORPUS-DEMO-2',
-        authorName: 'Warga Jakarta Pusat',
-        authorHandle: '@warga_jakpus_real',
-        content: `Jalur menuju Istana dan Monas dialihkan sementara. Buat pengguna jalan harap hindari kawasan Medan Merdeka Barat sampai sore ini.`,
-        publishedRelative: '2 jam lalu',
-        platform: 'NEWS_QUOTE',
-        likes: 56
-      },
-      {
-        id: 'CORPUS-DEMO-3',
-        authorName: 'Hendy Kurniawan',
-        authorHandle: '@hendykurnia',
-        content: `Aksi damai mahasiswa adalah hak konstitusi. Yang penting jangan sampai disusupi provokator yang mau bikin kericuhan anarkis.`,
-        publishedRelative: '3 jam lalu',
-        platform: 'YOUTUBE',
-        likes: 82
-      }
-    ]
-  }
-
-  if (isFinance) {
-    return [
-      {
-        id: 'CORPUS-1',
-        authorName: 'Investor Papua Cerdas',
-        authorHandle: '@investor_papua',
-        content: `Hati-hati buat rekan-rekan di daerah, sekarang marak penawaran saham gorengan dan manipulasi pasar modal. Pastikan selalu cek izin resmi di OJK dan BEI sebelum setor dana!`,
-        publishedRelative: '15 menit lalu',
-        platform: 'TWITTER',
-        likes: 24
-      },
-      {
-        id: 'CORPUS-2',
-        authorName: 'Rudi Tabuni',
-        authorHandle: '@ruditabuni_99',
-        content: `Baguslah kalau BEI dan pihak berwenang langsung turun tangan kasih peringatan dini. Jangan sampai masyarakat awam jadi korban spekulasi oknum tidak bertanggung jawab.`,
-        publishedRelative: '32 menit lalu',
-        platform: 'YOUTUBE',
-        likes: 18
-      },
-      {
-        id: 'CORPUS-3',
-        authorName: 'Analis Pasar Rakyat',
-        authorHandle: '@analis_rakyat',
-        content: `Manipulasi saham di daerah berkembang rawan disusupi narasi janji cuan kilat. Literasi keuangan masyarakat lokal memang harus diperkuat dari sekarang.`,
-        publishedRelative: '48 menit lalu',
-        platform: 'NEWS_QUOTE',
-        likes: 31
-      }
-    ]
-  }
-
-  if (isMilitary) {
-    return [
-      {
-        id: 'CORPUS-MIL-1',
-        authorName: 'Garuda Patriot ID',
-        authorHandle: '@garuda_patriot',
-        content: `Mari jaga persatuan dan kedaulatan NKRI. Jangan mudah terhasut potongan video editan yang sengaja disebar untuk melemahkan moril prajurit TNI di garis depan!`,
-        publishedRelative: '10 menit lalu',
-        platform: 'TWITTER',
-        likes: 42
-      },
-      {
-        id: 'CORPUS-MIL-2',
-        authorName: 'Bambang Setyadi',
-        authorHandle: '@bambang_setyadi',
-        content: `TNI lahir dari rakyat dan untuk rakyat. Setiap narasi provokatif yang mencoba membenturkan aparat dengan warga harus segera diklarifikasi secara terbuka.`,
-        publishedRelative: '25 menit lalu',
-        platform: 'YOUTUBE',
-        likes: 29
-      }
-    ]
-  }
-
-  // Netizen Default
-  return [
-    {
-      id: 'CORPUS-GEN-1',
-      authorName: 'Warga Kritis 62',
-      authorHandle: '@warga_kritis62',
-      content: `Zaman sekarang informasi gampang banget dipelintir. Kalau ada isu panas, tunggu dulu rilis resmi dari instansi terkait, jangan langsung main repost dan bikin gaduh.`,
-      publishedRelative: '18 menit lalu',
-      platform: 'TWITTER',
-      likes: 33
-    },
-    {
-      id: 'CORPUS-GEN-2',
-      authorName: 'Dewi Lestari',
-      authorHandle: '@dewi_lestari_id',
-      content: `Saring sebelum sharing! Kebiasaan baca cuma judul bikin banyak orang salah paham. Ayo biasakan cek fakta di portal terverifikasi.`,
-      publishedRelative: '35 menit lalu',
-      platform: 'YOUTUBE',
-      likes: 21
-    }
-  ]
+function buildNewsQuoteComments(relatedNews: HarvestedNewsVector[]): HarvestedSocialComment[] {
+  return relatedNews.slice(0, 5).map((rn, idx) => ({
+    id: `PERS-TERVERIFIKASI-${idx + 1}`,
+    authorName: rn.publisher,
+    authorHandle: `@${rn.publisher.replace(/[^\w]/g, '_').toLowerCase().slice(0, 20)}`,
+    content: `[LAPORAN PERS TERVERIFIKASI] "${rn.title}" — Diterbitkan oleh ${rn.publisher}. Verifikasi langsung di sumber berita resmi.`,
+    publishedRelative: rn.publishedDate || 'Liputan Pers Resmi',
+    platform: 'NEWS_QUOTE' as const,
+    likes: 0,
+    likesIsReal: false, // Platform berita tidak punya like count publik seperti medsos
+    sourceVideoUrl: rn.url,
+    sourceVideoTitle: rn.title
+  }))
 }
 
 /**
@@ -517,7 +455,7 @@ function getRealisticDefenseCorpus(cluster: string, topic: string): HarvestedSoc
  */
 export async function harvestLiveSocialDiscussions(
   claim: string,
-  cluster = 'POLITIK_NEGARA',
+  _cluster = 'POLITIK_NEGARA',
   onStageUpdate?: (stage: number, stageName: string) => void
 ): Promise<LiveHarvestResult> {
   const startTime = Date.now()
@@ -557,20 +495,9 @@ export async function harvestLiveSocialDiscussions(
     isLive = true
     channel = 'YOUTUBE_INNERTUBE_LIVE'
   } else {
-    // Sintesis kutipan laporan pers nyata dari Google News RSS
-    const newsQuotes: HarvestedSocialComment[] = relatedNews.map((rn, idx) => ({
-      id: `NEWS-QUOTE-${idx + 1}-${Date.now().toString().slice(-4)}`,
-      authorName: rn.publisher,
-      authorHandle: `@pers_${rn.publisher.replace(/[^\w]/g, '_').toLowerCase()}`,
-      content: `Laporan pers: "${rn.title}". Diterbitkan resmi oleh ${rn.publisher}. Gunakan sebagai rujukan silang fakta.`,
-      publishedRelative: rn.publishedDate || 'Liputan Pers Terverifikasi',
-      platform: 'NEWS_QUOTE' as const,
-      likes: 35 + idx * 12
-    }))
-
-    // Gunakan cadangan otentik warganet sesuai klaster dan isu
-    const corpusComments = getRealisticDefenseCorpus(cluster, claim)
-    finalComments = [...newsQuotes, ...corpusComments]
+    // Sintesis kutipan laporan pers nyata dari Google News RSS (TANPA corpus fiktif)
+    const newsQuotes = buildNewsQuoteComments(relatedNews)
+    finalComments = newsQuotes
     isLive = relatedNews.length > 0
     channel = relatedNews.length > 0 ? 'GOOGLE_NEWS_LIVE' : 'CACHED_INTELLIGENCE'
   }
