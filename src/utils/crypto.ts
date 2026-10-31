@@ -25,6 +25,12 @@ export async function generateSHA256(text: string): Promise<string> {
  * Software implementation fallback untuk SHA-256 murni
  */
 export function fallbackSHA256(ascii: string): string {
+  try {
+    ascii = unescape(encodeURIComponent(ascii))
+  } catch {
+    // Abaikan jika sudah dalam bentuk byte stream
+  }
+
   function rightRotate(value: number, amount: number) {
     return (value >>> amount) | (value << (32 - amount))
   }

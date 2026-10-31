@@ -32,10 +32,10 @@ import {
   calculateJaccardSimilarity,
   type CopypastaCluster,
   type CommentInput
-} from './forensic/jaccard-matrix'
-import { analyzeSentiment } from './forensic/sentiment-engine'
-import { extractSmartEntities } from './ingest/live-osint-harvester'
-import { fallbackSHA256 } from '../utils/crypto'
+} from './forensic/jaccard-matrix.ts'
+import { analyzeSentiment } from './forensic/sentiment-engine.ts'
+import { extractSmartEntities } from './ingest/live-osint-harvester.ts'
+import { fallbackSHA256 } from '../utils/crypto.ts'
 
 export type EvidenceMode = 'LIVE_REFERENCE' | 'USER_SUBMITTED' | 'SYNTHETIC_BENCHMARK'
 
