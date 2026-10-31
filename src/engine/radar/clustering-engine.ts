@@ -388,10 +388,12 @@ export function clusterEventPublications(
       assignedCluster.members.push(item)
       assignedCluster.matchReasons.add(primaryReason)
 
-      // Utamakan item yang memiliki tanggal publikasi paling terverifikasi atau dari fact-check sebagai leadItem
-      if (item.sourceType === 'fact_check' && assignedCluster.leadItem.sourceType !== 'fact_check') {
+      // SPRINT 5 (WP5): Utamakan publikasi berita pelaporan sebagai leadItem agar klaster tidak terkontaminasi vonis cek fakta
+      if (assignedCluster.leadItem.sourceType === 'fact_check' && item.sourceType !== 'fact_check') {
         assignedCluster.leadItem = item
         assignedCluster.category = item.category
+      } else if (item.publishedAt && assignedCluster.leadItem.publishedAt && item.publishedAt < assignedCluster.leadItem.publishedAt && item.sourceType !== 'fact_check') {
+        assignedCluster.leadItem = item
       }
     } else {
       // Periksa apakah cocok dengan existingClusters dari cache/sesi sebelumnya untuk kestabilan ID
@@ -406,12 +408,13 @@ export function clusterEventPublications(
       }
 
       // Buat cluster baru yang stabil
-      const clusterId = existingClusterId || `CLUST-${item.category.slice(0, 4)}-${createContentFingerprint(item.title)}`
+      const cat = item.category || (item as any).threatSpectrumCluster || 'UMUM'
+      const clusterId = existingClusterId || `CLUST-${cat.slice(0, 4)}-${createContentFingerprint(item.title)}`
       clusters.push({
         id: clusterId,
         members: [item],
         matchReasons: new Set(['Publikasi sumber utama']),
-        category: item.category,
+        category: cat as any,
         leadItem: item,
         candidateMembers: [],
         rejectedCandidates: []

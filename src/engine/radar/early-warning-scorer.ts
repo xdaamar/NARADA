@@ -20,7 +20,6 @@ import type { DebunkKnowledgeEntry, ThreatLevel } from '../../types.ts'
 import { analyzeSentiment } from '../forensic/sentiment-engine.ts'
 import { evaluateContextRelevance, evaluateMetadataTransparency } from './radar-assessment.ts'
 import { parseSourceDate, evaluateFreshness } from './freshness-engine.ts'
-import { extractSubstantiveTokens, calculateJaccardSimilarity } from './clustering-engine.ts'
 import { evaluateClaimFirewall } from './claim-firewall.ts'
 import type { ClaimMatchCandidate } from './radar-types.ts'
 
@@ -240,7 +239,7 @@ export function computeEarlyWarningScore(
   }
 
   // 4. Cross-Matching Cek Fakta dengan Pangkalan Data Resmi (MAFINDO)
-  // Penerapan Claim vs Publication Semantic Firewall (Package 3 - Sprint 1C)
+  // Penerapan Claim vs Publication Semantic Firewall (Sprint 5 WP1 & WP2)
   let matchedDebunkId: string | undefined = undefined
   let triageStatus: RadarTriageStatus = item.verdict as RadarTriageStatus
   const extraReasonCodes: string[] = []
@@ -255,64 +254,71 @@ export function computeEarlyWarningScore(
     matchedDebunkId = claimEvaluation.matchedReference.referenceId
   }
 
-  // Jika publikasi adalah artikel cek fakta resmi (TurnBackHoax)
+  // Kasus A: Publikasi adalah artikel cek fakta resmi (TurnBackHoax)
   if (item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA') {
     triageStatus = 'HOAKS'
+    extraReasonCodes.push('VERIFIED_FACT_CHECK_SOURCE')
   } else if (item.verdict === 'FAKTA') {
     triageStatus = 'FAKTA'
+    extraReasonCodes.push('OFFICIAL_FACT_VERIFIED')
   } else if (claimEvaluation.stance === 'DEBUNKING_HOAX') {
-    // FIREWALL: Artikel membantah/meluruskan hoaks TIDAK BOLEH dicap sebagai HOAKS!
+    // FIREWALL: Artikel pers yang meluruskan / mengklarifikasi hoaks TIDAK BOLEH divonis sebagai HOAKS!
     triageStatus = 'NETRAL'
     extraReasonCodes.push('PUBLICATION_DEBUNKS_CLAIM', 'FIREWALL_PROTECTED_NOT_HOAX')
-  } else if (claimEvaluation.stance === 'REPORTING_CIVIL') {
-    // FIREWALL: Berita jurnalistik yang melaporkan peristiwa dilindungi dari cap hoaks otomatis
-    triageStatus = 'NETRAL'
-    extraReasonCodes.push('CIVIL_REPORTING_PRESERVED')
-  } else if (item.verdict === 'UNVERIFIED' && knownDebunks.length > 0) {
-    const itemTokens = extractSubstantiveTokens(item.claim)
-    
-    for (const known of knownDebunks) {
-      if (known.id === item.id) continue
-      if (known.verdict !== 'HOAKS' && known.verdict !== 'DISINFORMASI') continue
-
-      const knownTokens = extractSubstantiveTokens(known.claim)
-      const similarity = calculateJaccardSimilarity(itemTokens, knownTokens)
-
-      const setItem = new Set(itemTokens)
-      const setKnown = new Set(knownTokens)
-      let sharedCount = 0
-      setItem.forEach(t => { if (setKnown.has(t)) sharedCount++ })
-      const minTokens = Math.min(setItem.size, setKnown.size)
-      const overlapRatio = minTokens > 0 ? sharedCount / minTokens : 0
-
-      // Syarat ketat terverifikasi: Jaccard >= 0.45 ATAU overlap klaim substantif >= 0.60 dengan min 4 kata bersama
-      if (similarity >= 0.45 || (sharedCount >= 4 && overlapRatio >= 0.60)) {
-        if (item.cluster === 'PENIPUAN_BANSOS' || (item.keywords && item.keywords.includes('palsu'))) {
-          triageStatus = 'HOAKS'
-          matchedDebunkId = known.id
-          break
-        } else {
-          triageStatus = 'UNVERIFIED'
-          matchedDebunkId = known.id
-          extraReasonCodes.push('CLAIM_MATCH_REVIEW_REQUIRED')
-          break
-        }
+  } else if (claimEvaluation.matchStatus === 'FACT_CHECK_REFERENCE_FOUND' && claimEvaluation.matchedReference) {
+    // Jika ada referensi cek fakta yang cocok kuat dengan klaim publikasi
+    if (claimEvaluation.matchedReference.verdict === 'HOAKS' || claimEvaluation.matchedReference.verdict === 'DISINFORMASI') {
+      if (claimEvaluation.stance === 'REPORTING_CIVIL') {
+        // FIREWALL: Berita jurnalistik yang melaporkan kasus/penyelidikan hoaks BUKAN hoaks!
+        triageStatus = 'NETRAL'
+        extraReasonCodes.push('CIVIL_REPORTING_PRESERVED', 'MATCHED_KNOWN_HOAX_CONTEXT')
+      } else {
+        triageStatus = 'HOAKS'
+        extraReasonCodes.push('MATCHED_KNOWN_HOAX')
       }
-    }
-  }
-
-  if (!triageStatus || triageStatus === 'UNVERIFIED') {
-    if (S <= 35 && E <= 40) {
-      triageStatus = 'NETRAL'
+    } else if (claimEvaluation.matchedReference.verdict === 'FAKTA') {
+      triageStatus = 'FAKTA'
+      extraReasonCodes.push('MATCHED_KNOWN_FACT')
     } else {
-      triageStatus = 'NETRAL' // Default netral jika tidak ada bukti hoaks (Package 5)
+      triageStatus = 'UNVERIFIED'
+      extraReasonCodes.push('CLAIM_MATCH_REVIEW_REQUIRED')
     }
+  } else if (claimEvaluation.matchStatus === 'CLAIM_MATCH_REVIEW_REQUIRED') {
+    triageStatus = 'UNVERIFIED'
+    extraReasonCodes.push('CLAIM_MATCH_REVIEW_REQUIRED')
+  } else if (claimEvaluation.matchStatus === 'INSUFFICIENT_CONTEXT') {
+    // Teks tidak memuat proposisi yang cukup untuk ditelaah
+    triageStatus = 'NETRAL'
+    extraReasonCodes.push('INSUFFICIENT_CONTEXT', 'NO_CHECKABLE_CLAIM')
+  } else if (contextRelevance.reasonCodes.includes('PUBLIC_DEMONSTRATION_MONITORING') || extraReasonCodes.includes('PUBLIC_DEMONSTRATION_MONITORING')) {
+    // Unjuk rasa dan penyampaian aspirasi publik adalah hak sipil demokratis, bukan ancaman ataupun klaim hoaks
+    triageStatus = 'NETRAL'
+    extraReasonCodes.push('CIVIL_DEMOCRACY_NON_THREAT')
+  } else if (
+    fullText.toLowerCase().includes('kritik') ||
+    fullText.toLowerCase().includes('mengkritisi') ||
+    fullText.toLowerCase().includes('mengeluh') ||
+    fullText.toLowerCase().includes('keluhan') ||
+    fullText.toLowerCase().includes('keluh') ||
+    fullText.toLowerCase().includes('pengamat') ||
+    fullText.toLowerCase().includes('opini')
+  ) {
+    // Aspirasi, keluhan ekonomi warga, atau kritik opini pengamat bukan merupakan ancaman disinformasi/hoaks
+    triageStatus = 'NETRAL'
+    extraReasonCodes.push('CIVIL_OPINION_OR_CRITICISM_NON_THREAT')
+  } else {
+    // SPRINT 5 (WP1): Klaim faktual yang belum memiliki bukti pembanding yang cukup TETAP UNVERIFIED!
+    // Tidak boleh ditimpa ke NETRAL secara default (Zero False Certainty).
+    triageStatus = 'UNVERIFIED'
+    extraReasonCodes.push('UNVERIFIED_CLAIM_MONITORING')
   }
 
   // Rekomendasi Alur Tindakan
   let strategicAdvice = 'Pantauan rutin: Narasi umum terkendali dalam batas wajar.'
   if (triageStatus === 'HOAKS') {
     strategicAdvice = 'ATENSI DISPENAD: Disinformasi terverifikasi. Siapkan materi klarifikasi resmi agar persepsi publik tidak terdistorsi.'
+  } else if (triageStatus === 'UNVERIFIED') {
+    strategicAdvice = 'SEDANG DIPANTAU: Klaim faktual belum terverifikasi rujukan resmi. Lakukan verifikasi silang dan pantau dinamika opini.'
   } else if (alertLevel === 'SIAGA_KRITIS') {
     strategicAdvice = 'PRIORITAS TELAAH TINGGI: Isu breaking terkini dengan relevansi konteks tinggi. Lakukan pemantauan perkembangan narasi.'
   } else if (alertLevel === 'ATENSI_INTELIJEN') {
@@ -354,10 +360,19 @@ export function scoreAndTriageRadarEntries(
     else if (scoreResult.alertLevel === 'ATENSI_INTELIJEN') threatLevel = 'high'
     else threatLevel = 'medium'
 
+    const queueState: 'MONITOR' | 'RESOLVED' | 'EXCLUDED' = 
+      scoreResult.triageStatus === 'UNVERIFIED' 
+        ? 'MONITOR' 
+        : scoreResult.reasonCodes?.includes('INSUFFICIENT_CONTEXT')
+        ? 'EXCLUDED'
+        : 'RESOLVED'
+
     return {
       ...item,
       verdict: scoreResult.triageStatus,
+      triageStatus: scoreResult.triageStatus,
       threatLevel,
+      queueState,
       cognitiveScore: scoreResult.threatIndex,
       tacticalResponseMilitary: scoreResult.strategicAdvice,
       claimAssessment: scoreResult.claimMatchCandidate,

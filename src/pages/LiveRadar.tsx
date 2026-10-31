@@ -32,7 +32,6 @@ import { radarScheduler } from '../engine/scheduler/radar-scheduler.ts'
 import { getCachedRadarItems, deleteRadarItemFromDB, clearRadarCacheDB } from '../utils/db-adapter.ts'
 import { 
   getTacticalBriefingSummary, 
-  scoreAndTriageRadarEntries, 
   type TacticalBriefingSummary,
   type RadarTriageStatus 
 } from '../engine/radar/early-warning-scorer.ts'
@@ -98,9 +97,9 @@ export default function LiveRadar() {
     try {
       const entries = await radarScheduler.triggerNow()
       if (entries && entries.length > 0) {
-        const triaged = scoreAndTriageRadarEntries(entries)
-        setDebunkItems(triaged)
-        const summary = getTacticalBriefingSummary(triaged)
+        // SPRINT 5 (WP6): Konsumsi hasil asesmen kanonikal dari service layer tanpa rescore ulang di UI!
+        setDebunkItems(entries)
+        const summary = getTacticalBriefingSummary(entries)
         setBriefingSummary(summary)
       }
       const status = radarScheduler.getStatus()
@@ -122,9 +121,9 @@ export default function LiveRadar() {
     getCachedRadarItems()
       .then((cached) => {
         if (cached && cached.length > 0) {
-          const triaged = scoreAndTriageRadarEntries(cached)
-          setDebunkItems(triaged)
-          const summary = getTacticalBriefingSummary(triaged)
+          // SPRINT 5 (WP6): Gunakan entri cache kanonikal langsung tanpa memicu scoring ulang
+          setDebunkItems(cached)
+          const summary = getTacticalBriefingSummary(cached)
           setBriefingSummary(summary)
 
           // Cek apakah briefing sudah dilihat sesi ini
@@ -147,9 +146,9 @@ export default function LiveRadar() {
     radarScheduler.setIntervalHours(syncIntervalHours)
 
     const unsubscribe = radarScheduler.addListener((newEntries) => {
-      const triaged = scoreAndTriageRadarEntries(newEntries)
-      setDebunkItems(triaged)
-      const summary = getTacticalBriefingSummary(triaged)
+      // SPRINT 5 (WP6): Sinkronkan data terasemen tanpa kalkulasi ganda
+      setDebunkItems(newEntries)
+      const summary = getTacticalBriefingSummary(newEntries)
       setBriefingSummary(summary)
       const now = new Date()
       setLastSyncTime(
@@ -180,7 +179,12 @@ export default function LiveRadar() {
       const detail = (e as CustomEvent<{ id: string; status: string }>).detail
       if (detail?.id && detail?.status) {
         setDebunkItems((prev) =>
-          prev.map((it) => (it.id === detail.id ? { ...it, triageStatus: detail.status as any } : it))
+          prev.map((it) => (it.id === detail.id ? {
+            ...it,
+            triageStatus: detail.status as any,
+            verdict: detail.status as any,
+            queueState: (detail.status === 'UNVERIFIED' ? 'MONITOR' : 'RESOLVED') as any
+          } : it))
         )
       }
     }
@@ -248,11 +252,20 @@ export default function LiveRadar() {
   const filteredItems = useMemo(() => {
     return debunkItems.filter(item => {
       const matchCluster = selectedCluster === 'ALL' || item.cluster === selectedCluster
+      const isHoaks = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA'
+      const isResolved = item.verdict === 'FAKTA' || item.verdict === 'NETRAL'
+      const isUnverified = item.verdict === 'UNVERIFIED' || item.triageStatus === 'UNVERIFIED' || item.queueState === 'MONITOR' || (!isHoaks && !isResolved)
+
       const matchTriage = selectedTriage === 'ALL' 
         ? true 
         : selectedTriage === 'RESOLVED' 
-        ? (item.verdict === 'FAKTA' || item.verdict === 'NETRAL')
+        ? isResolved
+        : selectedTriage === 'HOAKS'
+        ? isHoaks
+        : selectedTriage === 'UNVERIFIED'
+        ? isUnverified
         : item.verdict === selectedTriage
+
       const query = searchQuery.trim().toLowerCase()
       const matchQuery = !query || 
         item.claim.toLowerCase().includes(query) ||
@@ -549,7 +562,14 @@ export default function LiveRadar() {
             const statusLabel = isHealthy ? 'ONLINE' : isConnecting ? 'CONNECTING' : isDegraded ? 'PROXY' : isRateLimited ? 'RATE_LIMIT' : isStale ? 'CACHE' : isUnknown ? 'IDLE' : 'OFFLINE'
             
             const lastSuccessStr = ch.lastSuccessAt ? new Date(ch.lastSuccessAt).toLocaleTimeString('id-ID') : 'Belum Ada'
-            const tooltipText = `${ch.sourceName}\nStatus: ${ch.state}\nKeterangan: ${ch.userReadableMessage}\nLatensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nTerakhir Sukses: ${lastSuccessStr}\nKegagalan Beruntun: ${ch.consecutiveFailures || 0}`
+            const httpStatusStr = ch.httpStatus ? `HTTP Status: ${ch.httpStatus}\n` : ''
+            const tooltipText = `${ch.sourceName}\nStatus: ${ch.state}\n${httpStatusStr}Keterangan: ${ch.userReadableMessage}\nLatensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nTerakhir Sukses: ${lastSuccessStr}\nKegagalan Beruntun: ${ch.consecutiveFailures || 0}`
+
+            const displayName = (ch as any).shortLabel || (
+              ch.sourceName.includes('—')
+                ? 'G-News · ' + ch.sourceName.split('—')[1].split('(')[0].trim()
+                : ch.sourceName.replace('Google Trends Indonesia (Search Interest)', 'Google Trends ID').split('(')[0].trim()
+            )
 
             return (
               <div
@@ -573,7 +593,7 @@ export default function LiveRadar() {
                   background: dotColor,
                   boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none'
                 }} />
-                <span style={{ fontWeight: 700, color: '#F1F5F9' }}>{ch.sourceName.split('—')[0].replace('Google News', 'G-News').split('(')[0].trim()}</span>
+                <span style={{ fontWeight: 700, color: '#F1F5F9' }}>{displayName}</span>
                 <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
                 {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
                   <span style={{ color: '#64748B' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
@@ -896,11 +916,11 @@ export default function LiveRadar() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94A3B8' }}>
                       <Clock size={10} color="#38BDF8" />
-                      <span>DITANGKAP: <strong style={{ color: '#E2E8F0' }}>{item.interceptedAt || 'Baru saja'}</strong></span>
+                      <span>DITANGKAP: <strong style={{ color: item.interceptedAt ? '#E2E8F0' : '#64748B' }}>{item.interceptedAt || (item.isLive ? 'Baru saja' : 'Belum ada data')}</strong></span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94A3B8' }}>
                       <ShieldCheck size={10} color="#10B981" />
-                      <span>TERBIT SUMBER: <strong style={{ color: item.publishedDate && item.publishedDate !== 'Waktu Publikasi Tidak Tersedia' ? '#10B981' : '#64748B' }}>{item.publishedDate || 'Waktu Tidak Tersedia'}</strong></span>
+                      <span>TERBIT SUMBER: <strong style={{ color: item.publishedDate && item.publishedDate !== 'Waktu Publikasi Tidak Tersedia' ? '#10B981' : '#64748B' }}>{item.publishedDate || 'Tanggal tidak tersedia'}</strong></span>
                     </div>
                   </div>
 
@@ -1185,7 +1205,7 @@ export default function LiveRadar() {
                   {/* Tanggal & Jam Terbit Presisi */}
                   <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Clock size={11} color="#94A3B8" />
-                    <span style={{ color: '#94A3B8' }}>{item.publishedDate || '27 Okt 2026, 14:22 WIB'}</span>
+                    <span style={{ color: '#94A3B8' }}>{item.publishedDate || 'Tanggal tidak tersedia'}</span>
                   </div>
 
                   {/* Tombol Aksi Operator: Hapus Isu & Tri-State Command Button */}

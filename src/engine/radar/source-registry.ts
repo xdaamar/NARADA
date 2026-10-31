@@ -26,10 +26,11 @@ export const ACTIVE_RADAR_SOURCES: SourceDefinition[] = [
   {
     id: 'src-tbh',
     displayName: 'TurnBackHoax (MAFINDO)',
+    shortLabel: 'TurnBackHoax',
     sourceType: 'fact_check',
     outputType: 'PUBLICATION',
     feedUrl: '/api/rss/turnbackhoax',
-    directUrl: 'https://turnbackhoax.id/feed/',
+    directUrl: 'https://turnbackhoax.id/feed',
     category: 'PENIPUAN_BANSOS', // Default category, override dinamis saat klasifikasi item
     enabled: true,
     attributionLabel: 'TurnBackHoax.ID / Masyarakat Anti Fitnah Indonesia (MAFINDO)',
@@ -39,6 +40,7 @@ export const ACTIVE_RADAR_SOURCES: SourceDefinition[] = [
   {
     id: 'src-gnews-hankam',
     displayName: 'Google News — Hankam & TNI',
+    shortLabel: 'G-News · Hankam/TNI',
     sourceType: 'rss',
     outputType: 'PUBLICATION',
     feedUrl: '/api/rss/google-news/search?q=(TNI+OR+alutsista+OR+Papua+OR+KKB+OR+Ambalat+OR+kapal+perang)+AND+(viral+OR+heboh+OR+polemik+OR+kontroversi+OR+hoaks)+when:2d&hl=id&gl=ID&ceid=ID:id',
@@ -52,6 +54,7 @@ export const ACTIVE_RADAR_SOURCES: SourceDefinition[] = [
   {
     id: 'src-gnews-demo',
     displayName: 'Google News — Aksi Massa & Unjuk Rasa',
+    shortLabel: 'G-News · Aksi Massa',
     sourceType: 'rss',
     outputType: 'PUBLICATION',
     feedUrl: '/api/rss/google-news/search?q=(demo+OR+unjuk+rasa+OR+bentrok+OR+ricuh+OR+mahasiswa+OR+pemakzulan)+when:1d&hl=id&gl=ID&ceid=ID:id',
@@ -65,6 +68,7 @@ export const ACTIVE_RADAR_SOURCES: SourceDefinition[] = [
   {
     id: 'src-gnews-politik',
     displayName: 'Google News — Kebijakan & Dinamika Negara',
+    shortLabel: 'G-News · Kebijakan',
     sourceType: 'rss',
     outputType: 'PUBLICATION',
     feedUrl: '/api/rss/google-news/search?q=(Prabowo+OR+Gibran+OR+bansos+OR+MBG+OR+ijazah+OR+KPK)+AND+(viral+OR+heboh+OR+polemik+OR+sidang)+when:1d&hl=id&gl=ID&ceid=ID:id',
@@ -78,6 +82,7 @@ export const ACTIVE_RADAR_SOURCES: SourceDefinition[] = [
   {
     id: 'src-gtrends-id',
     displayName: 'Google Trends Indonesia (Search Interest)',
+    shortLabel: 'Google Trends ID',
     sourceType: 'search_trend',
     outputType: 'SEARCH_TREND_SIGNAL',
     feedUrl: '/api/rss/google-trends',

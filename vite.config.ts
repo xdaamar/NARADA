@@ -72,7 +72,7 @@ export default defineConfig({
         target: 'https://turnbackhoax.id',
         changeOrigin: true,
         secure: true,
-        rewrite: () => '/feed/'
+        rewrite: () => '/feed'
       },
       '/api/rss/google-news': {
         target: 'https://news.google.com',

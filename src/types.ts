@@ -100,6 +100,8 @@ export interface DebunkKnowledgeEntry {
   viralVelocity?: string         // Ringkasan kecepatan viral (e.g. "+50K pencarian dlm 3 jam")
   engagement?: EngagementMetrics  // Rincian kuantitatif metrik media sosial / viralitas
   triageStatus?: 'UNVERIFIED' | 'HOAKS' | 'FAKTA' | 'NETRAL'
+  queueState?: 'MONITOR' | 'RESOLVED' | 'EXCLUDED'
+  exclusionReason?: string
   threatScore?: number
   detectedAt?: string
   isBreakingRecent?: boolean

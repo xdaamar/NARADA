@@ -3985,5 +3985,115 @@
     ],
     "tacticalResponseCivilian": "Keluarga besar asrama militer hidup rukun dan guyub. Video viral yang disebarkan adalah potongan video perkelahian di luar negeri.",
     "tacticalResponseMilitary": "Kekompakan Prajurit: Jaga kekompakan, jiwa korsa positif, dan keteladanan prajurit dalam kehidupan bermasyarakat."
+  },
+  {
+    "id": "CLM-TERR-UNV-01",
+    "claim": "Patok batas darat di perbatasan RI-PNG bergeser sejauh 50 meter di pedalaman Sota",
+    "normalizedQuery": "patok batas darat ri png perbatasan bergeser 50 meter sota",
+    "cluster": "KEDAULATAN_MILITER",
+    "verdict": "UNVERIFIED",
+    "triageStatus": "UNVERIFIED",
+    "queueState": "MONITOR",
+    "threatLevel": "high",
+    "clarification": "Belum ada verifikasi resmi atau sanggahan dari Topografi TNI AD maupun Badan Nasional Pengelola Perbatasan (BNPP). Sedang dalam pemantauan tim verifikasi teritorial.",
+    "officialSource": "Dalam Pemantauan Teritorial (Unverified)",
+    "sourceUrl": "https://pussiberad.tniad.mil.id/pantau/CLM-TERR-UNV-01",
+    "keywords": [
+      "patok batas",
+      "ri png",
+      "perbatasan sota",
+      "bergeser",
+      "topdam"
+    ],
+    "tacticalResponseCivilian": "Isu pergeseran patok batas di pedalaman Sota belum terverifikasi secara resmi oleh tim survei gabungan BNPP-TNI. Warga diimbau menunggu rilis resmi.",
+    "tacticalResponseMilitary": "Instruksi Satgas Pamtas: Lakukan patroli patok koordinat GPS bersama instansi terkait untuk konfirmasi fisik posisi patok perbatasan."
+  },
+  {
+    "id": "CLM-TERR-UNV-02",
+    "claim": "Distribusi logistik bantuan bencana alam terhambat oleh pungutan liar oknum di jalur darat Mamasa",
+    "normalizedQuery": "distribusi logistik bantuan bencana terhambat pungutan liar oknum mamasa",
+    "cluster": "RADIKALISME_TERORISME",
+    "verdict": "UNVERIFIED",
+    "triageStatus": "UNVERIFIED",
+    "queueState": "MONITOR",
+    "threatLevel": "medium",
+    "clarification": "Laporan warga di media sosial mengenai pungutan liar terhadap truk bantuan bencana di jalur poros Mamasa masih dalam tahap klarifikasi Kodim dan Polres setempat.",
+    "officialSource": "Dalam Pemantauan Teritorial (Unverified)",
+    "sourceUrl": "https://pussiberad.tniad.mil.id/pantau/CLM-TERR-UNV-02",
+    "keywords": [
+      "bantuan bencana",
+      "pungutan liar",
+      "jalur mamasa",
+      "truk logistik",
+      "kodim mamasa"
+    ],
+    "tacticalResponseCivilian": "Informasi dugaan pungutan bantuan logistik di jalur darat Mamasa masih dalam pendalaman aparat berwenang. Jangan terburu-buru menyebarkan tuduhan sepihak.",
+    "tacticalResponseMilitary": "Atensi Babinsa/Kodim: Cek ke lapangan jalur distribusi bantuan untuk memastikan kelancaran bantuan kemanusiaan tiba di lokasi."
+  },
+  {
+    "id": "CLM-TERR-UNV-03",
+    "claim": "Kelangkaan bahan bakar solar di SPBU pesisir Natuna akibat penimbunan kapal ikan tanpa izin",
+    "normalizedQuery": "kelangkaan solar spbu pesisir natuna penimbunan kapal ikan tanpa izin",
+    "cluster": "KRISIS_PANGAN_ENERGI",
+    "verdict": "UNVERIFIED",
+    "triageStatus": "UNVERIFIED",
+    "queueState": "MONITOR",
+    "threatLevel": "medium",
+    "clarification": "Klaim antrean solar nelayan akibat penimbunan kapal ikan asing belum memiliki data investigasi faktual dari Pertamina maupun Pangkalan TNI AL.",
+    "officialSource": "Dalam Pemantauan Teritorial (Unverified)",
+    "sourceUrl": "https://pussiberad.tniad.mil.id/pantau/CLM-TERR-UNV-03",
+    "keywords": [
+      "solar nelayan",
+      "spbu natuna",
+      "penimbunan solar",
+      "kapal ikan",
+      "kelangkaan bbm"
+    ],
+    "tacticalResponseCivilian": "Kabar kelangkaan BBM solar di pesisir Natuna masih diverifikasi pasokannya bersama pihak Pertamina. Hindari spekulasi liar.",
+    "tacticalResponseMilitary": "Instruksi Lanal/Koramil: Koordinasikan dengan Pertamina dan pengawas perikanan untuk cek ketersediaan kuota solar bersubsidi nelayan."
+  },
+  {
+    "id": "CLM-TERR-UNV-04",
+    "claim": "Rencana pembangunan pos pengamatan militer di pulau terluar Maluku Tenggara menuai penolakan tokoh adat",
+    "normalizedQuery": "rencana pembangunan pos pengamatan militer pulau terluar penolakan tokoh adat",
+    "cluster": "SEPARATISME_KST",
+    "verdict": "UNVERIFIED",
+    "triageStatus": "UNVERIFIED",
+    "queueState": "MONITOR",
+    "threatLevel": "high",
+    "clarification": "Kabar resistensi masyarakat adat terhadap pos pengamanan perbatasan di Maluku Tenggara belum diverifikasi keabsahannya oleh Komando Kewilayahan.",
+    "officialSource": "Dalam Pemantauan Teritorial (Unverified)",
+    "sourceUrl": "https://pussiberad.tniad.mil.id/pantau/CLM-TERR-UNV-04",
+    "keywords": [
+      "pos militer",
+      "pulau terluar",
+      "penolakan adat",
+      "maluku tenggara",
+      "tokoh adat"
+    ],
+    "tacticalResponseCivilian": "Informasi mengenai penolakan tokoh adat terhadap pos pengamanan perbatasan masih simpang siur dan sedang dikomunikasikan secara musyawarah.",
+    "tacticalResponseMilitary": "Komunikasi Sosial Teritorial: Utamakan dialog persuasif dan rangkul pemangku adat untuk menjelaskan fungsi perlindungan kedaulatan tanah air."
+  },
+  {
+    "id": "CLM-TERR-UNV-05",
+    "claim": "Terjadi peretasan sistem data presensi aparatur sipil daerah yang membocorkan NIK ribuan pegawai",
+    "normalizedQuery": "peretasan sistem presensi aparatur sipil daerah bocor nik ribuan pegawai",
+    "cluster": "SPOOFING_JARINGAN",
+    "verdict": "UNVERIFIED",
+    "triageStatus": "UNVERIFIED",
+    "queueState": "MONITOR",
+    "threatLevel": "high",
+    "clarification": "Klaim kebocoran database presensi ASN daerah belum dikonfirmasi oleh Diskominfo provinsi maupun BSSN. Audit forensik digital sedang berjalan.",
+    "officialSource": "Dalam Pemantauan Teritorial (Unverified)",
+    "sourceUrl": "https://pussiberad.tniad.mil.id/pantau/CLM-TERR-UNV-05",
+    "keywords": [
+      "kebocoran data",
+      "presensi asn",
+      "peretasan nik",
+      "diskominfo",
+      "data pegawai"
+    ],
+    "tacticalResponseCivilian": "Dugaan kebocoran data presensi ASN sedang diaudit secara teknis oleh tim siber terkait. Hindari mengunduh file sampel yang berpotensi malware.",
+    "tacticalResponseMilitary": "Atensi Tim Siber: Monitor forum gelap dan paste site terkait indikasi jual-beli database instansi pemerintahan daerah binaan."
   }
 ]

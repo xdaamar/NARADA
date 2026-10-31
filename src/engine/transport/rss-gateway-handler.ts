@@ -38,7 +38,7 @@ export const GATEWAY_SOURCE_REGISTRY: Record<string, {
   'src-tbh': {
     sourceId: 'src-tbh',
     displayName: 'TurnBackHoax (MAFINDO)',
-    upstreamUrl: 'https://turnbackhoax.id/feed/',
+    upstreamUrl: 'https://turnbackhoax.id/feed',
     allowedHost: 'turnbackhoax.id',
     enabled: true,
     ttlMs: 300_000, // 5 menit
@@ -125,12 +125,12 @@ export function validateUpstreamUrl(urlStr: string): { valid: boolean; reason?: 
   try {
     const parsed = new URL(urlStr)
 
+    const host = parsed.hostname.toLowerCase()
+
     // 1. Validasi protokol (Hanya HTTPS yang diizinkan untuk keamanan transmisi)
     if (parsed.protocol !== 'https:') {
-      return { valid: false, reason: `Protokol tidak diizinkan: ${parsed.protocol}. Hanya HTTPS yang diperbolehkan.` }
+      return { valid: false, reason: `Protokol tidak diizinkan: ${parsed.protocol}. Hanya HTTPS yang diperbolehkan.`, parsedHost: host }
     }
-
-    const host = parsed.hostname.toLowerCase()
 
     // 2. Blokir localhost, loopback, private networks, dan link-local
     if (

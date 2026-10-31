@@ -23,6 +23,7 @@ export type SourceOutputType = 'PUBLICATION' | 'SEARCH_TREND_SIGNAL'
 export interface SourceDefinition {
   id: string
   displayName: string
+  shortLabel?: string
   sourceType: SourceType
   outputType?: SourceOutputType
   feedUrl: string
@@ -147,6 +148,15 @@ export type RadarReviewState =
   | 'UPDATED'         // Memperoleh informasi atau publikasi baru
   | 'SOURCE_LIMITED'  // Metadata tidak lengkap (misal: tanggal tidak ada)
 
+export type RadarQueueState = 'MONITOR' | 'RESOLVED' | 'EXCLUDED'
+
+export type RadarExclusionReason =
+  | 'IRRELEVANT_TOPIC'
+  | 'NO_CHECKABLE_CLAIM'
+  | 'INSUFFICIENT_CONTEXT'
+  | 'DUPLICATE_PUBLICATION'
+  | 'ALREADY_ASSESSED'
+
 // ─── 4. Normalized Publication Model (Atomik) ───
 
 export interface NormalizedPublication {
@@ -175,6 +185,8 @@ export interface NormalizedPublication {
   metadataTransparency: MetadataTransparencyAssessment
   reviewState: RadarReviewState
   verdict: 'HOAKS' | 'DISINFORMASI' | 'PROPAGANDA' | 'FAKTA' | 'NETRAL' | 'UNVERIFIED'
+  queueState?: RadarQueueState
+  exclusionReason?: RadarExclusionReason
   clarification?: string
   officialSource?: string
   claimAssessment?: ClaimMatchCandidate
@@ -257,6 +269,7 @@ export interface FactCheckReference {
   verdict: 'HOAKS' | 'DISINFORMASI' | 'PROPAGANDA' | 'FAKTA' | 'UNVERIFIED'
   reviewedAt: number | null
   reviewedDateFormatted?: string
+  provenance?: 'CURATED_ARCHIVE' | 'LIVE_TURNBACKHOAX'
 }
 
 export interface ClaimMatchCandidate {

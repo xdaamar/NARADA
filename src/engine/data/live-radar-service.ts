@@ -87,8 +87,10 @@ async function fetchXmlWithFallback(
   let lastErrorMessage: string | null = null
   let lastRateLimit: { isRateLimited: boolean; retryAfterSeconds?: number; resetAt?: number } | null = null
 
-  // Lapis 1: Coba Same-Origin Production Gateway Route
-  const gatewayUrl = `/api/radar/feed/${sourceId}`
+  // Lapis 1: Coba Same-Origin Production Gateway Route (atau local loopback jika Electron file://)
+  const isFileProto = typeof window !== 'undefined' && window.location.protocol === 'file:'
+  const gatewayBase = isFileProto ? 'http://127.0.0.1:5174' : ''
+  const gatewayUrl = `${gatewayBase}/api/radar/feed/${sourceId}`
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -364,12 +366,14 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
     ])
 
     const normalizedItems: NormalizedPublication[] = []
+    const liveTbhEntries: DebunkKnowledgeEntry[] = []
     const trendSignals: SearchTrendSignal[] = []
     let detectedChannel: 'API_PROXY' | 'API_DIRECT' | 'API_CORS_PROXY' = 'API_PROXY'
 
     // 1. Ingest TurnBackHoax (Fact-Check)
     if (tbhResult.status === 'fulfilled' && tbhResult.value.success && tbhResult.value.xml) {
       const parsed = parseTurnBackHoaxRss(tbhResult.value.xml)
+      liveTbhEntries.push(...parsed)
       const norm = parsed.map(item => normalizeDebunkEntry(item, tbhDef.id, 'fact_check', tbhDef.displayName))
       normalizedItems.push(...norm)
       detectedChannel = tbhResult.value.channel || 'API_PROXY'
@@ -383,6 +387,7 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
       })
     } else {
       const fail = tbhResult.status === 'fulfilled' ? tbhResult.value : null
+      const statusSuffix = fail?.httpStatus ? ` (HTTP ${fail.httpStatus})` : ''
       updateConnectorHealth(tbhDef.id, {
         state: fail?.rateLimitStatus?.isRateLimited ? 'RATE_LIMITED' : (fail?.errorCode === 'MALFORMED_FEED_NO_ITEMS' ? 'DEGRADED' : 'UNAVAILABLE'),
         httpStatus: fail?.httpStatus ?? null,
@@ -390,7 +395,7 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
         rateLimitStatus: fail?.rateLimitStatus,
         errorCode: fail?.errorCode ?? 'FETCH_TIMEOUT_OR_NETWORK_ERROR',
         errorMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed TurnBackHoax',
-        userReadableMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed TurnBackHoax',
+        userReadableMessage: `${fail?.errorMessage || 'Gagal terhubung ke feed TurnBackHoax'}${statusSuffix}`,
         isSuccess: false
       })
     }
@@ -517,8 +522,10 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
       const mappedEntries = clusters.map(cl => clusterToDebunkEntry(cl))
 
       // 4. Jalankan Scorer & Triage (Evidence-Driven)
-      const knownDebunks = getCuratedArchiveDebunks()
-      const triagedEntries = scoreAndTriageRadarEntries(mappedEntries, knownDebunks)
+      // SPRINT 5 (WP4): Gabungkan live TurnBackHoax references dari siklus saat ini dengan curated archive
+      const curatedArchive = getCuratedArchiveDebunks()
+      const allKnownDebunks = [...liveTbhEntries, ...curatedArchive]
+      const triagedEntries = scoreAndTriageRadarEntries(mappedEntries, allKnownDebunks)
 
       // 5. Daftarkan ke in-memory cache dan simpan ke IndexedDB
       registerLiveDebunks(triagedEntries)

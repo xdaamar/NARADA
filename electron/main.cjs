@@ -1,7 +1,9 @@
 const { app, BrowserWindow, shell } = require('electron')
 const path = require('path')
+const { startGatewayServer, stopGatewayServer } = require('./gateway-runner.cjs')
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+let gatewayInstance = null
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -33,7 +35,23 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(async () => {
+  if (!isDev) {
+    try {
+      gatewayInstance = await startGatewayServer(5174, '127.0.0.1')
+      console.log('[NARADA Main] Packaged local loopback gateway started on 127.0.0.1:5174')
+    } catch (err) {
+      console.error('[NARADA Main] Failed to start packaged gateway:', err)
+    }
+  }
+  createWindow()
+})
+
+app.on('will-quit', async () => {
+  if (gatewayInstance && gatewayInstance.server) {
+    await stopGatewayServer(gatewayInstance.server)
+  }
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

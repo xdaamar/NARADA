@@ -176,12 +176,18 @@ function extractKeywords(text: string): string[] {
 }
 
 
+export interface PublicationEligibilityResult {
+  isEligible: boolean
+  exclusionReason?: 'IRRELEVANT_TOPIC' | 'NO_CHECKABLE_CLAIM' | 'INSUFFICIENT_CONTEXT' | 'DUPLICATE_PUBLICATION' | 'ALREADY_ASSESSED'
+  reasonExplanation?: string
+}
+
 /**
  * Penapis Intelijen Kognitif (Cognitive Threat & Virality Gatekeeper)
  * Membuang berita seremonial, humas instansi, beasiswa, dan kegiatan dinas rutin yang TIDAK berpotensi
  * memicu krisis kognitif atau penggiringan opini publik.
  */
-export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): boolean {
+export function evaluatePublicationEligibility(title: string, sourceName = ''): PublicationEligibilityResult {
   const norm = (title + ' ' + sourceName).toLowerCase()
 
   // 1. BLACKLIST FILTER: Berita Humas Kampus/Daerah, Seremonial, Olahraga, & Rutinitas Dinas
@@ -199,11 +205,24 @@ export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): bo
 
   for (const b of ceremonialBlacklist) {
     if (norm.includes(b)) {
-      return false
+      return {
+        isEligible: false,
+        exclusionReason: 'IRRELEVANT_TOPIC',
+        reasonExplanation: `Memuat topik seremonial/olahraga non-strategis (${b})`
+      }
     }
   }
 
-  // 2. WHITELIST TRIGGERS: Harus memiliki indikasi hoaks, kontroversi, polemik, aksi massa, atau penggiringan opini
+  // Jika teks terlalu pendek untuk memuat proposisi klaim faktual
+  if (title.trim().length < 15) {
+    return {
+      isEligible: false,
+      exclusionReason: 'INSUFFICIENT_CONTEXT',
+      reasonExplanation: 'Judul terlalu pendek untuk memuat klaim faktual yang dapat diuji'
+    }
+  }
+
+  // 2. WHITELIST TRIGGERS: Harus memiliki indikasi hoaks, kontroversi, polemik, aksi massa, atau dinamika faktual
   const threatTriggers = [
     'hoaks', 'hoax', 'disinformasi', 'palsu', 'bohong', 'fitnah', 'manipulasi',
     'viral', 'heboh', 'geger', 'kontroversi', 'polemik', 'debat', 'tuding', 'tuduhan',
@@ -211,16 +230,25 @@ export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): bo
     'tolak', 'ricuh', 'bentrok', 'kericuhan', 'bakar', 'tangkap', 'gugur', 'serangan',
     'ditembak', 'penyanderaan', 'korban', 'opm', 'kkb', 'krisis', 'batal', 'dicopot',
     'pemakzulan', 'mundur', 'korupsi', 'skandal', 'bocoran', 'rahasia', 'sabotase',
-    'perang terbuka', 'ijazah', 'mbg', 'bansos', 'ambalat', 'kapal perang'
+    'perang terbuka', 'ijazah', 'mbg', 'bansos', 'ambalat', 'kapal perang', 'tni', 'alutsista',
+    'operasi', 'perbatasan', 'latihan', 'sidang', 'putusan', 'kebijakan', 'resmikan', 'terbitkan'
   ]
 
   for (const t of threatTriggers) {
     if (norm.includes(t)) {
-      return true
+      return { isEligible: true }
     }
   }
 
-  return false
+  return {
+    isEligible: false,
+    exclusionReason: 'NO_CHECKABLE_CLAIM',
+    reasonExplanation: 'Tidak memuat indikasi peristiwa faktual atau dinamika strategis yang relevan'
+  }
+}
+
+export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): boolean {
+  return evaluatePublicationEligibility(title, sourceName).isEligible
 }
 
 /**
@@ -415,8 +443,10 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
                          sourceName.toUpperCase().includes('BMKG') ||
                          sourceName.toUpperCase().includes('BAWASLU')
 
-      const isHoaxInTitle = cleanTitle.toLowerCase().includes('hoaks') || cleanTitle.toLowerCase().includes('hoax')
-      const verdict: DebunkKnowledgeEntry['verdict'] = isHoaxInTitle ? 'HOAKS' : isOfficial ? 'FAKTA' : 'UNVERIFIED'
+      // SPRINT 5 (WP3): Parser bersifat evidence-neutral. Status awal selalu UNVERIFIED.
+      // Keberadaan kata "hoaks" atau identitas penerbit TIDAK BOLEH memvonis kebenaran/kebohongan
+      // secara sepihak di tahap parsing! Penilaian klaim dilakukan terpisah secara berbasis bukti.
+      const verdict: DebunkKnowledgeEntry['verdict'] = 'UNVERIFIED'
 
       const { timestamp: pubTimestamp } = parseSourceDate(rawPubDate)
       const publishedDate = formatMilitaryDate(pubTimestamp)
@@ -429,33 +459,27 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
         normalizedQuery: cleanClaim.toLowerCase(),
         cluster,
         verdict,
-        threatLevel: isHoaxInTitle || cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
+        threatLevel: cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
         clarification: isOfficial 
-          ? `Pernyataan dan rilis resmi langsung dari ${sourceName}. Isi berita merupakan informasi terkonfirmasi kedinasan.`
-          : isHoaxInTitle
-          ? `Judul berita mengonfirmasi indikasi hoaks/disinformasi yang sedang beredar luas di media daring.`
-          : `Isu polemik/kontroversial sedang bergulir di ranah publik via ${sourceName}. Memerlukan verifikasi silang terhadap dokumen intelijen dan otoritas terkait.`,
+          ? `Pernyataan dan rilis dari ${sourceName}. Isi berita memerlukan penelusuran klaim kedinasan.`
+          : `Isu sedang dipantau di ranah publik via ${sourceName}. Menunggu verifikasi silang dan data pembanding.`,
         officialSource: sourceName,
         sourceUrl: cleanLink, // CANONICAL REDIRECT LANGSUNG KE ARTIKEL PERS!
         originalPlatform: sourceName,
         originalSourceUrl: cleanLink, // Tempat artikel pertama kali dipantau
         interceptedAt: formatMilitaryDate(Date.now()),
         keywords,
-        tacticalResponseCivilian: isOfficial
-          ? `Informasi resmi dari ${sourceName} mengenai: "${cleanClaim}". Gunakan rujukan resmi ini sebagai acuan.`
-          : `Isu "${cleanClaim}" sedang ramai diberitakan. Masyarakat dihimbau menunggu konfirmasi resmi dan tidak terpancing spekulasi.`,
-        tacticalResponseMilitary: `Pantau pergerakan narasi "${cleanClaim}" yang dipublikasikan oleh ${sourceName}. Waspadai upaya framing asimetris.`,
+        tacticalResponseCivilian: `Isu "${cleanClaim}" sedang dipantau. Masyarakat diimbau menunggu konfirmasi resmi dan tidak terpancing spekulasi.`,
+        tacticalResponseMilitary: `Pantau pergerakan narasi "${cleanClaim}" yang dipublikasikan oleh ${sourceName}. Lakukan verifikasi faktual.`,
         isLive: true,
         publishedDate,
         isBreakingRecent,
-        cognitiveScore: isHoaxInTitle ? 85 : isOfficial ? 30 : 70,
+        cognitiveScore: isOfficial ? 40 : 65,
         viralityReason: isBreakingRecent
-          ? '🔥 BREAKING NEWS LAPANGAN (<3 JAM)'
-          : isHoaxInTitle 
-          ? '🚨 ADUAN MASIF: Terindikasi Hoaks Media Daring'
+          ? '🔥 LAPORAN BARU (<3 JAM): Menunggu Verifikasi Fakta'
           : isOfficial 
-          ? '📢 KLARIFIKASI RESMI: Pernyataan Otoritas Kedinasan'
-          : '⚠️ POLEMIK OPINI: Kontroversi Kebijakan / Hankam'
+          ? '📢 PUBLIKASI KEDINASAN: Memerlukan Pemantauan Narasi'
+          : '📡 RADAR BERITA: Klaim Belum Terverifikasi'
       })
     } catch {
       // Lewati item yang korup

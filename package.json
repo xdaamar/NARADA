@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "gateway": "node scripts/start-radar-gateway.js",
     "test:e2e": "node scripts/test-e2e-qualification.js",
+    "test:sprint5": "node scripts/test-sprint-5-routing.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "electron:build": "tsc -b && vite build && electron-builder --win"
   },

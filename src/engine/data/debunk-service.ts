@@ -2,22 +2,25 @@ import type { DebunkKnowledgeEntry } from '../../types.ts'
 import { formatMilitaryDateTime } from '../ingest/rss-parser.ts'
 import databaseJson from './debunk-database.json' with { type: 'json' }
 
-const LOCAL_ARCHIVE_ENTRIES: DebunkKnowledgeEntry[] = (databaseJson as DebunkKnowledgeEntry[]).map((e, idx) => ({
+const LOCAL_ARCHIVE_ENTRIES: DebunkKnowledgeEntry[] = (databaseJson as DebunkKnowledgeEntry[]).map((e) => ({
   ...e,
   isLive: false,
-  publishedDate: e.publishedDate ? formatMilitaryDateTime(e.publishedDate) : formatMilitaryDateTime(`2026-10-${20 + (idx % 7)}T08:30:00Z`),
-  viralityReason: e.viralityReason || (e.verdict === 'HOAKS' ? '🚨 PUSSIBERAD ARSIP: Disinformasi Terverifikasi' : '🛡️ PUSSIBERAD ARSIP: Klarifikasi Resmi Hankam'),
+  publishedDate: e.publishedDate ? formatMilitaryDateTime(e.publishedDate) : undefined,
+  viralityReason: e.viralityReason || (
+    e.verdict === 'HOAKS' || e.verdict === 'DISINFORMASI' || e.verdict === 'PROPAGANDA'
+      ? '🚨 PUSSIBERAD ARSIP: Disinformasi Terverifikasi'
+      : e.verdict === 'UNVERIFIED'
+      ? '⏳ PUSSIBERAD ARSIP: Klaim Belum Terverifikasi'
+      : '🛡️ PUSSIBERAD ARSIP: Klarifikasi Resmi Hankam'
+  ),
   originalPlatform: e.originalPlatform || 'Pusat Analisis Siber AD (Pangkalan Data Teritorial)',
   originalSourceUrl: e.originalSourceUrl || e.sourceUrl,
-  interceptedAt: e.interceptedAt || `${String(8 + (idx % 8)).padStart(2, '0')}:15 WIB`,
-  verifiedAt: e.verifiedAt || `${String(8 + (idx % 8)).padStart(2, '0')}:22 WIB`,
-  viralVelocity: e.viralVelocity || '+40K sebaran (Terdokumentasi)',
-  engagement: e.engagement || {
-    views: '+40K',
-    shares: '2.5K',
-    velocityRate: '+110%/jam',
-    timeElapsed: 'Terdokumentasi'
-  }
+  interceptedAt: e.interceptedAt || undefined,
+  verifiedAt: e.verifiedAt || undefined,
+  viralVelocity: e.viralVelocity || undefined,
+  engagement: e.engagement || undefined,
+  queueState: e.queueState || (e.verdict === 'UNVERIFIED' ? 'MONITOR' : 'RESOLVED'),
+  triageStatus: e.triageStatus || (e.verdict as any)
 }))
 
 let activeDebunkDatabase: DebunkKnowledgeEntry[] = [...LOCAL_ARCHIVE_ENTRIES]

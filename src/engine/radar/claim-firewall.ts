@@ -25,9 +25,10 @@ import type {
 // Kata kunci penanda bahwa publikasi secara aktif membantah / memeriksa fakta (bukan isi klaim itu sendiri)
 const DEBUNK_STANCE_MARKERS = [
   'klarifikasi', 'cek fakta', 'bantah', 'bantahan', 'tidak benar', 'luruskan', 'tangkal',
-  'kabar bohong', 'tepis', 'menepis', 'pastikan kabar', 'faktanya', 'bukan karena',
-  'menyesatkan', 'menepis isu', 'hoaks belaka', 'disinformasi belaka', 'tegaskan',
-  'tegaskan bahwa', 'pastikan'
+  'kabar bohong', 'tepis', 'menepis', 'pastikan kabar bohong', 'pastikan isu hoaks', 'faktanya', 'bukan karena',
+  'menyesatkan', 'menepis isu', 'hoaks belaka', 'disinformasi belaka', 'tegaskan bahwa itu hoaks',
+  'tegaskan', 'menegaskan', 'adalah palsu', 'adalah hoaks', 'itu palsu', 'kabar palsu', 'informasi palsu',
+  '[hoaks]', '[hoax]', '[salah]', '[disinformasi]', '[klarifikasi]', '[fakta]', 'klarifikasi hoaks'
 ]
 
 // Kata kunci penanda pelaporan berita jurnalistik biasa
@@ -93,14 +94,25 @@ export function evaluateClaimFirewall(
   const pubTokens = extractSubstantiveTokens(fullText)
   const stance = detectPublicationStance(publicationTitle, publicationExcerpt)
 
-  if (knownDebunks.length === 0 || pubTokens.length === 0) {
+  if (pubTokens.length === 0 || fullText.trim().length < 10) {
     return {
       claimText: publicationTitle,
       matchStatus: 'INSUFFICIENT_CONTEXT',
       stance,
       similarityScore: 0,
-      matchExplanation: 'Tidak ada data pembanding periksa fakta yang tersedia.',
+      matchExplanation: 'Teks terlalu singkat untuk memuat proposisi klaim faktual yang spesifik.',
       requiresAnalystReview: false
+    }
+  }
+
+  if (knownDebunks.length === 0) {
+    return {
+      claimText: publicationTitle,
+      matchStatus: 'CLAIM_NOT_MATCHED',
+      stance,
+      similarityScore: 0,
+      matchExplanation: 'Tidak ada data pembanding periksa fakta yang tersedia.',
+      requiresAnalystReview: stance !== 'DEBUNKING_HOAX'
     }
   }
 
@@ -169,38 +181,29 @@ export function evaluateClaimFirewall(
     }
   }
 
-  if (stance === 'REPORTING_CIVIL') {
+  // Jika kecocokan substantif kuat (similarity >= 0.40 atau sharedCount >= 4)
+  if (bestMatch.similarity >= 0.40 || bestMatch.sharedCount >= 4) {
     return {
       claimText: publicationTitle,
       matchStatus: 'FACT_CHECK_REFERENCE_FOUND',
       stance,
       matchedReference: factCheckRef,
       similarityScore: bestMatch.similarity,
-      matchExplanation: 'Publikasi memberitakan peristiwa/klarifikasi secara faktual; terhubung ke referensi cek fakta sebagai konteks.',
+      matchExplanation: stance === 'REPORTING_CIVIL'
+        ? 'Publikasi memberitakan peristiwa/klarifikasi secara faktual; terhubung ke referensi cek fakta sebagai konteks.'
+        : 'Ditemukan kecocokan substantif dengan referensi periksa fakta terverifikasi.',
       requiresAnalystReview: false
     }
   }
 
-  if (stance === 'QUOTING_CLAIM') {
-    return {
-      claimText: publicationTitle,
-      matchStatus: 'CLAIM_MATCH_REVIEW_REQUIRED',
-      stance,
-      matchedReference: factCheckRef,
-      similarityScore: bestMatch.similarity,
-      matchExplanation: 'Publikasi mengutip klaim yang telah diperiksa fakta; diperlukan telaah konteks kutipan oleh analis.',
-      requiresAnalystReview: true
-    }
-  }
-
-  // Jika kemiripan sangat tinggi namun tanpa penanda bantahan eksplisit
+  // Jika kecocokan moderat yang masih ambigu
   return {
     claimText: publicationTitle,
     matchStatus: 'CLAIM_MATCH_REVIEW_REQUIRED',
-    stance: 'ALLEGED_ASSERTION',
+    stance,
     matchedReference: factCheckRef,
     similarityScore: bestMatch.similarity,
-    matchExplanation: 'Kemiripan substantif ditemukan dengan klaim hoaks; ditandai untuk telaah analis (tidak dicap bersalah otomatis).',
+    matchExplanation: 'Kemiripan parsial ditemukan dengan rujukan periksa fakta; ditandai untuk telaah analis.',
     requiresAnalystReview: true
   }
 }
@@ -241,11 +244,12 @@ export function resolvePublicationTriage(
     }
   }
 
-  // Kasus 3: Artikel berita jurnalistik yang melaporkan
+  // Kasus 3: Artikel berita jurnalistik yang melaporkan (SPRINT 5 WP2)
+  // JANGAN paksa ke NETRAL jika memuat klaim yang belum terverifikasi!
   if (claimMatch.stance === 'REPORTING_CIVIL') {
     reasonCodes.push('CIVIL_REPORTING_PRESERVED')
     return {
-      resolvedVerdict: 'NETRAL',
+      resolvedVerdict: (currentVerdict as any) || 'UNVERIFIED',
       claimMatch,
       reasonCodes
     }
