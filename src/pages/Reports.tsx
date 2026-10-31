@@ -12,13 +12,22 @@ import {
   Hash,
   Award,
   Lock,
-  AlertTriangle
+  AlertTriangle,
+  Download
 } from 'lucide-react'
 import type { AnalysisResult, IntelReportConfig, ReportClassification } from '../types'
 import { getStoredAnalyses, getUserSettings, seedDemoAnalyses } from '../utils/storage'
 import { formatMilitaryDate, truncateText } from '../utils/format'
 import { generateSHA256 } from '../utils/crypto'
 import { generateCounterNarratives } from '../engine/forensic/counter-narrative-generator'
+import {
+  getInvestigationCase,
+  getAllInvestigationCases,
+  getEvidenceRecordsForCase,
+  getClaimsForCase,
+  getAssessmentsForCase,
+  generateEvidenceManifest
+} from '../engine/investigation'
 
 export default function Reports() {
   const location = useLocation()
@@ -27,8 +36,26 @@ export default function Reports() {
     simulationWatermark?: string
     evidenceMode?: string
     prefillClaim?: string
+    caseId?: string
   }
   const isSimulationMode = Boolean(navState.isSimulation)
+
+  // Muat data kasus jika diteruskan dari Workbench
+  const linkedCase = useMemo(() => {
+    return navState.caseId ? getInvestigationCase(navState.caseId) : undefined
+  }, [navState.caseId])
+
+  const caseEvidenceList = useMemo(() => {
+    return navState.caseId ? getEvidenceRecordsForCase(navState.caseId) : []
+  }, [navState.caseId])
+
+  const caseClaimsList = useMemo(() => {
+    return navState.caseId ? getClaimsForCase(navState.caseId) : []
+  }, [navState.caseId])
+
+  const caseAssessmentsList = useMemo(() => {
+    return navState.caseId ? getAssessmentsForCase(navState.caseId) : []
+  }, [navState.caseId])
 
   const [analyses, setAnalyses] = useState<AnalysisResult[]>(() => getStoredAnalyses())
   const userSettings = useMemo(() => getUserSettings(), [])
@@ -111,6 +138,32 @@ export default function Reports() {
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleExportManifest = () => {
+    let targetCase = linkedCase
+    if (!targetCase) {
+      const allCases = getAllInvestigationCases()
+      targetCase = allCases[0]
+    }
+    if (!targetCase) {
+      alert('Belum ada kasus investigasi aktif untuk mengekspor Evidence Manifest.')
+      return
+    }
+
+    try {
+      const manifest = generateEvidenceManifest(targetCase.id)
+      const jsonStr = JSON.stringify(manifest, null, 2)
+      const blob = new Blob([jsonStr], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `evidence-manifest-${targetCase.caseNumber}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert('Gagal mengekspor manifest: ' + String(err))
+    }
   }
 
   const handleSeedDemo = () => {
@@ -365,6 +418,24 @@ export default function Reports() {
                 <Printer size={16} />
                 Cetak / Simpan PDF Resmi
               </button>
+
+              {/* Tombol Unduh Evidence Manifest JSON (Sprint 3 - P5) */}
+              <button
+                type="button"
+                className="btn btn-secondary btn-lg"
+                onClick={handleExportManifest}
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  marginTop: '8px',
+                  border: '1px solid rgba(212, 175, 55, 0.4)',
+                  color: '#D4AF37'
+                }}
+                title="Unduh berkas JSON Evidence Manifest machine-readable dengan digest SHA-256"
+              >
+                <Download size={15} />
+                Unduh Evidence Manifest (JSON)
+              </button>
             </div>
           </div>
 
@@ -501,6 +572,20 @@ export default function Reports() {
                     <div style={{ fontSize: '11px', color: '#374151', letterSpacing: '1px', fontWeight: '600' }}>
                       PRODUK LAPORAN INTELIJEN ANCAMAN KOGNITIF & SIBER SOSIAL
                     </div>
+                    <div style={{
+                      marginTop: '4px',
+                      fontSize: '9px',
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontWeight: 700,
+                      color: '#4B5563',
+                      letterSpacing: '0.8px',
+                      background: '#F3F4F6',
+                      padding: '2px 6px',
+                      borderRadius: '3px',
+                      display: 'inline-block'
+                    }}>
+                      DEMONSTRATION / UNCLASSIFIED — NARADA ANALYTICAL ASSESSMENT
+                    </div>
                   </div>
                 </div>
 
@@ -621,6 +706,83 @@ export default function Reports() {
                 </tbody>
               </table>
             </div>
+
+            {/* ─── MANIFEST INVESTIGASI KASUS BERBASIS BUKTI DIGITAL (SPRINT 2 - D8.D) ─── */}
+            {linkedCase && (
+              <div style={{ marginBottom: '24px', background: '#F8FAFC', padding: '14px', borderRadius: '6px', border: '1px solid #CBD5E1' }}>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  letterSpacing: '1.5px',
+                  color: '#1E293B',
+                  marginBottom: '6px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>MANIFEST KASUS INVESTIGASI: {linkedCase.caseNumber}</span>
+                  <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '4px', background: '#0F172A', color: '#F1F5F9' }}>
+                    STATUS: {linkedCase.status} ({linkedCase.mode})
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#475569', marginBottom: '8px' }}>
+                  <strong>Judul:</strong> {linkedCase.title}
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748B', marginBottom: '10px' }}>
+                  {linkedCase.summary}
+                </div>
+
+                {/* Ringkasan Klaim */}
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  DAFTAR KLAIM ATOMIK ({caseClaimsList.length} Klaim) & HASIL PENELAAHAN:
+                </div>
+                {caseClaimsList.length === 0 ? (
+                  <div style={{ fontSize: '10px', color: '#94A3B8', fontStyle: 'italic', marginBottom: '8px' }}>Belum ada klaim atomik terdaftar.</div>
+                ) : (
+                  <ul style={{ margin: '0 0 10px 16px', padding: 0, fontSize: '10px' }}>
+                    {caseClaimsList.map(c => {
+                      const assess = caseAssessmentsList.find(a => a.claimId === c.id)
+                      return (
+                        <li key={c.id} style={{ marginBottom: '3px' }}>
+                          <strong>"{c.claimText}"</strong> — Vonis: <span style={{ fontWeight: 700, color: assess?.verdict === 'CONTRADICTED' ? '#DC2626' : assess?.verdict === 'SUPPORTED' ? '#16A34A' : '#D97706' }}>{assess?.verdict || 'UNVERIFIED'}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+
+                {/* Ringkasan Bukti & Hash */}
+                <div style={{ fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                  DAFTAR BUKTI TERTELUSURI ({caseEvidenceList.length} Berkas):
+                </div>
+                {caseEvidenceList.length === 0 ? (
+                  <div style={{ fontSize: '10px', color: '#94A3B8', fontStyle: 'italic' }}>Belum ada berkas bukti digital tersimpan.</div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9px', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ background: '#E2E8F0', borderBottom: '1px solid #CBD5E1' }}>
+                        <th style={{ padding: '4px 6px' }}>ID BUKTI</th>
+                        <th style={{ padding: '4px 6px' }}>TIPE</th>
+                        <th style={{ padding: '4px 6px' }}>SUMBER</th>
+                        <th style={{ padding: '4px 6px' }}>PROVENANCE WAKTU</th>
+                        <th style={{ padding: '4px 6px' }}>SHA-256 HASH (DIGEST)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {caseEvidenceList.slice(0, 5).map(ev => (
+                        <tr key={ev.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
+                          <td style={{ padding: '4px 6px', fontFamily: 'monospace' }}>{ev.id}</td>
+                          <td style={{ padding: '4px 6px' }}>{ev.evidenceType}</td>
+                          <td style={{ padding: '4px 6px' }}>{ev.sourceLabel}</td>
+                          <td style={{ padding: '4px 6px' }}>{ev.sourceTimestampProvenance}</td>
+                          <td style={{ padding: '4px 6px', fontFamily: 'monospace' }}>{ev.contentHashNormalized.slice(0, 16)}...</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
 
             {/* ─── BAGIAN III: MATRIKS BUKTI DIGITAL & TEMUAN (OPSIONAL) ─── */}
             {config.includeFindingsDetail && (

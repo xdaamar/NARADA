@@ -40,6 +40,7 @@ import { type CounterNarrativeChannels, generateCounterNarratives } from '../eng
 import { getAllConnectorHealth } from '../engine/radar/source-registry.ts'
 import { parseSourceDate, evaluateFreshness } from '../engine/radar/freshness-engine.ts'
 import type { ConnectorHealth } from '../engine/radar/radar-types.ts'
+import { getOrCreateCaseForCluster } from '../engine/investigation'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterFilterOption {
@@ -161,9 +162,16 @@ export default function LiveRadar() {
     }
   }, [syncIntervalHours])
 
-  // Handler Buka Halaman Khusus Bedah Buzzer & Medsos (untuk Isu SEDANG DIPANTAU)
+  // Handler Buka Berkas Investigasi Kasus (untuk Isu SEDANG DIPANTAU / Investigasi Mendalam)
   const handleOpenBuzzerModal = (item: DebunkKnowledgeEntry) => {
-    navigate('/social-forensic', { state: { targetItem: item, item } })
+    const invCase = getOrCreateCaseForCluster({
+      id: item.id,
+      title: item.claim || 'Kasus Investigasi Radar',
+      summary: item.clarification || item.claim,
+      publicationIds: [item.id],
+      isSimulation: false
+    })
+    navigate('/social-forensic', { state: { targetItem: item, item, caseId: invCase.id } })
   }
 
   // Sinkronisasi pembaruan status isu seketika dari Monitoring Chamber
@@ -1236,10 +1244,10 @@ export default function LiveRadar() {
                           e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)'
                           e.currentTarget.style.color = '#FBBF24'
                         }}
-                        title="Buka Meja Bedah Bukti Digital Analis, uji pola copypasta Jaccard, dan ukur indeks koordinasi CIB"
+                        title="Buka Berkas Kasus Investigasi Bukti Digital & Penelaahan Klaim"
                       >
                         <Microscope size={11} />
-                        <span>Meja Bedah Forensik Siber</span>
+                        <span>Buka Investigasi Kasus</span>
                       </button>
                     ) : isHoax ? (
                       <button

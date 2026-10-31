@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   History,
   Trash2,
   ChevronDown,
   ChevronUp,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Microscope
 } from 'lucide-react'
 import OmniInputConsole from '../components/OmniInputConsole'
 import AnalysisResultCard from '../components/AnalysisResultCard'
@@ -17,9 +18,11 @@ import { saveAnalysis, getStoredAnalyses, clearStoredAnalyses } from '../utils/s
 import { getCategoryBadge, getThreatBadge, formatMilitaryDate, truncateText } from '../utils/format'
 import { generateSHA256 } from '../utils/crypto'
 import type { AnalysisResult, InputSourceType } from '../types'
+import { createInvestigationCase, addEvidenceRecord, createEvidenceRecord } from '../engine/investigation'
 
 export default function Analyzer() {
   const location = useLocation()
+  const navigate = useNavigate()
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
   const [currentResult, setCurrentResult] = useState<AnalysisResult | null>(null)
   const [history, setHistory] = useState<AnalysisResult[]>(() => getStoredAnalyses())
@@ -122,6 +125,30 @@ export default function Analyzer() {
       setHistory([])
       setCurrentResult(null)
     }
+  }
+
+  // Handler Kirim Hasil Analisis ke Controlled Investigation Workbench (Sprint 2 - D8.B)
+  const handleSendToInvestigation = () => {
+    if (!currentResult) return
+    const newCase = createInvestigationCase({
+      title: currentResult.title || currentResult.input.slice(0, 80),
+      summary: currentResult.explanation || 'Kasus investigasi masukan dari Multi-Input Analyzer',
+      mode: 'USER_SUBMITTED',
+      tags: [currentResult.category]
+    })
+
+    addEvidenceRecord(createEvidenceRecord({
+      caseId: newCase.id,
+      evidenceType: currentResult.inputSource === 'ocr' ? 'SCREENSHOT' : 'PUBLIC_POST_TEXT',
+      evidenceMode: 'USER_SUBMITTED',
+      sourceLabel: currentResult.sourceMeta?.siteName || currentResult.sourceMeta?.url || 'Multi-Input Analyzer',
+      sourceTimestampProvenance: 'OPERATOR_SUPPLIED_UNVERIFIED',
+      extractionMethod: currentResult.inputSource === 'ocr' ? 'OCR' : 'MANUAL_TEXT',
+      extractedText: currentResult.input || currentResult.rawContent,
+      metadata: { analysisId: currentResult.id }
+    }))
+
+    navigate('/social-forensic', { state: { caseId: newCase.id } })
   }
 
   return (
@@ -268,6 +295,64 @@ export default function Analyzer() {
                   saveAnalysis(updated)
                 }}
               />
+            </div>
+
+            {/* Panel Integrasi Investigasi Kasus (Sprint 2 - D8.B) */}
+            <div style={{
+              marginTop: '16px',
+              padding: '14px 18px',
+              background: '#161F2E',
+              border: '1px solid rgba(212, 175, 55, 0.3)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '14px'
+            }}>
+              <div>
+                <div style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: '#D4AF37',
+                  fontFamily: 'var(--font-mono)',
+                  letterSpacing: '1px'
+                }}>
+                  INTEGRASI INVESTIGASI KASUS (WORKBENCH)
+                </div>
+                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+                  Jadikan hasil ekstraksi ini sebagai berkas bukti digital atau buka investigasi kasus mendalam.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleSendToInvestigation}
+                style={{
+                  background: 'linear-gradient(135deg, #1E293B, #0F172A)',
+                  border: '1px solid #D4AF37',
+                  color: '#F1F5F9',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#D4AF37'
+                  e.currentTarget.style.color = '#0F172A'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #1E293B, #0F172A)'
+                  e.currentTarget.style.color = '#F1F5F9'
+                }}
+              >
+                <Microscope size={14} color="#D4AF37" />
+                <span>Buka di Meja Investigasi</span>
+              </button>
             </div>
           </div>
         )}
