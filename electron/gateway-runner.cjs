@@ -309,7 +309,31 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
 
 function createGatewayServer() {
   const server = http.createServer(async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*')
+    // 1. Validasi Host header (Perlindungan DNS rebinding attack)
+    const hostHeader = (req.headers['host'] || '').split(':')[0].toLowerCase()
+    if (hostHeader && hostHeader !== '127.0.0.1' && hostHeader !== 'localhost') {
+      res.writeHead(403, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: false, message: 'Akses ditolak: Host tidak valid untuk local loopback gateway.' }))
+      return
+    }
+
+    // 2. Pembatasan Origin (Restricted CORS Policy)
+    const origin = req.headers['origin']
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:5174',
+      'http://127.0.0.1:5174',
+      'null'
+    ]
+    if (origin && !allowedOrigins.includes(origin) && !origin.startsWith('file://')) {
+      res.writeHead(403, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: false, message: 'Akses ditolak: Origin eksternal tidak diizinkan.' }))
+      return
+    }
+
+    const allowOriginHeader = origin || '*'
+    res.setHeader('Access-Control-Allow-Origin', allowOriginHeader)
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, X-Radar-Client')
 

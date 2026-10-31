@@ -254,7 +254,8 @@ export default function LiveRadar() {
       const matchCluster = selectedCluster === 'ALL' || item.cluster === selectedCluster
       const isHoaks = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA'
       const isResolved = item.verdict === 'FAKTA' || item.verdict === 'NETRAL'
-      const isUnverified = item.verdict === 'UNVERIFIED' || item.triageStatus === 'UNVERIFIED' || item.queueState === 'MONITOR' || (!isHoaks && !isResolved)
+      const isExcluded = item.queueState === 'EXCLUDED'
+      const isUnverified = !isExcluded && (item.verdict === 'UNVERIFIED' || item.triageStatus === 'UNVERIFIED' || item.queueState === 'MONITOR' || (!isHoaks && !isResolved))
 
       const matchTriage = selectedTriage === 'ALL' 
         ? true 
@@ -293,9 +294,15 @@ export default function LiveRadar() {
   const triageCounts = useMemo(() => {
     const counts = { ALL: debunkItems.length, HOAKS: 0, FAKTA: 0, UNVERIFIED: 0, NETRAL: 0 }
     debunkItems.forEach(i => {
-      if (i.verdict === 'HOAKS' || i.verdict === 'DISINFORMASI' || i.verdict === 'PROPAGANDA') counts.HOAKS++
+      const isHoaks = i.verdict === 'HOAKS' || i.verdict === 'DISINFORMASI' || i.verdict === 'PROPAGANDA'
+      const isResolved = i.verdict === 'FAKTA' || i.verdict === 'NETRAL'
+      const isExcluded = i.queueState === 'EXCLUDED'
+      const isUnverified = !isExcluded && (i.verdict === 'UNVERIFIED' || i.triageStatus === 'UNVERIFIED' || i.queueState === 'MONITOR' || (!isHoaks && !isResolved))
+
+      if (isHoaks) counts.HOAKS++
       else if (i.verdict === 'FAKTA') counts.FAKTA++
       else if (i.verdict === 'NETRAL') counts.NETRAL++
+      else if (isUnverified) counts.UNVERIFIED++
       else counts.UNVERIFIED++
     })
     return counts
@@ -565,7 +572,7 @@ export default function LiveRadar() {
             const httpStatusStr = ch.httpStatus ? `HTTP Status: ${ch.httpStatus}\n` : ''
             const tooltipText = `${ch.sourceName}\nStatus: ${ch.state}\n${httpStatusStr}Keterangan: ${ch.userReadableMessage}\nLatensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nTerakhir Sukses: ${lastSuccessStr}\nKegagalan Beruntun: ${ch.consecutiveFailures || 0}`
 
-            const displayName = (ch as any).shortLabel || (
+            const displayName = ch.shortLabel || (
               ch.sourceName.includes('—')
                 ? 'G-News · ' + ch.sourceName.split('—')[1].split('(')[0].trim()
                 : ch.sourceName.replace('Google Trends Indonesia (Search Interest)', 'Google Trends ID').split('(')[0].trim()

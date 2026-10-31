@@ -2,11 +2,20 @@ const { app, BrowserWindow, shell } = require('electron')
 const path = require('path')
 const { startGatewayServer, stopGatewayServer } = require('./gateway-runner.cjs')
 
+// Single instance lock to prevent duplicate processes and port conflicts
+const gotTheLock = app.requestSingleInstanceLock()
+if (!gotTheLock) {
+  console.log('[NARADA Main] Another instance is already running. Quitting.')
+  app.quit()
+  process.exit(0)
+}
+
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 let gatewayInstance = null
+let mainWindow = null
 
 function createWindow() {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1366,
     height: 850,
     minWidth: 1024,
@@ -23,17 +32,28 @@ function createWindow() {
   })
 
   // Buka link eksternal di browser default pengguna
-  win.webContents.setWindowOpenHandler(({ url }) => {
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
     return { action: 'deny' }
   })
 
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
+
   if (isDev) {
-    win.loadURL('http://localhost:5173')
+    mainWindow.loadURL('http://localhost:5173')
   } else {
-    win.loadFile(path.join(__dirname, '../dist/index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 }
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.focus()
+  }
+})
 
 app.whenReady().then(async () => {
   if (!isDev) {
@@ -49,7 +69,12 @@ app.whenReady().then(async () => {
 
 app.on('will-quit', async () => {
   if (gatewayInstance && gatewayInstance.server) {
-    await stopGatewayServer(gatewayInstance.server)
+    try {
+      await stopGatewayServer(gatewayInstance.server)
+    } catch (e) {
+      console.error('[NARADA Main] Error during gateway shutdown:', e)
+    }
+    gatewayInstance = null
   }
 })
 

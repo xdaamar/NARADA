@@ -66,6 +66,7 @@ export interface RateLimitMetadata {
 export interface ConnectorHealth {
   sourceId: string
   sourceName: string
+  shortLabel?: string
   state: ConnectorHealthState
   status?: ConnectorHealthState         // Interoperable alias
   lastAttemptAt: number | null

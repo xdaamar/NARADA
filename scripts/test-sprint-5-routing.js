@@ -10,7 +10,6 @@
 import { 
   ACTIVE_RADAR_SOURCES,
   getConnectorHealth,
-  getAllConnectorHealth,
   updateConnectorHealth,
   resetConnectorHealthState
 } from '../src/engine/radar/source-registry.ts'
@@ -23,8 +22,7 @@ import {
 
 import {
   detectPublicationStance,
-  evaluateClaimFirewall,
-  resolvePublicationTriage
+  evaluateClaimFirewall
 } from '../src/engine/radar/claim-firewall.ts'
 
 import {
@@ -39,11 +37,6 @@ import {
 import {
   getCuratedArchiveDebunks
 } from '../src/engine/data/debunk-service.ts'
-
-import {
-  handleRadarFeedRequest,
-  validateUpstreamUrl
-} from '../src/engine/transport/rss-gateway-handler.ts'
 
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)

@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
+  "description": "NARADA Cognitive Threat Defense System",
+  "author": "PUSSIBERAD TNI AD × CODEPOLITAN",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -11,6 +14,7 @@
     "gateway": "node scripts/start-radar-gateway.js",
     "test:e2e": "node scripts/test-e2e-qualification.js",
     "test:sprint5": "node scripts/test-sprint-5-routing.js",
+    "test:sprint5.1": "node scripts/test-sprint-5-1-validation.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "electron:build": "tsc -b && vite build && electron-builder --win"
   },

@@ -139,6 +139,7 @@ export function ensureInitialHealth(sourceId: string): ConnectorHealth {
   const initial: ConnectorHealth = {
     sourceId,
     sourceName: sourceDef?.displayName || sourceId,
+    shortLabel: sourceDef?.shortLabel || sourceDef?.displayName || sourceId,
     state: sourceDef?.enabled ? 'UNKNOWN' : 'DISABLED',
     status: sourceDef?.enabled ? 'UNKNOWN' : 'DISABLED',
     lastAttemptAt: null,
@@ -174,7 +175,7 @@ export function sanitizeErrorMessage(rawMsg?: string | null): string | null {
   if (!rawMsg) return null
   return rawMsg
     .replace(/(?:key|token|auth|password|secret|bearer)=[^& \s]+/gi, '$1=[REDACTED]')
-    .replace(/Bearer\s+[a-zA-Z0-9_\-\.]+/gi, 'Bearer [REDACTED]')
+    .replace(/Bearer\s+[a-zA-Z0-9_\-.]+/gi, 'Bearer [REDACTED]')
     .replace(/https?:\/\/[^\s]+(?:\?[^\s]+)?/gi, (url) => {
       try {
         const u = new URL(url)
