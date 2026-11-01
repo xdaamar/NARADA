@@ -1,6 +1,173 @@
+import { XMLParser } from 'fast-xml-parser'
 import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../../types.ts'
 import { parseSourceDate, formatMilitaryDate, evaluateFreshness } from '../radar/freshness-engine.ts'
-import type { SearchTrendSignal } from '../radar/radar-types.ts'
+import type { SearchTrendSignal, RadarTaxonomyDomain } from '../radar/radar-types.ts'
+import { normalizeUrl } from '../radar/clustering-engine.ts'
+import { classifyTaxonomyDomain } from '../radar/radar-assessment.ts'
+
+// Inisialisasi parser XML aman dengan fast-xml-parser
+const xmlParser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  textNodeName: '#text',
+  trimValues: true,
+  parseTagValue: false,
+  cdataPropName: false // CDATA digabung langsung ke nilai teks
+})
+
+/**
+ * Helper untuk normalisasi elemen tunggal atau array dari parser XML
+ */
+function toArray<T>(val: T | T[] | undefined): T[] {
+  if (!val) return []
+  return Array.isArray(val) ? val : [val]
+}
+
+/**
+ * Ekstraksi teks dari node parser XML yang mungkin berupa string, number, atau objek dengan #text
+ */
+function extractNodeText(node: any): string {
+  if (node === null || node === undefined) return ''
+  if (typeof node === 'string') return node
+  if (typeof node === 'number') return String(node)
+  if (typeof node === 'object') {
+    if (typeof node['#text'] === 'string') return node['#text']
+    if (typeof node['__cdata'] === 'string') return node['__cdata']
+    if (typeof node['_text'] === 'string') return node['_text']
+    // Jika tidak ada #text, cek apakah node memiliki nilai string pertama
+    const keys = Object.keys(node)
+    for (const k of keys) {
+      if (!k.startsWith('@_') && typeof node[k] === 'string') {
+        return node[k]
+      }
+    }
+  }
+  return ''
+}
+
+/**
+ * Ekstraksi link URL dari node (mendukung RSS 2.0 <link> dan Atom <link href="..."/>)
+ */
+function extractLink(node: any): string {
+  if (!node) return ''
+  if (typeof node === 'string') return node.trim()
+  if (typeof node === 'object') {
+    if (node['@_href']) return String(node['@_href']).trim()
+    if (node['#text']) return String(node['#text']).trim()
+  }
+  return ''
+}
+
+/**
+ * Implementasi Standar FIPS 180-4 / RFC 6234 SHA-256 murni JavaScript
+ * Berjalan deterministik dan sinkron di seluruh lingkungan (Browser, Node, Worker, Electron)
+ */
+export function sha256Hex(ascii: string): string {
+  function rightRotate(value: number, amount: number) {
+    return (value >>> amount) | (value << (32 - amount))
+  }
+
+  const k = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ]
+
+  const hash = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+  ]
+
+  const utf8: number[] = []
+  for (let i = 0; i < ascii.length; i++) {
+    let c = ascii.charCodeAt(i)
+    if (c < 128) {
+      utf8.push(c)
+    } else if (c < 2048) {
+      utf8.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f))
+    } else if (c < 55296 || c >= 57344) {
+      utf8.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f))
+    } else {
+      i++
+      c = 65536 + (((c & 1023) << 10) | (ascii.charCodeAt(i) & 1023))
+      utf8.push(
+        0xf0 | (c >> 18),
+        0x80 | ((c >> 12) & 0x3f),
+        0x80 | ((c >> 6) & 0x3f),
+        0x80 | (c & 0x3f)
+      )
+    }
+  }
+
+  const bitLen = utf8.length * 8
+  utf8.push(0x80)
+  while ((utf8.length % 64) !== 56) {
+    utf8.push(0)
+  }
+
+  for (let b = 7; b >= 0; b--) {
+    utf8.push((bitLen / Math.pow(2, b * 8)) & 0xff)
+  }
+
+  for (let s = 0; s < utf8.length; s += 64) {
+    const w = new Array(64)
+    for (let t = 0; t < 16; t++) {
+      w[t] =
+        (utf8[s + t * 4] << 24) |
+        (utf8[s + t * 4 + 1] << 16) |
+        (utf8[s + t * 4 + 2] << 8) |
+        (utf8[s + t * 4 + 3])
+    }
+    for (let t = 16; t < 64; t++) {
+      const s0 = rightRotate(w[t - 15], 7) ^ rightRotate(w[t - 15], 18) ^ (w[t - 15] >>> 3)
+      const s1 = rightRotate(w[t - 2], 17) ^ rightRotate(w[t - 2], 19) ^ (w[t - 2] >>> 10)
+      w[t] = (((w[t - 16] + s0) | 0) + ((w[t - 7] + s1) | 0)) | 0
+    }
+
+    let [a, b, c, d, e, f, g, h0] = hash
+    for (let t = 0; t < 64; t++) {
+      const S1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)
+      const ch = (e & f) ^ ((~e) & g)
+      const temp1 = ((((h0 + S1) | 0) + ((ch + k[t]) | 0)) | 0) + w[t] | 0
+      const S0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)
+      const maj = (a & b) ^ (a & c) ^ (b & c)
+      const temp2 = (S0 + maj) | 0
+
+      h0 = g
+      g = f
+      f = e
+      e = (d + temp1) | 0
+      d = c
+      c = b
+      b = a
+      a = (temp1 + temp2) | 0
+    }
+
+    hash[0] = (hash[0] + a) | 0
+    hash[1] = (hash[1] + b) | 0
+    hash[2] = (hash[2] + c) | 0
+    hash[3] = (hash[3] + d) | 0
+    hash[4] = (hash[4] + e) | 0
+    hash[5] = (hash[5] + f) | 0
+    hash[6] = (hash[6] + g) | 0
+    hash[7] = (hash[7] + h0) | 0
+  }
+
+  return hash.map(x => ('00000000' + (x >>> 0).toString(16)).slice(-8)).join('')
+}
+
+/**
+ * Menghasilkan ID publikasi stabil berbasis SHA-256 dari canonical URL yang telah dinormalisasi
+ */
+export function generateStablePublicationId(canonicalUrl: string): string {
+  const normalized = normalizeUrl(canonicalUrl)
+  return `PUB-${sha256Hex(normalized).slice(0, 16)}`
+}
 
 /**
  * Membersihkan entitas HTML, XML CDATA, dan tag markup dari teks mentah
@@ -36,14 +203,12 @@ export function extractClarificationFromDesc(descText: string): string {
   const text = cleanHtmlText(descText)
   if (!text) return 'Klarifikasi resmi telah diterbitkan oleh Mafindo; konten dikategorikan manipulatif/hoaks.'
 
-  // Cari segmen fakta/penjelasan
   const match = text.match(/(?:FAKTANYA|PENJELASAN|HASIL CEK FAKTA|KLARIFIKASI|Fakta Terverifikasi)[:\s]+([^]+?)(?:RUJUKAN|SUMBER|REFERENSI|KATEGORI|$)/i)
   let snippet = ''
 
   if (match && match[1] && match[1].trim().length > 20) {
     snippet = match[1].trim()
   } else {
-    // Ambil kalimat pertama hingga ketiga yang substantif
     const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.length > 25)
     snippet = sentences.slice(0, 2).join(' ') || text
   }
@@ -91,7 +256,6 @@ export function extractOfficialSourceFromText(text: string): string {
 export function classifyCluster(title: string, body: string): ThreatSpectrumCluster {
   const norm = (title + ' ' + body).toLowerCase()
 
-  // 1. Kedaulatan & Alutsista Militer
   if (
     norm.includes('tni') ||
     norm.includes('militer') ||
@@ -111,7 +275,6 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     return 'KEDAULATAN_MILITER'
   }
 
-  // 2. Bencana Darurat
   if (
     norm.includes('gempa') ||
     norm.includes('tsunami') ||
@@ -127,7 +290,6 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     return 'BENCANA_DARURAT'
   }
 
-  // 3. Penipuan & Bansos
   if (
     norm.includes('bansos') ||
     norm.includes('blt') ||
@@ -145,7 +307,6 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     return 'PENIPUAN_BANSOS'
   }
 
-  // 4. Kesehatan & Pangan
   if (
     norm.includes('beras plastik') ||
     norm.includes('vaksin') ||
@@ -159,7 +320,6 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     return 'KESEHATAN_PANGAN'
   }
 
-  // 5. Default Politik Negara / Isu Umum
   return 'POLITIK_NEGARA'
 }
 
@@ -175,22 +335,70 @@ function extractKeywords(text: string): string[] {
     .slice(0, 8)
 }
 
-
 export interface PublicationEligibilityResult {
   isEligible: boolean
   exclusionReason?: 'IRRELEVANT_TOPIC' | 'NO_CHECKABLE_CLAIM' | 'INSUFFICIENT_CONTEXT' | 'DUPLICATE_PUBLICATION' | 'ALREADY_ASSESSED'
   reasonExplanation?: string
+  matchedDomain?: RadarTaxonomyDomain
 }
 
 /**
- * Penapis Intelijen Kognitif (Cognitive Threat & Virality Gatekeeper)
- * Membuang berita seremonial, humas instansi, beasiswa, dan kegiatan dinas rutin yang TIDAK berpotensi
- * memicu krisis kognitif atau penggiringan opini publik.
+ * Penapis Intelijen Kognitif Terbuka (Radar Recall & Cognitive Gatekeeper — Sprint 6)
+ * Membuka ruang penemuan topik strategis nasional (kebijakan negara, ekonomi digital, hankam, dll.)
+ * tanpa bergantung pada gating viralitas sempit ("viral", "heboh", "polemik", "hoaks").
  */
-export function evaluatePublicationEligibility(title: string, sourceName = ''): PublicationEligibilityResult {
+export function evaluatePublicationEligibility(
+  title: string, 
+  sourceName = '',
+  domainHint?: string
+): PublicationEligibilityResult {
   const norm = (title + ' ' + sourceName).toLowerCase()
 
-  // 1. BLACKLIST FILTER: Berita Humas Kampus/Daerah, Seremonial, Olahraga, & Rutinitas Dinas
+  // 1. Batas minimum panjang karakter
+  if (title.trim().length < 15) {
+    return {
+      isEligible: false,
+      exclusionReason: 'INSUFFICIENT_CONTEXT',
+      reasonExplanation: 'Judul terlalu pendek untuk memuat klaim faktual yang dapat diuji'
+    }
+  }
+
+  // 2. Pemicu Taksonomi Strategis 7 Domain NARADA
+  const strategicTriggers = [
+    // National Policy & State Dynamics
+    'prabowo', 'gibran', 'jokowi', 'presiden', 'wapres', 'pemerintah', 'dpr', 'mpr',
+    'kementerian', 'menteri', 'kebijakan', 'regulasi', 'perpres', 'uu', 'apbn', 'anggaran',
+    'ikn', 'kpk', 'kejagung', 'mahkamah', 'mk', 'kpu', 'bawaslu', 'bkn', 'sidang', 'putusan',
+    'dorong', 'terbitkan', 'resmikan', 'tinjau', 'tetapkan',
+    // Digital Economy & Fiscal
+    'pajak digital', 'transaksi digital', 'ekonomi digital', 'fintech', 'marketplace',
+    'pph 22', 'pph', 'ppn', 'bank digital', 'qris', 'kripto', 'e-commerce', 'hashim',
+    'fiskal', 'ojk', 'bank indonesia', 'devisa', 'investasi', 'tarif', 'pajak', 'finansial',
+    // Defense & National Security
+    'tni', 'alutsista', 'kemhan', 'papua', 'kkb', 'opm', 'ambalat', 'natuna', 'perbatasan',
+    'kedaulatan', 'keamanan', 'kapal perang', 'pesawat tempur', 'marinir', 'kopassus', 'pussiberad',
+    'kodam', 'korem', 'kodim', 'babinsa', 'intelijen', 'militer', 'operasi', 'gugur', 'serangan',
+    // Civic Dynamics & Demonstrations
+    'demo', 'unjuk rasa', 'aksi massa', 'protes', 'penolakan', 'bentrok', 'ricuh', 'kericuhan',
+    'pemakzulan', 'buruh', 'mahasiswa', 'tuntut', 'desak', 'petisi', 'mogok',
+    // Public Crisis & Disasters
+    'bencana', 'darurat', 'gempa', 'tsunami', 'megathrust', 'banjir', 'longsor', 'erupsi',
+    'merapi', 'pangan', 'beras', 'bbm', 'solar', 'pertalite', 'lpg', 'listrik', 'pln',
+    'kesehatan', 'obat', 'bpom', 'bnpb', 'bmkg', 'kelangkaan', 'wabah', 'krisis',
+    // Information Integrity & Disinformation
+    'hoaks', 'hoax', 'disinformasi', 'misinformasi', 'palsu', 'bohong', 'fitnah', 'manipulasi',
+    'cek fakta', 'klarifikasi', 'bantah', 'meluruskan',
+    // Cyber & Public Critical Infrastructure
+    'kebocoran data', 'serangan siber', 'ransomware', 'hacker', 'peretasan', 'pdns', 'bssn',
+    'malware', 'keamanan siber', 'sistem down', 'server down',
+    // Peristiwa Dinamis & Polemik Umum
+    'viral', 'heboh', 'geger', 'kontroversi', 'polemik', 'skandal', 'korupsi', 'bocoran'
+  ]
+
+  const hasStrategicMatch = strategicTriggers.some(t => norm.includes(t))
+
+  // 3. Blacklist Filter: Olahraga & Rutinitas Dinas / Seremonial Murni
+  // Hanya menolak bila TIDAK memuat pemicu strategis di atas
   const ceremonialBlacklist = [
     'kuliah', 'beasiswa', 'lldikti', 'politeknik', 'wisuda', 'mahasiswa kkn', 'pelajar magang',
     'tmmd', 'tni manunggal', 'bakti tni', 'sinergi pemda dan tni', 'tim wasev',
@@ -203,41 +411,30 @@ export function evaluatePublicationEligibility(title: string, sourceName = ''): 
     'prediksi skor', 'skor dan lineup', 'rumah hantu'
   ]
 
-  for (const b of ceremonialBlacklist) {
-    if (norm.includes(b)) {
-      return {
-        isEligible: false,
-        exclusionReason: 'IRRELEVANT_TOPIC',
-        reasonExplanation: `Memuat topik seremonial/olahraga non-strategis (${b})`
+  if (!hasStrategicMatch) {
+    for (const b of ceremonialBlacklist) {
+      if (norm.includes(b)) {
+        return {
+          isEligible: false,
+          exclusionReason: 'IRRELEVANT_TOPIC',
+          reasonExplanation: `Memuat topik seremonial/olahraga non-strategis (${b})`
+        }
       }
     }
   }
 
-  // Jika teks terlalu pendek untuk memuat proposisi klaim faktual
-  if (title.trim().length < 15) {
-    return {
-      isEligible: false,
-      exclusionReason: 'INSUFFICIENT_CONTEXT',
-      reasonExplanation: 'Judul terlalu pendek untuk memuat klaim faktual yang dapat diuji'
-    }
-  }
+  const VALID_DOMAINS = new Set([
+    'NATIONAL_POLICY', 'DIGITAL_ECONOMY', 'DEFENSE_SECURITY', 'CIVIC_DYNAMICS',
+    'PUBLIC_CRISIS', 'INFORMATION_INTEGRITY', 'CYBER_PUBLIC_IMPACT',
+    'KEDAULATAN_MILITER', 'POLITIK_NEGARA', 'BENCANA_DARURAT', 'PENIPUAN_BANSOS', 'KESEHATAN_PANGAN', 'MILITARY_DEFENSE', 'EKONOMI_DIGITAL'
+  ])
 
-  // 2. WHITELIST TRIGGERS: Harus memiliki indikasi hoaks, kontroversi, polemik, aksi massa, atau dinamika faktual
-  const threatTriggers = [
-    'hoaks', 'hoax', 'disinformasi', 'palsu', 'bohong', 'fitnah', 'manipulasi',
-    'viral', 'heboh', 'geger', 'kontroversi', 'polemik', 'debat', 'tuding', 'tuduhan',
-    'desak', 'tuntut', 'kecam', 'protes', 'demo', 'unjuk rasa', 'mahasiswa', 'massa',
-    'tolak', 'ricuh', 'bentrok', 'kericuhan', 'bakar', 'tangkap', 'gugur', 'serangan',
-    'ditembak', 'penyanderaan', 'korban', 'opm', 'kkb', 'krisis', 'batal', 'dicopot',
-    'pemakzulan', 'mundur', 'korupsi', 'skandal', 'bocoran', 'rahasia', 'sabotase',
-    'perang terbuka', 'ijazah', 'mbg', 'bansos', 'ambalat', 'kapal perang', 'tni', 'alutsista',
-    'operasi', 'perbatasan', 'latihan', 'sidang', 'putusan', 'kebijakan', 'resmikan', 'terbitkan'
-  ]
+  const isValidDomainHint = Boolean(domainHint && VALID_DOMAINS.has(domainHint))
 
-  for (const t of threatTriggers) {
-    if (norm.includes(t)) {
-      return { isEligible: true }
-    }
+  // Jika memuat salah satu pemicu strategis atau diberi hint domain taksonomi yang sah
+  if (hasStrategicMatch || isValidDomainHint) {
+    const matchedDomain = classifyTaxonomyDomain(title, sourceName, (isValidDomainHint ? domainHint : 'NATIONAL_POLICY') as any)
+    return { isEligible: true, matchedDomain }
   }
 
   return {
@@ -253,7 +450,6 @@ export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): bo
 
 /**
  * Memformat tanggal dan jam unggah/terbit presisi militer (e.g. "27 Okt 2026, 14:22 WIB")
- * Menggunakan parseSourceDate deterministik tanpa fallback ke waktu saat ini.
  */
 export function formatMilitaryDateTime(rawDateStr?: string | null): string {
   if (!rawDateStr) return 'Waktu Publikasi Tidak Tersedia'
@@ -270,8 +466,7 @@ export function formatMilitaryDateTime(rawDateStr?: string | null): string {
 }
 
 /**
- * Membersihkan nama platform/sumber pemantauan dari anomali scraper luar negeri
- * (Contoh: Menghapus "Get Spanish Football News" menjadi "Google Trends Indonesia" atau rujukan portal media terverifikasi)
+ * Membersihkan nama platform/sumber pemantauan dari anomali scraper
  */
 export function sanitizePlatformName(rawSource?: string, platformHint?: string): string {
   if (!rawSource || rawSource.trim() === '') {
@@ -280,7 +475,6 @@ export function sanitizePlatformName(rawSource?: string, platformHint?: string):
 
   let cleaned = cleanHtmlText(rawSource).trim()
 
-  // Saring noise scraper aneh dari RSS Google Trends
   if (
     /spanish|football|soccer|premier league|chelsea|arsenal|la liga|liga 1/i.test(cleaned) ||
     /get spanish/i.test(cleaned)
@@ -288,7 +482,6 @@ export function sanitizePlatformName(rawSource?: string, platformHint?: string):
     return 'Google Trends Indonesia'
   }
 
-  // Hapus karakter kurung pembuka/penutup yang tidak rapi
   cleaned = cleaned.replace(/^[({\["'\s]+|[)}\]"'\s]+$/g, '').trim()
 
   if (platformHint === 'Google Trends') {
@@ -303,7 +496,6 @@ export function sanitizePlatformName(rawSource?: string, platformHint?: string):
 
 /**
  * Helper metadata audit penangkapan vs verifikasi nyata (Zero Fake Data)
- * Catatan: Metrik engagement sosial fiktif (views/shares acak) telah dihapus 100%.
  */
 export function createViralAuditMeta(trafficStr?: string, minutesAgo = 18, _baseVelocity = '+140%/jam') {
   const now = Date.now()
@@ -317,33 +509,38 @@ export function createViralAuditMeta(trafficStr?: string, minutesAgo = 18, _base
   return {
     interceptedAt,
     verifiedAt: undefined,
-    engagement: undefined, // Tidak mengarang views atau shares
+    engagement: undefined,
     viralVelocity: trafficStr ? `${trafficStr} penelusuran (Google Trends)` : undefined
   }
 }
 
 /**
  * 1. Parser Live RSS Feed TurnBackHoax (MAFINDO)
- * Menghasilkan entri klarifikasi fakta resmi dengan CANONICAL ARTICLE URL
+ * Menghasilkan entri klarifikasi fakta resmi dengan CANONICAL ARTICLE URL dan stable ID
  */
-export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
-  if (!xmlText || !xmlText.includes('<item>')) return []
+export function parseTurnBackHoaxRss(xmlText: string, maxItems = 25): DebunkKnowledgeEntry[] {
+  if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
 
-  const itemsRaw = xmlText.split('<item>').slice(1)
-  const entries: DebunkKnowledgeEntry[] = []
+  try {
+    const parsed = xmlParser.parse(xmlText)
+    const channel = parsed?.rss?.channel || parsed?.feed
+    if (!channel) return []
 
-  itemsRaw.forEach((itemBlock, idx) => {
-    try {
-      const rawTitle = (itemBlock.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1] || ''
-      const rawLink = (itemBlock.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/) || [])[1] || ''
-      const rawDesc = (itemBlock.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/) || [])[1] || ''
-      const rawPubDate = (itemBlock.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || ''
+    const items = toArray(channel.item || channel.entry || [])
+    const entries: DebunkKnowledgeEntry[] = []
+
+    for (const item of items) {
+      if (entries.length >= maxItems) break
+
+      const rawTitle = extractNodeText(item.title)
+      const rawLink = extractLink(item.link || item.guid)
+      const rawDesc = extractNodeText(item.description || item['content:encoded'])
+      const rawPubDate = extractNodeText(item.pubDate || item.published || item.updated)
 
       const cleanTitle = cleanHtmlText(rawTitle)
-      const cleanLink = rawLink.trim()
-      if (!cleanTitle || !cleanLink) return
+      const cleanLink = cleanHtmlText(rawLink)
+      if (!cleanTitle || !cleanLink) continue
 
-      // Tentukan vonis awal berdasarkan tag judul Mafindo
       let verdict: 'HOAKS' | 'DISINFORMASI' | 'PROPAGANDA' = 'HOAKS'
       if (cleanTitle.includes('[DISINFORMASI]') || cleanTitle.includes('[MANIPULASI]') || cleanTitle.includes('[MISLEADING]')) {
         verdict = 'DISINFORMASI'
@@ -351,7 +548,6 @@ export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
         verdict = 'PROPAGANDA'
       }
 
-      // Bersihkan judul dari tag prefix
       const claim = cleanTitle
         .replace(/^\[(SALAH|HOAKS|DISINFORMASI|PENIPUAN|KLARIFIKASI|MANIPULASI|MISLEADING)\]\s*/i, '')
         .replace(/^["'“]/, '')
@@ -363,16 +559,16 @@ export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
       const cluster = classifyCluster(cleanTitle, rawDesc)
       const keywords = extractKeywords(claim)
 
-      // Format tanggal dan jam unggah presisi menggunakan Freshness Engine
       const dateMatch = rawDesc.match(/\b(202\d[-/]\d{2}[-/]\d{2})\b/)
       const rawDateToParse = rawPubDate || (dateMatch ? dateMatch[1] : undefined)
       const { timestamp: pubTimestamp } = parseSourceDate(rawDateToParse)
       const publishedDate = formatMilitaryDate(pubTimestamp)
       const freshness = evaluateFreshness(pubTimestamp)
       const isBreakingRecent = freshness.status === 'BREAKING'
+      const stableId = generateStablePublicationId(cleanLink)
 
       entries.push({
-        id: `TBH-CANONICAL-${idx + 1}-${Date.now().toString().slice(-4)}`,
+        id: stableId,
         claim,
         normalizedQuery: claim.toLowerCase(),
         cluster,
@@ -380,9 +576,9 @@ export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
         threatLevel: cluster === 'KEDAULATAN_MILITER' || cluster === 'POLITIK_NEGARA' ? 'critical' : 'high',
         clarification,
         officialSource,
-        sourceUrl: cleanLink, // Rujukan verifikasi resmi Mafindo
+        sourceUrl: cleanLink,
         originalPlatform: 'Media Sosial & Pesan Berantai (X / TikTok / WA)',
-        originalSourceUrl: cleanLink, // Arsip tangkapan layar & bukti di Mafindo
+        originalSourceUrl: cleanLink,
         interceptedAt: formatMilitaryDate(Date.now()),
         verifiedAt: formatMilitaryDate(pubTimestamp),
         keywords,
@@ -396,65 +592,67 @@ export function parseTurnBackHoaxRss(xmlText: string): DebunkKnowledgeEntry[] {
           ? '🔥 KLARIFIKASI HOAKS TERKINI (<3 JAM)'
           : '🚨 LAPORAN MAFINDO: Isu Disinformasi Terverifikasi'
       })
-    } catch {
-      // Lewati item yang korup
     }
-  })
 
-  return entries
+    return entries
+  } catch {
+    return []
+  }
 }
 
 /**
- * 2. Parser Live RSS Feed Google News (Hankam & Isu Nasional Tertarget)
- * Menyaring secara ketat agar HANYA isu kontroversial, polemik, atau potensi ancaman yang lolos
+ * 2. Parser Live RSS Feed Google News (Profil Isu Nasional Terakreditasi)
+ * Menghasilkan entri publikasi pers dengan ID stabil dan status awal UNVERIFIED
  */
-export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
-  if (!xmlText || !xmlText.includes('<item>')) return []
+export function parseGoogleNewsRss(xmlText: string, maxItems = 25): DebunkKnowledgeEntry[] {
+  if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
 
-  const itemsRaw = xmlText.split('<item>').slice(1)
-  const entries: DebunkKnowledgeEntry[] = []
+  try {
+    const parsed = xmlParser.parse(xmlText)
+    const channel = parsed?.rss?.channel || parsed?.feed
+    if (!channel) return []
 
-  itemsRaw.forEach((itemBlock, idx) => {
-    try {
-      const rawTitle = (itemBlock.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1] || ''
-      const rawLink = (itemBlock.match(/<link>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/) || [])[1] || ''
-      const rawPubDate = (itemBlock.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || ''
-      const sourceMatch = itemBlock.match(/<source url="([^"]*)">([\s\S]*?)<\/source>/)
+    const items = toArray(channel.item || channel.entry || [])
+    const entries: DebunkKnowledgeEntry[] = []
+
+    for (const item of items) {
+      if (entries.length >= maxItems) break
+
+      const rawTitle = extractNodeText(item.title)
+      const rawLink = extractLink(item.link || item.guid)
+      const rawPubDate = extractNodeText(item.pubDate || item.published || item.updated)
+      const sourceNode = item.source
+      const rawSourceName = extractNodeText(sourceNode) || 'Portal Berita Nasional'
 
       const cleanTitle = cleanHtmlText(rawTitle)
-      const cleanLink = rawLink.trim()
-      if (!cleanTitle || !cleanLink) return
+      const cleanLink = cleanHtmlText(rawLink)
+      if (!cleanTitle || !cleanLink) continue
 
-      const rawSourceName = sourceMatch ? cleanHtmlText(sourceMatch[2]) : 'Portal Berita Nasional'
       const sourceName = sanitizePlatformName(rawSourceName, 'Google News')
-      const cleanClaim = cleanTitle.replace(new RegExp(`\\s*-\\s*${rawSourceName}\\s*$`, 'i'), '').trim()
+      const cleanClaim = cleanTitle.replace(new RegExp(`\\s*-\\s*${rawSourceName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i'), '').trim()
 
-      // PENAPIS INTELIJEN KOGNITIF: Buang berita humas/seremonial kampus/TMMD!
       if (!isEligibleCognitiveRadarItem(cleanClaim, sourceName)) {
-        return
+        continue
       }
 
       const cluster = classifyCluster(cleanTitle, '')
       const keywords = extractKeywords(cleanClaim)
 
-      // Deteksi apakah berita berasal dari instansi resmi (TNI, Kemhan, BMKG, Bawaslu)
       const isOfficial = sourceName.toUpperCase().includes('TNI') || 
                          sourceName.toUpperCase().includes('KEMHAN') || 
                          sourceName.toUpperCase().includes('BMKG') ||
                          sourceName.toUpperCase().includes('BAWASLU')
 
-      // SPRINT 5 (WP3): Parser bersifat evidence-neutral. Status awal selalu UNVERIFIED.
-      // Keberadaan kata "hoaks" atau identitas penerbit TIDAK BOLEH memvonis kebenaran/kebohongan
-      // secara sepihak di tahap parsing! Penilaian klaim dilakukan terpisah secara berbasis bukti.
       const verdict: DebunkKnowledgeEntry['verdict'] = 'UNVERIFIED'
 
       const { timestamp: pubTimestamp } = parseSourceDate(rawPubDate)
       const publishedDate = formatMilitaryDate(pubTimestamp)
       const freshness = evaluateFreshness(pubTimestamp)
       const isBreakingRecent = freshness.status === 'BREAKING'
+      const stableId = generateStablePublicationId(cleanLink)
 
       entries.push({
-        id: `GNEWS-${idx + 1}-${Date.now().toString().slice(-4)}`,
+        id: stableId,
         claim: cleanClaim,
         normalizedQuery: cleanClaim.toLowerCase(),
         cluster,
@@ -464,9 +662,9 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
           ? `Pernyataan dan rilis dari ${sourceName}. Isi berita memerlukan penelusuran klaim kedinasan.`
           : `Isu sedang dipantau di ranah publik via ${sourceName}. Menunggu verifikasi silang dan data pembanding.`,
         officialSource: sourceName,
-        sourceUrl: cleanLink, // CANONICAL REDIRECT LANGSUNG KE ARTIKEL PERS!
+        sourceUrl: cleanLink,
         originalPlatform: sourceName,
-        originalSourceUrl: cleanLink, // Tempat artikel pertama kali dipantau
+        originalSourceUrl: cleanLink,
         interceptedAt: formatMilitaryDate(Date.now()),
         keywords,
         tacticalResponseCivilian: `Isu "${cleanClaim}" sedang dipantau. Masyarakat diimbau menunggu konfirmasi resmi dan tidak terpancing spekulasi.`,
@@ -481,12 +679,83 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
           ? '📢 PUBLIKASI KEDINASAN: Memerlukan Pemantauan Narasi'
           : '📡 RADAR BERITA: Klaim Belum Terverifikasi'
       })
-    } catch {
-      // Lewati item yang korup
     }
-  })
 
-  return entries
+    return entries
+  } catch {
+    return []
+  }
+}
+
+/**
+ * 2b. Parser Live RSS Feed ANTARA News (Kantor Berita Nasional LKBN ANTARA)
+ */
+export function parseAntaraRss(xmlText: string, maxItems = 25): DebunkKnowledgeEntry[] {
+  if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
+
+  try {
+    const parsed = xmlParser.parse(xmlText)
+    const channel = parsed?.rss?.channel || parsed?.feed
+    if (!channel) return []
+
+    const items = toArray(channel.item || channel.entry || [])
+    const entries: DebunkKnowledgeEntry[] = []
+
+    for (const item of items) {
+      if (entries.length >= maxItems) break
+
+      const rawTitle = extractNodeText(item.title)
+      const rawLink = extractLink(item.link || item.guid)
+      const rawDesc = extractNodeText(item.description || item.summary)
+      const rawPubDate = extractNodeText(item.pubDate || item.published || item.updated)
+
+      const cleanTitle = cleanHtmlText(rawTitle)
+      const cleanLink = cleanHtmlText(rawLink)
+      if (!cleanTitle || !cleanLink) continue
+
+      const sourceName = 'ANTARA News'
+      if (!isEligibleCognitiveRadarItem(cleanTitle, sourceName)) {
+        continue
+      }
+
+      const cluster = classifyCluster(cleanTitle, rawDesc)
+      const keywords = extractKeywords(cleanTitle)
+      const { timestamp: pubTimestamp } = parseSourceDate(rawPubDate)
+      const publishedDate = formatMilitaryDate(pubTimestamp)
+      const freshness = evaluateFreshness(pubTimestamp)
+      const isBreakingRecent = freshness.status === 'BREAKING'
+      const stableId = generateStablePublicationId(cleanLink)
+
+      entries.push({
+        id: stableId,
+        claim: cleanTitle,
+        normalizedQuery: cleanTitle.toLowerCase(),
+        cluster,
+        verdict: 'UNVERIFIED',
+        threatLevel: cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
+        clarification: `Laporan Kantor Berita Nasional ANTARA: ${extractClarificationFromDesc(rawDesc)}`,
+        officialSource: 'LKBN ANTARA',
+        sourceUrl: cleanLink,
+        originalPlatform: sourceName,
+        originalSourceUrl: cleanLink,
+        interceptedAt: formatMilitaryDate(Date.now()),
+        keywords,
+        tacticalResponseCivilian: `Laporan kantor berita nasional ANTARA mengenai "${cleanTitle}". Pantau perkembangan lebih lanjut.`,
+        tacticalResponseMilitary: `Pantau publikasi nasional LKBN ANTARA terkait "${cleanTitle}".`,
+        isLive: true,
+        publishedDate,
+        isBreakingRecent,
+        cognitiveScore: 50,
+        viralityReason: isBreakingRecent
+          ? '🔥 ANTARA TERKINI (<3 JAM): Menunggu Verifikasi Fakta'
+          : '📡 LKBN ANTARA: Kantor Berita Nasional'
+      })
+    }
+
+    return entries
+  } catch {
+    return []
+  }
 }
 
 /**
@@ -494,23 +763,29 @@ export function parseGoogleNewsRss(xmlText: string): DebunkKnowledgeEntry[] {
  * Menghasilkan sinyal minat penelusuran publik agregat (Left-of-Bang Early Warning),
  * BUKAN entitas artikel berita, BUKAN bukti klaim, dan BUKAN metrik media sosial.
  */
-export function parseGoogleTrendsRssAsSignals(xmlText: string): SearchTrendSignal[] {
-  if (!xmlText || !xmlText.includes('<item>')) return []
+export function parseGoogleTrendsRssAsSignals(xmlText: string, maxItems = 20): SearchTrendSignal[] {
+  if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
 
-  const itemsRaw = xmlText.split('<item>').slice(1)
-  const signals: SearchTrendSignal[] = []
-  const now = Date.now()
+  try {
+    const parsed = xmlParser.parse(xmlText)
+    const channel = parsed?.rss?.channel || parsed?.feed
+    if (!channel) return []
 
-  itemsRaw.forEach((itemBlock, idx) => {
-    try {
-      const rawTrendTitle = (itemBlock.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1] || ''
-      const traffic = (itemBlock.match(/<ht:approx_traffic>([\s\S]*?)<\/ht:approx_traffic>/) || [])[1] || ''
-      const rawNewsUrl = (itemBlock.match(/<ht:news_item_url>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_url>/) || [])[1] || ''
-      const rawNewsSource = (itemBlock.match(/<ht:news_item_source>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_source>/) || [])[1] || ''
-      const rawPubDate = (itemBlock.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || ''
+    const items = toArray(channel.item || channel.entry || [])
+    const signals: SearchTrendSignal[] = []
+    const now = Date.now()
+
+    for (const item of items) {
+      if (signals.length >= maxItems) break
+
+      const rawTrendTitle = extractNodeText(item.title)
+      const traffic = extractNodeText(item['ht:approx_traffic'])
+      const rawNewsUrl = extractNodeText(item['ht:news_item_url'])
+      const rawNewsSource = extractNodeText(item['ht:news_item_source'])
+      const rawPubDate = extractNodeText(item.pubDate)
 
       const trendTitle = cleanHtmlText(rawTrendTitle)
-      if (!trendTitle) return
+      if (!trendTitle) continue
 
       const cleanPlatform = sanitizePlatformName(rawNewsSource, 'Google Trends')
       const canonicalUrl = rawNewsUrl ? cleanHtmlText(rawNewsUrl) : 'https://trends.google.com/trending?geo=ID'
@@ -519,17 +794,19 @@ export function parseGoogleTrendsRssAsSignals(xmlText: string): SearchTrendSigna
       let timestampStatus: 'VALID' | 'UNKNOWN_DATE' | 'INVALID_TIMESTAMP' = 'UNKNOWN_DATE'
 
       if (rawPubDate && rawPubDate.trim()) {
-        const parsed = parseSourceDate(rawPubDate)
-        if (parsed.status === 'VALID' && parsed.timestamp !== null) {
-          startedAt = new Date(parsed.timestamp).toISOString()
+        const parsedDate = parseSourceDate(rawPubDate)
+        if (parsedDate.status === 'VALID' && parsedDate.timestamp !== null) {
+          startedAt = new Date(parsedDate.timestamp).toISOString()
           timestampStatus = 'VALID'
         } else {
-          timestampStatus = parsed.status === 'INVALID' ? 'INVALID_TIMESTAMP' : 'UNKNOWN_DATE'
+          timestampStatus = parsedDate.status === 'INVALID' ? 'INVALID_TIMESTAMP' : 'UNKNOWN_DATE'
         }
       }
 
+      const stableId = `SIG-GTREND-${sha256Hex(trendTitle).slice(0, 16)}`
+
       signals.push({
-        id: `SIG-GTREND-${idx + 1}-${now.toString().slice(-4)}`,
+        id: stableId,
         sourceId: 'src-gtrends-id',
         query: trendTitle,
         searchVolumeBand: traffic || undefined,
@@ -546,34 +823,40 @@ export function parseGoogleTrendsRssAsSignals(xmlText: string): SearchTrendSigna
           'Bukan bukti kebenaran atau kepalsuan klaim narasi'
         ]
       })
-    } catch {
-      // Lewati item yang korup
     }
-  })
 
-  return signals
+    return signals
+  } catch {
+    return []
+  }
 }
 
 /**
  * 3b. Parser Legacy Google Trends untuk kompatibilitas mundur
  */
-export function parseGoogleTrendsRss(xmlText: string): DebunkKnowledgeEntry[] {
-  if (!xmlText || !xmlText.includes('<item>')) return []
+export function parseGoogleTrendsRss(xmlText: string, maxItems = 20): DebunkKnowledgeEntry[] {
+  if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
 
-  const itemsRaw = xmlText.split('<item>').slice(1)
-  const entries: DebunkKnowledgeEntry[] = []
+  try {
+    const parsed = xmlParser.parse(xmlText)
+    const channel = parsed?.rss?.channel || parsed?.feed
+    if (!channel) return []
 
-  itemsRaw.forEach((itemBlock, idx) => {
-    try {
-      const rawTrendTitle = (itemBlock.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1] || ''
-      const traffic = (itemBlock.match(/<ht:approx_traffic>([\s\S]*?)<\/ht:approx_traffic>/) || [])[1] || 'Viral'
-      const rawNewsTitle = (itemBlock.match(/<ht:news_item_title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_title>/) || [])[1] || ''
-      const rawNewsUrl = (itemBlock.match(/<ht:news_item_url>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_url>/) || [])[1] || ''
-      const rawNewsSource = (itemBlock.match(/<ht:news_item_source>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/ht:news_item_source>/) || [])[1] || ''
-      const rawPubDate = (itemBlock.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || ''
+    const items = toArray(channel.item || channel.entry || [])
+    const entries: DebunkKnowledgeEntry[] = []
+
+    for (const item of items) {
+      if (entries.length >= maxItems) break
+
+      const rawTrendTitle = extractNodeText(item.title)
+      const traffic = extractNodeText(item['ht:approx_traffic']) || 'Viral'
+      const rawNewsTitle = extractNodeText(item['ht:news_item_title'])
+      const rawNewsUrl = extractNodeText(item['ht:news_item_url'])
+      const rawNewsSource = extractNodeText(item['ht:news_item_source'])
+      const rawPubDate = extractNodeText(item.pubDate)
 
       const trendTitle = cleanHtmlText(rawTrendTitle)
-      if (!trendTitle) return
+      if (!trendTitle) continue
 
       const newsTitle = cleanHtmlText(rawNewsTitle)
       const cleanPlatform = sanitizePlatformName(rawNewsSource, 'Google Trends')
@@ -583,17 +866,18 @@ export function parseGoogleTrendsRss(xmlText: string): DebunkKnowledgeEntry[] {
       const cluster = classifyCluster(trendTitle, newsTitle)
       const keywords = [trendTitle.toLowerCase(), ...extractKeywords(claim)]
 
-      // Gunakan tanggal publikasi asli jika tersedia, jika tidak tandai tidak tersedia (tanpa Date.now() palsu)
       let publishedDate = 'Waktu Publikasi Tidak Tersedia'
       if (rawPubDate && rawPubDate.trim()) {
-        const parsed = parseSourceDate(rawPubDate)
-        if (parsed.status === 'VALID' && parsed.timestamp !== null) {
-          publishedDate = formatMilitaryDate(parsed.timestamp)
+        const parsedDate = parseSourceDate(rawPubDate)
+        if (parsedDate.status === 'VALID' && parsedDate.timestamp !== null) {
+          publishedDate = formatMilitaryDate(parsedDate.timestamp)
         }
       }
 
+      const stableId = `GTREND-${sha256Hex(trendTitle).slice(0, 16)}`
+
       entries.push({
-        id: `GTREND-${idx + 1}-${Date.now().toString().slice(-4)}`,
+        id: stableId,
         claim,
         normalizedQuery: trendTitle.toLowerCase(),
         cluster,
@@ -615,10 +899,10 @@ export function parseGoogleTrendsRss(xmlText: string): DebunkKnowledgeEntry[] {
         cognitiveScore: 50,
         viralityReason: `📊 TREN PENELUSURAN GOOGLE: ${traffic}`
       })
-    } catch {
-      // Lewati item yang korup
     }
-  })
 
-  return entries
+    return entries
+  } catch {
+    return []
+  }
 }

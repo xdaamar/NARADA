@@ -16,14 +16,18 @@
  */
 
 import type { AnalysisResult, DebunkKnowledgeEntry } from '../types'
+import type { TopicCandidate } from '../engine/radar/radar-types.ts'
 
 const DB_NAME = 'narada_tactical_db'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 export const STORES = {
   ANALYSES: 'analyses',
   RADAR_CACHE: 'radar_cache',
   IMAGE_STORE: 'image_store',
+  TOPIC_CANDIDATES: 'topic_candidates',
+  ISSUE_ACTIVITY_SNAPSHOTS: 'issue_activity_snapshots',
+  SOURCE_RUN_LOG: 'source_run_log',
 } as const
 
 export interface StoredImageData {
@@ -45,6 +49,9 @@ const memoryFallback = {
   analyses: new Map<string, AnalysisResult>(),
   radarCache: new Map<string, DebunkKnowledgeEntry>(),
   imageStore: new Map<string, StoredImageData>(),
+  topicCandidates: new Map<string, TopicCandidate>(),
+  issueActivitySnapshots: new Map<string, any>(),
+  sourceRunLog: new Map<string, any>(),
 }
 
 let dbInstance: IDBDatabase | null = null
@@ -96,6 +103,28 @@ export async function initDB(): Promise<IDBDatabase | null> {
         // Store 3: Image Store
         if (!db.objectStoreNames.contains(STORES.IMAGE_STORE)) {
           db.createObjectStore(STORES.IMAGE_STORE, { keyPath: 'analysisId' })
+        }
+
+        // Store 4: Topic Candidates (Sprint 6)
+        if (!db.objectStoreNames.contains(STORES.TOPIC_CANDIDATES)) {
+          const store = db.createObjectStore(STORES.TOPIC_CANDIDATES, { keyPath: 'id' })
+          store.createIndex('state', 'state', { unique: false })
+          store.createIndex('matchedDomain', 'matchedDomain', { unique: false })
+          store.createIndex('lastObservedAt', 'lastObservedAt', { unique: false })
+        }
+
+        // Store 5: Issue Activity Snapshots (Sprint 6)
+        if (!db.objectStoreNames.contains(STORES.ISSUE_ACTIVITY_SNAPSHOTS)) {
+          const store = db.createObjectStore(STORES.ISSUE_ACTIVITY_SNAPSHOTS, { keyPath: 'id' })
+          store.createIndex('clusterId', 'clusterId', { unique: false })
+          store.createIndex('timestamp', 'timestamp', { unique: false })
+        }
+
+        // Store 6: Source Run Log (Sprint 6)
+        if (!db.objectStoreNames.contains(STORES.SOURCE_RUN_LOG)) {
+          const store = db.createObjectStore(STORES.SOURCE_RUN_LOG, { keyPath: 'id' })
+          store.createIndex('sourceId', 'sourceId', { unique: false })
+          store.createIndex('timestamp', 'timestamp', { unique: false })
         }
       }
 
@@ -403,5 +432,124 @@ export async function getDBStorageStats(): Promise<DBStorageStats> {
       totalImages: memoryFallback.imageStore.size,
       mode: 'MEMORY_FALLBACK',
     }
+  }
+}
+
+// ─── SPRINT 6: TOPIC CANDIDATES & ISSUE ACTIVITY PERSISTENCE ───
+
+/**
+ * Menyimpan array kandidat topik ke IndexedDB / Memory Fallback
+ */
+export async function saveTopicCandidates(candidates: TopicCandidate[]): Promise<void> {
+  const db = await initDB()
+  if (!db || isFallbackMode) {
+    candidates.forEach((c) => memoryFallback.topicCandidates.set(c.id, c))
+    return
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(STORES.TOPIC_CANDIDATES, 'readwrite')
+      const store = tx.objectStore(STORES.TOPIC_CANDIDATES)
+      candidates.forEach((c) => store.put(c))
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => {
+        candidates.forEach((c) => memoryFallback.topicCandidates.set(c.id, c))
+        resolve()
+      }
+    } catch {
+      candidates.forEach((c) => memoryFallback.topicCandidates.set(c.id, c))
+      resolve()
+    }
+  })
+}
+
+/**
+ * Mengambil seluruh kandidat topik dari IndexedDB / Memory Fallback
+ */
+export async function getTopicCandidatesFromDB(): Promise<TopicCandidate[]> {
+  try {
+    const items = await performTransaction<TopicCandidate[]>(
+      STORES.TOPIC_CANDIDATES,
+      'readonly',
+      (store) => store.getAll()
+    )
+    return items || []
+  } catch {
+    return Array.from(memoryFallback.topicCandidates.values())
+  }
+}
+
+/**
+ * Menyimpan snapshot aktivitas isu ke IndexedDB / Memory Fallback
+ */
+export async function saveIssueActivitySnapshot(snapshot: { id: string; clusterId: string; timestamp: number; [key: string]: any }): Promise<void> {
+  try {
+    await performTransaction(STORES.ISSUE_ACTIVITY_SNAPSHOTS, 'readwrite', (store) => store.put(snapshot))
+  } catch {
+    memoryFallback.issueActivitySnapshots.set(snapshot.id, snapshot)
+  }
+}
+
+/**
+ * Mengambil snapshot aktivitas isu
+ */
+export async function getIssueActivitySnapshotsFromDB(clusterId?: string): Promise<any[]> {
+  try {
+    const items = await performTransaction<any[]>(
+      STORES.ISSUE_ACTIVITY_SNAPSHOTS,
+      'readonly',
+      (store) => {
+        if (clusterId) {
+          const index = store.index('clusterId')
+          return index.getAll(clusterId)
+        }
+        return store.getAll()
+      }
+    )
+    return items || []
+  } catch {
+    const all = Array.from(memoryFallback.issueActivitySnapshots.values())
+    if (clusterId) {
+      return all.filter(item => item.clusterId === clusterId)
+    }
+    return all
+  }
+}
+
+/**
+ * Menyimpan log eksekusi pengambilan sumber
+ */
+export async function saveSourceRunLog(log: { id: string; sourceId: string; timestamp: number; [key: string]: any }): Promise<void> {
+  try {
+    await performTransaction(STORES.SOURCE_RUN_LOG, 'readwrite', (store) => store.put(log))
+  } catch {
+    memoryFallback.sourceRunLog.set(log.id, log)
+  }
+}
+
+/**
+ * Mengambil log eksekusi sumber
+ */
+export async function getSourceRunLogsFromDB(sourceId?: string): Promise<any[]> {
+  try {
+    const items = await performTransaction<any[]>(
+      STORES.SOURCE_RUN_LOG,
+      'readonly',
+      (store) => {
+        if (sourceId) {
+          const index = store.index('sourceId')
+          return index.getAll(sourceId)
+        }
+        return store.getAll()
+      }
+    )
+    return items || []
+  } catch {
+    const all = Array.from(memoryFallback.sourceRunLog.values())
+    if (sourceId) {
+      return all.filter(l => l.sourceId === sourceId)
+    }
+    return all
   }
 }

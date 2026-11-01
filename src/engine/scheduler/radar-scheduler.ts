@@ -12,10 +12,25 @@
  * ══════════════════════════════════════════════════════════════════════════
  */
 
-import type { DebunkKnowledgeEntry } from '../../types'
-import { fetchLiveRadarDebunks, type LiveRadarFetchResult } from '../data/live-radar-service'
-import { registerLiveDebunks } from '../data/debunk-service'
-import { cacheRadarItems, getCachedRadarItems } from '../../utils/db-adapter'
+import type { DebunkKnowledgeEntry } from '../../types.ts'
+import { fetchLiveRadarDebunks, type LiveRadarFetchResult } from '../data/live-radar-service.ts'
+import { registerLiveDebunks } from '../data/debunk-service.ts'
+import { cacheRadarItems, getCachedRadarItems } from '../../utils/db-adapter.ts'
+import sourceCatalog from '../../../shared/radar-source-catalog.json' with { type: 'json' }
+
+export type CircuitBreakerStatus = 'CLOSED' | 'OPEN' | 'HALF_OPEN'
+
+export interface SourceScheduleState {
+  sourceId: string
+  pollIntervalMs: number
+  lastAttemptAt: number | null
+  lastSuccessAt: number | null
+  nextDueAt: number
+  consecutiveFailures: number
+  circuitBreakerStatus: CircuitBreakerStatus
+  circuitBreakerOpenUntil: number | null
+  rateLimitResetAt: number | null
+}
 
 export interface RadarSchedulerStatus {
   isRunning: boolean
@@ -25,11 +40,41 @@ export interface RadarSchedulerStatus {
   totalEntries: number
   lastSyncSource: string
   isSyncing: boolean
+  sourceStates?: Record<string, SourceScheduleState>
 }
 
 type RadarUpdateListener = (entries: DebunkKnowledgeEntry[]) => void
 
-class RadarSchedulerEngine {
+// Concurrency queue manager
+class ConcurrencyLimiter {
+  private activeCount = 0
+  private maxConcurrent = sourceCatalog.concurrencyPolicy?.maxGlobalConcurrent || 3
+  private queue: Array<() => void> = []
+
+  public async run<T>(fn: () => Promise<T>): Promise<T> {
+    if (this.activeCount >= this.maxConcurrent) {
+      await new Promise<void>(resolve => this.queue.push(resolve))
+    }
+    this.activeCount++
+    try {
+      return await fn()
+    } finally {
+      this.activeCount--
+      if (this.queue.length > 0) {
+        const next = this.queue.shift()
+        if (next) next()
+      }
+    }
+  }
+
+  public getActiveCount(): number {
+    return this.activeCount
+  }
+}
+
+export const radarConcurrencyLimiter = new ConcurrencyLimiter()
+
+export class RadarSchedulerEngine {
   private timerId: ReturnType<typeof setInterval> | null = null
   private intervalHours: number = 1
   private lastSyncTimestamp: number | null = null
@@ -38,8 +83,26 @@ class RadarSchedulerEngine {
   private lastSyncSource: string = 'INITIAL'
   private broadcastChannel: BroadcastChannel | null = null
   private listeners: Set<RadarUpdateListener> = new Set()
+  private sourceStates: Map<string, SourceScheduleState> = new Map()
 
   constructor() {
+    // Inisialisasi status per sumber dari katalog
+    const now = Date.now()
+    sourceCatalog.sources.forEach(src => {
+      const pollMs = src.pollIntervalMs || 900000
+      this.sourceStates.set(src.id, {
+        sourceId: src.id,
+        pollIntervalMs: pollMs,
+        lastAttemptAt: null,
+        lastSuccessAt: null,
+        nextDueAt: now, // Langsung siap untuk percobaan awal
+        consecutiveFailures: 0,
+        circuitBreakerStatus: 'CLOSED',
+        circuitBreakerOpenUntil: null,
+        rateLimitResetAt: null
+      })
+    })
+
     // Inisialisasi BroadcastChannel jika didukung peramban
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
@@ -51,6 +114,97 @@ class RadarSchedulerEngine {
         }
       } catch (e) {
         console.warn('[RadarScheduler] BroadcastChannel tidak dapat dibuka:', e)
+      }
+    }
+  }
+
+  /**
+   * Mengambil status penjadwalan sumber tertentu
+   */
+  public getSourceScheduleState(sourceId: string): SourceScheduleState | undefined {
+    return this.sourceStates.get(sourceId)
+  }
+
+  /**
+   * Mengambil seluruh status jadwal sumber
+   */
+  public getAllSourceScheduleStates(): Record<string, SourceScheduleState> {
+    const res: Record<string, SourceScheduleState> = {}
+    this.sourceStates.forEach((v, k) => { res[k] = { ...v } })
+    return res
+  }
+
+  /**
+   * Memeriksa apakah sumber telah tiba saatnya untuk diambil (Due)
+   */
+  public isSourceDue(sourceId: string, now = Date.now()): boolean {
+    const state = this.sourceStates.get(sourceId)
+    if (!state) return false
+
+    // Periksa apakah sedang terkena Rate Limit HTTP 429
+    if (state.rateLimitResetAt && now < state.rateLimitResetAt) {
+      return false
+    }
+
+    // Periksa status Circuit Breaker
+    if (state.circuitBreakerStatus === 'OPEN') {
+      if (state.circuitBreakerOpenUntil && now >= state.circuitBreakerOpenUntil) {
+        // Transisi ke HALF_OPEN untuk mencoba 1 probe
+        state.circuitBreakerStatus = 'HALF_OPEN'
+        return true
+      }
+      return false
+    }
+
+    return now >= state.nextDueAt
+  }
+
+  /**
+   * Mencatat hasil percobaan fetch per-sumber dan memperbarui Circuit Breaker
+   */
+  public recordSourceAttempt(
+    sourceId: string,
+    success: boolean,
+    httpStatus?: number | null,
+    retryAfterSec?: number | null
+  ): void {
+    const state = this.sourceStates.get(sourceId)
+    if (!state) return
+
+    const now = Date.now()
+    state.lastAttemptAt = now
+
+    const jitterMax = sourceCatalog.concurrencyPolicy?.requestJitterMaxMs || 3000
+    const jitter = Math.floor(Math.random() * jitterMax)
+
+    if (success) {
+      state.lastSuccessAt = now
+      state.consecutiveFailures = 0
+      state.circuitBreakerStatus = 'CLOSED'
+      state.circuitBreakerOpenUntil = null
+      state.rateLimitResetAt = null
+      state.nextDueAt = now + state.pollIntervalMs + jitter
+    } else {
+      state.consecutiveFailures++
+
+      // Penanganan HTTP 429 Rate Limited
+      if (httpStatus === 429) {
+        const sec = retryAfterSec || 60
+        state.rateLimitResetAt = now + sec * 1000
+        state.nextDueAt = state.rateLimitResetAt + jitter
+      }
+
+      // Circuit Breaker: Buka jika gagal >= 3 kali berturut-turut
+      const threshold = sourceCatalog.concurrencyPolicy?.circuitBreakerThreshold || 3
+      if (state.consecutiveFailures >= threshold) {
+        const cooldownMs = sourceCatalog.concurrencyPolicy?.circuitBreakerCooldownMs || 1800000
+        state.circuitBreakerStatus = 'OPEN'
+        state.circuitBreakerOpenUntil = now + cooldownMs
+        state.nextDueAt = state.circuitBreakerOpenUntil + jitter
+      } else {
+        // Eksponensial backoff sederhana
+        const backoffMs = Math.min(30000 * Math.pow(2, state.consecutiveFailures - 1), 300000)
+        state.nextDueAt = now + backoffMs + jitter
       }
     }
   }
@@ -106,7 +260,6 @@ class RadarSchedulerEngine {
    */
   public async triggerNow(): Promise<DebunkKnowledgeEntry[]> {
     if (this.isSyncing) {
-      // Jika sedang berlangsung, kembalikan data yang tersimpan
       return getCachedRadarItems()
     }
 
@@ -142,7 +295,6 @@ class RadarSchedulerEngine {
    * Memberitahu subscriber dan menyiarkan event
    */
   private notifyListeners(entries: DebunkKnowledgeEntry[], shouldBroadcast: boolean): void {
-    // Panggil direct listener callbacks
     this.listeners.forEach((callback) => {
       try {
         callback(entries)
@@ -151,7 +303,6 @@ class RadarSchedulerEngine {
       }
     })
 
-    // Siarkan ke jendela/tab lain via BroadcastChannel
     if (shouldBroadcast && this.broadcastChannel) {
       try {
         this.broadcastChannel.postMessage({
@@ -164,7 +315,6 @@ class RadarSchedulerEngine {
       }
     }
 
-    // Picu window CustomEvent untuk komponen React
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('narada:radar-updated', {
@@ -196,6 +346,7 @@ class RadarSchedulerEngine {
       totalEntries: this.listeners.size,
       lastSyncSource: this.lastSyncSource,
       isSyncing: this.isSyncing,
+      sourceStates: this.getAllSourceScheduleStates()
     }
   }
 }

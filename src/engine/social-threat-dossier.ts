@@ -143,6 +143,8 @@ const CLUSTER_CONFIG: Record<ThreatSpectrumCluster, { label: string; color: stri
   BENCANA_DARURAT: { label: 'Bencana Alam & Krisis BMKG', color: '#38BDF8' },
   PENIPUAN_BANSOS: { label: 'Penipuan Bansos & Finansial', color: '#FBBF24' },
   KESEHATAN_PANGAN: { label: 'Kesehatan Publik & Pangan', color: '#A78BFA' },
+  AKSI_MASSA: { label: 'Aksi Massa & Unjuk Rasa', color: '#FB923C' },
+  EKONOMI_DIGITAL: { label: 'Ekonomi Digital & Pajak', color: '#34D399' },
   UMUM_NETRAL: { label: 'Isu Umum & Kebijakan', color: '#94A3B8' }
 }
 

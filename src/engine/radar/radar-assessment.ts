@@ -19,9 +19,100 @@ import type {
   FreshnessAssessment, 
   ContextRelevanceAssessment, 
   MetadataTransparencyAssessment, 
-  RadarReviewState 
+  RadarReviewState,
+  RadarTaxonomyDomain 
 } from './radar-types.ts'
 import { extractEntitiesFromText } from './clustering-engine.ts'
+
+/**
+ * Pengklasifikasi Domain Taksonomi NARADA (Sprint 6)
+ * Memetakan publikasi atau kueri ke salah satu dari 7 Domain Resmi.
+ */
+export function classifyTaxonomyDomain(
+  title: string,
+  excerpt: string = '',
+  fallbackDomain: RadarTaxonomyDomain = 'NATIONAL_POLICY'
+): RadarTaxonomyDomain {
+  const norm = (title + ' ' + excerpt).toLowerCase()
+
+  // 1. CYBER_PUBLIC_IMPACT: Gangguan siber layanan publik, peretasan, ransomware
+  if (
+    norm.includes('kebocoran data') || norm.includes('serangan siber') ||
+    norm.includes('ransomware') || norm.includes('hacker') || norm.includes('peretasan') ||
+    norm.includes('pdns') || norm.includes('bssn') || norm.includes('malware') ||
+    norm.includes('gangguan server') || norm.includes('sistem down') || norm.includes('keamanan siber')
+  ) {
+    return 'CYBER_PUBLIC_IMPACT'
+  }
+
+  // 2. INFORMATION_INTEGRITY: Cek fakta, disinformasi, klarifikasi
+  if (
+    norm.includes('hoaks') || norm.includes('hoax') || norm.includes('disinformasi') ||
+    norm.includes('misinformasi') || norm.includes('cek fakta') || norm.includes('klarifikasi') ||
+    norm.includes('manipulasi') || norm.includes('kabar bohong') || norm.includes('fitnah')
+  ) {
+    return 'INFORMATION_INTEGRITY'
+  }
+
+  // 3. DEFENSE_SECURITY: Pertahanan negara, TNI, alutsista, perbatasan
+  if (
+    norm.includes('tni') || norm.includes('alutsista') || norm.includes('kemhan') ||
+    norm.includes('papua') || norm.includes('kkb') || norm.includes('opm') ||
+    norm.includes('ambalat') || norm.includes('natuna') || norm.includes('perbatasan') ||
+    norm.includes('kapal perang') || norm.includes('pesawat tempur') || norm.includes('militer') ||
+    norm.includes('kedaulatan') || norm.includes('marinir') || norm.includes('kopassus') ||
+    norm.includes('kodam') || norm.includes('keamanan')
+  ) {
+    return 'DEFENSE_SECURITY'
+  }
+
+  // 4. DIGITAL_ECONOMY: Transaksi digital, pajak digital, fintech, e-commerce
+  if (
+    norm.includes('pajak digital') || norm.includes('transaksi digital') ||
+    norm.includes('ekonomi digital') || norm.includes('fintech') || norm.includes('marketplace') ||
+    norm.includes('pph 22') || norm.includes('pph') || norm.includes('bank digital') ||
+    norm.includes('qris') || norm.includes('kripto') || norm.includes('e-commerce') ||
+    norm.includes('hashim') || norm.includes('fiskal') || norm.includes('ojk') ||
+    norm.includes('bank indonesia') || norm.includes('devisa')
+  ) {
+    return 'DIGITAL_ECONOMY'
+  }
+
+  // 5. CIVIC_DYNAMICS: Unjuk rasa, demonstrasi, aksi massa, dinamika sipil
+  if (
+    norm.includes('unjuk rasa') || norm.includes('demonstrasi') || norm.includes('aksi massa') ||
+    norm.includes('demo') || norm.includes('protes') || norm.includes('penolakan') ||
+    norm.includes('bentrok') || norm.includes('kericuhan') || norm.includes('pemakzulan') ||
+    norm.includes('buruh') || norm.includes('mahasiswa')
+  ) {
+    return 'CIVIC_DYNAMICS'
+  }
+
+  // 6. PUBLIC_CRISIS: Bencana, logistik, pangan, BBM, darurat kesehatan
+  if (
+    norm.includes('bencana') || norm.includes('gempa') || norm.includes('tsunami') ||
+    norm.includes('megathrust') || norm.includes('banjir') || norm.includes('longsor') ||
+    norm.includes('erupsi') || norm.includes('merapi') || norm.includes('pangan') ||
+    norm.includes('bbm') || norm.includes('kesehatan') || norm.includes('obat') ||
+    norm.includes('bpom') || norm.includes('bnpb') || norm.includes('bmkg') ||
+    norm.includes('wabah') || norm.includes('kelangkaan')
+  ) {
+    return 'PUBLIC_CRISIS'
+  }
+
+  // 7. NATIONAL_POLICY: Kebijakan nasional, presiden, kabinet, lembaga tinggi
+  if (
+    norm.includes('prabowo') || norm.includes('gibran') || norm.includes('presiden') ||
+    norm.includes('pemerintah') || norm.includes('dpr') || norm.includes('mpr') ||
+    norm.includes('kementerian') || norm.includes('menteri') || norm.includes('kebijakan') ||
+    norm.includes('bansos') || norm.includes('mbg') || norm.includes('ijazah') ||
+    norm.includes('kpk') || norm.includes('kejagung') || norm.includes('ikn')
+  ) {
+    return 'NATIONAL_POLICY'
+  }
+
+  return fallbackDomain
+}
 
 /**
  * 1. Evaluasi Relevansi Konteks (Context Relevance)
@@ -63,25 +154,39 @@ export function evaluateContextRelevance(
     reasonCodes.push('CIVIL_GOVERNANCE_CONTEXT')
   }
 
-  // Domain 3: Aksi Massa & Dinamika Aspirasi Lapangan
+  // Domain 3: Ekonomi & Transaksi Digital
+  if (fullText.includes('pajak digital') || fullText.includes('transaksi digital') || fullText.includes('fintech') || fullText.includes('marketplace') || fullText.includes('bank digital')) {
+    score = Math.max(score, 75)
+    matchedTopics.push('Ekonomi & Transaksi Digital')
+    reasonCodes.push('DIGITAL_ECONOMY_CONTEXT')
+  }
+
+  // Domain 4: Aksi Massa & Dinamika Aspirasi Lapangan
   if (fullText.includes('demo') || fullText.includes('unjuk rasa') || fullText.includes('mahasiswa') || fullText.includes('buruh') || fullText.includes('aksi damai')) {
     score = Math.max(score, 65)
     matchedTopics.push('Pemantauan Aspirasi Lapangan')
     reasonCodes.push('PUBLIC_DEMONSTRATION_MONITORING')
   }
 
-  // Domain 4: Bencana Darurat & Krisis Publik (BMKG / BNPB)
+  // Domain 5: Bencana Darurat & Krisis Publik (BMKG / BNPB)
   if (category === 'BENCANA_DARURAT' || entities.some(e => e.includes('bmkg') || e.includes('bnpb') || e.includes('gempa') || e.includes('tsunami') || e.includes('megathrust'))) {
     score = Math.max(score, 75)
     matchedTopics.push('Kedaruratan Bencana Publik')
     reasonCodes.push('DISASTER_EARLY_WARNING_CONTEXT')
   }
 
-  // Domain 5: Isu Pangan & Bansos
+  // Domain 6: Isu Pangan & Bansos
   if (category === 'PENIPUAN_BANSOS' || category === 'KESEHATAN_PANGAN' || entities.some(e => e.includes('bansos') || e.includes('bpom') || e.includes('beras') || e.includes('pangan'))) {
     score = Math.max(score, 65)
     matchedTopics.push('Pangan & Jaminan Sosial')
     reasonCodes.push('SOCIAL_SAFETY_CONTEXT')
+  }
+
+  // Domain 7: Keamanan Siber & Dampak Publik
+  if (fullText.includes('kebocoran data') || fullText.includes('serangan siber') || fullText.includes('ransomware') || fullText.includes('pdns')) {
+    score = Math.max(score, 80)
+    matchedTopics.push('Keamanan Siber Layanan Publik')
+    reasonCodes.push('CYBER_SECURITY_CONTEXT')
   }
 
   if (matchedTopics.length === 0) {

@@ -66,6 +66,8 @@ export type ThreatSpectrumCluster =
   | 'PENIPUAN_BANSOS'      // Bansos kemensos 5jt, link kuota, apk tilang
   | 'KESEHATAN_PANGAN'     // Beras plastik, vaksin racun, penculikan organ
   | 'KEDAULATAN_MILITER'   // Separatis OPM, alutsista rongsokan, sabotase
+  | 'AKSI_MASSA'           // Unjuk rasa, buruh, demonstrasi, demonstran
+  | 'EKONOMI_DIGITAL'      // Pajak digital, fintech, e-commerce, PPh 22, transaksi online
   | 'UMUM_NETRAL'          // Berita faktual kedinasan/sosial
 
 export interface EngagementMetrics {
@@ -113,6 +115,19 @@ export interface DebunkKnowledgeEntry {
     referenceUrl: string
     verdict: string
     explanation: string
+  }
+  // ─── Sprint 6: Coverage Momentum, Taxonomy, Provenance & Sinyal Penelusuran ───
+  issueActivity?: import('./engine/radar/radar-types.ts').IssueActivityAssessment
+  clusterDomain?: import('./engine/radar/radar-types.ts').RadarTaxonomyDomain
+  attachedTrendSignals?: import('./engine/radar/radar-types.ts').SearchTrendSignal[]
+  sourceCoverage?: {
+    publicationCount: number
+    publishers: string[]
+    distinctPublisherDomainCount: number
+    distinctPublisherDomains?: string[]
+    firstObservedAt?: number
+    lastPublishedAt?: number
+    isIndependentCoverageClaimed?: boolean
   }
 }
 

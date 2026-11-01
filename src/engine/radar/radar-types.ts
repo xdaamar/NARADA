@@ -20,6 +20,18 @@ import type { ThreatSpectrumCluster } from '../../types.ts'
 export type SourceType = 'rss' | 'official' | 'fact_check' | 'search_trend'
 export type SourceOutputType = 'PUBLICATION' | 'SEARCH_TREND_SIGNAL'
 
+/**
+ * 7 Domain Taksonomi Pantauan NARADA (Sprint 6)
+ */
+export type RadarTaxonomyDomain =
+  | 'NATIONAL_POLICY'         // Kebijakan & Dinamika Negara
+  | 'DIGITAL_ECONOMY'          // Ekonomi & Transaksi Digital
+  | 'DEFENSE_SECURITY'         // Hankam & Kedaulatan Teritorial
+  | 'CIVIC_DYNAMICS'           // Aksi Massa & Dinamika Sipil
+  | 'PUBLIC_CRISIS'            // Krisis & Darurat Publik
+  | 'INFORMATION_INTEGRITY'    // Integritas Informasi & Cek Fakta
+  | 'CYBER_PUBLIC_IMPACT'      // Dampak Siber Terhadap Layanan Publik
+
 export interface SourceDefinition {
   id: string
   displayName: string
@@ -29,6 +41,12 @@ export interface SourceDefinition {
   feedUrl: string
   directUrl: string
   category: ThreatSpectrumCluster | 'UMUM_NETRAL'
+  domain?: RadarTaxonomyDomain
+  profileId?: string
+  pollIntervalMs?: number
+  ttlMs?: number
+  maxItems?: number
+  parserAdapter?: string
   enabled: boolean
   attributionLabel: string
   attributionUrl: string
@@ -177,6 +195,7 @@ export interface NormalizedPublication {
   lastVerifiedAt: number | null  // Epoch ms pemeriksaan fakta resmi (jika ada)
   extractionMethod: 'rss' | 'official_feed'
   category: ThreatSpectrumCluster
+  domain?: RadarTaxonomyDomain
   topicTags: string[]
   language: string
   contentFingerprint: string
@@ -222,6 +241,7 @@ export interface EventCluster {
   firstObservedAt: number
   latestObservedAt: number
   category: ThreatSpectrumCluster
+  domain?: RadarTaxonomyDomain
   clusterConfidence: number      // 0 - 100: Keyakinan pengelompokan (BUKAN tingkat ancaman)
   clusterReviewStatus?: 'CONFIRMED' | 'AMBIGUOUS' | 'REVIEW_REQUIRED'
   candidateMembers?: CandidateClusterMember[]
@@ -231,6 +251,8 @@ export interface EventCluster {
   reviewState: RadarReviewState
   freshness: FreshnessAssessment
   contextRelevance: ContextRelevanceAssessment
+  activityAssessment?: IssueActivityAssessment
+  issueActivity?: IssueActivityAssessment
 }
 
 // ─── 6. Pipeline Execution Result ───
@@ -244,6 +266,8 @@ export interface RadarPipelineResult {
   fetchedAt: number
   latencyMs: number
   errorMessage?: string
+  topicCandidates?: TopicCandidate[]
+  searchTrends?: SearchTrendSignal[]
 }
 
 // ─── 7. Claim vs Publication Semantic Firewall Types (Sprint 1C) ───
@@ -282,5 +306,69 @@ export interface ClaimMatchCandidate {
   matchExplanation: string
   requiresAnalystReview: boolean
 }
+
+// ─── 8. Issue Activity & Momentum Models (Sprint 6) ───
+
+export type IssueActivityState =
+  | 'NEW'                // Isu baru muncul (< 60 menit), sampel masih berkembang
+  | 'RISING'             // Lonjakan volume signifikan (>= 1.5x) dengan multi-penerbit
+  | 'SUSTAINED'          // Pemberitaan berlanjut stabil dari berbagai media
+  | 'COOLING'            // Frekuensi pemberitaan melandai atau terhenti
+  | 'INSUFFICIENT_DATA'  // Belum memenuhi ambang batas sampel minimum (>= 3 artikel, >= 2 domain)
+
+export interface IssueActivityAssessment {
+  state: IssueActivityState
+  sampleSize: number
+  distinctPublishers: number
+  growthRate: number | null
+  firstObservedAt: number
+  latestObservedAt: number
+  isSocialViralityMeasured: false   // Kontrak jujur: NARADA tidak mengarang metrik medsos liar
+  assessmentReason: string
+  stateReason?: string
+  windowCounts?: {
+    last3hCount: number
+    last12hCount: number
+    last24hCount: number
+  }
+}
+
+// ─── 9. Dynamic Topic Discovery Models (Sprint 6) ───
+
+export type TopicCandidateState =
+  | 'PROPOSED'           // Kandidat topik hasil ekstraksi frasa, menunggu evaluasi
+  | 'ACTIVE_SEARCH'      // Memenuhi ambang taksonomi & koroborasi, masuk jadwal pencarian
+  | 'WATCHLIST'          // Masuk pantauan operator
+  | 'REJECTED'           // Ditolak karena di luar taksonomi atau noise non-strategis
+  | 'EXPIRED'            // Melebihi batas waktu retensi (24 jam) tanpa pembaruan
+
+export type TopicCandidateSource =
+  | 'TRENDS_SIGNAL'          // Berasal dari Google Trends Indonesia
+  | 'PUBLICATION_EMERGENCE'  // Berasal dari kemunculan frasa berulang pada berita pers
+  | 'OPERATOR_WATCHLIST'     // Dimasukkan langsung oleh analis operator
+
+export interface TopicCandidate {
+  id: string
+  phrase: string
+  normalizedPhrase: string
+  tokenCount: number
+  source: TopicCandidateSource
+  firstObservedAt: number
+  lastObservedAt: number
+  matchedDomain: RadarTaxonomyDomain
+  domain?: RadarTaxonomyDomain
+  relevanceScore: number
+  corroborationCount: number
+  distinctPublisherCount: number
+  state: TopicCandidateState
+  status?: TopicCandidateState
+  searchCount: number
+  dynamicSearchCount?: number
+  notes?: string
+  lastSearchedAt: number | null
+  nextSearchEligibleAt: number | null
+  decayScore: number
+}
+
 
 

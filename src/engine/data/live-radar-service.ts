@@ -4,9 +4,10 @@ import {
   cleanHtmlText, 
   parseTurnBackHoaxRss, 
   parseGoogleNewsRss, 
+  parseAntaraRss,
   parseGoogleTrendsRssAsSignals
 } from '../ingest/rss-parser.ts'
-import { cacheRadarItems, getCachedRadarItems } from '../../utils/db-adapter.ts'
+import { cacheRadarItems, getCachedRadarItems, saveTopicCandidates } from '../../utils/db-adapter.ts'
 import { scoreAndTriageRadarEntries } from '../radar/early-warning-scorer.ts'
 import { 
   updateConnectorHealth, 
@@ -19,12 +20,22 @@ import {
   attachTrendSignalsToClusters
 } from '../radar/clustering-engine.ts'
 import { parseSourceDate, evaluateFreshness, formatMilitaryDate } from '../radar/freshness-engine.ts'
-import { evaluateContextRelevance, evaluateMetadataTransparency, determineReviewState } from '../radar/radar-assessment.ts'
+import { 
+  evaluateContextRelevance, 
+  evaluateMetadataTransparency, 
+  determineReviewState,
+  classifyTaxonomyDomain 
+} from '../radar/radar-assessment.ts'
+import { attachIssueActivityToClusters } from '../radar/issue-activity-engine.ts'
+import { topicDiscoveryEngine } from '../radar/topic-discovery-engine.ts'
+import { radarScheduler } from '../scheduler/radar-scheduler.ts'
 import type { 
   NormalizedPublication, 
   EventCluster, 
   ConnectorHealth,
-  SearchTrendSignal
+  SearchTrendSignal,
+  TopicCandidate,
+  RadarTaxonomyDomain
 } from '../radar/radar-types.ts'
 
 export interface TurnBackHoaxPost {
@@ -40,6 +51,7 @@ export interface LiveRadarFetchResult {
   entries: DebunkKnowledgeEntry[]
   clusters?: EventCluster[]
   trendSignals?: SearchTrendSignal[]
+  topicCandidates?: TopicCandidate[]
   connectorHealth?: Record<string, ConnectorHealth>
   isLive: boolean
   isStale?: boolean
@@ -240,7 +252,8 @@ export function normalizeDebunkEntry(
   entry: DebunkKnowledgeEntry, 
   sourceId: string, 
   sourceType: 'rss' | 'official' | 'fact_check',
-  sourceName: string
+  sourceName: string,
+  domainHint?: RadarTaxonomyDomain
 ): NormalizedPublication {
   const { timestamp: pubTimestamp } = parseSourceDate(entry.publishedDate)
   const freshness = evaluateFreshness(pubTimestamp)
@@ -252,6 +265,7 @@ export function normalizeDebunkEntry(
     pubTimestamp
   )
   const reviewState = determineReviewState(freshness, relevance, transparency, sourceType)
+  const domain = domainHint || classifyTaxonomyDomain(entry.claim, entry.clarification || '', 'NATIONAL_POLICY')
 
   return {
     id: entry.id,
@@ -270,6 +284,7 @@ export function normalizeDebunkEntry(
     lastVerifiedAt: entry.verifiedAt ? (parseSourceDate(entry.verifiedAt).timestamp) : null,
     extractionMethod: 'rss',
     category: entry.cluster,
+    domain,
     topicTags: entry.keywords || [],
     language: 'id',
     contentFingerprint: entry.id,
@@ -329,7 +344,11 @@ export function clusterToDebunkEntry(cluster: EventCluster): DebunkKnowledgeEntr
     tacticalResponseMilitary: `Atensi Teritorial: Pantau isu "${cluster.title}". Cakupan: ${pubCount} publikasi terverifikasi.`,
     isLive: true,
     cognitiveScore: cluster.contextRelevance.score,
-    viralityReason
+    viralityReason,
+    issueActivity: cluster.issueActivity,
+    clusterDomain: cluster.domain || cluster.leadItem?.domain || 'NATIONAL_POLICY',
+    attachedTrendSignals: cluster.attachedTrendSignals,
+    sourceCoverage: cluster.sourceCoverage
   }
 }
 
@@ -341,14 +360,20 @@ export function clusterToDebunkEntry(cluster: EventCluster): DebunkKnowledgeEntr
  * 4. Feed Google News Politik & Kebijakan Negara
  * 5. Feed Google Trends ID (Lonjakan Isu Pencarian Publik)
  */
+let lastRadarResult: LiveRadarFetchResult | null = null
+
+export function getLastRadarResult(): LiveRadarFetchResult | null {
+  return lastRadarResult
+}
+
 export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
   const startTime = Date.now()
 
   try {
-    const [tbhDef, hankamDef, demoDef, politikDef, trendsDef] = ACTIVE_RADAR_SOURCES
+    const enabledSources = ACTIVE_RADAR_SOURCES.filter(s => s.enabled)
 
     // Inisialisasi status konektor ke CONNECTING sebelum fetch dimulai (Section 4.1 & 4.2)
-    ACTIVE_RADAR_SOURCES.filter(s => s.enabled).forEach(src => {
+    enabledSources.forEach(src => {
       updateConnectorHealth(src.id, {
         state: 'CONNECTING',
         isSuccess: true,
@@ -356,159 +381,83 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
       })
     })
 
-    // Eksekusi penarikan 5 stream secara paralel dengan error isolation (Promise.allSettled)
-    const [tbhResult, newsHankamResult, newsDemoResult, newsPolitikResult, trendsResult] = await Promise.allSettled([
-      fetchXmlWithFallback(tbhDef.id, tbhDef.feedUrl, tbhDef.directUrl, tbhDef.fetchTimeoutMs),
-      fetchXmlWithFallback(hankamDef.id, hankamDef.feedUrl, hankamDef.directUrl, hankamDef.fetchTimeoutMs),
-      fetchXmlWithFallback(demoDef.id, demoDef.feedUrl, demoDef.directUrl, demoDef.fetchTimeoutMs),
-      fetchXmlWithFallback(politikDef.id, politikDef.feedUrl, politikDef.directUrl, politikDef.fetchTimeoutMs),
-      fetchXmlWithFallback(trendsDef.id, trendsDef.feedUrl, trendsDef.directUrl, trendsDef.fetchTimeoutMs)
-    ])
+    // Eksekusi penarikan seluruh stream secara paralel dengan error isolation (Promise.allSettled)
+    const fetchPromises = enabledSources.map(src => 
+      fetchXmlWithFallback(src.id, src.feedUrl, src.directUrl, src.fetchTimeoutMs)
+    )
+    const settledResults = await Promise.allSettled(fetchPromises)
 
     const normalizedItems: NormalizedPublication[] = []
     const liveTbhEntries: DebunkKnowledgeEntry[] = []
     const trendSignals: SearchTrendSignal[] = []
     let detectedChannel: 'API_PROXY' | 'API_DIRECT' | 'API_CORS_PROXY' = 'API_PROXY'
 
-    // 1. Ingest TurnBackHoax (Fact-Check)
-    if (tbhResult.status === 'fulfilled' && tbhResult.value.success && tbhResult.value.xml) {
-      const parsed = parseTurnBackHoaxRss(tbhResult.value.xml)
-      liveTbhEntries.push(...parsed)
-      const norm = parsed.map(item => normalizeDebunkEntry(item, tbhDef.id, 'fact_check', tbhDef.displayName))
-      normalizedItems.push(...norm)
-      detectedChannel = tbhResult.value.channel || 'API_PROXY'
-      updateConnectorHealth(tbhDef.id, {
-        state: tbhResult.value.channel === 'API_CORS_PROXY' ? 'DEGRADED' : 'HEALTHY',
-        httpStatus: tbhResult.value.httpStatus,
-        latencyMs: tbhResult.value.latencyMs,
-        itemCount: norm.length,
-        isSuccess: true,
-        userReadableMessage: `Berhasil menarik ${norm.length} entri klarifikasi fakta`
-      })
-    } else {
-      const fail = tbhResult.status === 'fulfilled' ? tbhResult.value : null
-      const statusSuffix = fail?.httpStatus ? ` (HTTP ${fail.httpStatus})` : ''
-      updateConnectorHealth(tbhDef.id, {
-        state: fail?.rateLimitStatus?.isRateLimited ? 'RATE_LIMITED' : (fail?.errorCode === 'MALFORMED_FEED_NO_ITEMS' ? 'DEGRADED' : 'UNAVAILABLE'),
-        httpStatus: fail?.httpStatus ?? null,
-        latencyMs: fail?.latencyMs ?? null,
-        rateLimitStatus: fail?.rateLimitStatus,
-        errorCode: fail?.errorCode ?? 'FETCH_TIMEOUT_OR_NETWORK_ERROR',
-        errorMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed TurnBackHoax',
-        userReadableMessage: `${fail?.errorMessage || 'Gagal terhubung ke feed TurnBackHoax'}${statusSuffix}`,
-        isSuccess: false
-      })
-    }
+    settledResults.forEach((settled, idx) => {
+      const src = enabledSources[idx]
+      if (settled.status === 'fulfilled' && settled.value.success && settled.value.xml) {
+        const fetchRes = settled.value
+        if (detectedChannel !== 'API_DIRECT' && fetchRes.channel) {
+          detectedChannel = fetchRes.channel
+        }
 
-    // 2. Ingest Google News Hankam
-    if (newsHankamResult.status === 'fulfilled' && newsHankamResult.value.success && newsHankamResult.value.xml) {
-      const parsed = parseGoogleNewsRss(newsHankamResult.value.xml).slice(0, 10)
-      const norm = parsed.map(item => normalizeDebunkEntry(item, hankamDef.id, 'rss', hankamDef.displayName))
-      normalizedItems.push(...norm)
-      if (detectedChannel !== 'API_DIRECT' && newsHankamResult.value.channel) detectedChannel = newsHankamResult.value.channel
-      updateConnectorHealth(hankamDef.id, {
-        state: newsHankamResult.value.channel === 'API_CORS_PROXY' ? 'DEGRADED' : 'HEALTHY',
-        httpStatus: newsHankamResult.value.httpStatus,
-        latencyMs: newsHankamResult.value.latencyMs,
-        itemCount: norm.length,
-        isSuccess: true,
-        userReadableMessage: `Berhasil menarik ${norm.length} berita hankam & kedaulatan`
-      })
-    } else {
-      const fail = newsHankamResult.status === 'fulfilled' ? newsHankamResult.value : null
-      updateConnectorHealth(hankamDef.id, {
-        state: fail?.rateLimitStatus?.isRateLimited ? 'RATE_LIMITED' : (fail?.errorCode === 'MALFORMED_FEED_NO_ITEMS' ? 'DEGRADED' : 'UNAVAILABLE'),
-        httpStatus: fail?.httpStatus ?? null,
-        latencyMs: fail?.latencyMs ?? null,
-        rateLimitStatus: fail?.rateLimitStatus,
-        errorCode: fail?.errorCode ?? 'FETCH_TIMEOUT_OR_NETWORK_ERROR',
-        errorMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed Google News Hankam',
-        userReadableMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed Google News Hankam',
-        isSuccess: false
-      })
-    }
+        radarScheduler.recordSourceAttempt(src.id, true, fetchRes.httpStatus)
 
-    // 3. Ingest Google News Aksi Massa & Demo
-    if (newsDemoResult.status === 'fulfilled' && newsDemoResult.value.success && newsDemoResult.value.xml) {
-      const parsed = parseGoogleNewsRss(newsDemoResult.value.xml).slice(0, 8)
-      const norm = parsed.map(item => normalizeDebunkEntry(item, demoDef.id, 'rss', demoDef.displayName))
-      normalizedItems.push(...norm)
-      if (detectedChannel !== 'API_DIRECT' && newsDemoResult.value.channel) detectedChannel = newsDemoResult.value.channel
-      updateConnectorHealth(demoDef.id, {
-        state: newsDemoResult.value.channel === 'API_CORS_PROXY' ? 'DEGRADED' : 'HEALTHY',
-        httpStatus: newsDemoResult.value.httpStatus,
-        latencyMs: newsDemoResult.value.latencyMs,
-        itemCount: norm.length,
-        isSuccess: true,
-        userReadableMessage: `Berhasil menarik ${norm.length} pantauan aksi massa/demo`
-      })
-    } else {
-      const fail = newsDemoResult.status === 'fulfilled' ? newsDemoResult.value : null
-      updateConnectorHealth(demoDef.id, {
-        state: fail?.rateLimitStatus?.isRateLimited ? 'RATE_LIMITED' : (fail?.errorCode === 'MALFORMED_FEED_NO_ITEMS' ? 'DEGRADED' : 'UNAVAILABLE'),
-        httpStatus: fail?.httpStatus ?? null,
-        latencyMs: fail?.latencyMs ?? null,
-        rateLimitStatus: fail?.rateLimitStatus,
-        errorCode: fail?.errorCode ?? 'FETCH_TIMEOUT_OR_NETWORK_ERROR',
-        errorMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed Google News Demo',
-        userReadableMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed Google News Demo',
-        isSuccess: false
-      })
-    }
+        if (src.sourceType === 'search_trend') {
+          // Google Trends SearchTrendSignal
+          const signals = parseGoogleTrendsRssAsSignals(fetchRes.xml!, src.maxItems || 20)
+          trendSignals.push(...signals)
+          updateConnectorHealth(src.id, {
+            state: fetchRes.channel === 'API_CORS_PROXY' ? 'DEGRADED' : 'HEALTHY',
+            httpStatus: fetchRes.httpStatus,
+            latencyMs: fetchRes.latencyMs,
+            itemCount: signals.length,
+            isSuccess: true,
+            userReadableMessage: `Berhasil menarik ${signals.length} sinyal minat penelusuran Google`
+          })
+        } else {
+          // Publikasi pers / Fact-check
+          let parsedEntries: DebunkKnowledgeEntry[] = []
+          if (src.parserAdapter === 'antara') {
+            parsedEntries = parseAntaraRss(fetchRes.xml!, src.maxItems || 25)
+          } else if (src.parserAdapter === 'turnbackhoax' || src.sourceType === 'fact_check') {
+            parsedEntries = parseTurnBackHoaxRss(fetchRes.xml!, src.maxItems || 25)
+            liveTbhEntries.push(...parsedEntries)
+          } else {
+            parsedEntries = parseGoogleNewsRss(fetchRes.xml!, src.maxItems || 25)
+          }
 
-    // 4. Ingest Google News Dinamika Politik
-    if (newsPolitikResult.status === 'fulfilled' && newsPolitikResult.value.success && newsPolitikResult.value.xml) {
-      const parsed = parseGoogleNewsRss(newsPolitikResult.value.xml).slice(0, 8)
-      const norm = parsed.map(item => normalizeDebunkEntry(item, politikDef.id, 'rss', politikDef.displayName))
-      normalizedItems.push(...norm)
-      if (detectedChannel !== 'API_DIRECT' && newsPolitikResult.value.channel) detectedChannel = newsPolitikResult.value.channel
-      updateConnectorHealth(politikDef.id, {
-        state: newsPolitikResult.value.channel === 'API_CORS_PROXY' ? 'DEGRADED' : 'HEALTHY',
-        httpStatus: newsPolitikResult.value.httpStatus,
-        latencyMs: newsPolitikResult.value.latencyMs,
-        itemCount: norm.length,
-        isSuccess: true,
-        userReadableMessage: `Berhasil menarik ${norm.length} berita kebijakan negara`
-      })
-    } else {
-      const fail = newsPolitikResult.status === 'fulfilled' ? newsPolitikResult.value : null
-      updateConnectorHealth(politikDef.id, {
-        state: fail?.rateLimitStatus?.isRateLimited ? 'RATE_LIMITED' : (fail?.errorCode === 'MALFORMED_FEED_NO_ITEMS' ? 'DEGRADED' : 'UNAVAILABLE'),
-        httpStatus: fail?.httpStatus ?? null,
-        latencyMs: fail?.latencyMs ?? null,
-        rateLimitStatus: fail?.rateLimitStatus,
-        errorCode: fail?.errorCode ?? 'FETCH_TIMEOUT_OR_NETWORK_ERROR',
-        errorMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed Google News Politik',
-        userReadableMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed Google News Politik',
-        isSuccess: false
-      })
-    }
+          const norm = parsedEntries.map(item => 
+            normalizeDebunkEntry(item, src.id, src.sourceType as any, src.displayName, src.domain)
+          )
+          normalizedItems.push(...norm)
 
-    // 5. Ingest Google Trends ID (SearchTrendSignal — TIDAK dicampur ke NormalizedPublication!)
-    if (trendsResult.status === 'fulfilled' && trendsResult.value.success && trendsResult.value.xml) {
-      const signals = parseGoogleTrendsRssAsSignals(trendsResult.value.xml).slice(0, 10)
-      trendSignals.push(...signals)
-      updateConnectorHealth(trendsDef.id, {
-        state: trendsResult.value.channel === 'API_CORS_PROXY' ? 'DEGRADED' : 'HEALTHY',
-        httpStatus: trendsResult.value.httpStatus,
-        latencyMs: trendsResult.value.latencyMs,
-        itemCount: signals.length,
-        isSuccess: true,
-        userReadableMessage: `Berhasil menarik ${signals.length} sinyal minat penelusuran Google`
-      })
-    } else {
-      const fail = trendsResult.status === 'fulfilled' ? trendsResult.value : null
-      updateConnectorHealth(trendsDef.id, {
-        state: fail?.rateLimitStatus?.isRateLimited ? 'RATE_LIMITED' : (fail?.errorCode === 'MALFORMED_FEED_NO_ITEMS' ? 'DEGRADED' : 'UNAVAILABLE'),
-        httpStatus: fail?.httpStatus ?? null,
-        latencyMs: fail?.latencyMs ?? null,
-        rateLimitStatus: fail?.rateLimitStatus,
-        errorCode: fail?.errorCode ?? 'FETCH_TIMEOUT_OR_NETWORK_ERROR',
-        errorMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed Google Trends Indonesia',
-        userReadableMessage: fail?.errorMessage ?? 'Gagal terhubung ke feed Google Trends Indonesia',
-        isSuccess: false
-      })
-    }
+          updateConnectorHealth(src.id, {
+            state: fetchRes.channel === 'API_CORS_PROXY' ? 'DEGRADED' : 'HEALTHY',
+            httpStatus: fetchRes.httpStatus,
+            latencyMs: fetchRes.latencyMs,
+            itemCount: norm.length,
+            isSuccess: true,
+            userReadableMessage: `Berhasil menarik ${norm.length} artikel publikasi`
+          })
+        }
+      } else {
+        const fail = settled.status === 'fulfilled' ? settled.value : null
+        const statusSuffix = fail?.httpStatus ? ` (HTTP ${fail.httpStatus})` : ''
+        const retrySec = fail?.rateLimitStatus?.retryAfterSeconds
+        radarScheduler.recordSourceAttempt(src.id, false, fail?.httpStatus, retrySec)
+
+        updateConnectorHealth(src.id, {
+          state: fail?.rateLimitStatus?.isRateLimited ? 'RATE_LIMITED' : (fail?.errorCode === 'MALFORMED_FEED_NO_ITEMS' ? 'DEGRADED' : 'UNAVAILABLE'),
+          httpStatus: fail?.httpStatus ?? null,
+          latencyMs: fail?.latencyMs ?? null,
+          rateLimitStatus: fail?.rateLimitStatus,
+          errorCode: fail?.errorCode ?? 'FETCH_TIMEOUT_OR_NETWORK_ERROR',
+          errorMessage: fail?.errorMessage ?? `Gagal terhubung ke feed ${src.displayName}`,
+          userReadableMessage: `${fail?.errorMessage || `Gagal terhubung ke feed ${src.displayName}`}${statusSuffix}`,
+          isSuccess: false
+        })
+      }
+    })
 
     if (normalizedItems.length > 0) {
       // 1. Deduplikasi & Pengelompokan Peristiwa Konservatif (Hanya publikasi riil)
@@ -516,18 +465,31 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
       const baseClusters = clusterEventPublications(dedupedItems)
       
       // 2. Hubungkan SearchTrendSignal sebagai sinyal kontekstual tanpa menaikkan publicationCount
-      const clusters = attachTrendSignalsToClusters(baseClusters, trendSignals)
+      const clustersWithTrends = attachTrendSignalsToClusters(baseClusters, trendSignals)
 
-      // 3. Konversi cluster ke DebunkKnowledgeEntry untuk UI backward-compatibility
+      // 3. Evaluasi Momentum & Issue Activity (Sprint 6 WP6)
+      const clusters = attachIssueActivityToClusters(clustersWithTrends)
+
+      // 4. Ingest ke Dynamic Topic Discovery Engine (Sprint 6 WP5)
+      topicDiscoveryEngine.ingestTrendSignals(trendSignals)
+      topicDiscoveryEngine.ingestPublications(dedupedItems)
+      topicDiscoveryEngine.pruneExpiredCandidates()
+      try {
+        await saveTopicCandidates(topicDiscoveryEngine.getAllCandidates())
+      } catch (e) {
+        console.warn('[LiveRadarService] Gagal menyimpan topic candidates:', e)
+      }
+
+      // 5. Konversi cluster ke DebunkKnowledgeEntry untuk UI backward-compatibility
       const mappedEntries = clusters.map(cl => clusterToDebunkEntry(cl))
 
-      // 4. Jalankan Scorer & Triage (Evidence-Driven)
-      // SPRINT 5 (WP4): Gabungkan live TurnBackHoax references dari siklus saat ini dengan curated archive
+      // 6. Jalankan Scorer & Triage (Evidence-Driven)
+      // Gabungkan live TurnBackHoax references dari siklus saat ini dengan curated archive
       const curatedArchive = getCuratedArchiveDebunks()
       const allKnownDebunks = [...liveTbhEntries, ...curatedArchive]
       const triagedEntries = scoreAndTriageRadarEntries(mappedEntries, allKnownDebunks)
 
-      // 5. Daftarkan ke in-memory cache dan simpan ke IndexedDB
+      // 7. Daftarkan ke in-memory cache dan simpan ke IndexedDB
       registerLiveDebunks(triagedEntries)
 
       try {
@@ -536,10 +498,11 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
         console.warn('[LiveRadarService] Gagal menyimpan ke cache IndexedDB:', e)
       }
 
-      return {
+      const liveResult: LiveRadarFetchResult = {
         entries: triagedEntries,
         clusters,
         trendSignals,
+        topicCandidates: topicDiscoveryEngine.getAllCandidates(),
         connectorHealth: getAllConnectorHealth(),
         isLive: true,
         isStale: false,
@@ -548,6 +511,8 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
         latencyMs: Date.now() - startTime,
         fetchedAt: Date.now()
       }
+      lastRadarResult = liveResult
+      return liveResult
     }
   } catch (err) {
     console.error('[LiveRadarService] Kesalahan saat penarikan multi-feed live:', err)
@@ -557,7 +522,7 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
   try {
     const cached = await getCachedRadarItems()
     if (cached && cached.length > 0) {
-      return {
+      const cachedResult: LiveRadarFetchResult = {
         entries: cached,
         connectorHealth: getAllConnectorHealth(),
         isLive: false,
@@ -566,8 +531,11 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
         sourceChannel: 'LOCAL_ARCHIVE',
         latencyMs: Date.now() - startTime,
         fetchedAt: Date.now(),
+        topicCandidates: topicDiscoveryEngine.getAllCandidates(),
         errorMessage: 'Koneksi jaringan terputus. Menampilkan data cache lokal tersimpan (STALE_CACHE).'
       }
+      lastRadarResult = cachedResult
+      return cachedResult
     }
   } catch {
     // Lewati jika indexedDB gagal
@@ -575,7 +543,7 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
 
   // Fallback Terakhir: Basis Pengetahuan Kurasi Lokal
   const localArchive = getCuratedArchiveDebunks()
-  return {
+  const fallbackResult: LiveRadarFetchResult = {
     entries: localArchive,
     connectorHealth: getAllConnectorHealth(),
     isLive: false,
@@ -586,4 +554,6 @@ export async function fetchLiveRadarDebunks(): Promise<LiveRadarFetchResult> {
     fetchedAt: Date.now(),
     errorMessage: 'Koneksi live feed tidak dapat dijangkau. Beralih ke pangkalan data taktis offline (STALE_CACHE).'
   }
+  lastRadarResult = fallbackResult
+  return fallbackResult
 }

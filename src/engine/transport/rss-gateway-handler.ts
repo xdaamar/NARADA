@@ -16,16 +16,14 @@
  * ══════════════════════════════════════════════════════════════════════════
  */
 
+import sourceCatalog from '../../../shared/radar-source-catalog.json' with { type: 'json' }
+
 declare const process: any
 
-// Host upstream terakreditasi yang diizinkan (Strict Allowlist)
-export const ALLOWED_UPSTREAM_HOSTS = new Set([
-  'turnbackhoax.id',
-  'news.google.com',
-  'trends.google.com'
-])
+// Host upstream terakreditasi yang diizinkan (Strict Allowlist diambil dari Canonical Catalog)
+export const ALLOWED_UPSTREAM_HOSTS = new Set(sourceCatalog.allowedUpstreamHosts)
 
-// Mapping upstream terpusat dan deterministik per source ID
+// Mapping upstream terpusat dan deterministik per source ID dari Canonical Catalog
 export const GATEWAY_SOURCE_REGISTRY: Record<string, {
   sourceId: string
   displayName: string
@@ -34,62 +32,24 @@ export const GATEWAY_SOURCE_REGISTRY: Record<string, {
   enabled: boolean
   ttlMs: number
   contentType: string
-}> = {
-  'src-tbh': {
-    sourceId: 'src-tbh',
-    displayName: 'TurnBackHoax (MAFINDO)',
-    upstreamUrl: 'https://turnbackhoax.id/feed',
-    allowedHost: 'turnbackhoax.id',
-    enabled: true,
-    ttlMs: 300_000, // 5 menit
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-gnews-hankam': {
-    sourceId: 'src-gnews-hankam',
-    displayName: 'Google News — Hankam & TNI',
-    upstreamUrl: 'https://news.google.com/rss/search?q=(TNI+OR+alutsista+OR+Papua+OR+KKB+OR+Ambalat+OR+kapal+perang)+AND+(viral+OR+heboh+OR+polemik+OR+kontroversi+OR+hoaks)+when:2d&hl=id&gl=ID&ceid=ID:id',
-    allowedHost: 'news.google.com',
-    enabled: true,
-    ttlMs: 120_000, // 2 menit
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-gnews-demo': {
-    sourceId: 'src-gnews-demo',
-    displayName: 'Google News — Aksi Massa & Unjuk Rasa',
-    upstreamUrl: 'https://news.google.com/rss/search?q=(demo+OR+unjuk+rasa+OR+bentrok+OR+ricuh+OR+mahasiswa+OR+pemakzulan)+when:1d&hl=id&gl=ID&ceid=ID:id',
-    allowedHost: 'news.google.com',
-    enabled: true,
-    ttlMs: 120_000, // 2 menit
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-gnews-politik': {
-    sourceId: 'src-gnews-politik',
-    displayName: 'Google News — Kebijakan & Dinamika Negara',
-    upstreamUrl: 'https://news.google.com/rss/search?q=(Prabowo+OR+Gibran+OR+bansos+OR+MBG+OR+ijazah+OR+KPK)+AND+(viral+OR+heboh+OR+polemik+OR+sidang)+when:1d&hl=id&gl=ID&ceid=ID:id',
-    allowedHost: 'news.google.com',
-    enabled: true,
-    ttlMs: 120_000, // 2 menit
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-gtrends-id': {
-    sourceId: 'src-gtrends-id',
-    displayName: 'Google Trends Indonesia (Search Interest)',
-    upstreamUrl: 'https://trends.google.com/trending/rss?geo=ID',
-    allowedHost: 'trends.google.com',
-    enabled: true,
-    ttlMs: 180_000, // 3 menit
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-youtube-policy-stub': {
-    sourceId: 'src-youtube-policy-stub',
-    displayName: 'YouTube Data API Guardrail Stub (Disabled)',
-    upstreamUrl: '',
-    allowedHost: 'developers.google.com',
-    enabled: false,
-    ttlMs: 0,
-    contentType: 'application/json'
-  }
-}
+  maxItems?: number
+  domain?: string
+}> = Object.fromEntries(
+  sourceCatalog.sources.map((s: any) => [
+    s.id,
+    {
+      sourceId: s.id,
+      displayName: s.displayName,
+      upstreamUrl: s.upstreamUrl,
+      allowedHost: s.allowedHost,
+      enabled: s.enabled,
+      ttlMs: s.ttlMs,
+      contentType: s.sourceType === 'official' ? 'application/json' : 'application/rss+xml; charset=utf-8',
+      maxItems: s.maxItems,
+      domain: s.domain
+    }
+  ])
+)
 
 // In-Memory Cache Store
 interface CacheEntry {
@@ -541,6 +501,378 @@ export async function handleRadarFeedRequest(
   return fetchPromise
 }
 
+// ─── Dynamic Topic Discovery Search Handler (Sprint 6) ───
+
+interface DynamicSearchRecord {
+  timestamp: number
+  profileId: string
+  topic: string
+}
+const dynamicSearchHistory: DynamicSearchRecord[] = []
+const phraseLastSearchedAt = new Map<string, number>()
+
+/**
+ * Reset Dynamic Search History (Untuk testing)
+ */
+export function clearDynamicSearchHistory(): void {
+  dynamicSearchHistory.length = 0
+  phraseLastSearchedAt.clear()
+}
+
+/**
+ * Validasi dan sanitasi parameter pencarian dinamis (Sprint 6 WP5 / S6-15)
+ */
+export function validateDynamicSearchQuery(profileId: string, topic: string): {
+  isValid: boolean
+  sanitizedTopic?: string
+  rejectionReason?: string
+  profile?: any
+} {
+  const profiles = sourceCatalog.googleNewsProfiles as Record<string, any>
+  const profile = profiles[profileId]
+  if (!profile) {
+    return { isValid: false, rejectionReason: `Profile ID '${profileId}' tidak terdaftar pada profil Google News NARADA` }
+  }
+
+  if (!topic || typeof topic !== 'string' || !topic.trim()) {
+    return { isValid: false, rejectionReason: "Parameter 'topic' wajib diisi untuk pencarian dinamis" }
+  }
+
+  const maxLen = sourceCatalog.dynamicSearchPolicy?.maxPhraseLength || 80
+  const maxTokens = sourceCatalog.dynamicSearchPolicy?.maxPhraseTokens || 5
+
+  const cleaned = topic.trim().replace(/[<>"'`;\\|/()[\]{}*+?^$]/g, ' ').replace(/\s+/g, ' ')
+  if (cleaned.length < 3) {
+    return { isValid: false, rejectionReason: 'Frasa pencarian terlalu pendek (minimal 3 karakter)' }
+  }
+  if (cleaned.length > maxLen) {
+    return { isValid: false, rejectionReason: `Panjang frasa (${cleaned.length}) melebihi batas maksimal ${maxLen} karakter` }
+  }
+  if (cleaned.split(' ').filter(Boolean).length > maxTokens) {
+    return { isValid: false, rejectionReason: `Jumlah kata (${cleaned.split(' ').filter(Boolean).length}) melebihi batas maksimal ${maxTokens} token` }
+  }
+
+  if (/https?:\/\/|www\.|\.com|\.id|\.net|site:|file:|localhost/i.test(topic)) {
+    return { isValid: false, rejectionReason: 'Injeksi protokol, host override, atau operator site: ditolak' }
+  }
+
+  return { isValid: true, sanitizedTopic: cleaned, profile }
+}
+
+/**
+ * Handler Inti Pencarian Dinamis Google News Tertarget
+ * Kontrak: GET /api/radar/search/:profileId?topic=<phrase>
+ */
+export async function handleRadarSearchRequest(
+  profileId: string,
+  queryParams: Record<string, string> = {},
+  customTimeoutMs?: number,
+  options?: { customFetch?: typeof fetch }
+): Promise<GatewayResponse> {
+  const startTime = Date.now()
+  const rawTopic = queryParams.topic || ''
+
+  // 1. Validasi Profil Google News
+  const profiles = sourceCatalog.googleNewsProfiles as Record<string, any>
+  const profile = profiles[profileId]
+  if (!profile) {
+    return {
+      statusCode: 404,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'UNKNOWN_PROFILE_ID',
+        message: `Profile ID '${profileId}' tidak terdaftar pada profil Google News NARADA.`
+      }),
+      isCacheHit: false,
+      sourceId: profileId,
+      latencyMs: Date.now() - startTime,
+      errorCode: 'UNKNOWN_PROFILE_ID',
+      errorMessage: `Profile ID '${profileId}' tidak ditemukan.`
+    }
+  }
+
+  // 2. Validasi Parameter Topic
+  if (!rawTopic || !rawTopic.trim()) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'MISSING_TOPIC_PARAM',
+        message: "Parameter 'topic' wajib diisi untuk pencarian dinamis."
+      }),
+      isCacheHit: false,
+      sourceId: profileId,
+      latencyMs: Date.now() - startTime,
+      errorCode: 'MISSING_TOPIC_PARAM',
+      errorMessage: "Parameter 'topic' wajib disertakan."
+    }
+  }
+
+  // Sanitasi topik dari injeksi URL & karakter manipulasi
+  const sanitizedTopic = rawTopic
+    .replace(/[<>"'`;\\|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const maxLen = sourceCatalog.dynamicSearchPolicy?.maxPhraseLength || 80
+  if (sanitizedTopic.length > maxLen) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'TOPIC_TOO_LONG',
+        message: `Panjang frasa topik (${sanitizedTopic.length}) melebihi batas maksimal ${maxLen} karakter.`
+      }),
+      isCacheHit: false,
+      sourceId: profileId,
+      latencyMs: Date.now() - startTime,
+      errorCode: 'TOPIC_TOO_LONG',
+      errorMessage: `Panjang frasa topik melebihi batas ${maxLen} karakter.`
+    }
+  }
+
+  const tokens = sanitizedTopic.split(' ').filter(Boolean)
+  const maxTokens = sourceCatalog.dynamicSearchPolicy?.maxPhraseTokens || 5
+  if (tokens.length > maxTokens) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'TOPIC_EXCEEDS_MAX_TOKENS',
+        message: `Jumlah token frasa (${tokens.length}) melebihi batas maksimal ${maxTokens} token.`
+      }),
+      isCacheHit: false,
+      sourceId: profileId,
+      latencyMs: Date.now() - startTime,
+      errorCode: 'TOPIC_EXCEEDS_MAX_TOKENS',
+      errorMessage: `Jumlah token topik melebihi ${maxTokens} kata.`
+    }
+  }
+
+  // 3. Batas Cooldown per Frasa (30 menit)
+  const normPhrase = sanitizedTopic.toLowerCase()
+  const cooldownMs = sourceCatalog.dynamicSearchPolicy?.phraseCooldownMs || 1800000
+  const lastSearch = phraseLastSearchedAt.get(normPhrase)
+  const cacheKey = `search:${profileId}:${normPhrase}`
+
+  if (lastSearch && (Date.now() - lastSearch < cooldownMs)) {
+    const cached = gatewayCache.get(cacheKey)
+    if (cached) {
+      return {
+        statusCode: cached.httpStatus,
+        headers: {
+          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'X-Radar-Cache': 'HIT',
+          'X-Radar-Source': profileId,
+          'X-Radar-Search-Topic': sanitizedTopic,
+          'X-Radar-Fetched-At': new Date(cached.fetchedAt).toISOString(),
+          'X-Radar-Expires-At': new Date(cached.expiresAt).toISOString(),
+          'Content-Length': cached.contentLength.toString()
+        },
+        body: cached.xml,
+        isCacheHit: true,
+        sourceId: profileId,
+        latencyMs: Date.now() - startTime
+      }
+    }
+  }
+
+  // 4. Kuota Harian (Maksimal 8 kueri per rolling 24 jam)
+  const now = Date.now()
+  const oneDayAgo = now - 24 * 3600 * 1000
+  const recentSearches = dynamicSearchHistory.filter(r => r.timestamp > oneDayAgo)
+  const max24h = sourceCatalog.dynamicSearchPolicy?.maxDynamicQueriesPer24h || 8
+  if (recentSearches.length >= max24h) {
+    return {
+      statusCode: 429,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Retry-After': '3600'
+      },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'DYNAMIC_SEARCH_QUOTA_EXCEEDED',
+        message: `Batas pencarian dinamis (${max24h} kueri per 24 jam) terlampaui.`
+      }),
+      isCacheHit: false,
+      sourceId: profileId,
+      latencyMs: Date.now() - startTime,
+      errorCode: 'DYNAMIC_SEARCH_QUOTA_EXCEEDED',
+      errorMessage: `Batas pencarian dinamis (${max24h}/24 jam) terlampaui.`
+    }
+  }
+
+  // 5. Periksa Cache TTL yang Masih Berlaku
+  const cached = gatewayCache.get(cacheKey)
+  if (cached && Date.now() < cached.expiresAt) {
+    return {
+      statusCode: cached.httpStatus,
+      headers: {
+        'Content-Type': 'application/rss+xml; charset=utf-8',
+        'X-Radar-Cache': 'HIT',
+        'X-Radar-Source': profileId,
+        'X-Radar-Search-Topic': sanitizedTopic,
+        'X-Radar-Fetched-At': new Date(cached.fetchedAt).toISOString(),
+        'X-Radar-Expires-At': new Date(cached.expiresAt).toISOString(),
+        'Content-Length': cached.contentLength.toString()
+      },
+      body: cached.xml,
+      isCacheHit: true,
+      sourceId: profileId,
+      latencyMs: Date.now() - startTime
+    }
+  }
+
+  // 6. Single-Flight Concurrency
+  const existingFlight = inFlightRequests.get(cacheKey)
+  if (existingFlight) {
+    return existingFlight
+  }
+
+  // 7. Konstruksi URL Upstream Google News RSS
+  const queryStr = `(${profile.query}) AND ("${sanitizedTopic}")`
+  const searchBaseUrl = sourceCatalog.dynamicSearchPolicy?.searchBaseUrl || 'https://news.google.com/rss/search'
+  const upstreamSearchUrl = `${searchBaseUrl}?q=${encodeURIComponent(queryStr)}&hl=${profile.locale || 'id'}&gl=${profile.gl || 'ID'}&ceid=${profile.ceid || 'ID:id'}`
+
+  const fetchPromise = (async (): Promise<GatewayResponse> => {
+    try {
+      const validation = validateUpstreamUrl(upstreamSearchUrl)
+      if (!validation.valid) {
+        return {
+          statusCode: 502,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: false,
+            errorCode: 'UPSTREAM_URL_VALIDATION_FAILED',
+            message: validation.reason
+          }),
+          isCacheHit: false,
+          sourceId: profileId,
+          latencyMs: Date.now() - startTime,
+          errorCode: 'UPSTREAM_URL_VALIDATION_FAILED'
+        }
+      }
+
+      const timeoutMs = customTimeoutMs || DEFAULT_TIMEOUT_MS
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+      const fetchFn = options?.customFetch || fetch
+
+      const response = await (fetchFn as any)(upstreamSearchUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0',
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+        }
+      })
+      clearTimeout(timer)
+
+      if (response.status === 429) {
+        return {
+          statusCode: 429,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
+          body: JSON.stringify({
+            success: false,
+            errorCode: 'UPSTREAM_RATE_LIMITED',
+            message: 'Google News membatasi laju permintaan (Rate Limited).'
+          }),
+          isCacheHit: false,
+          sourceId: profileId,
+          latencyMs: Date.now() - startTime,
+          errorCode: 'UPSTREAM_RATE_LIMITED'
+        }
+      }
+
+      const bodyText = await response.text()
+      if (bodyText.length > MAX_RESPONSE_SIZE) {
+        return {
+          statusCode: 502,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: false,
+            errorCode: 'RESPONSE_TOO_LARGE',
+            message: 'Ukuran respon feed melebihi batas 2 MB.'
+          }),
+          isCacheHit: false,
+          sourceId: profileId,
+          latencyMs: Date.now() - startTime,
+          errorCode: 'RESPONSE_TOO_LARGE'
+        }
+      }
+
+      // Catat riwayat pencarian sukses
+      dynamicSearchHistory.push({ timestamp: Date.now(), profileId, topic: sanitizedTopic })
+      phraseLastSearchedAt.set(normPhrase, Date.now())
+
+      // Simpan di cache (TTL 5 menit)
+      gatewayCache.set(cacheKey, {
+        xml: bodyText,
+        httpStatus: response.status,
+        fetchedAt: Date.now(),
+        expiresAt: Date.now() + 300_000,
+        sourceId: profileId,
+        contentLength: bodyText.length
+      })
+
+      return {
+        statusCode: response.status,
+        headers: {
+          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'X-Radar-Cache': 'MISS',
+          'X-Radar-Source': profileId,
+          'X-Radar-Search-Topic': sanitizedTopic,
+          'Content-Length': bodyText.length.toString()
+        },
+        body: bodyText,
+        isCacheHit: false,
+        sourceId: profileId,
+        latencyMs: Date.now() - startTime
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') {
+        return {
+          statusCode: 504,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: false,
+            errorCode: 'GATEWAY_TIMEOUT',
+            message: `Batas waktu permintaan pencarian (${customTimeoutMs || DEFAULT_TIMEOUT_MS}ms) terlampaui.`
+          }),
+          isCacheHit: false,
+          sourceId: profileId,
+          latencyMs: Date.now() - startTime,
+          errorCode: 'GATEWAY_TIMEOUT'
+        }
+      }
+
+      const sanitized = sanitizeGatewayError(err?.message || 'Network exception')
+      return {
+        statusCode: 502,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          success: false,
+          errorCode: 'UPSTREAM_NETWORK_FAILURE',
+          message: sanitized
+        }),
+        isCacheHit: false,
+        sourceId: profileId,
+        latencyMs: Date.now() - startTime,
+        errorCode: 'UPSTREAM_NETWORK_FAILURE',
+        errorMessage: sanitized
+      }
+    } finally {
+      inFlightRequests.delete(cacheKey)
+    }
+  })()
+
+  inFlightRequests.set(cacheKey, fetchPromise)
+  return fetchPromise
+}
+
 /**
  * Health Check Endpoint Gateway
  * Kontrak: GET /api/radar/gateway/health
@@ -593,6 +925,12 @@ export async function handleRadarGatewayRequest(
       sourceId: 'gateway-health',
       latencyMs: 0
     }
+  }
+
+  const searchMatch = urlPath.match(/^\/api\/radar\/search\/([^/?#]+)/)
+  if (searchMatch) {
+    const profileId = searchMatch[1]
+    return handleRadarSearchRequest(profileId, searchParams || {}, options?.timeoutMs, options)
   }
 
   const match = urlPath.match(/^\/api\/radar\/feed\/([^/?#]+)/)
