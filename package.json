@@ -18,6 +18,9 @@
     "test:sprint6": "node scripts/test-sprint-6-radar-discovery.js",
     "test:sprint6.1": "node scripts/test-sprint-6-1-operational.js",
     "test:sprint6.2": "node scripts/test-sprint-6-2-gdelt.js",
+    "test:sprint7": "node scripts/test-sprint-7-evidence.js",
+    "test:sprint7:idb": "node scripts/test-sprint-7-indexeddb.js",
+    "test:sprint7:smoke": "node scripts/test-sprint-7-electron-smoke.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "electron:build": "tsc -b && vite build && electron-builder --win"
   },

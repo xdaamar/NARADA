@@ -54,6 +54,7 @@ export type ExtractionMethod =
   | 'JSON_IMPORT'
   | 'ALLOWED_SOURCE_FETCH'
   | 'URL_REFERENCE_ONLY'
+  | 'MANUAL_BROWSER_CAPTURE'
 
 export type DigestScope =
   | 'ORIGINAL_FILE_BYTES'

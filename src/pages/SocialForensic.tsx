@@ -24,8 +24,13 @@ import {
   RefreshCw,
   ShieldCheck,
   MessageSquare,
-  WifiOff
+  WifiOff,
+  Globe,
+  Eye,
+  CheckCircle,
+  X
 } from 'lucide-react'
+import EvidenceBrowserWorkspace from '../components/EvidenceBrowserWorkspace.tsx'
 import type { DebunkKnowledgeEntry } from '../types'
 import {
   getInvestigationCase,
@@ -33,6 +38,7 @@ import {
   createInvestigationCase,
   updateCaseStatus,
   addEvidenceRecord,
+  verifyEvidenceRecordById,
   getEvidenceRecordsForCase,
   createEvidenceRecord,
   validateEvidenceFile,
@@ -183,8 +189,11 @@ export default function SocialForensic() {
     }
   }, [activeCase.id, activeCase.mode, activeCase.title, evidenceList.length, refreshCaseData])
 
-  // ─── 2. State Ingestion Console (Sprint 2 - D3 & Gate 0.5) ───
-  const [ingestTab, setIngestTab] = useState<'TEXT' | 'FILE' | 'URL' | 'PRESET'>('TEXT')
+  // ─── 2. State Ingestion Console (Sprint 2 - D3 & Gate 0.5 & Sprint 7 Evidence Browser) ───
+  const [ingestTab, setIngestTab] = useState<'TEXT' | 'FILE' | 'URL' | 'PRESET' | 'BROWSER'>('TEXT')
+  const [selectedEvidenceDetail, setSelectedEvidenceDetail] = useState<EvidenceRecord | null>(null)
+  const [verifyResultDetail, setVerifyResultDetail] = useState<any | null>(null)
+  const [isVerifyingDetail, setIsVerifyingDetail] = useState<boolean>(false)
   const [textInput, setTextInput] = useState<string>('')
   const [textSourceLabel, setTextSourceLabel] = useState<string>('Masukan Teks Analis')
   const [textTimestamp, setTextTimestamp] = useState<string>('')
@@ -1130,6 +1139,29 @@ export default function SocialForensic() {
 
           <button
             type="button"
+            onClick={() => setIngestTab('BROWSER')}
+            style={{
+              background: ingestTab === 'BROWSER' ? 'linear-gradient(135deg, #D4AF37 0%, #AA820A 100%)' : 'rgba(212, 175, 55, 0.15)',
+              border: '1px solid #D4AF37',
+              color: ingestTab === 'BROWSER' ? '#0B0F17' : '#D4AF37',
+              padding: '6px 14px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(212, 175, 55, 0.2)'
+            }}
+            title="Buka Chromium Evidence Browser terisolasi untuk penelusuran manual & akuisisi bukti digital"
+          >
+            <Globe size={13} />
+            <span>EVIDENCE BROWSER</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleExportCasePackage}
             style={{
               background: 'rgba(255, 255, 255, 0.05)',
@@ -1265,8 +1297,8 @@ export default function SocialForensic() {
             </div>
 
             {/* Tab Ingestion */}
-            <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '8px', marginBottom: '14px' }}>
-              {(['TEXT', 'FILE', 'URL', 'PRESET'] as const).map(tab => (
+            <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+              {(['TEXT', 'FILE', 'URL', 'PRESET', 'BROWSER'] as const).map(tab => (
                 <button
                   key={tab}
                   type="button"
@@ -1274,15 +1306,19 @@ export default function SocialForensic() {
                   style={{
                     background: ingestTab === tab ? '#D4AF37' : 'rgba(255, 255, 255, 0.05)',
                     color: ingestTab === tab ? '#0F172A' : '#94A3B8',
-                    border: 'none',
+                    border: tab === 'BROWSER' ? '1px solid rgba(212, 175, 55, 0.4)' : 'none',
                     borderRadius: '4px',
                     padding: '5px 12px',
                     fontSize: '11px',
                     fontWeight: 700,
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
                   }}
                 >
-                  {tab === 'TEXT' ? 'Teks Langsung' : tab === 'FILE' ? 'Unggah Berkas' : tab === 'URL' ? 'Referensi URL' : 'Benchmark Sintetis'}
+                  {tab === 'BROWSER' && <Globe size={13} />}
+                  {tab === 'TEXT' ? 'Teks Langsung' : tab === 'FILE' ? 'Unggah Berkas' : tab === 'URL' ? 'Referensi URL' : tab === 'PRESET' ? 'Benchmark Sintetis' : 'Evidence Browser'}
                 </button>
               ))}
             </div>
@@ -1474,6 +1510,21 @@ export default function SocialForensic() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* TAB CONTENT: EVIDENCE BROWSER (Sprint 7) */}
+            {ingestTab === 'BROWSER' && (
+              <div style={{ height: '580px', marginTop: '4px' }}>
+                <EvidenceBrowserWorkspace
+                  activeCase={activeCase}
+                  onClose={() => setIngestTab('TEXT')}
+                  onEvidenceSaved={(record) => {
+                    refreshCaseData(activeCase.id)
+                    setIngestSuccessMsg(`Bukti digital terverifikasi [${record.id}] berhasil ditambahkan ke kasus.`)
+                    setTimeout(() => setIngestSuccessMsg(null), 5000)
+                  }}
+                />
               </div>
             )}
 
@@ -1680,7 +1731,8 @@ export default function SocialForensic() {
                       <th style={{ padding: '8px' }}>PROVENANCE WAKTU</th>
                       <th style={{ padding: '8px' }}>KONTEN (REDAKSI)</th>
                       <th style={{ padding: '8px' }}>HASH SHA-256</th>
-                      <th style={{ padding: '8px', width: '40px' }}>AKSI</th>
+                      <th style={{ padding: '8px' }}>INTEGRITAS</th>
+                      <th style={{ padding: '8px', width: '70px' }}>AKSI</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1726,21 +1778,54 @@ export default function SocialForensic() {
                           </div>
                         </td>
                         <td style={{ padding: '8px', verticalAlign: 'top' }}>
-                          <button
-                            type="button"
-                            onClick={() => setEvidenceToDelete(ev.id)}
-                            style={{
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              color: '#F87171',
-                              cursor: 'pointer',
-                              padding: '3px 6px',
-                              borderRadius: '3px'
-                            }}
-                            title="Hapus berkas bukti ini"
-                          >
-                            <Trash2 size={12} />
-                          </button>
+                          <span style={{
+                            fontSize: '9px',
+                            padding: '2px 6px',
+                            borderRadius: '3px',
+                            fontWeight: 700,
+                            background: ev.metadata?.integrityStatus === 'VERIFIED' ? 'rgba(16, 185, 129, 0.15)' : ev.metadata?.integrityStatus === 'TAMPERED' ? 'rgba(239, 68, 68, 0.2)' : ev.metadata?.integrityStatus === 'MISSING_ARTIFACT' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(100, 116, 139, 0.15)',
+                            color: ev.metadata?.integrityStatus === 'VERIFIED' ? '#34D399' : ev.metadata?.integrityStatus === 'TAMPERED' ? '#F87171' : ev.metadata?.integrityStatus === 'MISSING_ARTIFACT' ? '#FBBF24' : '#94A3B8',
+                            border: `1px solid ${ev.metadata?.integrityStatus === 'VERIFIED' ? 'rgba(16, 185, 129, 0.4)' : ev.metadata?.integrityStatus === 'TAMPERED' ? '#EF4444' : 'rgba(255, 255, 255, 0.1)'}`
+                          }}>
+                            {ev.metadata?.integrityStatus === 'VERIFIED' ? 'TERVERIFIKASI' : ev.metadata?.integrityStatus === 'TAMPERED' ? 'TAMPERED' : ev.metadata?.integrityStatus === 'MISSING_ARTIFACT' ? 'HILANG' : 'BELUM DIUJI'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedEvidenceDetail(ev)
+                                setVerifyResultDetail(null)
+                              }}
+                              style={{
+                                background: 'rgba(212, 175, 55, 0.15)',
+                                border: '1px solid rgba(212, 175, 55, 0.4)',
+                                color: '#D4AF37',
+                                cursor: 'pointer',
+                                padding: '3px 6px',
+                                borderRadius: '3px'
+                              }}
+                              title="Lihat rincian lengkap bukti & uji integritas"
+                            >
+                              <Eye size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEvidenceToDelete(ev.id)}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#F87171',
+                                cursor: 'pointer',
+                                padding: '3px 6px',
+                                borderRadius: '3px'
+                              }}
+                              title="Hapus berkas bukti ini"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -2907,6 +2992,224 @@ export default function SocialForensic() {
                 style={{ background: '#D4AF37', border: 'none', color: '#0F172A', padding: '6px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}
               >
                 Buka Kembali Kasus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL SPRINT 7: DETAIL BUKTI DIGITAL & UJI INTEGRITAS SHA-256 ─── */}
+      {selectedEvidenceDetail && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.88)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1300,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#0F1722',
+            border: '1px solid rgba(212, 175, 55, 0.4)',
+            borderRadius: '8px',
+            width: '100%',
+            maxWidth: '680px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '20px',
+            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.9)'
+          }}>
+            {/* Header Modal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px', marginBottom: '16px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ShieldCheck size={18} color="#D4AF37" />
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+                    DETAIL BUKTI DIGITAL & AUDIT INTEGRITAS
+                  </span>
+                </div>
+                <div style={{ fontSize: '10px', color: '#D4AF37', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                  {selectedEvidenceDetail.id} • {selectedEvidenceDetail.evidenceType}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEvidenceDetail(null)
+                  setVerifyResultDetail(null)
+                }}
+                style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 0 }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Konten Detail */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Sumber & URL */}
+              <div>
+                <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 700 }}>LABEL & SUMBER BUKTI</div>
+                <div style={{ fontSize: '12px', color: '#F1F5F9', fontWeight: 700 }}>{selectedEvidenceDetail.sourceLabel}</div>
+                {selectedEvidenceDetail.sourceUrl && (
+                  <div style={{ fontSize: '11px', color: '#38BDF8', fontFamily: 'var(--font-mono)', wordBreak: 'break-all', marginTop: '2px' }}>
+                    {selectedEvidenceDetail.sourceUrl}
+                  </div>
+                )}
+              </div>
+
+              {/* Tangkapan Layar Viewport (Jika ada) */}
+              {(selectedEvidenceDetail.metadata?.screenshotDataUrl as string | undefined) && (
+                <div>
+                  <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, marginBottom: '4px' }}>
+                    TANGKAPAN LAYAR VIEWPORT (SCREENSHOT PNG)
+                  </div>
+                  <div style={{
+                    maxHeight: '220px',
+                    overflow: 'hidden',
+                    borderRadius: '4px',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: '#090D14',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <img
+                      src={selectedEvidenceDetail.metadata?.screenshotDataUrl as string}
+                      alt="Tangkapan Layar Bukti"
+                      style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Teks Bukti */}
+              <div>
+                <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, marginBottom: '4px' }}>
+                  TEKS BUKTI TERAKUISISI (KONTEN TERSTRUKTUR)
+                </div>
+                <div style={{
+                  background: '#090D14',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '4px',
+                  padding: '10px',
+                  fontSize: '11px',
+                  color: '#CBD5E1',
+                  maxHeight: '120px',
+                  overflowY: 'auto',
+                  lineHeight: 1.5
+                }}>
+                  {selectedEvidenceDetail.extractedText || 'Tidak ada konten teks eksplisit.'}
+                </div>
+              </div>
+
+              {/* Checksum SHA-256 */}
+              <div style={{
+                background: '#090D14',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '4px',
+                padding: '10px',
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                color: '#94A3B8',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+              }}>
+                <div style={{ color: '#D4AF37', fontWeight: 700 }}>CHECKSUM SHA-256 TERSIMPAN:</div>
+                <div>Hash Teks: {selectedEvidenceDetail.contentHashNormalized}</div>
+                {selectedEvidenceDetail.contentHashOriginal && (
+                  <div>Hash Biner/File: {selectedEvidenceDetail.contentHashOriginal}</div>
+                )}
+                {(selectedEvidenceDetail.metadata?.manifestSha256 as string | undefined) && (
+                  <div>Hash Manifest: {selectedEvidenceDetail.metadata?.manifestSha256 as string}</div>
+                )}
+              </div>
+
+              {/* Panel Hasil Uji Integritas */}
+              {verifyResultDetail && (
+                <div style={{
+                  padding: '12px',
+                  borderRadius: '6px',
+                  background: verifyResultDetail.isVerified ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                  border: `1px solid ${verifyResultDetail.isVerified ? '#10B981' : '#EF4444'}`
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    {verifyResultDetail.isVerified ? (
+                      <CheckCircle size={16} color="#10B981" />
+                    ) : (
+                      <AlertTriangle size={16} color="#EF4444" />
+                    )}
+                    <span style={{
+                      fontWeight: 800,
+                      fontSize: '11px',
+                      color: verifyResultDetail.isVerified ? '#34D399' : '#F87171'
+                    }}>
+                      {verifyResultDetail.isVerified ? 'INTEGRITAS KRIPTOGRAFIS VALID (TERVERIFIKASI)' : `PERINGATAN ANOMALI: ${verifyResultDetail.status}`}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#CBD5E1', lineHeight: 1.4 }}>
+                    {verifyResultDetail.message}
+                  </div>
+                  <div style={{ fontSize: '9px', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+                    Diuji pada: {new Date(verifyResultDetail.checkedAt).toLocaleString('id-ID')}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Tombol */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '14px', marginTop: '16px' }}>
+              <button
+                type="button"
+                disabled={isVerifyingDetail}
+                onClick={async () => {
+                  setIsVerifyingDetail(true)
+                  const res = await verifyEvidenceRecordById(selectedEvidenceDetail.id)
+                  setIsVerifyingDetail(false)
+                  setVerifyResultDetail(res)
+                  refreshCaseData(activeCase.id)
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  color: '#FFFFFF',
+                  padding: '6px 14px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: isVerifyingDetail ? 'default' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <ShieldCheck size={14} />
+                <span>{isVerifyingDetail ? 'MENGUJI HASH...' : 'UJI INTEGRITAS SHA-256'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEvidenceDetail(null)
+                  setVerifyResultDetail(null)
+                }}
+                style={{
+                  background: '#1E293B',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: '#CBD5E1',
+                  padding: '6px 14px',
+                  borderRadius: '4px',
+                  fontSize: '11px',
+                  cursor: 'pointer'
+                }}
+              >
+                Tutup
               </button>
             </div>
           </div>

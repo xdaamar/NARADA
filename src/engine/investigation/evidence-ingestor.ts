@@ -7,6 +7,7 @@
  */
 
 import { fallbackSHA256 } from '../../utils/crypto.ts'
+import { canonicalizeEvidenceManifest } from './evidence-integrity.ts'
 import { applyPrivacyRedaction } from './privacy-sanitizer.ts'
 import type {
   SupportedFileType,
@@ -396,6 +397,139 @@ export function createEvidenceRecord(params: {
     privacyRedactionStatus: 'AUTOMATIC_REDACTED',
     verificationStatus: params.evidenceMode === 'SYNTHETIC_BENCHMARK' ? 'VERIFIED' : 'UNVERIFIED',
     metadata: params.metadata,
+    limitations,
+    createdAt: nowIso,
+    updatedAt: nowIso
+  }
+}
+
+/**
+ * Pembuatan Record Bukti Digital dari Browser Manual (Sprint 7 - WP1)
+ */
+export function createBrowserEvidenceRecord(params: {
+  caseId: string
+  finalUrl?: string
+  url?: string
+  requestedUrl?: string
+  canonicalUrl?: string
+  pageTitle?: string
+  siteName?: string
+  author?: string
+  publishedAtRaw?: string
+  publishedAtNormalized?: string
+  description?: string
+  contentType?: string
+  selectedText?: string
+  selectedTextStatus?: 'present' | 'empty' | 'truncated'
+  selectedTextByteSha256?: string
+  screenshotDataUrl?: string
+  screenshotByteSha256?: string
+  screenshotSha256?: string
+  manifestSha256?: string
+  capturedBy?: string
+  limitations?: string[]
+}): EvidenceRecord {
+  if (!params.caseId || !params.caseId.trim()) {
+    throw new Error('caseId wajib disertakan untuk menyimpan bukti ke investigasi')
+  }
+
+  const effectiveFinalUrl = (params.finalUrl || params.url || '').trim()
+  if (!effectiveFinalUrl) {
+    throw new Error('URL bukti wajib disertakan dan tidak boleh kosong')
+  }
+
+  const nowIso = new Date().toISOString()
+  
+  let rawSelected = (params.selectedText || '').trim()
+  let isTruncated = params.selectedTextStatus === 'truncated'
+  if (rawSelected.length > 50000) {
+    rawSelected = rawSelected.slice(0, 50000)
+    isTruncated = true
+  }
+
+  const textStatus = isTruncated ? 'truncated' : (rawSelected.length > 0 ? 'present' : 'empty')
+  const redacted = applyPrivacyRedaction(rawSelected)
+  const normalizedHash = fallbackSHA256(rawSelected)
+
+  let pageTitle = (params.pageTitle || 'Untitled Page').trim()
+  if (pageTitle.length > 500) {
+    pageTitle = pageTitle.slice(0, 500)
+  }
+
+  const screenshotHash = params.screenshotByteSha256 || params.screenshotSha256
+
+  const limitations = params.limitations || [
+    'Bukti diambil secara manual melalui NARADA Isolated Chromium Evidence Browser.',
+    'Metadata bersumber dari halaman publik (source-reported) dan bukan verifikasi independen NARADA.',
+    'Hash SHA-256 membuktikan integritas artefak digital pasca-pengambilan, bukan legal chain-of-custody peradilan.'
+  ]
+
+  if (!params.publishedAtRaw) {
+    limitations.push('Stempel waktu publikasi tidak disediakan oleh halaman sumber.')
+  }
+
+  const hashDisclaimer = 'Hash SHA-256 membuktikan integritas artefak digital pasca-akuisisi, namun tidak memverifikasi kebenaran materiil klaim sumber.'
+
+  const metadata: Record<string, unknown> = {
+    requestedUrl: params.requestedUrl || effectiveFinalUrl,
+    finalUrl: effectiveFinalUrl,
+    canonicalUrl: params.canonicalUrl,
+    pageTitle,
+    siteName: params.siteName,
+    author: params.author,
+    publishedAtRaw: params.publishedAtRaw,
+    publishedAtNormalized: params.publishedAtNormalized,
+    description: params.description,
+    contentType: params.contentType || 'text/html',
+    selectedTextStatus: textStatus,
+    selectedTextByteSha256: params.selectedTextByteSha256 || normalizedHash,
+    screenshotDataUrl: params.screenshotDataUrl,
+    screenshotByteSha256: screenshotHash,
+    screenshotSha256: screenshotHash,
+    manifestSha256: params.manifestSha256,
+    capturedAt: nowIso,
+    capturedBy: params.capturedBy || 'LOCAL_INVESTIGATOR',
+    captureMethod: 'NARADA_BROWSER_VIEW_V1',
+    integrityStatus: 'UNVERIFIED',
+    lastVerifiedAt: nowIso,
+    hashDisclaimer
+  }
+
+  // Jika manifestSha256 belum dihitung, hitung sekarang
+  if (!metadata.manifestSha256) {
+    metadata.manifestSha256 = fallbackSHA256(canonicalizeEvidenceManifest(metadata))
+  }
+
+  const hashes = [
+    { digestScope: 'NORMALIZED_TEXT_UTF8' as DigestScope, digest: normalizedHash },
+    ...(screenshotHash
+      ? [{ digestScope: 'ORIGINAL_FILE_BYTES' as DigestScope, digest: screenshotHash }]
+      : [])
+  ]
+
+  return {
+    id: `EVD-BRW-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+    caseId: params.caseId,
+    evidenceType: 'SCREENSHOT',
+    evidenceMode: 'LIVE_REFERENCE',
+    sourceLabel: pageTitle || effectiveFinalUrl,
+    sourceUrl: effectiveFinalUrl,
+    sourcePublishedAt: params.publishedAtRaw || undefined,
+    sourceTimestampProvenance: params.publishedAtRaw ? 'SOURCE_REPORTED_TIMESTAMP' : 'NO_SOURCE_TIMESTAMP',
+    submittedAt: nowIso,
+    extractionMethod: 'MANUAL_BROWSER_CAPTURE',
+    extractedText: rawSelected,
+    redactedText: redacted,
+    contentHashOriginal: screenshotHash,
+    contentHashNormalized: normalizedHash,
+    hashes,
+    hashDisclaimer,
+    hashAlgorithm: 'SHA-256',
+    digestScope: screenshotHash ? 'ORIGINAL_FILE_BYTES' : 'NORMALIZED_TEXT_UTF8',
+    originalRetained: Boolean(params.screenshotDataUrl),
+    privacyRedactionStatus: 'AUTOMATIC_REDACTED',
+    verificationStatus: 'UNVERIFIED',
+    metadata,
     limitations,
     createdAt: nowIso,
     updatedAt: nowIso

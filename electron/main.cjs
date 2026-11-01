@@ -1,6 +1,19 @@
-const { app, BrowserWindow, shell } = require('electron')
+const { app, BrowserWindow, shell, ipcMain } = require('electron')
 const path = require('path')
 const { startGatewayServer, stopGatewayServer } = require('./gateway-runner.cjs')
+const {
+  openEvidenceBrowser,
+  navigateBrowser,
+  goBack,
+  goForward,
+  reload,
+  stopLoading,
+  setBrowserBounds,
+  setBrowserVisible,
+  prepareCapture,
+  closeEvidenceBrowser,
+  getBrowserStatus
+} = require('./evidence-browser-manager.cjs')
 
 // Single instance lock to prevent duplicate processes and port conflicts
 const gotTheLock = app.requestSingleInstanceLock()
@@ -27,7 +40,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: true
+      webSecurity: true,
+      preload: path.join(__dirname, 'preload.cjs')
     }
   })
 
@@ -37,7 +51,8 @@ function createWindow() {
     return { action: 'deny' }
   })
 
-  mainWindow.on('closed', () => {
+  mainWindow.on('closed', async () => {
+    await closeEvidenceBrowser()
     mainWindow = null
   })
 
@@ -56,6 +71,61 @@ app.on('second-instance', () => {
 })
 
 app.whenReady().then(async () => {
+  // Registrasi IPC Handler Evidence Browser dengan Validasi Sender Terpercaya
+  function isTrustedSender(event) {
+    return mainWindow && !mainWindow.isDestroyed() && event.sender === mainWindow.webContents
+  }
+
+  ipcMain.handle('narada:evidence-browser:open', async (event, params) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return openEvidenceBrowser(mainWindow, params || {})
+  })
+
+  ipcMain.handle('narada:evidence-browser:navigate', async (event, url) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return navigateBrowser(url)
+  })
+
+  ipcMain.on('narada:evidence-browser:back', (event) => {
+    if (isTrustedSender(event)) goBack()
+  })
+
+  ipcMain.on('narada:evidence-browser:forward', (event) => {
+    if (isTrustedSender(event)) goForward()
+  })
+
+  ipcMain.on('narada:evidence-browser:reload', (event) => {
+    if (isTrustedSender(event)) reload()
+  })
+
+  ipcMain.on('narada:evidence-browser:stop', (event) => {
+    if (isTrustedSender(event)) stopLoading()
+  })
+
+  ipcMain.on('narada:evidence-browser:set-bounds', (event, bounds) => {
+    if (isTrustedSender(event)) setBrowserBounds(bounds)
+  })
+
+  ipcMain.on('narada:evidence-browser:set-visible', (event, visible) => {
+    if (isTrustedSender(event)) setBrowserVisible(visible)
+  })
+
+  ipcMain.handle('narada:evidence-browser:prepare-capture', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return prepareCapture()
+  })
+
+  ipcMain.handle('narada:evidence-browser:close', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    await closeEvidenceBrowser()
+    return { success: true }
+  })
+
+  ipcMain.handle('narada:evidence-browser:get-status', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return getBrowserStatus()
+  })
+
   if (!isDev) {
     try {
       gatewayInstance = await startGatewayServer(5174, '127.0.0.1')
@@ -68,6 +138,7 @@ app.whenReady().then(async () => {
 })
 
 app.on('will-quit', async () => {
+  await closeEvidenceBrowser()
   if (gatewayInstance && gatewayInstance.server) {
     try {
       await stopGatewayServer(gatewayInstance.server)

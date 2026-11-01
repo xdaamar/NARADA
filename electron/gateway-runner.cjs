@@ -326,6 +326,58 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
 const dynamicSearchHistory = []
 const phraseLastSearchedAt = new Map()
 
+/**
+ * Semaphore pembatas konkurensi pencarian dinamis CJS (Sprint 7 WP6 - Carry-over 8.6)
+ */
+class DynamicSearchSemaphore {
+  constructor(max = 2, maxQueue = 10) {
+    this.active = 0
+    this.max = max
+    this.queue = []
+    this.maxQueue = maxQueue
+  }
+
+  async acquire() {
+    if (this.active < this.max) {
+      this.active++
+      return
+    }
+    if (this.queue.length >= this.maxQueue) {
+      throw new Error('CONCURRENT_SEARCH_QUEUE_FULL')
+    }
+    return new Promise((resolve, reject) => {
+      this.queue.push({ resolve, reject })
+    })
+  }
+
+  release() {
+    if (this.queue.length > 0) {
+      const next = this.queue.shift()
+      if (next) next.resolve()
+    } else {
+      this.active = Math.max(0, this.active - 1)
+    }
+  }
+
+  getActiveCount() {
+    return this.active
+  }
+
+  getQueueLength() {
+    return this.queue.length
+  }
+
+  reset() {
+    this.active = 0
+    this.queue = []
+  }
+}
+
+const dynamicSearchSemaphore = new DynamicSearchSemaphore(
+  catalog.dynamicSearchPolicy?.maxConcurrentDynamicSearches || 2,
+  10
+)
+
 function validateDynamicSearchQuery(profileId, topic) {
   const gnewsProfiles = catalog.googleNewsProfiles || {}
   const gdeltProfiles = catalog.gdeltProfiles || {}
@@ -453,6 +505,22 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
 
   const existingFlight = inFlightRequests.get(cacheKey)
   if (existingFlight) return existingFlight
+
+  // Pembatasan Konkurensi Global (Semaphore)
+  try {
+    await dynamicSearchSemaphore.acquire()
+  } catch (err) {
+    return {
+      statusCode: 429,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'CONCURRENT_SEARCH_LIMIT_EXCEEDED',
+        message: 'Batas konkurensi pencarian dinamis terlampaui. Silakan coba kembali sesaat lagi.'
+      }),
+      latencyMs: Date.now() - startTime
+    }
+  }
 
   let upstreamSearchUrl = ''
   if (isGdelt) {
@@ -644,6 +712,7 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
       }
     } finally {
       inFlightRequests.delete(cacheKey)
+      dynamicSearchSemaphore.release()
     }
   })()
 
@@ -796,6 +865,7 @@ module.exports = {
   validateDynamicSearchQuery,
   handleRadarFeedRequest,
   handleRadarSearchRequest,
+  DynamicSearchSemaphore,
   GATEWAY_SOURCE_REGISTRY,
   ALLOWED_UPSTREAM_HOSTS
 }

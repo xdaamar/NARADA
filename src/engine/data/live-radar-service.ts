@@ -12,7 +12,8 @@ import {
   getCachedRadarItems, 
   saveTopicCandidates,
   saveSourceRunLog,
-  saveIssueActivitySnapshot
+  saveIssueActivitySnapshot,
+  getIssueActivitySnapshotsFromDB
 } from '../../utils/db-adapter.ts'
 import { scoreAndTriageRadarEntries } from '../radar/early-warning-scorer.ts'
 import { 
@@ -110,6 +111,35 @@ export interface SingleSourceFetchResult {
 
 // In-memory publication registry to preserve stable firstObservedAt (WP4)
 const knownPublicationsMap = new Map<string, NormalizedPublication>()
+
+/**
+ * Memulihkan riwayat firstObservedAt dari database IndexedDB agar stabil melintasi restart (Sprint 7 WP6 - Carry-over 8.1)
+ */
+export async function hydrateKnownPublicationsFromDB(): Promise<number> {
+  try {
+    const snapshots = await getIssueActivitySnapshotsFromDB()
+    let restored = 0
+    for (const snap of snapshots) {
+      if (snap.id && snap.id.startsWith('pub-') && snap.firstObservedAt) {
+        const pubId = snap.id.replace(/^pub-/, '')
+        if (!knownPublicationsMap.has(pubId)) {
+          knownPublicationsMap.set(pubId, {
+            id: pubId,
+            firstObservedAt: snap.firstObservedAt,
+            observedAt: snap.timestamp || snap.firstObservedAt
+          } as NormalizedPublication)
+          restored++
+        }
+      }
+    }
+    return restored
+  } catch {
+    return 0
+  }
+}
+
+// Inisialisasi hidrasi awal
+hydrateKnownPublicationsFromDB().catch(() => {})
 
 /**
  * Backward compatibility cleanHtml helper
@@ -1078,6 +1108,12 @@ export async function processRadarIngestion(
       pub.firstObservedAt = pub.firstObservedAt || now
       pub.observedAt = now
       knownPublicationsMap.set(pub.id, pub)
+      saveIssueActivitySnapshot({
+        id: `pub-${pub.id}`,
+        clusterId: pub.id,
+        firstObservedAt: pub.firstObservedAt,
+        timestamp: pub.firstObservedAt
+      }).catch(() => {})
     }
   }
 

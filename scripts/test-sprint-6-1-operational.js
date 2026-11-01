@@ -675,7 +675,7 @@ async function runSprint61TestSuite() {
   // ──────────────────────────────────────────────────────────────────
   console.log('\n─── S61-27: Database Migration & Schema Expansion ───')
   const dbAdapterSrc = fs.readFileSync(path.resolve('src/utils/db-adapter.ts'), 'utf-8')
-  assert(dbAdapterSrc.includes('DB_VERSION = 2'), 'S61-27.1', 'DB_VERSION dikonfigurasi ke versi 2')
+  assert(dbAdapterSrc.includes('DB_VERSION = 2') || dbAdapterSrc.includes('DB_VERSION = 3'), 'S61-27.1', 'DB_VERSION dikonfigurasi ke versi >= 2')
   assert(dbAdapterSrc.includes('TOPIC_CANDIDATES: \'topic_candidates\''), 'S61-27.2', 'Store topic_candidates terdaftar')
   assert(dbAdapterSrc.includes('ISSUE_ACTIVITY_SNAPSHOTS: \'issue_activity_snapshots\''), 'S61-27.3', 'Store issue_activity_snapshots terdaftar')
   assert(dbAdapterSrc.includes('SOURCE_RUN_LOG: \'source_run_log\''), 'S61-27.4', 'Store source_run_log terdaftar')

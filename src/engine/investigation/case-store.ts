@@ -7,6 +7,14 @@
  */
 
 import { fallbackSHA256 } from '../../utils/crypto.ts'
+import {
+  saveEvidenceRecordToDB,
+  deleteEvidenceRecordFromDB
+} from '../../utils/db-adapter.ts'
+import {
+  verifyEvidenceRecordIntegrity,
+  type EvidenceIntegrityVerificationResult
+} from './evidence-integrity.ts'
 import type {
   InvestigationCase,
   EvidenceRecord,
@@ -294,6 +302,8 @@ export function addEvidenceRecord(record: EvidenceRecord, operatorLabel = 'Local
   })
 
   persistToLocalStorage()
+  // Simpan pula secara persisten ke IndexedDB
+  saveEvidenceRecordToDB(record).catch(() => {})
 }
 
 export function getEvidenceRecordsForCase(caseId: string): EvidenceRecord[] {
@@ -306,6 +316,52 @@ export function getEvidenceRecordsForCase(caseId: string): EvidenceRecord[] {
 export function getEvidenceRecordById(evidenceId: string): EvidenceRecord | undefined {
   hydrateFromLocalStorage()
   return evidenceMap.get(evidenceId)
+}
+
+/**
+ * Verifikasi integritas kriptografis SHA-256 untuk rekaman bukti digital (Sprint 7)
+ */
+export async function verifyEvidenceRecordById(evidenceId: string): Promise<EvidenceIntegrityVerificationResult | null> {
+  hydrateFromLocalStorage()
+  const record = evidenceMap.get(evidenceId)
+  if (!record) return null
+
+  let screenshotBytes: Uint8Array | null = null
+  const screenshotDataUrl = record.metadata?.screenshotDataUrl as string | undefined
+  if (screenshotDataUrl && screenshotDataUrl.startsWith('data:image/png;base64,')) {
+    try {
+      const base64Data = screenshotDataUrl.replace(/^data:image\/png;base64,/, '')
+      if (typeof atob !== 'undefined') {
+        const binary = atob(base64Data)
+        const len = binary.length
+        screenshotBytes = new Uint8Array(len)
+        for (let i = 0; i < len; i++) {
+          screenshotBytes[i] = binary.charCodeAt(i)
+        }
+      } else {
+        const maybeBuffer = (globalThis as unknown as { Buffer?: { from: (data: string, encoding: string) => Uint8Array } }).Buffer
+        if (maybeBuffer) {
+          const buf = maybeBuffer.from(base64Data, 'base64')
+          screenshotBytes = new Uint8Array(buf)
+        }
+      }
+    } catch {
+      screenshotBytes = null
+    }
+  }
+
+  const result = await verifyEvidenceRecordIntegrity(record, screenshotBytes)
+
+  // Perbarui status verifikasi di record jika metadata ada
+  if (record.metadata) {
+    record.metadata.integrityStatus = result.status
+    record.metadata.lastVerifiedAt = result.checkedAt
+    record.updatedAt = result.checkedAt
+    persistToLocalStorage()
+    saveEvidenceRecordToDB(record).catch(() => {})
+  }
+
+  return result
 }
 
 // ─── CLAIM RECORD MANAGEMENT ───
@@ -585,6 +641,7 @@ export function deleteEvidenceRecord(evidenceId: string, actor = 'Local Operator
   if (!ev) return false
 
   evidenceMap.delete(evidenceId)
+  deleteEvidenceRecordFromDB(evidenceId).catch(() => {})
 
   // Cascade: Hapus relasi yang menunjuk bukti ini
   for (const [relId, rel] of relationsMap.entries()) {

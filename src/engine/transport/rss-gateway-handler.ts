@@ -557,11 +557,67 @@ const dynamicSearchHistory: DynamicSearchRecord[] = []
 const phraseLastSearchedAt = new Map<string, number>()
 
 /**
+ * Semaphore pembatas konkurensi pencarian dinamis (Sprint 7 WP6 - Carry-over 8.6)
+ */
+export class DynamicSearchSemaphore {
+  private active = 0
+  private max: number
+  private queue: Array<{ resolve: () => void; reject: (err: Error) => void }> = []
+  private maxQueue: number
+
+  constructor(max = 2, maxQueue = 10) {
+    this.max = max
+    this.maxQueue = maxQueue
+  }
+
+  async acquire(): Promise<void> {
+    if (this.active < this.max) {
+      this.active++
+      return
+    }
+    if (this.queue.length >= this.maxQueue) {
+      throw new Error('CONCURRENT_SEARCH_QUEUE_FULL')
+    }
+    return new Promise((resolve, reject) => {
+      this.queue.push({ resolve, reject })
+    })
+  }
+
+  release(): void {
+    if (this.queue.length > 0) {
+      const next = this.queue.shift()
+      if (next) next.resolve()
+    } else {
+      this.active = Math.max(0, this.active - 1)
+    }
+  }
+
+  getActiveCount(): number {
+    return this.active
+  }
+
+  getQueueLength(): number {
+    return this.queue.length
+  }
+
+  reset(): void {
+    this.active = 0
+    this.queue.length = 0
+  }
+}
+
+export const dynamicSearchSemaphore = new DynamicSearchSemaphore(
+  sourceCatalog.dynamicSearchPolicy?.maxConcurrentDynamicSearches || 2,
+  10
+)
+
+/**
  * Reset Dynamic Search History (Untuk testing)
  */
 export function clearDynamicSearchHistory(): void {
   dynamicSearchHistory.length = 0
   phraseLastSearchedAt.clear()
+  dynamicSearchSemaphore.reset()
 }
 
 /**
@@ -733,6 +789,26 @@ export async function handleRadarSearchRequest(
   const existingFlight = inFlightRequests.get(cacheKey)
   if (existingFlight) {
     return existingFlight
+  }
+
+  // 6B. Pembatasan Konkurensi Global (Semaphore)
+  try {
+    await dynamicSearchSemaphore.acquire()
+  } catch (err: any) {
+    return {
+      statusCode: 429,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'CONCURRENT_SEARCH_LIMIT_EXCEEDED',
+        message: 'Batas konkurensi pencarian dinamis terlampaui. Silakan coba kembali sesaat lagi.'
+      }),
+      isCacheHit: false,
+      sourceId: profileId,
+      latencyMs: Date.now() - startTime,
+      errorCode: 'CONCURRENT_SEARCH_LIMIT_EXCEEDED',
+      errorMessage: 'Batas konkurensi pencarian dinamis terlampaui'
+    }
   }
 
   // 7. Konstruksi URL Upstream Pencarian (Google News RSS vs GDELT DOC API)
@@ -1009,6 +1085,7 @@ export async function handleRadarSearchRequest(
       }
     } finally {
       inFlightRequests.delete(cacheKey)
+      dynamicSearchSemaphore.release()
     }
   })()
 

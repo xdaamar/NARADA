@@ -71,17 +71,41 @@ export function extractPublisherDomain(url: string): string {
   }
 }
 
+// Daftar sufiks domain multi-part publik (Public Suffix List - PSL subsets)
+const MULTI_PART_TLD_SUFFIXES = new Set([
+  'co.id', 'go.id', 'ac.id', 'or.id', 'sch.id', 'mil.id', 'web.id', 'net.id', 'biz.id', 'my.id',
+  'co.uk', 'gov.uk', 'ac.uk', 'org.uk', 'me.uk', 'ltd.uk', 'plc.uk', 'net.uk',
+  'com.au', 'gov.au', 'edu.au', 'org.au', 'net.au',
+  'co.jp', 'ac.jp', 'go.jp', 'ne.jp',
+  'com.sg', 'edu.sg', 'gov.sg',
+  'com.my', 'gov.my', 'edu.my',
+  'co.nz', 'com.br'
+])
+
+// Domain mesin penemu / agregator yang bukan publisher berita independen primer
+export const AGGREGATOR_INDEXER_DOMAINS = new Set([
+  'news.google.com',
+  'google.com',
+  'trends.google.com',
+  'api.gdeltproject.org',
+  'gdeltproject.org',
+  'youtube.com',
+  'youtu.be'
+])
+
 /**
- * Ekstraksi canonical root domain penerbit (mengelompokkan subdomain seperti news.detik.com & finance.detik.com ke detik.com)
+ * Ekstraksi canonical root domain penerbit PSL-aware (Sprint 7 WP6 - Carry-over 8.4)
+ * Mengelompokkan subdomain sibling seperti news.detik.com & finance.detik.com ke detik.com,
+ * serta menangani ekstensi multi-part seperti .co.id, .co.uk, .gov.uk, dsb secara akurat.
  */
 export function extractCanonicalPublisherDomain(url: string): string {
   const host = extractPublisherDomain(url)
   if (!host) return ''
   const parts = host.split('.')
+
   if (parts.length >= 3) {
-    const secondTld = parts[parts.length - 2]
-    const topTld = parts[parts.length - 1]
-    if (['co', 'or', 'go', 'ac', 'sch', 'web', 'mil', 'net'].includes(secondTld) && topTld.length === 2) {
+    const twoPartTld = `${parts[parts.length - 2]}.${parts[parts.length - 1]}`
+    if (MULTI_PART_TLD_SUFFIXES.has(twoPartTld) || (['co', 'or', 'go', 'ac', 'sch', 'web', 'mil', 'net', 'edu', 'gov'].includes(parts[parts.length - 2]) && parts[parts.length - 1].length === 2)) {
       return parts.slice(-3).join('.')
     }
     return parts.slice(-2).join('.')

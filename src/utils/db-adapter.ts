@@ -17,9 +17,10 @@
 
 import type { AnalysisResult, DebunkKnowledgeEntry } from '../types'
 import type { TopicCandidate } from '../engine/radar/radar-types.ts'
+import type { EvidenceRecord } from '../engine/investigation/investigation-types.ts'
 
 const DB_NAME = 'narada_tactical_db'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 export const STORES = {
   ANALYSES: 'analyses',
@@ -28,6 +29,8 @@ export const STORES = {
   TOPIC_CANDIDATES: 'topic_candidates',
   ISSUE_ACTIVITY_SNAPSHOTS: 'issue_activity_snapshots',
   SOURCE_RUN_LOG: 'source_run_log',
+  EVIDENCE_RECORDS: 'evidence_records',
+  EVIDENCE_ARTIFACTS: 'evidence_artifacts',
 } as const
 
 export interface StoredImageData {
@@ -52,6 +55,8 @@ const memoryFallback = {
   topicCandidates: new Map<string, TopicCandidate>(),
   issueActivitySnapshots: new Map<string, any>(),
   sourceRunLog: new Map<string, any>(),
+  evidenceRecords: new Map<string, EvidenceRecord>(),
+  evidenceArtifacts: new Map<string, any>(),
 }
 
 let dbInstance: IDBDatabase | null = null
@@ -125,6 +130,19 @@ export async function initDB(): Promise<IDBDatabase | null> {
           const store = db.createObjectStore(STORES.SOURCE_RUN_LOG, { keyPath: 'id' })
           store.createIndex('sourceId', 'sourceId', { unique: false })
           store.createIndex('timestamp', 'timestamp', { unique: false })
+        }
+
+        // Store 7: Evidence Records (Sprint 7)
+        if (!db.objectStoreNames.contains(STORES.EVIDENCE_RECORDS)) {
+          const store = db.createObjectStore(STORES.EVIDENCE_RECORDS, { keyPath: 'id' })
+          store.createIndex('caseId', 'caseId', { unique: false })
+          store.createIndex('submittedAt', 'submittedAt', { unique: false })
+        }
+
+        // Store 8: Evidence Artifacts (Sprint 7)
+        if (!db.objectStoreNames.contains(STORES.EVIDENCE_ARTIFACTS)) {
+          const store = db.createObjectStore(STORES.EVIDENCE_ARTIFACTS, { keyPath: 'id' })
+          store.createIndex('evidenceId', 'evidenceId', { unique: false })
         }
       }
 
@@ -637,6 +655,108 @@ export async function cleanOldIssueActivitySnapshots(maxAgeMs: number = 7 * 8640
     })
   } catch {
     return deletedCount
+  }
+}
+
+// ─── CRUD EVIDENCE RECORDS (Sprint 7) ───
+
+/**
+ * Menyimpan rekaman bukti digital EvidenceRecord ke IndexedDB
+ */
+export async function saveEvidenceRecordToDB(record: EvidenceRecord): Promise<void> {
+  try {
+    await performTransaction(STORES.EVIDENCE_RECORDS, 'readwrite', (store) => store.put(record))
+  } catch {
+    memoryFallback.evidenceRecords.set(record.id, record)
+  }
+}
+
+/**
+ * Mengambil rekaman bukti digital berdasarkan caseId atau seluruh rekaman
+ */
+export async function getEvidenceRecordsFromDB(caseId?: string): Promise<EvidenceRecord[]> {
+  try {
+    const records = await performTransaction<EvidenceRecord[]>(
+      STORES.EVIDENCE_RECORDS,
+      'readonly',
+      (store) => {
+        if (caseId) {
+          const index = store.index('caseId')
+          return index.getAll(caseId)
+        }
+        return store.getAll()
+      }
+    )
+    return records || []
+  } catch {
+    const list = Array.from(memoryFallback.evidenceRecords.values())
+    if (caseId) {
+      return list.filter(r => r.caseId === caseId)
+    }
+    return list
+  }
+}
+
+/**
+ * Mengambil rekaman bukti berdasarkan ID
+ */
+export async function getEvidenceRecordByIdFromDB(id: string): Promise<EvidenceRecord | null> {
+  try {
+    const record = await performTransaction<EvidenceRecord | undefined>(
+      STORES.EVIDENCE_RECORDS,
+      'readonly',
+      (store) => store.get(id)
+    )
+    return record || null
+  } catch {
+    return memoryFallback.evidenceRecords.get(id) || null
+  }
+}
+
+/**
+ * Menghapus rekaman bukti berdasarkan ID
+ */
+export async function deleteEvidenceRecordFromDB(id: string): Promise<void> {
+  try {
+    await performTransaction(STORES.EVIDENCE_RECORDS, 'readwrite', (store) => store.delete(id))
+  } catch {
+    memoryFallback.evidenceRecords.delete(id)
+  }
+}
+
+export interface StoredEvidenceArtifact {
+  id: string
+  evidenceId: string
+  type: 'SCREENSHOT_PNG' | 'SELECTED_TEXT_UTF8' | 'MANIFEST_JSON'
+  data: string
+  sha256: string
+  timestamp: number
+}
+
+/**
+ * Menyimpan payload artefak biner/data bukti digital
+ */
+export async function saveEvidenceArtifactToDB(artifact: StoredEvidenceArtifact): Promise<void> {
+  try {
+    await performTransaction(STORES.EVIDENCE_ARTIFACTS, 'readwrite', (store) => store.put(artifact))
+  } catch {
+    memoryFallback.evidenceArtifacts.set(artifact.id, artifact)
+  }
+}
+
+/**
+ * Mengambil payload artefak bukti digital
+ */
+export async function getEvidenceArtifactFromDB(id: string): Promise<StoredEvidenceArtifact | null> {
+  try {
+    const artifact = await performTransaction<StoredEvidenceArtifact | undefined>(
+      STORES.EVIDENCE_ARTIFACTS,
+      'readonly',
+      (store) => store.get(id)
+    )
+    return artifact || null
+  } catch {
+    return (memoryFallback.evidenceArtifacts.get(id) as StoredEvidenceArtifact) || null
   }
 }
 
