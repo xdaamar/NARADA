@@ -4,18 +4,25 @@
  * PUSSIBERAD TNI AD × CODEPOLITAN — KARTIKA CYBER HACKATHON 2026
  * ══════════════════════════════════════════════════════════════════════════
  * 
- * Scheduler Mandiri di Luar Lifecycle Komponen UI:
- * 1. Menjalankan penarikan feed berkala (1j, 2j, 6j, 12j, atau manual).
- * 2. Deduplikasi otomatis berbasis ID dan claim hash.
- * 3. Persistensi otomatis ke IndexedDB (db-adapter.ts).
- * 4. Penyiaran multi-tab via BroadcastChannel & CustomEvent.
+ * Scheduler Mandiri Per-Sumber & Concurrency Manager (Sprint 6.1 WP1 & WP2):
+ * 1. Menjalankan penarikan per-sumber berdasarkan kadensi independen masing-masing (bukan 1 jam global).
+ * 2. Menegakkan konkurensi global maksimal (3 parallel requests).
+ * 3. Menjalankan Circuit Breaker per-sumber (CLOSED -> OPEN -> HALF_OPEN probe).
+ * 4. Menjalankan eksekusi Dynamic Topic Discovery secara otomatis.
+ * 5. Mengirimkan hasil ke saluran ingesti kanonikal dan menyiarkan via BroadcastChannel.
  * ══════════════════════════════════════════════════════════════════════════
  */
 
 import type { DebunkKnowledgeEntry } from '../../types.ts'
-import { fetchLiveRadarDebunks, type LiveRadarFetchResult } from '../data/live-radar-service.ts'
-import { registerLiveDebunks } from '../data/debunk-service.ts'
-import { cacheRadarItems, getCachedRadarItems } from '../../utils/db-adapter.ts'
+import { 
+  fetchSingleRadarSource, 
+  executeDynamicSearchQuery, 
+  processRadarIngestion,
+  type SingleSourceFetchResult 
+} from '../data/live-radar-service.ts'
+import { getCachedRadarItems } from '../../utils/db-adapter.ts'
+import { topicDiscoveryEngine } from '../radar/topic-discovery-engine.ts'
+import type { NormalizedPublication, SearchTrendSignal } from '../radar/radar-types.ts'
 import sourceCatalog from '../../../shared/radar-source-catalog.json' with { type: 'json' }
 
 export type CircuitBreakerStatus = 'CLOSED' | 'OPEN' | 'HALF_OPEN'
@@ -34,7 +41,8 @@ export interface SourceScheduleState {
 
 export interface RadarSchedulerStatus {
   isRunning: boolean
-  intervalHours: number
+  tickIntervalMs: number
+  intervalHours?: number
   lastSyncTimestamp: number | null
   nextSyncTimestamp: number | null
   totalEntries: number
@@ -45,8 +53,8 @@ export interface RadarSchedulerStatus {
 
 type RadarUpdateListener = (entries: DebunkKnowledgeEntry[]) => void
 
-// Concurrency queue manager
-class ConcurrencyLimiter {
+// Concurrency queue manager (Enforces Global Concurrency across feeds + dynamic searches)
+export class ConcurrencyLimiter {
   private activeCount = 0
   private maxConcurrent = sourceCatalog.concurrencyPolicy?.maxGlobalConcurrent || 3
   private queue: Array<() => void> = []
@@ -70,13 +78,22 @@ class ConcurrencyLimiter {
   public getActiveCount(): number {
     return this.activeCount
   }
+
+  public getQueueLength(): number {
+    return this.queue.length
+  }
+
+  public getMaxConcurrent(): number {
+    return this.maxConcurrent
+  }
 }
 
 export const radarConcurrencyLimiter = new ConcurrencyLimiter()
 
 export class RadarSchedulerEngine {
   private timerId: ReturnType<typeof setInterval> | null = null
-  private intervalHours: number = 1
+  private tickIntervalMs: number = 10000
+  private intervalHours: number = 1 // Backward-compatibility display
   private lastSyncTimestamp: number | null = null
   private nextSyncTimestamp: number | null = null
   private isSyncing: boolean = false
@@ -86,22 +103,7 @@ export class RadarSchedulerEngine {
   private sourceStates: Map<string, SourceScheduleState> = new Map()
 
   constructor() {
-    // Inisialisasi status per sumber dari katalog
-    const now = Date.now()
-    sourceCatalog.sources.forEach(src => {
-      const pollMs = src.pollIntervalMs || 900000
-      this.sourceStates.set(src.id, {
-        sourceId: src.id,
-        pollIntervalMs: pollMs,
-        lastAttemptAt: null,
-        lastSuccessAt: null,
-        nextDueAt: now, // Langsung siap untuk percobaan awal
-        consecutiveFailures: 0,
-        circuitBreakerStatus: 'CLOSED',
-        circuitBreakerOpenUntil: null,
-        rateLimitResetAt: null
-      })
-    })
+    this.initSourceStates()
 
     // Inisialisasi BroadcastChannel jika didukung peramban
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
@@ -116,6 +118,24 @@ export class RadarSchedulerEngine {
         console.warn('[RadarScheduler] BroadcastChannel tidak dapat dibuka:', e)
       }
     }
+  }
+
+  private initSourceStates(): void {
+    const now = Date.now()
+    sourceCatalog.sources.forEach(src => {
+      const pollMs = src.pollIntervalMs || 900000
+      this.sourceStates.set(src.id, {
+        sourceId: src.id,
+        pollIntervalMs: pollMs,
+        lastAttemptAt: null,
+        lastSuccessAt: null,
+        nextDueAt: now,
+        consecutiveFailures: 0,
+        circuitBreakerStatus: 'CLOSED',
+        circuitBreakerOpenUntil: null,
+        rateLimitResetAt: null
+      })
+    })
   }
 
   /**
@@ -135,43 +155,49 @@ export class RadarSchedulerEngine {
   }
 
   /**
-   * Memeriksa apakah sumber telah tiba saatnya untuk diambil (Due)
+   * Memeriksa apakah sumber telah tiba saatnya untuk diambil (Due) (WP1 / S61-01 s.d. S61-04)
    */
   public isSourceDue(sourceId: string, now = Date.now()): boolean {
     const state = this.sourceStates.get(sourceId)
     if (!state) return false
 
-    // Periksa apakah sedang terkena Rate Limit HTTP 429
+    // 1. Rate Limit HTTP 429
     if (state.rateLimitResetAt && now < state.rateLimitResetAt) {
       return false
     }
 
-    // Periksa status Circuit Breaker
+    // 2. Circuit Breaker OPEN / HALF_OPEN
     if (state.circuitBreakerStatus === 'OPEN') {
       if (state.circuitBreakerOpenUntil && now >= state.circuitBreakerOpenUntil) {
-        // Transisi ke HALF_OPEN untuk mencoba 1 probe
+        // Cooldown berakhir -> Transisi ke HALF_OPEN untuk mencoba 1 probe
         state.circuitBreakerStatus = 'HALF_OPEN'
+        state.nextDueAt = now + 60000 // Beri jeda agar tidak ada probe kedua sebelum selesai
         return true
       }
       return false
+    }
+
+    if (state.circuitBreakerStatus === 'HALF_OPEN') {
+      // Sedang dalam probe satu-satunya
+      return true
     }
 
     return now >= state.nextDueAt
   }
 
   /**
-   * Mencatat hasil percobaan fetch per-sumber dan memperbarui Circuit Breaker
+   * Mencatat hasil percobaan fetch per-sumber dan memperbarui Circuit Breaker (WP1 / S61-04, S61-05)
    */
   public recordSourceAttempt(
     sourceId: string,
     success: boolean,
     httpStatus?: number | null,
-    retryAfterSec?: number | null
+    retryAfterSec?: number | null,
+    now = Date.now()
   ): void {
     const state = this.sourceStates.get(sourceId)
     if (!state) return
 
-    const now = Date.now()
     state.lastAttemptAt = now
 
     const jitterMax = sourceCatalog.concurrencyPolicy?.requestJitterMaxMs || 3000
@@ -187,22 +213,22 @@ export class RadarSchedulerEngine {
     } else {
       state.consecutiveFailures++
 
-      // Penanganan HTTP 429 Rate Limited
+      // HTTP 429 Rate Limited
       if (httpStatus === 429) {
         const sec = retryAfterSec || 60
         state.rateLimitResetAt = now + sec * 1000
         state.nextDueAt = state.rateLimitResetAt + jitter
       }
 
-      // Circuit Breaker: Buka jika gagal >= 3 kali berturut-turut
+      // Circuit Breaker: jika gagal pada status HALF_OPEN atau consecutiveFailures >= threshold
       const threshold = sourceCatalog.concurrencyPolicy?.circuitBreakerThreshold || 3
-      if (state.consecutiveFailures >= threshold) {
+      if (state.circuitBreakerStatus === 'HALF_OPEN' || state.consecutiveFailures >= threshold) {
         const cooldownMs = sourceCatalog.concurrencyPolicy?.circuitBreakerCooldownMs || 1800000
         state.circuitBreakerStatus = 'OPEN'
         state.circuitBreakerOpenUntil = now + cooldownMs
         state.nextDueAt = state.circuitBreakerOpenUntil + jitter
       } else {
-        // Eksponensial backoff sederhana
+        // Eksponensial backoff dengan batas maksimal 5 menit
         const backoffMs = Math.min(30000 * Math.pow(2, state.consecutiveFailures - 1), 300000)
         state.nextDueAt = now + backoffMs + jitter
       }
@@ -210,25 +236,84 @@ export class RadarSchedulerEngine {
   }
 
   /**
-   * Menjalankan scheduler background
+   * Scheduler Tick internal yang memeriksa dan mengeksekusi sumber yang sedang Due (WP1 / S61-01 s.d. S61-06)
    */
-  public start(intervalHours: number = 1): void {
-    this.intervalHours = intervalHours
+  public async schedulerTick(now = Date.now(), customFetch?: typeof fetch): Promise<DebunkKnowledgeEntry[]> {
+    if (this.isSyncing) {
+      return getCachedRadarItems()
+    }
+
+    this.isSyncing = true
+    try {
+      const enabledSources = sourceCatalog.sources.filter(s => s.enabled)
+      const dueSources = enabledSources.filter(s => this.isSourceDue(s.id, now))
+
+      const incomingPubs: NormalizedPublication[] = []
+      const incomingTrends: SearchTrendSignal[] = []
+
+      // 1. Eksekusi Feed Sumber yang sedang Due melalui Concurrency Limiter
+      const fetchTasks = dueSources.map(src => {
+        return radarConcurrencyLimiter.run(async () => {
+          const res: SingleSourceFetchResult = await fetchSingleRadarSource(src.id, customFetch)
+          this.recordSourceAttempt(src.id, res.success, res.httpStatus, res.retryAfterSec, Date.now())
+          if (res.success) {
+            if (res.publications) incomingPubs.push(...res.publications)
+            if (res.trendSignals) incomingTrends.push(...res.trendSignals)
+          }
+          return res
+        })
+      })
+
+      // 2. Eksekusi Pencarian Topik Dinamis melalui Concurrency Limiter yang SAMA (WP2 / S61-09 s.d. S61-14)
+      const maxDynamicPerCycle = sourceCatalog.dynamicSearchPolicy?.maxDynamicQueriesPerCycle || 2
+      const candidateList = topicDiscoveryEngine.selectCandidatesForSearch(maxDynamicPerCycle)
+
+      const searchTasks = candidateList.map(cand => {
+        return radarConcurrencyLimiter.run(async () => {
+          const res: SingleSourceFetchResult = await executeDynamicSearchQuery(cand, customFetch)
+          if (res.success && res.publications) {
+            incomingPubs.push(...res.publications)
+          }
+          return res
+        })
+      })
+
+      await Promise.allSettled([...fetchTasks, ...searchTasks])
+
+      // 3. Masukkan hasil ke Ingesti Kanonikal jika ada data baru
+      if (incomingPubs.length > 0 || incomingTrends.length > 0) {
+        const liveResult = await processRadarIngestion(incomingPubs, incomingTrends, now)
+        this.lastSyncTimestamp = now
+        this.lastSyncSource = 'SCHEDULER_TICK'
+        this.notifyListeners(liveResult.entries, true)
+        return liveResult.entries
+      }
+
+      return getCachedRadarItems()
+    } finally {
+      this.isSyncing = false
+    }
+  }
+
+  /**
+   * Menjalankan scheduler background dengan interval tick pendek (misal 10 detik) (WP1)
+   */
+  public start(tickIntervalMs: number = 10000): void {
+    this.tickIntervalMs = tickIntervalMs
 
     if (this.timerId) {
       clearInterval(this.timerId)
       this.timerId = null
     }
 
-    if (intervalHours > 0) {
-      const intervalMs = intervalHours * 60 * 60 * 1000
-      this.nextSyncTimestamp = Date.now() + intervalMs
+    if (tickIntervalMs > 0) {
+      this.nextSyncTimestamp = Date.now() + tickIntervalMs
 
       this.timerId = setInterval(() => {
-        this.triggerNow().catch((err) => {
-          console.error('[RadarScheduler] Auto-sync background error:', err)
+        this.schedulerTick().catch((err) => {
+          console.error('[RadarScheduler] Auto-sync tick error:', err)
         })
-      }, intervalMs)
+      }, tickIntervalMs)
     } else {
       this.nextSyncTimestamp = null
     }
@@ -246,19 +331,21 @@ export class RadarSchedulerEngine {
   }
 
   /**
-   * Mengubah interval sinkronisasi
+   * Mengubah interval sinkronisasi (kompatibilitas backward)
    */
   public setIntervalHours(hours: number): void {
     this.intervalHours = hours
-    if (this.timerId || hours > 0) {
-      this.start(hours)
+    // Scheduler tetap menggunakan internal tick 10s untuk per-source cadence
+    if (!this.timerId && hours > 0) {
+      this.start(this.tickIntervalMs)
     }
   }
 
   /**
-   * Memicu sinkronisasi instan secara on-demand
+   * Memicu sinkronisasi instan secara on-demand (Manual Refresh)
+   * Menghormati Circuit Breaker OPEN & HTTP 429 Retry-After, dan melalui Global Concurrency Limiter
    */
-  public async triggerNow(): Promise<DebunkKnowledgeEntry[]> {
+  public async triggerNow(customFetch?: typeof fetch): Promise<DebunkKnowledgeEntry[]> {
     if (this.isSyncing) {
       return getCachedRadarItems()
     }
@@ -266,26 +353,58 @@ export class RadarSchedulerEngine {
     this.isSyncing = true
 
     try {
-      const result: LiveRadarFetchResult = await fetchLiveRadarDebunks()
-      const entries = result.entries || []
+      const now = Date.now()
+      const enabledSources = sourceCatalog.sources.filter(s => s.enabled)
+      
+      // Pilih sumber yang diizinkan (tidak sedang OPEN dan tidak sedang 429)
+      const eligibleSources = enabledSources.filter(src => {
+        const state = this.sourceStates.get(src.id)
+        if (!state) return true
+        if (state.rateLimitResetAt && now < state.rateLimitResetAt) return false
+        if (state.circuitBreakerStatus === 'OPEN' && state.circuitBreakerOpenUntil && now < state.circuitBreakerOpenUntil) return false
+        return true
+      })
 
-      this.lastSyncTimestamp = Date.now()
-      this.lastSyncSource = result.sourceChannel
+      const incomingPubs: NormalizedPublication[] = []
+      const incomingTrends: SearchTrendSignal[] = []
 
-      if (this.intervalHours > 0) {
-        this.nextSyncTimestamp = Date.now() + this.intervalHours * 60 * 60 * 1000
+      const fetchTasks = eligibleSources.map(src => {
+        return radarConcurrencyLimiter.run(async () => {
+          const res = await fetchSingleRadarSource(src.id, customFetch)
+          this.recordSourceAttempt(src.id, res.success, res.httpStatus, res.retryAfterSec, Date.now())
+          if (res.success) {
+            if (res.publications) incomingPubs.push(...res.publications)
+            if (res.trendSignals) incomingTrends.push(...res.trendSignals)
+          }
+          return res
+        })
+      })
+
+      // Eksekusi juga pencarian dinamis yang eligible
+      const maxDynamicPerCycle = sourceCatalog.dynamicSearchPolicy?.maxDynamicQueriesPerCycle || 2
+      const candidateList = topicDiscoveryEngine.selectCandidatesForSearch(maxDynamicPerCycle)
+
+      const searchTasks = candidateList.map(cand => {
+        return radarConcurrencyLimiter.run(async () => {
+          const res = await executeDynamicSearchQuery(cand, customFetch)
+          if (res.success && res.publications) {
+            incomingPubs.push(...res.publications)
+          }
+          return res
+        })
+      })
+
+      await Promise.allSettled([...fetchTasks, ...searchTasks])
+
+      if (incomingPubs.length > 0 || incomingTrends.length > 0) {
+        const liveResult = await processRadarIngestion(incomingPubs, incomingTrends, now)
+        this.lastSyncTimestamp = now
+        this.lastSyncSource = 'MANUAL_TRIGGER'
+        this.notifyListeners(liveResult.entries, true)
+        return liveResult.entries
       }
 
-      // 1. Simpan ke in-memory service
-      registerLiveDebunks(entries)
-
-      // 2. Simpan ke IndexedDB cache
-      await cacheRadarItems(entries)
-
-      // 3. Notifikasi seluruh subscriber & penyiaran multi-tab
-      this.notifyListeners(entries, true)
-
-      return entries
+      return getCachedRadarItems()
     } finally {
       this.isSyncing = false
     }
@@ -340,6 +459,7 @@ export class RadarSchedulerEngine {
   public getStatus(): RadarSchedulerStatus {
     return {
       isRunning: this.timerId !== null,
+      tickIntervalMs: this.tickIntervalMs,
       intervalHours: this.intervalHours,
       lastSyncTimestamp: this.lastSyncTimestamp,
       nextSyncTimestamp: this.nextSyncTimestamp,

@@ -72,6 +72,24 @@ export function extractPublisherDomain(url: string): string {
 }
 
 /**
+ * Ekstraksi canonical root domain penerbit (mengelompokkan subdomain seperti news.detik.com & finance.detik.com ke detik.com)
+ */
+export function extractCanonicalPublisherDomain(url: string): string {
+  const host = extractPublisherDomain(url)
+  if (!host) return ''
+  const parts = host.split('.')
+  if (parts.length >= 3) {
+    const secondTld = parts[parts.length - 2]
+    const topTld = parts[parts.length - 1]
+    if (['co', 'or', 'go', 'ac', 'sch', 'web', 'mil', 'net'].includes(secondTld) && topTld.length === 2) {
+      return parts.slice(-3).join('.')
+    }
+    return parts.slice(-2).join('.')
+  }
+  return host
+}
+
+/**
  * Membersihkan URL dari parameter tracking sambil MEMPERTAHANKAN parameter konten penting (id, articleId, dsb)
  */
 export function normalizeUrl(rawUrl: string): string {
@@ -430,7 +448,7 @@ export function clusterEventPublications(
     // Hitung cakupan publisher unik dan distinct hostnames (Package 3)
     const publishers = Array.from(new Set(members.map(m => m.publisher).filter(Boolean)))
     const publisherDomains = Array.from(new Set(
-      members.map(m => extractPublisherDomain(m.canonicalUrl || m.originalUrl)).filter(Boolean)
+      members.map(m => extractCanonicalPublisherDomain(m.canonicalUrl || m.originalUrl)).filter(Boolean)
     ))
     const distinctPublisherDomainCount = publisherDomains.length > 0 ? publisherDomains.length : publishers.length
 

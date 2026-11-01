@@ -270,67 +270,69 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
 const dynamicSearchHistory = []
 const phraseLastSearchedAt = new Map()
 
+function validateDynamicSearchQuery(profileId, topic) {
+  const profiles = catalog.googleNewsProfiles || {}
+  const profile = profiles[profileId]
+  if (!profile) {
+    return { isValid: false, rejectionReason: `Profile ID '${profileId}' tidak terdaftar pada profil Google News NARADA` }
+  }
+
+  if (!topic || typeof topic !== 'string' || !topic.trim()) {
+    return { isValid: false, rejectionReason: "Parameter 'topic' wajib diisi untuk pencarian dinamis" }
+  }
+
+  // Tolak karakter kontrol dan CRLF
+  if (/[\r\n\x00-\x1f\x7f]/.test(topic)) {
+    return { isValid: false, rejectionReason: 'Karakter kontrol dan CRLF dilarang dalam parameter topik' }
+  }
+
+  const maxLen = catalog.dynamicSearchPolicy?.maxPhraseLength || 80
+  const maxTokens = catalog.dynamicSearchPolicy?.maxPhraseTokens || 5
+
+  const cleaned = topic.trim().replace(/[<>"'`;\\|/()[\]{}*+?^$]/g, ' ').replace(/\s+/g, ' ')
+  if (cleaned.length < 3) {
+    return { isValid: false, rejectionReason: 'Frasa pencarian terlalu pendek (minimal 3 karakter)' }
+  }
+  if (cleaned.length > maxLen) {
+    return { isValid: false, rejectionReason: `Panjang frasa (${cleaned.length}) melebihi batas maksimal ${maxLen} karakter` }
+  }
+  if (cleaned.split(' ').filter(Boolean).length > maxTokens) {
+    return { isValid: false, rejectionReason: `Jumlah kata (${cleaned.split(' ').filter(Boolean).length}) melebihi batas maksimal ${maxTokens} token` }
+  }
+
+  if (/(https?:\/\/|ftp:\/\/|file:\/\/|\/\/|www\.|\.com|\.id|\.net|site:|inurl:|intitle:|localhost|127\.0\.0\.1)/i.test(topic)) {
+    return { isValid: false, rejectionReason: 'Injeksi protokol, host override, atau operator site: ditolak oleh kebijakan keamanan' }
+  }
+
+  return { isValid: true, sanitizedTopic: cleaned, profile }
+}
+
 async function handleRadarSearchRequest(profileId, queryParams = {}) {
   const startTime = Date.now()
   const rawTopic = queryParams.topic || ''
 
-  const profiles = catalog.googleNewsProfiles || {}
-  const profile = profiles[profileId]
-  if (!profile) {
+  // 1. Validasi Terpusat Paritas TS/CJS (WP6 / S61-29)
+  const validation = validateDynamicSearchQuery(profileId, rawTopic)
+  if (!validation.isValid) {
+    const isUnknownProfile = validation.rejectionReason?.includes('tidak terdaftar')
+    const statusCode = isUnknownProfile ? 404 : 400
+    const errorCode = isUnknownProfile
+      ? 'UNKNOWN_PROFILE_ID'
+      : (!rawTopic || !rawTopic.trim() ? 'MISSING_TOPIC_PARAM' : 'INVALID_SEARCH_QUERY')
     return {
-      statusCode: 404,
+      statusCode,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: false,
-        errorCode: 'UNKNOWN_PROFILE_ID',
-        message: `Profile ID '${profileId}' tidak ditemukan.`
+        errorCode,
+        message: validation.rejectionReason
       }),
       latencyMs: Date.now() - startTime
     }
   }
 
-  if (!rawTopic || !rawTopic.trim()) {
-    return {
-      statusCode: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: false,
-        errorCode: 'MISSING_TOPIC_PARAM',
-        message: "Parameter 'topic' wajib diisi."
-      }),
-      latencyMs: Date.now() - startTime
-    }
-  }
-
-  const sanitizedTopic = rawTopic.replace(/[<>"'`;\\|]/g, ' ').replace(/\s+/g, ' ').trim()
-  const maxLen = catalog.dynamicSearchPolicy?.maxPhraseLength || 80
-  if (sanitizedTopic.length > maxLen) {
-    return {
-      statusCode: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: false,
-        errorCode: 'TOPIC_TOO_LONG',
-        message: `Panjang frasa melebihi ${maxLen} karakter.`
-      }),
-      latencyMs: Date.now() - startTime
-    }
-  }
-
-  const tokens = sanitizedTopic.split(' ').filter(Boolean)
-  const maxTokens = catalog.dynamicSearchPolicy?.maxPhraseTokens || 5
-  if (tokens.length > maxTokens) {
-    return {
-      statusCode: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: false,
-        errorCode: 'TOPIC_EXCEEDS_MAX_TOKENS',
-        message: `Jumlah kata melebihi ${maxTokens} kata.`
-      }),
-      latencyMs: Date.now() - startTime
-    }
-  }
+  const sanitizedTopic = validation.sanitizedTopic
+  const profile = validation.profile
 
   const normPhrase = sanitizedTopic.toLowerCase()
   const cooldownMs = catalog.dynamicSearchPolicy?.phraseCooldownMs || 1800000
@@ -397,27 +399,69 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
 
   const fetchPromise = (async () => {
     try {
-      const validation = validateUpstreamUrl(upstreamSearchUrl)
-      if (!validation.valid) {
+      let currentUrl = upstreamSearchUrl
+      let redirectCount = 0
+      let response = null
+      let bodyText = ''
+
+      while (redirectCount <= 3) {
+        const validation = validateUpstreamUrl(currentUrl)
+        if (!validation.valid) {
+          return {
+            statusCode: 502,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, errorCode: 'UPSTREAM_URL_VALIDATION_FAILED', message: validation.reason }),
+            latencyMs: Date.now() - startTime
+          }
+        }
+
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 8000)
+
+        let resp
+        try {
+          resp = await fetch(currentUrl, {
+            method: 'GET',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0',
+              'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+            },
+            redirect: 'manual',
+            signal: controller.signal
+          })
+        } finally {
+          clearTimeout(timer)
+        }
+
+        if (resp.status === 301 || resp.status === 302 || resp.status === 307 || resp.status === 308) {
+          redirectCount++
+          if (redirectCount > 3) {
+            return {
+              statusCode: 504,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ success: false, errorCode: 'TOO_MANY_REDIRECTS', message: 'Maksimum redirect terlampaui.' }),
+              latencyMs: Date.now() - startTime
+            }
+          }
+          const loc = resp.headers.get('location')
+          if (!loc) break
+          currentUrl = new URL(loc, currentUrl).toString()
+          continue
+        }
+
+        response = resp
+        bodyText = await resp.text()
+        break
+      }
+
+      if (!response) {
         return {
-          statusCode: 502,
+          statusCode: 504,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ success: false, errorCode: 'UPSTREAM_URL_VALIDATION_FAILED', message: validation.reason }),
+          body: JSON.stringify({ success: false, errorCode: 'UPSTREAM_NO_RESPONSE', message: 'Tidak ada respon dari upstream Google News.' }),
           latencyMs: Date.now() - startTime
         }
       }
-
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), 8000)
-
-      const response = await fetch(upstreamSearchUrl, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0',
-          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
-        }
-      })
-      clearTimeout(timer)
 
       if (response.status === 429) {
         return {
@@ -428,12 +472,35 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
         }
       }
 
-      const bodyText = await response.text()
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, errorCode: `UPSTREAM_HTTP_${response.status}` }),
+          latencyMs: Date.now() - startTime
+        }
+      }
+
+      const MAX_RESPONSE_SIZE = 2 * 1024 * 1024
       if (Buffer.byteLength(bodyText, 'utf8') > MAX_RESPONSE_SIZE) {
         return {
           statusCode: 502,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ success: false, errorCode: 'RESPONSE_TOO_LARGE' }),
+          latencyMs: Date.now() - startTime
+        }
+      }
+
+      const isXmlFormat = bodyText.includes('<rss') || bodyText.includes('<feed') || bodyText.includes('<?xml') || bodyText.includes('<item')
+      if (!isXmlFormat) {
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Radar-State': 'DEGRADED',
+            'X-Radar-Source': profileId
+          },
+          body: bodyText,
           latencyMs: Date.now() - startTime
         }
       }
@@ -620,6 +687,7 @@ module.exports = {
   startGatewayServer,
   stopGatewayServer,
   validateUpstreamUrl,
+  validateDynamicSearchQuery,
   handleRadarFeedRequest,
   handleRadarSearchRequest,
   GATEWAY_SOURCE_REGISTRY,

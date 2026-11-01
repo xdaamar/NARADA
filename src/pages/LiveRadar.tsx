@@ -27,7 +27,9 @@ import {
   TrendingUp,
   Activity,
   Plus,
-  Compass
+  Compass,
+  HelpCircle,
+  ArrowDownRight
 } from 'lucide-react'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network.ts'
@@ -73,7 +75,7 @@ export default function LiveRadar() {
   const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => getCuratedArchiveDebunks())
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
   const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('ALL')
-  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS' | 'WATCHLIST'>('ALL')
+  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS' | 'WATCHLIST'>('ALL')
   const [trendSignals, setTrendSignals] = useState<SearchTrendSignal[]>([])
   const [topicCandidates, setTopicCandidates] = useState<TopicCandidate[]>([])
   const [sourceScheduleStates, setSourceScheduleStates] = useState<Record<string, SourceScheduleState>>({})
@@ -167,7 +169,7 @@ export default function LiveRadar() {
     getTopicCandidatesFromDB()
       .then((stored) => {
         if (stored && stored.length > 0) {
-          stored.forEach(c => topicDiscoveryEngine.addWatchlistPhrase(c.phrase, c.domain, c.notes))
+          topicDiscoveryEngine.hydrateCandidates(stored)
           setTopicCandidates(topicDiscoveryEngine.getAllCandidates())
         }
       })
@@ -333,7 +335,12 @@ export default function LiveRadar() {
       const isResolved = item.verdict === 'FAKTA' || item.verdict === 'NETRAL'
       const isExcluded = item.queueState === 'EXCLUDED'
       const isUnverified = !isExcluded && (item.verdict === 'UNVERIFIED' || item.triageStatus === 'UNVERIFIED' || item.queueState === 'MONITOR' || (!isHoaks && !isResolved))
-      const isMomentum = Boolean(item.issueActivity || (item.sourceCoverage && item.sourceCoverage.publicationCount > 0) || item.isLive)
+      
+      const activityState = item.issueActivity?.state
+      const isMomentum = activityState === 'NEW' || activityState === 'RISING'
+      const isSustained = activityState === 'SUSTAINED'
+      const isCooling = activityState === 'COOLING'
+      const isInsufficientData = activityState === 'INSUFFICIENT_DATA'
 
       const matchView = activeViewMode === 'ALL'
         ? (selectedTriage === 'ALL' 
@@ -347,6 +354,12 @@ export default function LiveRadar() {
             : item.verdict === selectedTriage)
         : activeViewMode === 'MOMENTUM'
         ? isMomentum
+        : activeViewMode === 'SUSTAINED'
+        ? isSustained
+        : activeViewMode === 'COOLING'
+        ? isCooling
+        : activeViewMode === 'INSUFFICIENT_DATA'
+        ? isInsufficientData
         : activeViewMode === 'UNVERIFIED'
         ? isUnverified
         : activeViewMode === 'HOAKS'
@@ -380,15 +393,29 @@ export default function LiveRadar() {
 
   // Hitung jumlah item per status triage
   const triageCounts = useMemo(() => {
-    const counts = { ALL: debunkItems.length, MOMENTUM: 0, HOAKS: 0, FAKTA: 0, UNVERIFIED: 0, NETRAL: 0 }
+    const counts = { 
+      ALL: debunkItems.length, 
+      MOMENTUM: 0, 
+      SUSTAINED: 0, 
+      COOLING: 0, 
+      INSUFFICIENT_DATA: 0, 
+      HOAKS: 0, 
+      FAKTA: 0, 
+      UNVERIFIED: 0, 
+      NETRAL: 0 
+    }
     debunkItems.forEach(i => {
       const isHoaks = i.verdict === 'HOAKS' || i.verdict === 'DISINFORMASI' || i.verdict === 'PROPAGANDA'
       const isResolved = i.verdict === 'FAKTA' || i.verdict === 'NETRAL'
       const isExcluded = i.queueState === 'EXCLUDED'
       const isUnverified = !isExcluded && (i.verdict === 'UNVERIFIED' || i.triageStatus === 'UNVERIFIED' || i.queueState === 'MONITOR' || (!isHoaks && !isResolved))
-      const isMomentum = Boolean(i.issueActivity || (i.sourceCoverage && i.sourceCoverage.publicationCount > 0) || i.isLive)
+      
+      const act = i.issueActivity?.state
+      if (act === 'NEW' || act === 'RISING') counts.MOMENTUM++
+      else if (act === 'SUSTAINED') counts.SUSTAINED++
+      else if (act === 'COOLING') counts.COOLING++
+      else if (act === 'INSUFFICIENT_DATA') counts.INSUFFICIENT_DATA++
 
-      if (isMomentum) counts.MOMENTUM++
       if (isHoaks) counts.HOAKS++
       else if (i.verdict === 'FAKTA') counts.FAKTA++
       else if (i.verdict === 'NETRAL') counts.NETRAL++
@@ -778,6 +805,9 @@ export default function LiveRadar() {
             {[
               { key: 'ALL', label: 'SEMUA ISU AKTIF', count: triageCounts.ALL, color: '#38BDF8', icon: Radio },
               { key: 'MOMENTUM', label: 'ISU BARU & MENINGKAT', count: triageCounts.MOMENTUM, color: '#F43F5E', icon: TrendingUp },
+              { key: 'SUSTAINED', label: 'STABIL (SUSTAINED)', count: triageCounts.SUSTAINED, color: '#06B6D4', icon: Activity },
+              { key: 'COOLING', label: 'MELANDAI (COOLING)', count: triageCounts.COOLING, color: '#94A3B8', icon: ArrowDownRight },
+              { key: 'INSUFFICIENT_DATA', label: 'SAMPEL TERBATAS', count: triageCounts.INSUFFICIENT_DATA, color: '#D97706', icon: HelpCircle },
               { key: 'UNVERIFIED', label: 'SEDANG DIPANTAU', count: triageCounts.UNVERIFIED, color: '#F59E0B', icon: Eye },
               { key: 'HOAKS', label: 'TERINDIKASI HOAKS', count: triageCounts.HOAKS, color: '#EF4444', icon: AlertTriangle },
               { key: 'RESOLVED', label: 'FAKTA & AMAN', count: triageCounts.FAKTA + triageCounts.NETRAL, color: '#10B981', icon: ShieldCheck },

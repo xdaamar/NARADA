@@ -3,7 +3,8 @@ import type {
   TopicCandidateState, 
   RadarTaxonomyDomain,
   SearchTrendSignal,
-  NormalizedPublication 
+  NormalizedPublication,
+  TopicObservation
 } from './radar-types.ts'
 import { classifyTaxonomyDomain } from './radar-assessment.ts'
 import { sha256Hex } from '../ingest/rss-parser.ts'
@@ -152,11 +153,93 @@ export function generateTopicCandidateId(phrase: string): string {
   return `TOPIC-${sha256Hex(norm).slice(0, 16)}`
 }
 
+/**
+ * Pemetaan Kanonikal Domain Taksonomi ke Google News Profile ID (Sprint 6.1 WP2 / S61-10)
+ */
+export function mapDomainToGoogleNewsProfile(domain: string): string | null {
+  switch (domain) {
+    case 'NATIONAL_POLICY':
+      return 'gnews-national-policy'
+    case 'DIGITAL_ECONOMY':
+      return 'gnews-digital-economy'
+    case 'DEFENSE_SECURITY':
+      return 'gnews-defense-security'
+    case 'CIVIC_DYNAMICS':
+      return 'gnews-civic-dynamics'
+    case 'PUBLIC_CRISIS':
+      return 'gnews-public-crisis'
+    case 'INFORMATION_INTEGRITY':
+      return 'gnews-information-integrity'
+    case 'CYBER_PUBLIC_IMPACT':
+      return 'gnews-defense-security'
+    default:
+      return null
+  }
+}
+
+/**
+ * Ekstraksi domain bersih dari string URL
+ */
+function extractDomainFromUrl(urlStr?: string): string | undefined {
+  if (!urlStr) return undefined
+  try {
+    const u = new URL(urlStr)
+    return u.hostname.replace(/^www\./, '').toLowerCase()
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Helper internal untuk mencatat observasi kandidat secara deterministik (WP3)
+ */
+function addOrUpdateObservation(
+  candidate: TopicCandidate,
+  obs: Omit<TopicObservation, 'id' | 'candidateId' | 'firstObservedAt' | 'lastObservedAt'> & {
+    firstObservedAt?: number
+    lastObservedAt?: number
+  },
+  now = Date.now()
+): void {
+  if (!candidate.observations) {
+    candidate.observations = []
+  }
+
+  const key = `${obs.sourceId}:${obs.publicationId || 'signal'}`
+  const obsId = `obs-${sha256Hex(key).slice(0, 16)}`
+  const existing = candidate.observations.find(o => o.id === obsId)
+
+  if (existing) {
+    existing.lastObservedAt = now
+    if (obs.provenanceUrl) existing.provenanceUrl = obs.provenanceUrl
+    if (obs.publisherDomain) existing.publisherDomain = obs.publisherDomain
+  } else {
+    candidate.observations.push({
+      id: obsId,
+      candidateId: candidate.id,
+      sourceId: obs.sourceId,
+      sourceKind: obs.sourceKind,
+      publicationId: obs.publicationId,
+      publisherDomain: obs.publisherDomain,
+      firstObservedAt: obs.firstObservedAt || now,
+      lastObservedAt: obs.lastObservedAt || now,
+      provenanceUrl: obs.provenanceUrl
+    })
+  }
+
+  // Hitung ulang metrik koroborasi & penerbit secara murni dari observasi (WP3)
+  const uniqueSources = new Set(candidate.observations.map(o => o.sourceId))
+  candidate.corroborationCount = Math.max(1, uniqueSources.size)
+
+  const uniqueDomains = new Set(candidate.observations.map(o => o.publisherDomain).filter(Boolean))
+  candidate.distinctPublisherCount = Math.max(1, uniqueDomains.size)
+}
+
 export class TopicDiscoveryEngine {
   private candidates: Map<string, TopicCandidate> = new Map()
 
   /**
-   * Menambahkan atau memperbarui sinyal Google Trends ke dalam daftar kandidat
+   * Menambahkan atau memperbarui sinyal Google Trends ke dalam daftar kandidat (WP3)
    */
   public ingestTrendSignals(signals: SearchTrendSignal[]): TopicCandidate[] {
     const updated: TopicCandidate[] = []
@@ -173,8 +256,12 @@ export class TopicDiscoveryEngine {
 
       if (existing) {
         existing.lastObservedAt = now
-        existing.corroborationCount++
-        existing.distinctPublisherCount = Math.max(existing.distinctPublisherCount, 1)
+        addOrUpdateObservation(existing, {
+          sourceId: 'src-google-trends',
+          sourceKind: 'TRENDS_SIGNAL',
+          firstObservedAt: now,
+          lastObservedAt: now
+        }, now)
 
         // Promosikan ke ACTIVE_SEARCH jika koroborasi >= 2 dan lolos taksonomi
         if (existing.state === 'PROPOSED' && relevance.isEligibleTaxonomy && existing.corroborationCount >= 2) {
@@ -198,8 +285,16 @@ export class TopicDiscoveryEngine {
           searchCount: 0,
           lastSearchedAt: null,
           nextSearchEligibleAt: now,
-          decayScore: 100
+          decayScore: 100,
+          observations: []
         }
+        addOrUpdateObservation(candidate, {
+          sourceId: 'src-google-trends',
+          sourceKind: 'TRENDS_SIGNAL',
+          firstObservedAt: now,
+          lastObservedAt: now
+        }, now)
+
         this.candidates.set(id, candidate)
         updated.push(candidate)
       }
@@ -209,7 +304,7 @@ export class TopicDiscoveryEngine {
   }
 
   /**
-   * Ekstraksi kemunculan frasa baru dari publikasi pers aktif
+   * Ekstraksi kemunculan frasa baru dari publikasi pers aktif (WP3)
    */
   public ingestPublications(publications: NormalizedPublication[]): TopicCandidate[] {
     const updated: TopicCandidate[] = []
@@ -217,6 +312,8 @@ export class TopicDiscoveryEngine {
 
     for (const pub of publications) {
       const phrases = extractCandidatePhrases(pub.title)
+      const pubDomain = extractDomainFromUrl(pub.canonicalUrl || pub.originalUrl) || pub.publisher
+
       for (const phrase of phrases) {
         const norm = normalizePhrase(phrase)
         if (!norm || norm.length < 5) continue
@@ -227,8 +324,15 @@ export class TopicDiscoveryEngine {
 
         if (existing) {
           existing.lastObservedAt = now
-          existing.corroborationCount++
-          existing.distinctPublisherCount = Math.max(existing.distinctPublisherCount, 1)
+          addOrUpdateObservation(existing, {
+            sourceId: pub.sourceId,
+            sourceKind: 'PUBLICATION_EMERGENCE',
+            publicationId: pub.id,
+            publisherDomain: pubDomain,
+            provenanceUrl: pub.canonicalUrl || pub.originalUrl,
+            firstObservedAt: now,
+            lastObservedAt: now
+          }, now)
 
           if (existing.state === 'PROPOSED' && relevance.isEligibleTaxonomy && existing.corroborationCount >= 2) {
             existing.state = 'ACTIVE_SEARCH'
@@ -254,8 +358,19 @@ export class TopicDiscoveryEngine {
             searchCount: 0,
             lastSearchedAt: null,
             nextSearchEligibleAt: now,
-            decayScore: 100
+            decayScore: 100,
+            observations: []
           }
+          addOrUpdateObservation(candidate, {
+            sourceId: pub.sourceId,
+            sourceKind: 'PUBLICATION_EMERGENCE',
+            publicationId: pub.id,
+            publisherDomain: pubDomain,
+            provenanceUrl: pub.canonicalUrl || pub.originalUrl,
+            firstObservedAt: now,
+            lastObservedAt: now
+          }, now)
+
           this.candidates.set(id, candidate)
           updated.push(candidate)
         }
@@ -268,7 +383,7 @@ export class TopicDiscoveryEngine {
   /**
    * Pemasukan manual frasa topik oleh operator analis (Operator Watchlist)
    */
-  public addOperatorWatchlistPhrase(phrase: string, domain?: RadarTaxonomyDomain): TopicCandidate {
+  public addOperatorWatchlistPhrase(phrase: string, domain?: RadarTaxonomyDomain, notes?: string): TopicCandidate {
     const norm = normalizePhrase(phrase)
     const id = generateTopicCandidateId(norm)
     const now = Date.now()
@@ -282,6 +397,16 @@ export class TopicDiscoveryEngine {
       existing.lastObservedAt = now
       existing.matchedDomain = assignedDomain
       existing.relevanceScore = Math.max(existing.relevanceScore, 90)
+      if (notes) existing.notes = notes
+      addOrUpdateObservation(existing, {
+        sourceId: 'OPERATOR',
+        sourceKind: 'OPERATOR_WATCHLIST',
+        firstObservedAt: now,
+        lastObservedAt: now
+      }, now)
+      existing.status = existing.state
+      existing.domain = existing.matchedDomain
+      existing.dynamicSearchCount = existing.searchCount
       return existing
     }
 
@@ -295,14 +420,27 @@ export class TopicDiscoveryEngine {
       lastObservedAt: now,
       matchedDomain: assignedDomain,
       relevanceScore: 95,
-      corroborationCount: 2,
+      corroborationCount: 1,
       distinctPublisherCount: 1,
       state: 'ACTIVE_SEARCH',
       searchCount: 0,
       lastSearchedAt: null,
       nextSearchEligibleAt: now,
-      decayScore: 100
+      decayScore: 100,
+      notes: notes,
+      observations: []
     }
+
+    addOrUpdateObservation(candidate, {
+      sourceId: 'OPERATOR',
+      sourceKind: 'OPERATOR_WATCHLIST',
+      firstObservedAt: now,
+      lastObservedAt: now
+    }, now)
+
+    candidate.status = candidate.state
+    candidate.domain = candidate.matchedDomain
+    candidate.dynamicSearchCount = candidate.searchCount
 
     this.candidates.set(id, candidate)
     return candidate
@@ -312,12 +450,37 @@ export class TopicDiscoveryEngine {
    * Pemasukan frasa watchlist oleh UI operator (Sprint 6 WP9)
    */
   public addWatchlistPhrase(phrase: string, domain?: RadarTaxonomyDomain, notes?: string): TopicCandidate {
-    const candidate = this.addOperatorWatchlistPhrase(phrase, domain)
-    if (notes) candidate.notes = notes
-    candidate.status = candidate.state
-    candidate.domain = candidate.matchedDomain
-    candidate.dynamicSearchCount = candidate.searchCount
-    return candidate
+    return this.addOperatorWatchlistPhrase(phrase, domain, notes)
+  }
+
+  /**
+   * Mengembalikan kandidat dari penyimpanan lokal secara utuh tanpa mengubah provenance (WP5 / S61-19)
+   */
+  public hydrateCandidates(persistedList: TopicCandidate[]): void {
+    if (!Array.isArray(persistedList)) return
+    for (const item of persistedList) {
+      if (!item || !item.id) continue
+      const existing = this.candidates.get(item.id)
+      if (existing) {
+        if (item.observations && Array.isArray(item.observations)) {
+          for (const obs of item.observations) {
+            addOrUpdateObservation(existing, obs, obs.lastObservedAt)
+          }
+        }
+        existing.firstObservedAt = Math.min(existing.firstObservedAt, item.firstObservedAt || existing.firstObservedAt)
+        existing.lastObservedAt = Math.max(existing.lastObservedAt, item.lastObservedAt || existing.lastObservedAt)
+        if (item.lastSearchResult) existing.lastSearchResult = item.lastSearchResult
+      } else {
+        const candidate: TopicCandidate = {
+          ...item,
+          status: item.status || item.state,
+          domain: item.domain || item.matchedDomain,
+          dynamicSearchCount: item.dynamicSearchCount ?? item.searchCount,
+          observations: item.observations || []
+        }
+        this.candidates.set(item.id, candidate)
+      }
+    }
   }
 
   /**
@@ -371,18 +534,31 @@ export class TopicDiscoveryEngine {
   }
 
   /**
-   * Mencatat penyelesaian eksekusi pencarian untuk kandidat topik
+   * Mencatat penyelesaian eksekusi pencarian untuk kandidat topik setelah mencapai terminal outcome
    */
-  public recordSearchExecution(candidateId: string): void {
+  public recordSearchExecution(
+    candidateId: string,
+    outcome: 'SUCCESS' | 'VALID_EMPTY' | 'RATE_LIMITED' | 'TRANSPORT_FAILED' | 'INVALID_RESPONSE' | 'CANCELLED' = 'SUCCESS'
+  ): void {
     const c = this.candidates.get(candidateId)
     if (!c) return
 
     const now = Date.now()
-    const cooldownMs = sourceCatalog.dynamicSearchPolicy?.phraseCooldownMs || 1800000
+    const phraseCooldownMs = sourceCatalog.dynamicSearchPolicy?.phraseCooldownMs || 1800000
 
-    c.searchCount++
     c.lastSearchedAt = now
-    c.nextSearchEligibleAt = now + cooldownMs
+    c.lastSearchResult = outcome
+
+    if (outcome === 'SUCCESS' || outcome === 'VALID_EMPTY') {
+      c.searchCount++
+      c.dynamicSearchCount = c.searchCount
+      c.nextSearchEligibleAt = now + phraseCooldownMs
+    } else if (outcome === 'RATE_LIMITED') {
+      c.nextSearchEligibleAt = now + 3600000 // 1 hour cooldown saat rate limit
+    } else {
+      // TRANSPORT_FAILED, INVALID_RESPONSE, CANCELLED
+      c.nextSearchEligibleAt = now + 900000 // 15 menit cooldown percobaan ulang
+    }
   }
 
   /**

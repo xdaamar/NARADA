@@ -87,6 +87,7 @@ export interface ConnectorHealth {
   shortLabel?: string
   state: ConnectorHealthState
   status?: ConnectorHealthState         // Interoperable alias
+  isSuccess?: boolean
   lastAttemptAt: number | null
   lastSuccessAt: number | null
   consecutiveFailures: number
@@ -190,7 +191,8 @@ export interface NormalizedPublication {
   publisher: string
   publishedAt: number | null     // Epoch ms waktu penerbitan sumber (NULL jika tidak ada)
   publishedAtFormatted: string   // Format militer atau "Waktu Publikasi Tidak Tersedia"
-  observedAt: number            // Epoch ms saat pertama kali dilihat oleh sistem NARADA
+  firstObservedAt?: number      // Epoch ms saat pertama kali dilihat oleh sistem (stabil)
+  observedAt: number            // Epoch ms saat dilihat oleh sistem NARADA
   retrievedAt: number           // Epoch ms pengambilan terbaru
   lastVerifiedAt: number | null  // Epoch ms pemeriksaan fakta resmi (jika ada)
   extractionMethod: 'rss' | 'official_feed'
@@ -211,6 +213,10 @@ export interface NormalizedPublication {
   officialSource?: string
   claimAssessment?: ClaimMatchCandidate
   cacheSavedAt?: number
+  dynamicSearchRunId?: string
+  candidateId?: string
+  normalizedTopic?: string
+  profileId?: string
 }
 
 // ─── 5. Event Cluster Model (Agregasi Konservatif) ───
@@ -326,6 +332,7 @@ export interface IssueActivityAssessment {
   isSocialViralityMeasured: false   // Kontrak jujur: NARADA tidak mengarang metrik medsos liar
   assessmentReason: string
   stateReason?: string
+  timeBasis?: 'PUBLISHED_AT' | 'OBSERVED_AT'
   windowCounts?: {
     last3hCount: number
     last12hCount: number
@@ -346,6 +353,18 @@ export type TopicCandidateSource =
   | 'TRENDS_SIGNAL'          // Berasal dari Google Trends Indonesia
   | 'PUBLICATION_EMERGENCE'  // Berasal dari kemunculan frasa berulang pada berita pers
   | 'OPERATOR_WATCHLIST'     // Dimasukkan langsung oleh analis operator
+
+export interface TopicObservation {
+  id: string
+  candidateId: string
+  sourceId: string
+  sourceKind: TopicCandidateSource
+  publicationId?: string
+  publisherDomain?: string
+  firstObservedAt: number
+  lastObservedAt: number
+  provenanceUrl?: string
+}
 
 export interface TopicCandidate {
   id: string
@@ -368,6 +387,50 @@ export interface TopicCandidate {
   lastSearchedAt: number | null
   nextSearchEligibleAt: number | null
   decayScore: number
+  observations?: TopicObservation[]
+  lastSearchResult?: 'SUCCESS' | 'VALID_EMPTY' | 'RATE_LIMITED' | 'TRANSPORT_FAILED' | 'INVALID_RESPONSE' | 'CANCELLED'
+}
+
+// ─── 10. Audit, Snapshots & Telemetry Logs (Sprint 6.1) ───
+
+export interface SourceRunLogEntry {
+  id: string
+  sourceId: string
+  runType: 'FIXED_FEED' | 'DYNAMIC_SEARCH'
+  attemptAt: number
+  completedAt: number
+  status: 'SUCCESS' | 'RATE_LIMITED' | 'CIRCUIT_OPEN' | 'FAILED' | 'SKIPPED'
+  httpStatus: number | null
+  latencyMs: number
+  transportChannel: string
+  responseBytes?: number
+  parsedCount: number
+  acceptedCount: number
+  cacheState?: string
+  errorCode?: string | null
+  errorMessage?: string | null
+  retryAfterSec?: number | null
+  nextDueAt: number
+  dynamicCandidateId?: string
+  dynamicTopic?: string
+  dynamicProfileId?: string
+}
+
+export interface IssueActivitySnapshot {
+  id: string
+  clusterId: string
+  timestamp: number
+  state: IssueActivityState
+  sampleSize: number
+  distinctPublishers: number
+  growthRate: number | null
+  windowCounts: {
+    last3hCount: number
+    last12hCount: number
+    last24hCount: number
+  }
+  timeBasis: 'PUBLISHED_AT' | 'OBSERVED_AT'
+  assessmentReason: string
 }
 
 

@@ -553,3 +553,104 @@ export async function getSourceRunLogsFromDB(sourceId?: string): Promise<any[]> 
     return all
   }
 }
+
+/**
+ * Membersihkan source run logs yang melebihi batas retensi (default 7 hari) (WP5 / S61-28)
+ */
+export async function cleanOldSourceRunLogs(maxAgeMs: number = 7 * 86400000): Promise<number> {
+  const cutoff = Date.now() - maxAgeMs
+  let deletedCount = 0
+  try {
+    const db = await initDB()
+    if (!db || isFallbackMode) {
+      for (const [id, entry] of memoryFallback.sourceRunLog.entries()) {
+        if (entry.timestamp < cutoff) {
+          memoryFallback.sourceRunLog.delete(id)
+          deletedCount++
+        }
+      }
+      return deletedCount
+    }
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORES.SOURCE_RUN_LOG, 'readwrite')
+        const store = tx.objectStore(STORES.SOURCE_RUN_LOG)
+        const req = store.getAll()
+        req.onsuccess = () => {
+          const list = req.result || []
+          for (const item of list) {
+            if (item.timestamp < cutoff) {
+              store.delete(item.id)
+              deletedCount++
+            }
+          }
+        }
+        tx.oncomplete = () => resolve(deletedCount)
+        tx.onerror = () => resolve(deletedCount)
+      } catch {
+        resolve(deletedCount)
+      }
+    })
+  } catch {
+    return deletedCount
+  }
+}
+
+/**
+ * Membersihkan snapshot aktivitas yang melebihi batas retensi (default 7 hari) (WP5 / S61-28)
+ */
+export async function cleanOldIssueActivitySnapshots(maxAgeMs: number = 7 * 86400000): Promise<number> {
+  const cutoff = Date.now() - maxAgeMs
+  let deletedCount = 0
+  try {
+    const db = await initDB()
+    if (!db || isFallbackMode) {
+      for (const [id, snap] of memoryFallback.issueActivitySnapshots.entries()) {
+        if (snap.timestamp < cutoff) {
+          memoryFallback.issueActivitySnapshots.delete(id)
+          deletedCount++
+        }
+      }
+      return deletedCount
+    }
+
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORES.ISSUE_ACTIVITY_SNAPSHOTS, 'readwrite')
+        const store = tx.objectStore(STORES.ISSUE_ACTIVITY_SNAPSHOTS)
+        const req = store.getAll()
+        req.onsuccess = () => {
+          const list = req.result || []
+          for (const item of list) {
+            if (item.timestamp < cutoff) {
+              store.delete(item.id)
+              deletedCount++
+            }
+          }
+        }
+        tx.oncomplete = () => resolve(deletedCount)
+        tx.onerror = () => resolve(deletedCount)
+      } catch {
+        resolve(deletedCount)
+      }
+    })
+  } catch {
+    return deletedCount
+  }
+}
+
+/**
+ * Mendeteksi apakah sistem penyimpanan berada dalam status terdegradasi (in-memory fallback)
+ */
+export function isStorageDegraded(): boolean {
+  return isFallbackMode || dbInstance === null
+}
+
+/**
+ * Status mode penyimpanan aktif
+ */
+export function getStorageMode(): 'PERSISTED' | 'MEMORY_FALLBACK' {
+  return isStorageDegraded() ? 'MEMORY_FALLBACK' : 'PERSISTED'
+}
+

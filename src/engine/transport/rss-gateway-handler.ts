@@ -538,6 +538,11 @@ export function validateDynamicSearchQuery(profileId: string, topic: string): {
     return { isValid: false, rejectionReason: "Parameter 'topic' wajib diisi untuk pencarian dinamis" }
   }
 
+  // Tolak karakter kontrol dan CRLF
+  if (/[\r\n\x00-\x1f\x7f]/.test(topic)) {
+    return { isValid: false, rejectionReason: 'Karakter kontrol dan CRLF dilarang dalam parameter topik' }
+  }
+
   const maxLen = sourceCatalog.dynamicSearchPolicy?.maxPhraseLength || 80
   const maxTokens = sourceCatalog.dynamicSearchPolicy?.maxPhraseTokens || 5
 
@@ -552,8 +557,8 @@ export function validateDynamicSearchQuery(profileId: string, topic: string): {
     return { isValid: false, rejectionReason: `Jumlah kata (${cleaned.split(' ').filter(Boolean).length}) melebihi batas maksimal ${maxTokens} token` }
   }
 
-  if (/https?:\/\/|www\.|\.com|\.id|\.net|site:|file:|localhost/i.test(topic)) {
-    return { isValid: false, rejectionReason: 'Injeksi protokol, host override, atau operator site: ditolak' }
+  if (/(https?:\/\/|ftp:\/\/|file:\/\/|\/\/|www\.|\.com|\.id|\.net|site:|inurl:|intitle:|localhost|127\.0\.0\.1)/i.test(topic)) {
+    return { isValid: false, rejectionReason: 'Injeksi protokol, host override, atau operator site: ditolak oleh kebijakan keamanan' }
   }
 
   return { isValid: true, sanitizedTopic: cleaned, profile }
@@ -572,88 +577,34 @@ export async function handleRadarSearchRequest(
   const startTime = Date.now()
   const rawTopic = queryParams.topic || ''
 
-  // 1. Validasi Profil Google News
-  const profiles = sourceCatalog.googleNewsProfiles as Record<string, any>
-  const profile = profiles[profileId]
-  if (!profile) {
+  // 1. Validasi Profil & Parameter Terpusat
+  const validation = validateDynamicSearchQuery(profileId, rawTopic)
+  if (!validation.isValid) {
+    const isUnknownProfile = validation.rejectionReason?.includes('tidak terdaftar')
+    const statusCode = isUnknownProfile ? 404 : 400
+    const errorCode = isUnknownProfile
+      ? 'UNKNOWN_PROFILE_ID'
+      : (!rawTopic || !rawTopic.trim() ? 'MISSING_TOPIC_PARAM' : 'INVALID_SEARCH_QUERY')
     return {
-      statusCode: 404,
+      statusCode,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         success: false,
-        errorCode: 'UNKNOWN_PROFILE_ID',
-        message: `Profile ID '${profileId}' tidak terdaftar pada profil Google News NARADA.`
+        errorCode,
+        message: validation.rejectionReason
       }),
       isCacheHit: false,
       sourceId: profileId,
       latencyMs: Date.now() - startTime,
-      errorCode: 'UNKNOWN_PROFILE_ID',
-      errorMessage: `Profile ID '${profileId}' tidak ditemukan.`
+      errorCode,
+      errorMessage: validation.rejectionReason
     }
   }
 
-  // 2. Validasi Parameter Topic
-  if (!rawTopic || !rawTopic.trim()) {
-    return {
-      statusCode: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: false,
-        errorCode: 'MISSING_TOPIC_PARAM',
-        message: "Parameter 'topic' wajib diisi untuk pencarian dinamis."
-      }),
-      isCacheHit: false,
-      sourceId: profileId,
-      latencyMs: Date.now() - startTime,
-      errorCode: 'MISSING_TOPIC_PARAM',
-      errorMessage: "Parameter 'topic' wajib disertakan."
-    }
-  }
+  const sanitizedTopic = validation.sanitizedTopic!
+  const profile = validation.profile!
 
-  // Sanitasi topik dari injeksi URL & karakter manipulasi
-  const sanitizedTopic = rawTopic
-    .replace(/[<>"'`;\\|]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-
-  const maxLen = sourceCatalog.dynamicSearchPolicy?.maxPhraseLength || 80
-  if (sanitizedTopic.length > maxLen) {
-    return {
-      statusCode: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: false,
-        errorCode: 'TOPIC_TOO_LONG',
-        message: `Panjang frasa topik (${sanitizedTopic.length}) melebihi batas maksimal ${maxLen} karakter.`
-      }),
-      isCacheHit: false,
-      sourceId: profileId,
-      latencyMs: Date.now() - startTime,
-      errorCode: 'TOPIC_TOO_LONG',
-      errorMessage: `Panjang frasa topik melebihi batas ${maxLen} karakter.`
-    }
-  }
-
-  const tokens = sanitizedTopic.split(' ').filter(Boolean)
-  const maxTokens = sourceCatalog.dynamicSearchPolicy?.maxPhraseTokens || 5
-  if (tokens.length > maxTokens) {
-    return {
-      statusCode: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        success: false,
-        errorCode: 'TOPIC_EXCEEDS_MAX_TOKENS',
-        message: `Jumlah token frasa (${tokens.length}) melebihi batas maksimal ${maxTokens} token.`
-      }),
-      isCacheHit: false,
-      sourceId: profileId,
-      latencyMs: Date.now() - startTime,
-      errorCode: 'TOPIC_EXCEEDS_MAX_TOKENS',
-      errorMessage: `Jumlah token topik melebihi ${maxTokens} kata.`
-    }
-  }
-
-  // 3. Batas Cooldown per Frasa (30 menit)
+  // 2. Batas Cooldown per Frasa (30 menit)
   const normPhrase = sanitizedTopic.toLowerCase()
   const cooldownMs = sourceCatalog.dynamicSearchPolicy?.phraseCooldownMs || 1800000
   const lastSearch = phraseLastSearchedAt.get(normPhrase)
@@ -762,14 +713,73 @@ export async function handleRadarSearchRequest(
       const timer = setTimeout(() => controller.abort(), timeoutMs)
       const fetchFn = options?.customFetch || fetch
 
-      const response = await (fetchFn as any)(upstreamSearchUrl, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0',
-          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+      let currentUrl = upstreamSearchUrl
+      let redirectCount = 0
+      let response: Response | null = null
+
+      while (redirectCount <= 3) {
+        response = await (fetchFn as any)(currentUrl, {
+          signal: controller.signal,
+          redirect: 'manual',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0',
+            'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+          }
+        })
+
+        if (response && [301, 302, 303, 307, 308].includes(response.status)) {
+          redirectCount++
+          if (redirectCount > 3) {
+            clearTimeout(timer)
+            return {
+              statusCode: 502,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                success: false,
+                errorCode: 'EXCESSIVE_REDIRECTS',
+                message: 'Batas pengalihan (maks 3 redirect) terlampaui.'
+              }),
+              isCacheHit: false,
+              sourceId: profileId,
+              latencyMs: Date.now() - startTime,
+              errorCode: 'EXCESSIVE_REDIRECTS'
+            }
+          }
+
+          const location = response.headers?.get ? response.headers.get('Location') : null
+          if (!location) break
+
+          const resolvedRedirect = new URL(location, currentUrl).toString()
+          const redirectValidation = validateUpstreamUrl(resolvedRedirect)
+          if (!redirectValidation.valid) {
+            clearTimeout(timer)
+            return {
+              statusCode: 502,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                success: false,
+                errorCode: 'DISALLOWED_REDIRECT_HOST',
+                message: `Pengalihan ke host '${redirectValidation.parsedHost}' ditolak oleh firewall gateway.`
+              }),
+              isCacheHit: false,
+              sourceId: profileId,
+              latencyMs: Date.now() - startTime,
+              errorCode: 'DISALLOWED_REDIRECT_HOST'
+            }
+          }
+
+          currentUrl = resolvedRedirect
+          continue
         }
-      })
+
+        break
+      }
+
       clearTimeout(timer)
+
+      if (!response) {
+        throw new Error('Tidak ada respon yang diterima dari upstream Google News')
+      }
 
       if (response.status === 429) {
         return {
@@ -787,6 +797,22 @@ export async function handleRadarSearchRequest(
         }
       }
 
+      if (!response.ok) {
+        return {
+          statusCode: response.status,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            success: false,
+            errorCode: `UPSTREAM_HTTP_${response.status}`,
+            message: `Google News mengembalikan status HTTP ${response.status}.`
+          }),
+          isCacheHit: false,
+          sourceId: profileId,
+          latencyMs: Date.now() - startTime,
+          errorCode: `UPSTREAM_HTTP_${response.status}`
+        }
+      }
+
       const bodyText = await response.text()
       if (bodyText.length > MAX_RESPONSE_SIZE) {
         return {
@@ -801,6 +827,25 @@ export async function handleRadarSearchRequest(
           sourceId: profileId,
           latencyMs: Date.now() - startTime,
           errorCode: 'RESPONSE_TOO_LARGE'
+        }
+      }
+
+      // Validasi konten XML sebelum dicache
+      const isXmlFormat = bodyText.includes('<rss') || bodyText.includes('<feed') || bodyText.includes('<?xml') || bodyText.includes('<item')
+      if (!isXmlFormat) {
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'X-Radar-State': 'DEGRADED',
+            'X-Radar-Source': profileId
+          },
+          body: bodyText,
+          isCacheHit: false,
+          sourceId: profileId,
+          latencyMs: Date.now() - startTime,
+          errorCode: 'MALFORMED_CONTENT_NOT_XML',
+          errorMessage: 'Respons diterima namun bukan format XML feed standar'
         }
       }
 

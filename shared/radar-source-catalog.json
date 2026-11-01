@@ -19,7 +19,7 @@
   "dynamicSearchPolicy": {
     "maxDynamicQueriesPerCycle": 2,
     "maxDynamicQueriesPer24h": 8,
-    "maxConcurrentDynamicSearches": 4,
+    "maxConcurrentDynamicSearches": 2,
     "phraseCooldownMs": 1800000,
     "maxPhraseLength": 80,
     "maxPhraseTokens": 5,
@@ -339,3 +339,4 @@
     }
   ]
 }
+

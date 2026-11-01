@@ -175,6 +175,7 @@ export function updateConnectorHealth(
     ...current,
     state: update.state,
     status: update.state,
+    isSuccess,
     lastAttemptAt: now,
     lastSuccessAt: preservedLastSuccess,
     consecutiveFailures: newConsecutiveFailures,
