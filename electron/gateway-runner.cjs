@@ -17,69 +17,29 @@
  */
 
 const http = require('http')
+const path = require('path')
 
-const ALLOWED_UPSTREAM_HOSTS = new Set([
-  'turnbackhoax.id',
-  'news.google.com',
-  'trends.google.com'
-])
+// Load canonical catalog
+const catalog = require(path.join(__dirname, '../shared/radar-source-catalog.json'))
 
-const GATEWAY_SOURCE_REGISTRY = {
-  'src-tbh': {
-    sourceId: 'src-tbh',
-    displayName: 'TurnBackHoax (MAFINDO)',
-    upstreamUrl: 'https://turnbackhoax.id/feed',
-    allowedHost: 'turnbackhoax.id',
-    enabled: true,
-    ttlMs: 300_000,
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-gnews-hankam': {
-    sourceId: 'src-gnews-hankam',
-    displayName: 'Google News — Hankam & TNI',
-    upstreamUrl: 'https://news.google.com/rss/search?q=(TNI+OR+alutsista+OR+Papua+OR+KKB+OR+Ambalat+OR+kapal+perang)+AND+(viral+OR+heboh+OR+polemik+OR+kontroversi+OR+hoaks)+when:2d&hl=id&gl=ID&ceid=ID:id',
-    allowedHost: 'news.google.com',
-    enabled: true,
-    ttlMs: 120_000,
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-gnews-demo': {
-    sourceId: 'src-gnews-demo',
-    displayName: 'Google News — Aksi Massa & Unjuk Rasa',
-    upstreamUrl: 'https://news.google.com/rss/search?q=(demo+OR+unjuk+rasa+OR+bentrok+OR+ricuh+OR+mahasiswa+OR+pemakzulan)+when:1d&hl=id&gl=ID&ceid=ID:id',
-    allowedHost: 'news.google.com',
-    enabled: true,
-    ttlMs: 120_000,
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-gnews-politik': {
-    sourceId: 'src-gnews-politik',
-    displayName: 'Google News — Kebijakan & Dinamika Negara',
-    upstreamUrl: 'https://news.google.com/rss/search?q=(Prabowo+OR+Gibran+OR+bansos+OR+MBG+OR+ijazah+OR+KPK)+AND+(viral+OR+heboh+OR+polemik+OR+sidang)+when:1d&hl=id&gl=ID&ceid=ID:id',
-    allowedHost: 'news.google.com',
-    enabled: true,
-    ttlMs: 120_000,
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-gtrends-id': {
-    sourceId: 'src-gtrends-id',
-    displayName: 'Google Trends Indonesia (Search Interest)',
-    upstreamUrl: 'https://trends.google.com/trending/rss?geo=ID',
-    allowedHost: 'trends.google.com',
-    enabled: true,
-    ttlMs: 180_000,
-    contentType: 'application/rss+xml; charset=utf-8'
-  },
-  'src-youtube-policy-stub': {
-    sourceId: 'src-youtube-policy-stub',
-    displayName: 'YouTube Data API Guardrail Stub (Disabled)',
-    upstreamUrl: '',
-    allowedHost: 'developers.google.com',
-    enabled: false,
-    ttlMs: 0,
-    contentType: 'application/json'
-  }
-}
+const ALLOWED_UPSTREAM_HOSTS = new Set(catalog.allowedUpstreamHosts)
+
+const GATEWAY_SOURCE_REGISTRY = Object.fromEntries(
+  catalog.sources.map(s => [
+    s.id,
+    {
+      sourceId: s.id,
+      displayName: s.displayName,
+      upstreamUrl: s.upstreamUrl,
+      allowedHost: s.allowedHost,
+      enabled: s.enabled,
+      ttlMs: s.ttlMs,
+      contentType: s.sourceType === 'official' ? 'application/json' : 'application/rss+xml; charset=utf-8',
+      maxItems: s.maxItems,
+      domain: s.domain
+    }
+  ])
+)
 
 const gatewayCache = new Map()
 const inFlightRequests = new Map()
@@ -307,6 +267,217 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
   return fetchPromise
 }
 
+const dynamicSearchHistory = []
+const phraseLastSearchedAt = new Map()
+
+async function handleRadarSearchRequest(profileId, queryParams = {}) {
+  const startTime = Date.now()
+  const rawTopic = queryParams.topic || ''
+
+  const profiles = catalog.googleNewsProfiles || {}
+  const profile = profiles[profileId]
+  if (!profile) {
+    return {
+      statusCode: 404,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'UNKNOWN_PROFILE_ID',
+        message: `Profile ID '${profileId}' tidak ditemukan.`
+      }),
+      latencyMs: Date.now() - startTime
+    }
+  }
+
+  if (!rawTopic || !rawTopic.trim()) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'MISSING_TOPIC_PARAM',
+        message: "Parameter 'topic' wajib diisi."
+      }),
+      latencyMs: Date.now() - startTime
+    }
+  }
+
+  const sanitizedTopic = rawTopic.replace(/[<>"'`;\\|]/g, ' ').replace(/\s+/g, ' ').trim()
+  const maxLen = catalog.dynamicSearchPolicy?.maxPhraseLength || 80
+  if (sanitizedTopic.length > maxLen) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'TOPIC_TOO_LONG',
+        message: `Panjang frasa melebihi ${maxLen} karakter.`
+      }),
+      latencyMs: Date.now() - startTime
+    }
+  }
+
+  const tokens = sanitizedTopic.split(' ').filter(Boolean)
+  const maxTokens = catalog.dynamicSearchPolicy?.maxPhraseTokens || 5
+  if (tokens.length > maxTokens) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'TOPIC_EXCEEDS_MAX_TOKENS',
+        message: `Jumlah kata melebihi ${maxTokens} kata.`
+      }),
+      latencyMs: Date.now() - startTime
+    }
+  }
+
+  const normPhrase = sanitizedTopic.toLowerCase()
+  const cooldownMs = catalog.dynamicSearchPolicy?.phraseCooldownMs || 1800000
+  const lastSearch = phraseLastSearchedAt.get(normPhrase)
+  const cacheKey = `search:${profileId}:${normPhrase}`
+
+  if (lastSearch && (Date.now() - lastSearch < cooldownMs)) {
+    const cached = gatewayCache.get(cacheKey)
+    if (cached) {
+      return {
+        statusCode: cached.httpStatus,
+        headers: {
+          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'X-Radar-Cache': 'HIT',
+          'X-Radar-Source': profileId,
+          'X-Radar-Search-Topic': sanitizedTopic,
+          'Content-Length': cached.contentLength.toString()
+        },
+        body: cached.xml,
+        latencyMs: Date.now() - startTime
+      }
+    }
+  }
+
+  const now = Date.now()
+  const oneDayAgo = now - 24 * 3600 * 1000
+  const recentSearches = dynamicSearchHistory.filter(r => r.timestamp > oneDayAgo)
+  const max24h = catalog.dynamicSearchPolicy?.maxDynamicQueriesPer24h || 8
+  if (recentSearches.length >= max24h) {
+    return {
+      statusCode: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': '3600' },
+      body: JSON.stringify({
+        success: false,
+        errorCode: 'DYNAMIC_SEARCH_QUOTA_EXCEEDED',
+        message: 'Batas pencarian dinamis 24 jam terlampaui.'
+      }),
+      latencyMs: Date.now() - startTime
+    }
+  }
+
+  const cached = gatewayCache.get(cacheKey)
+  if (cached && Date.now() < cached.expiresAt) {
+    return {
+      statusCode: cached.httpStatus,
+      headers: {
+        'Content-Type': 'application/rss+xml; charset=utf-8',
+        'X-Radar-Cache': 'HIT',
+        'X-Radar-Source': profileId,
+        'X-Radar-Search-Topic': sanitizedTopic,
+        'Content-Length': cached.contentLength.toString()
+      },
+      body: cached.xml,
+      latencyMs: Date.now() - startTime
+    }
+  }
+
+  const existingFlight = inFlightRequests.get(cacheKey)
+  if (existingFlight) return existingFlight
+
+  const queryStr = `(${profile.query}) AND ("${sanitizedTopic}")`
+  const searchBaseUrl = catalog.dynamicSearchPolicy?.searchBaseUrl || 'https://news.google.com/rss/search'
+  const upstreamSearchUrl = `${searchBaseUrl}?q=${encodeURIComponent(queryStr)}&hl=${profile.locale || 'id'}&gl=${profile.gl || 'ID'}&ceid=${profile.ceid || 'ID:id'}`
+
+  const fetchPromise = (async () => {
+    try {
+      const validation = validateUpstreamUrl(upstreamSearchUrl)
+      if (!validation.valid) {
+        return {
+          statusCode: 502,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, errorCode: 'UPSTREAM_URL_VALIDATION_FAILED', message: validation.reason }),
+          latencyMs: Date.now() - startTime
+        }
+      }
+
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 8000)
+
+      const response = await fetch(upstreamSearchUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0',
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+        }
+      })
+      clearTimeout(timer)
+
+      if (response.status === 429) {
+        return {
+          statusCode: 429,
+          headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
+          body: JSON.stringify({ success: false, errorCode: 'UPSTREAM_RATE_LIMITED' }),
+          latencyMs: Date.now() - startTime
+        }
+      }
+
+      const bodyText = await response.text()
+      if (Buffer.byteLength(bodyText, 'utf8') > MAX_RESPONSE_SIZE) {
+        return {
+          statusCode: 502,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ success: false, errorCode: 'RESPONSE_TOO_LARGE' }),
+          latencyMs: Date.now() - startTime
+        }
+      }
+
+      dynamicSearchHistory.push({ timestamp: Date.now(), profileId, topic: sanitizedTopic })
+      phraseLastSearchedAt.set(normPhrase, Date.now())
+
+      gatewayCache.set(cacheKey, {
+        xml: bodyText,
+        httpStatus: response.status,
+        fetchedAt: Date.now(),
+        expiresAt: Date.now() + 300_000,
+        sourceId: profileId,
+        contentLength: Buffer.byteLength(bodyText, 'utf8')
+      })
+
+      return {
+        statusCode: response.status,
+        headers: {
+          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'X-Radar-Cache': 'MISS',
+          'X-Radar-Source': profileId,
+          'X-Radar-Search-Topic': sanitizedTopic,
+          'Content-Length': Buffer.byteLength(bodyText, 'utf8').toString()
+        },
+        body: bodyText,
+        latencyMs: Date.now() - startTime
+      }
+    } catch (err) {
+      return {
+        statusCode: 502,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ success: false, errorCode: 'UPSTREAM_NETWORK_FAILURE', message: sanitizeGatewayError(err.message) }),
+        latencyMs: Date.now() - startTime
+      }
+    } finally {
+      inFlightRequests.delete(cacheKey)
+    }
+  })()
+
+  inFlightRequests.set(cacheKey, fetchPromise)
+  return fetchPromise
+}
+
 function createGatewayServer() {
   const server = http.createServer(async (req, res) => {
     // 1. Validasi Host header (Perlindungan DNS rebinding attack)
@@ -388,6 +559,24 @@ function createGatewayServer() {
       return
     }
 
+    // Dynamic Search endpoint: /api/radar/search/:profileId
+    const searchMatch = pathname.match(/^\/api\/radar\/search\/([a-zA-Z0-9_-]+)$/)
+    if (searchMatch) {
+      const profileId = searchMatch[1]
+      try {
+        const result = await handleRadarSearchRequest(profileId, query)
+        res.writeHead(result.statusCode, {
+          ...result.headers,
+          'Access-Control-Allow-Origin': '*'
+        })
+        res.end(result.body)
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ success: false, message: sanitizeGatewayError(err.message) }))
+      }
+      return
+    }
+
     res.writeHead(404, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ success: false, message: `Rute '${pathname}' tidak ditemukan pada gateway.` }))
   })
@@ -432,6 +621,7 @@ module.exports = {
   stopGatewayServer,
   validateUpstreamUrl,
   handleRadarFeedRequest,
+  handleRadarSearchRequest,
   GATEWAY_SOURCE_REGISTRY,
   ALLOWED_UPSTREAM_HOSTS
 }
