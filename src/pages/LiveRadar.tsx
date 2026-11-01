@@ -23,13 +23,17 @@ import {
   Check,
   Users,
   Share2,
-  MessageSquare
+  MessageSquare,
+  TrendingUp,
+  Activity,
+  Plus,
+  Compass
 } from 'lucide-react'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network.ts'
 import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../types.ts'
-import { radarScheduler } from '../engine/scheduler/radar-scheduler.ts'
-import { getCachedRadarItems, deleteRadarItemFromDB, clearRadarCacheDB } from '../utils/db-adapter.ts'
+import { radarScheduler, type SourceScheduleState } from '../engine/scheduler/radar-scheduler.ts'
+import { getCachedRadarItems, deleteRadarItemFromDB, clearRadarCacheDB, saveTopicCandidates, getTopicCandidatesFromDB } from '../utils/db-adapter.ts'
 import { 
   getTacticalBriefingSummary, 
   type TacticalBriefingSummary,
@@ -38,8 +42,10 @@ import {
 import { type CounterNarrativeChannels, generateCounterNarratives } from '../engine/forensic/counter-narrative-generator.ts'
 import { getAllConnectorHealth } from '../engine/radar/source-registry.ts'
 import { parseSourceDate, evaluateFreshness } from '../engine/radar/freshness-engine.ts'
-import type { ConnectorHealth } from '../engine/radar/radar-types.ts'
+import type { ConnectorHealth, TopicCandidate, SearchTrendSignal, RadarTaxonomyDomain } from '../engine/radar/radar-types.ts'
 import { getOrCreateCaseForCluster } from '../engine/investigation'
+import { topicDiscoveryEngine, normalizeCandidatePhrase } from '../engine/radar/topic-discovery-engine.ts'
+import { getLastRadarResult } from '../engine/data/live-radar-service.ts'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterFilterOption {
@@ -50,11 +56,14 @@ interface ClusterFilterOption {
 
 const CLUSTER_OPTIONS: ClusterFilterOption[] = [
   { key: 'ALL', label: 'Semua Isu', color: '#94A3B8' },
-  { key: 'POLITIK_NEGARA', label: 'Politik Negara', color: '#F87171' },
+  { key: 'POLITIK_NEGARA', label: 'Politik & Kebijakan', color: '#F87171' },
+  { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan & Hankam', color: '#EF4444' },
+  { key: 'AKSI_MASSA', label: 'Aksi Massa & Unjuk Rasa', color: '#FB923C' },
+  { key: 'EKONOMI_DIGITAL', label: 'Ekonomi Digital & Pajak', color: '#34D399' },
   { key: 'BENCANA_DARURAT', label: 'Bencana BMKG', color: '#38BDF8' },
   { key: 'PENIPUAN_BANSOS', label: 'Penipuan Bansos', color: '#FBBF24' },
   { key: 'KESEHATAN_PANGAN', label: 'Kesehatan & Pangan', color: '#A78BFA' },
-  { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan Militer', color: '#EF4444' },
+  { key: 'UMUM_NETRAL', label: 'Umum & Kedinasan', color: '#64748B' },
 ]
 
 export default function LiveRadar() {
@@ -64,6 +73,15 @@ export default function LiveRadar() {
   const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => getCuratedArchiveDebunks())
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
   const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('ALL')
+  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS' | 'WATCHLIST'>('ALL')
+  const [trendSignals, setTrendSignals] = useState<SearchTrendSignal[]>([])
+  const [topicCandidates, setTopicCandidates] = useState<TopicCandidate[]>([])
+  const [sourceScheduleStates, setSourceScheduleStates] = useState<Record<string, SourceScheduleState>>({})
+  const [manualPhrase, setManualPhrase] = useState<string>('')
+  const [manualDomain, setManualDomain] = useState<RadarTaxonomyDomain>('NATIONAL_POLICY')
+  const [manualError, setManualError] = useState<string | null>(null)
+  const [candidateFilterStatus, setCandidateFilterStatus] = useState<string>('ALL')
+
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
   const [lastSyncTime, setLastSyncTime] = useState<string>('Memuat...')
@@ -105,6 +123,14 @@ export default function LiveRadar() {
       const status = radarScheduler.getStatus()
       setSourceChannel(status.lastSyncSource as typeof sourceChannel || 'LOCAL_ARCHIVE')
       setConnectorHealth(getAllConnectorHealth())
+      if (status.sourceStates) {
+        setSourceScheduleStates(status.sourceStates)
+      }
+      const lastRes = getLastRadarResult()
+      if (lastRes?.trendSignals) {
+        setTrendSignals(lastRes.trendSignals)
+      }
+      setTopicCandidates(topicDiscoveryEngine.getAllCandidates())
       const now = new Date(status.lastSyncTimestamp || Date.now())
       setLastSyncTime(
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
@@ -138,8 +164,59 @@ export default function LiveRadar() {
         console.warn('[LiveRadar] Gagal membaca IndexedDB cache:', e)
       })
 
+    getTopicCandidatesFromDB()
+      .then((stored) => {
+        if (stored && stored.length > 0) {
+          stored.forEach(c => topicDiscoveryEngine.addWatchlistPhrase(c.phrase, c.domain, c.notes))
+          setTopicCandidates(topicDiscoveryEngine.getAllCandidates())
+        }
+      })
+      .catch(() => {})
+
     triggerSync()
   }, [])
+
+  // Handler Topic Watchlist (Sprint 6 WP5 / WP9)
+  const handleAddManualPhrase = async () => {
+    if (!manualPhrase.trim()) return
+    const norm = normalizeCandidatePhrase(manualPhrase)
+    if (!norm.isValid) {
+      setManualError(norm.rejectionReason || 'Frasa tidak valid atau melanggar batasan sistem')
+      return
+    }
+    setManualError(null)
+    topicDiscoveryEngine.addWatchlistPhrase(norm.cleanedPhrase, manualDomain, 'Ditambahkan manual oleh operator')
+    const updated = topicDiscoveryEngine.getAllCandidates()
+    try {
+      await saveTopicCandidates(updated)
+    } catch (e) {
+      console.warn('Gagal menyimpan topic candidates ke DB:', e)
+    }
+    setTopicCandidates([...updated])
+    setManualPhrase('')
+  }
+
+  const handlePromoteCandidate = async (candidateId: string, status: 'WATCHLIST' | 'ACTIVE_SEARCH') => {
+    topicDiscoveryEngine.promoteCandidate(candidateId, status)
+    const updated = topicDiscoveryEngine.getAllCandidates()
+    try {
+      await saveTopicCandidates(updated)
+    } catch (e) {
+      console.warn('Gagal menyimpan topic candidates ke DB:', e)
+    }
+    setTopicCandidates([...updated])
+  }
+
+  const handleRejectCandidate = async (candidateId: string) => {
+    topicDiscoveryEngine.rejectCandidate(candidateId, 'Ditolak oleh operator')
+    const updated = topicDiscoveryEngine.getAllCandidates()
+    try {
+      await saveTopicCandidates(updated)
+    } catch (e) {
+      console.warn('Gagal menyimpan topic candidates ke DB:', e)
+    }
+    setTopicCandidates([...updated])
+  }
 
   // Hubungkan RadarScheduler interval dan subscribe ke event siaran
   useEffect(() => {
@@ -248,7 +325,7 @@ export default function LiveRadar() {
     }
   }
 
-  // Filter isu berdasarkan status triage, klaster, dan query pencarian
+  // Filter isu berdasarkan status triage, klaster, view mode, dan query pencarian
   const filteredItems = useMemo(() => {
     return debunkItems.filter(item => {
       const matchCluster = selectedCluster === 'ALL' || item.cluster === selectedCluster
@@ -256,16 +333,27 @@ export default function LiveRadar() {
       const isResolved = item.verdict === 'FAKTA' || item.verdict === 'NETRAL'
       const isExcluded = item.queueState === 'EXCLUDED'
       const isUnverified = !isExcluded && (item.verdict === 'UNVERIFIED' || item.triageStatus === 'UNVERIFIED' || item.queueState === 'MONITOR' || (!isHoaks && !isResolved))
+      const isMomentum = Boolean(item.issueActivity || (item.sourceCoverage && item.sourceCoverage.publicationCount > 0) || item.isLive)
 
-      const matchTriage = selectedTriage === 'ALL' 
-        ? true 
-        : selectedTriage === 'RESOLVED' 
-        ? isResolved
-        : selectedTriage === 'HOAKS'
-        ? isHoaks
-        : selectedTriage === 'UNVERIFIED'
+      const matchView = activeViewMode === 'ALL'
+        ? (selectedTriage === 'ALL' 
+            ? true 
+            : selectedTriage === 'RESOLVED' 
+            ? isResolved
+            : selectedTriage === 'HOAKS'
+            ? isHoaks
+            : selectedTriage === 'UNVERIFIED'
+            ? isUnverified
+            : item.verdict === selectedTriage)
+        : activeViewMode === 'MOMENTUM'
+        ? isMomentum
+        : activeViewMode === 'UNVERIFIED'
         ? isUnverified
-        : item.verdict === selectedTriage
+        : activeViewMode === 'HOAKS'
+        ? isHoaks
+        : activeViewMode === 'RESOLVED'
+        ? isResolved
+        : true
 
       const query = searchQuery.trim().toLowerCase()
       const matchQuery = !query || 
@@ -275,9 +363,9 @@ export default function LiveRadar() {
         (item.originalPlatform && item.originalPlatform.toLowerCase().includes(query)) ||
         item.keywords.some(k => k.toLowerCase().includes(query))
 
-      return matchCluster && matchTriage && matchQuery
+      return matchCluster && matchView && matchQuery
     })
-  }, [debunkItems, selectedCluster, selectedTriage, searchQuery])
+  }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery])
 
   // Hitung jumlah item per klaster untuk pill count
   const clusterCounts = useMemo(() => {
@@ -292,13 +380,15 @@ export default function LiveRadar() {
 
   // Hitung jumlah item per status triage
   const triageCounts = useMemo(() => {
-    const counts = { ALL: debunkItems.length, HOAKS: 0, FAKTA: 0, UNVERIFIED: 0, NETRAL: 0 }
+    const counts = { ALL: debunkItems.length, MOMENTUM: 0, HOAKS: 0, FAKTA: 0, UNVERIFIED: 0, NETRAL: 0 }
     debunkItems.forEach(i => {
       const isHoaks = i.verdict === 'HOAKS' || i.verdict === 'DISINFORMASI' || i.verdict === 'PROPAGANDA'
       const isResolved = i.verdict === 'FAKTA' || i.verdict === 'NETRAL'
       const isExcluded = i.queueState === 'EXCLUDED'
       const isUnverified = !isExcluded && (i.verdict === 'UNVERIFIED' || i.triageStatus === 'UNVERIFIED' || i.queueState === 'MONITOR' || (!isHoaks && !isResolved))
+      const isMomentum = Boolean(i.issueActivity || (i.sourceCoverage && i.sourceCoverage.publicationCount > 0) || i.isLive)
 
+      if (isMomentum) counts.MOMENTUM++
       if (isHoaks) counts.HOAKS++
       else if (i.verdict === 'FAKTA') counts.FAKTA++
       else if (i.verdict === 'NETRAL') counts.NETRAL++
@@ -544,7 +634,7 @@ export default function LiveRadar() {
           </div>
         </div>
 
-        {/* ─── KESEHATAN KONEKTOR SUMBER (SPRINT 1 TRANSPARENCY STRIP) ─── */}
+        {/* ─── KESEHATAN KONEKTOR SUMBER (SPRINT 6 MULTI-STREAM TELEMETRY STRIP) ─── */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -556,21 +646,27 @@ export default function LiveRadar() {
           fontFamily: 'var(--font-mono)'
         }}>
           <span style={{ color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Radio size={11} color="#38BDF8" /> STATUS KONEKTOR RADAR (5 STREAM):
+            <Radio size={11} color="#38BDF8" /> STATUS KONEKTOR RADAR ({Object.keys(connectorHealth).length} KANAL):
           </span>
-          {Object.values(connectorHealth).filter(ch => ch.state !== 'DISABLED').map(ch => {
+          {Object.values(connectorHealth).map(ch => {
             const isHealthy = ch.state === 'HEALTHY'
             const isConnecting = ch.state === 'CONNECTING'
             const isDegraded = ch.state === 'DEGRADED'
             const isRateLimited = ch.state === 'RATE_LIMITED'
             const isStale = ch.state === 'STALE'
             const isUnknown = ch.state === 'UNKNOWN'
-            const dotColor = isHealthy ? '#10B981' : isConnecting ? '#38BDF8' : isDegraded ? '#F59E0B' : isRateLimited ? '#A855F7' : isStale ? '#38BDF8' : isUnknown ? '#94A3B8' : '#EF4444'
-            const statusLabel = isHealthy ? 'ONLINE' : isConnecting ? 'CONNECTING' : isDegraded ? 'PROXY' : isRateLimited ? 'RATE_LIMIT' : isStale ? 'CACHE' : isUnknown ? 'IDLE' : 'OFFLINE'
+            const isDisabled = ch.state === 'DISABLED'
+            const dotColor = isDisabled ? '#475569' : isHealthy ? '#10B981' : isConnecting ? '#38BDF8' : isDegraded ? '#F59E0B' : isRateLimited ? '#A855F7' : isStale ? '#38BDF8' : isUnknown ? '#94A3B8' : '#EF4444'
+            const statusLabel = isDisabled ? 'DISABLED' : isHealthy ? 'ONLINE' : isConnecting ? 'CONNECTING' : isDegraded ? 'PROXY' : isRateLimited ? 'RATE_LIMIT' : isStale ? 'CACHE' : isUnknown ? 'IDLE' : 'OFFLINE'
             
-            const lastSuccessStr = ch.lastSuccessAt ? new Date(ch.lastSuccessAt).toLocaleTimeString('id-ID') : 'Belum Ada'
+            const schedule = sourceScheduleStates[ch.sourceId]
+            const lastSuccessStr = ch.lastSuccessAt ? new Date(ch.lastSuccessAt).toLocaleTimeString('id-ID') : (schedule?.lastSuccessAt ? new Date(schedule.lastSuccessAt).toLocaleTimeString('id-ID') : 'Belum Ada')
+            const lastAttemptStr = schedule?.lastAttemptAt ? new Date(schedule.lastAttemptAt).toLocaleTimeString('id-ID') : 'Belum Ada'
+            const nextRefreshStr = schedule?.nextDueAt ? (schedule.nextDueAt <= Date.now() ? 'Saat ini (Due)' : new Date(schedule.nextDueAt).toLocaleTimeString('id-ID')) : 'Tergantung Jadwal'
+            const cbStatus = schedule?.circuitBreakerStatus || 'CLOSED'
             const httpStatusStr = ch.httpStatus ? `HTTP Status: ${ch.httpStatus}\n` : ''
-            const tooltipText = `${ch.sourceName}\nStatus: ${ch.state}\n${httpStatusStr}Keterangan: ${ch.userReadableMessage}\nLatensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nTerakhir Sukses: ${lastSuccessStr}\nKegagalan Beruntun: ${ch.consecutiveFailures || 0}`
+            
+            const tooltipText = `${ch.sourceName} (${ch.sourceId})\nStatus: ${ch.state} [${statusLabel}]\n${httpStatusStr}Latensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nItem Diterima: ${ch.itemCount || ch.itemCountLastFetch || 0}\nTerakhir Sukses: ${lastSuccessStr}\nTerakhir Dicoba: ${lastAttemptStr}\nJadwal Berikutnya: ${nextRefreshStr}\nCircuit Breaker: ${cbStatus}\nKegagalan Beruntun: ${ch.consecutiveFailures || schedule?.consecutiveFailures || 0}\nKeterangan: ${ch.userReadableMessage}`
 
             const displayName = ch.shortLabel || (
               ch.sourceName.includes('—')
@@ -590,7 +686,8 @@ export default function LiveRadar() {
                   borderRadius: '3px',
                   background: '#0B111A',
                   border: `1px solid ${dotColor}35`,
-                  color: '#CBD5E1'
+                  color: isDisabled ? '#64748B' : '#CBD5E1',
+                  opacity: isDisabled ? 0.7 : 1
                 }}
               >
                 <span style={{
@@ -600,7 +697,7 @@ export default function LiveRadar() {
                   background: dotColor,
                   boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none'
                 }} />
-                <span style={{ fontWeight: 700, color: '#F1F5F9' }}>{displayName}</span>
+                <span style={{ fontWeight: 700, color: isDisabled ? '#94A3B8' : '#F1F5F9' }}>{displayName}</span>
                 <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
                 {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
                   <span style={{ color: '#64748B' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
@@ -674,24 +771,32 @@ export default function LiveRadar() {
         {/* Garis Pembatas */}
         <div style={{ height: '1px', background: '#1E2734' }} />
 
-        {/* ─── Filter Status Triage Sederhana, Besar, & Tegas (Command Center Tabs) ─── */}
+        {/* ─── Filter Status Triage & View Mode (Command Center Tabs - Sprint 6 WP9) ─── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Baris 1: 4 Status Utama Triage - Ukuran Besar & Jelas */}
+          {/* Baris 1: Status Utama Triage & Mode Tampilan */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {[
               { key: 'ALL', label: 'SEMUA ISU AKTIF', count: triageCounts.ALL, color: '#38BDF8', icon: Radio },
+              { key: 'MOMENTUM', label: 'ISU BARU & MENINGKAT', count: triageCounts.MOMENTUM, color: '#F43F5E', icon: TrendingUp },
               { key: 'UNVERIFIED', label: 'SEDANG DIPANTAU', count: triageCounts.UNVERIFIED, color: '#F59E0B', icon: Eye },
               { key: 'HOAKS', label: 'TERINDIKASI HOAKS', count: triageCounts.HOAKS, color: '#EF4444', icon: AlertTriangle },
               { key: 'RESOLVED', label: 'FAKTA & AMAN', count: triageCounts.FAKTA + triageCounts.NETRAL, color: '#10B981', icon: ShieldCheck },
+              { key: 'TRENDS', label: 'SINYAL PENELUSURAN', count: trendSignals.length, color: '#A855F7', icon: Activity },
+              { key: 'WATCHLIST', label: 'TOPIC WATCHLIST', count: topicCandidates.filter(c => c.status !== 'REJECTED' && c.status !== 'EXPIRED').length, color: '#EC4899', icon: Compass },
             ].map(tab => {
-              const isSelected = selectedTriage === tab.key
+              const isSelected = activeViewMode === tab.key
               return (
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setSelectedTriage(tab.key as typeof selectedTriage)}
+                  onClick={() => {
+                    setActiveViewMode(tab.key as any)
+                    if (tab.key === 'UNVERIFIED' || tab.key === 'HOAKS' || tab.key === 'RESOLVED' || tab.key === 'ALL') {
+                      setSelectedTriage(tab.key as any)
+                    }
+                  }}
                   style={{
-                    padding: '7px 14px',
+                    padding: '7px 13px',
                     borderRadius: '4px',
                     fontSize: '11px',
                     fontFamily: 'var(--font-mono)',
@@ -703,7 +808,7 @@ export default function LiveRadar() {
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '7px',
                     boxShadow: isSelected ? `0 0 12px ${tab.color}35` : 'none',
                     transition: 'all 0.15s ease'
                   }}
@@ -774,7 +879,449 @@ export default function LiveRadar() {
         </div>
       </div>
 
-      {/* ─── 3. Grid Kartu Isu Viral Plat Baja (3 Kolom) ─── */}
+      {/* ─── 3A. Panel Khusus Sinyal Penelusuran Google Trends (Sprint 6 WP9 Section 13.3) ─── */}
+      {activeViewMode === 'TRENDS' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Banner OSINT & Limitations Disclaimer */}
+          <div 
+            className="steel-chassis-card"
+            style={{
+              padding: '16px',
+              borderLeft: '4px solid #A855F7',
+              background: '#0E131F',
+              position: 'relative'
+            }}
+          >
+            <span className="bolt-tl" /><span className="bolt-tr" /><span className="bolt-bl" /><span className="bolt-br" />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <Activity size={20} color="#C084FC" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: '#F1F5F9', fontFamily: 'var(--font-mono)', marginBottom: '4px' }}>
+                  SINYAL MINAT PENELUSURAN PUBLIK (GOOGLE TRENDS INDONESIA)
+                </div>
+                <div style={{ fontSize: '11px', color: '#94A3B8', lineHeight: 1.5 }}>
+                  Sinyal penelusuran publik mencerminkan lonjakan kata kunci pencarian netizen di Google Trends ID secara agregat.
+                  <strong style={{ color: '#FCD34D' }}> PENTING:</strong> Sinyal tren pencarian <strong style={{ color: '#FCA5A5' }}>BUKAN</strong> bukti kebenaran faktual, <strong style={{ color: '#FCA5A5' }}>BUKAN</strong> verifikasi berita, dan <strong style={{ color: '#FCA5A5' }}>TIDAK</strong> menambah kuantitas publikasi pers. NARADA tidak mengumpulkan profil pengguna atau data pribadi individu.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid Kartu Tren Google */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gap: '14px'
+          }}>
+            {trendSignals.length === 0 ? (
+              <div className="steel-chassis-card" style={{ gridColumn: '1 / -1', padding: '50px 20px', textAlign: 'center' }}>
+                <Activity size={32} color="#64748B" style={{ margin: '0 auto 8px', opacity: 0.6 }} />
+                <div style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 700 }}>
+                  Belum Ada Sinyal Penelusuran Aktif
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
+                  Klik tombol "Pindai Isu Terkini" untuk menarik lonjakan tren penelusuran publik terbaru dari Google Trends ID.
+                </div>
+              </div>
+            ) : (
+              trendSignals.map(sig => (
+                <div
+                  key={sig.id}
+                  className="steel-chassis-card"
+                  style={{
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '10px',
+                    borderTop: '2px solid #A855F7'
+                  }}
+                >
+                  <span className="bolt-tl" /><span className="bolt-tr" /><span className="bolt-bl" /><span className="bolt-br" />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{
+                        fontSize: '9px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 800,
+                        padding: '2px 7px',
+                        borderRadius: '3px',
+                        background: 'rgba(168, 85, 247, 0.15)',
+                        color: '#C084FC',
+                        border: '1px solid rgba(168, 85, 247, 0.4)'
+                      }}>
+                        SINYAL PENELUSURAN AKTIF
+                      </span>
+                      {sig.searchVolumeBand && (
+                        <span style={{
+                          fontSize: '10px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 900,
+                          padding: '2px 8px',
+                          borderRadius: '3px',
+                          background: '#2E1065',
+                          color: '#E9D5FF',
+                          border: '1px solid #7E22CE'
+                        }}>
+                          {sig.searchVolumeBand} PENCARIAN
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#F1F5F9', marginBottom: '6px' }}>
+                      "{sig.query}"
+                    </div>
+
+                    {sig.relatedQueries && sig.relatedQueries.length > 0 && (
+                      <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '8px' }}>
+                        <span style={{ color: '#64748B' }}>Kueri Terkait: </span>
+                        {sig.relatedQueries.join(', ')}
+                      </div>
+                    )}
+
+                    <div style={{
+                      fontSize: '9.5px',
+                      fontFamily: 'var(--font-mono)',
+                      color: '#64748B',
+                      background: '#070C14',
+                      padding: '6px 8px',
+                      borderRadius: '3px',
+                      border: '1px solid #1E2734',
+                      display: 'flex',
+                      justifyContent: 'space-between'
+                    }}>
+                      <span>SUMBER: {sig.sourceLabel}</span>
+                      <span>TERTANGKAP: {new Date(sig.observedAt).toLocaleTimeString('id-ID')} WIB</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid #1E2734' }}>
+                    <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                      STATUS: {sig.trendStatus || 'ACTIVE'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        topicDiscoveryEngine.addWatchlistPhrase(sig.query, 'NATIONAL_POLICY', 'Ditambahkan dari Google Trends')
+                        const updated = topicDiscoveryEngine.getAllCandidates()
+                        await saveTopicCandidates(updated)
+                        setTopicCandidates([...updated])
+                        setActiveViewMode('WATCHLIST')
+                      }}
+                      style={{
+                        fontSize: '10px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 700,
+                        padding: '4px 10px',
+                        background: 'rgba(236, 72, 153, 0.15)',
+                        border: '1px solid rgba(236, 72, 153, 0.4)',
+                        color: '#F472B6',
+                        borderRadius: '3px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      + Pantau di Watchlist
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── 3B. Panel Topic Watchlist & Dynamic Discovery (Sprint 6 WP9 Section 13.4) ─── */}
+      {activeViewMode === 'WATCHLIST' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Card Input Frasa Baru Operator */}
+          <div
+            className="steel-chassis-card"
+            style={{
+              padding: '16px',
+              position: 'relative'
+            }}
+          >
+            <span className="bolt-tl" /><span className="bolt-tr" /><span className="bolt-bl" /><span className="bolt-br" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <Compass size={16} color="#EC4899" />
+              <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.5px' }}>
+                TAMBAHKAN FRASA KUNCI PANTAUAN KE TOPIC WATCHLIST
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                value={manualPhrase}
+                onChange={(e) => {
+                  setManualPhrase(e.target.value)
+                  setManualError(null)
+                }}
+                placeholder="Masukkan frasa pantauan (contoh: pajak digital, alutsista kf-21, bansos pangan)..."
+                style={{
+                  flex: '1 1 280px',
+                  background: '#090D12',
+                  border: `1px solid ${manualError ? '#EF4444' : '#2D3848'}`,
+                  borderRadius: '4px',
+                  color: '#F1F5F9',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  padding: '8px 12px',
+                  outline: 'none'
+                }}
+              />
+
+              <select
+                value={manualDomain}
+                onChange={(e) => setManualDomain(e.target.value as RadarTaxonomyDomain)}
+                style={{
+                  background: '#090D12',
+                  border: '1px solid #2D3848',
+                  borderRadius: '4px',
+                  color: '#F1F5F9',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  padding: '8px 12px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="NATIONAL_POLICY">Kebijakan Nasional / Politik</option>
+                <option value="MILITARY_DEFENSE">Kedaulatan & Hankam TNI</option>
+                <option value="CIVIL_UNREST">Aksi Massa & Unjuk Rasa</option>
+                <option value="DIGITAL_ECONOMY">Ekonomi Digital & Pajak</option>
+                <option value="DISASTER_EMERGENCY">Bencana Darurat BMKG</option>
+                <option value="SOCIAL_ASSISTANCE">Penipuan Bansos Kemensos</option>
+                <option value="PUBLIC_HEALTH">Kesehatan & Pangan Publik</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={handleAddManualPhrase}
+                style={{
+                  padding: '8px 16px',
+                  background: '#DB2777',
+                  border: '1px solid #F472B6',
+                  borderRadius: '4px',
+                  color: '#FFFFFF',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Plus size={13} />
+                <span>Tambah ke Watchlist</span>
+              </button>
+            </div>
+
+            {manualError && (
+              <div style={{ color: '#F87171', fontSize: '10.5px', fontFamily: 'var(--font-mono)', marginTop: '6px' }}>
+                ⚠ {manualError}
+              </div>
+            )}
+
+            {/* Info Batasan Guardrail */}
+            <div style={{
+              marginTop: '12px',
+              paddingTop: '8px',
+              borderTop: '1px solid #1E2734',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '14px',
+              flexWrap: 'wrap',
+              fontSize: '9.5px',
+              fontFamily: 'var(--font-mono)',
+              color: '#64748B'
+            }}>
+              <span>KEBIJAKAN GOVERNANCE:</span>
+              <span style={{ color: '#10B981' }}>✓ Max 2 Kueri/Siklus</span>
+              <span style={{ color: '#10B981' }}>✓ Max 8 Kueri/24 Jam</span>
+              <span style={{ color: '#10B981' }}>✓ Cooldown 30 Menit</span>
+              <span style={{ color: '#F59E0B' }}>⚠ Injeksi Host/URL Otomatis Ditolak</span>
+              <span style={{ color: '#38BDF8' }}>🔒 Nol Scraping Medsos Privat</span>
+            </div>
+          </div>
+
+          {/* Filter Tab Status Kandidat */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            {['ALL', 'WATCHLIST', 'ACTIVE_SEARCH', 'PROPOSED', 'REJECTED'].map(st => (
+              <button
+                key={st}
+                type="button"
+                onClick={() => setCandidateFilterStatus(st)}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '3px',
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  border: '1px solid',
+                  borderColor: candidateFilterStatus === st ? '#EC4899' : '#1E2734',
+                  background: candidateFilterStatus === st ? 'rgba(236, 72, 153, 0.2)' : '#0B1017',
+                  color: candidateFilterStatus === st ? '#FFFFFF' : '#94A3B8',
+                  cursor: 'pointer'
+                }}
+              >
+                {st === 'ALL' ? 'SEMUA KANDIDAT' : st} ({
+                  st === 'ALL' 
+                    ? topicCandidates.length 
+                    : topicCandidates.filter(c => c.status === st).length
+                })
+              </button>
+            ))}
+          </div>
+
+          {/* Grid Kartu Kandidat Topik */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gap: '14px'
+          }}>
+            {topicCandidates.filter(c => candidateFilterStatus === 'ALL' || c.status === candidateFilterStatus).length === 0 ? (
+              <div className="steel-chassis-card" style={{ gridColumn: '1 / -1', padding: '40px 20px', textAlign: 'center' }}>
+                <Compass size={28} color="#64748B" style={{ margin: '0 auto 8px', opacity: 0.6 }} />
+                <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 700 }}>
+                  Tidak Ada Kandidat Topik pada Filter Ini
+                </div>
+              </div>
+            ) : (
+              topicCandidates
+                .filter(c => candidateFilterStatus === 'ALL' || c.status === candidateFilterStatus)
+                .map(cand => {
+                  const isWatch = cand.status === 'WATCHLIST'
+                  const isActive = cand.status === 'ACTIVE_SEARCH'
+                  const isProposed = cand.status === 'PROPOSED'
+                  const isRejected = cand.status === 'REJECTED'
+                  const badgeColor = isActive ? '#10B981' : isWatch ? '#EC4899' : isProposed ? '#F59E0B' : '#64748B'
+
+                  return (
+                    <div
+                      key={cand.id}
+                      className="steel-chassis-card"
+                      style={{
+                        padding: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        gap: '10px',
+                        borderTop: `2px solid ${badgeColor}`
+                      }}
+                    >
+                      <span className="bolt-tl" /><span className="bolt-tr" /><span className="bolt-bl" /><span className="bolt-br" />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <span style={{
+                            fontSize: '9px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 800,
+                            padding: '2px 6px',
+                            borderRadius: '2px',
+                            background: `${badgeColor}20`,
+                            color: badgeColor,
+                            border: `1px solid ${badgeColor}40`
+                          }}>
+                            {cand.status}
+                          </span>
+                          <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                            SKOR: {cand.relevanceScore}/100
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#F1F5F9', marginBottom: '4px' }}>
+                          "{cand.phrase}"
+                        </div>
+
+                        <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8', marginBottom: '6px' }}>
+                          DOMAIN: {cand.domain}
+                        </div>
+
+                        <div style={{ fontSize: '9.5px', color: '#94A3B8', marginBottom: '8px' }}>
+                          {cand.notes || `Terdeteksi dari ${cand.source}`}
+                        </div>
+
+                        <div style={{
+                          fontSize: '9px',
+                          fontFamily: 'var(--font-mono)',
+                          color: '#64748B',
+                          background: '#070C14',
+                          padding: '4px 6px',
+                          borderRadius: '2px',
+                          border: '1px solid #1E2734'
+                        }}>
+                          Pencarian Dinamis: {cand.dynamicSearchCount || 0}x dijalankan
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '8px', borderTop: '1px solid #1E2734', flexWrap: 'wrap' }}>
+                        {!isWatch && (
+                          <button
+                            type="button"
+                            onClick={() => handlePromoteCandidate(cand.id, 'WATCHLIST')}
+                            style={{
+                              fontSize: '9.5px',
+                              fontFamily: 'var(--font-mono)',
+                              padding: '3px 8px',
+                              background: '#1A2332',
+                              border: '1px solid #EC4899',
+                              color: '#F472B6',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Watchlist
+                          </button>
+                        )}
+                        {!isActive && (
+                          <button
+                            type="button"
+                            onClick={() => handlePromoteCandidate(cand.id, 'ACTIVE_SEARCH')}
+                            style={{
+                              fontSize: '9.5px',
+                              fontFamily: 'var(--font-mono)',
+                              padding: '3px 8px',
+                              background: '#064E3B',
+                              border: '1px solid #10B981',
+                              color: '#6EE7B7',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Aktifkan Pencarian
+                          </button>
+                        )}
+                        {!isRejected && (
+                          <button
+                            type="button"
+                            onClick={() => handleRejectCandidate(cand.id)}
+                            style={{
+                              fontSize: '9.5px',
+                              fontFamily: 'var(--font-mono)',
+                              padding: '3px 8px',
+                              background: '#1F1315',
+                              border: '1px solid #7F1D1D',
+                              color: '#F87171',
+                              borderRadius: '3px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Tolak
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── 3C. Grid Kartu Isu Viral Plat Baja (3 Kolom) ─── */}
+      {activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' && (
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
@@ -979,6 +1526,63 @@ export default function LiveRadar() {
                         letterSpacing: '0.3px'
                       }}>
                         <span>{item.viralityReason}</span>
+                      </div>
+                    )}
+
+                    {/* Lencana Momentum & Cakupan Liputan Berita (Sprint 6 WP6 / WP9) */}
+                    {item.issueActivity && (
+                      <div style={{
+                        width: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '5px',
+                        padding: '6px 8px',
+                        background: '#070C14',
+                        border: '1px solid #1E2734',
+                        borderRadius: '3px',
+                        marginTop: '4px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
+                          {(() => {
+                            const st = item.issueActivity.state
+                            const isRising = st === 'RISING'
+                            const isNew = st === 'NEW'
+                            const isSustained = st === 'SUSTAINED'
+                            const isCooling = st === 'COOLING'
+                            const bg = isRising ? 'rgba(239, 68, 68, 0.2)' : isNew ? 'rgba(245, 158, 11, 0.2)' : isSustained ? 'rgba(56, 189, 248, 0.2)' : 'rgba(100, 116, 139, 0.2)'
+                            const col = isRising ? '#EF4444' : isNew ? '#F59E0B' : isSustained ? '#38BDF8' : '#94A3B8'
+                            const label = isRising ? 'CAKUPAN PEMBERITAAN MENINGKAT' : isNew ? 'ISU BARU' : isSustained ? 'LIPUTAN BERLANJUT' : isCooling ? 'AKTIVITAS PEMBERITAAN MENURUN' : 'DATA BELUM CUKUP'
+                            return (
+                              <span style={{
+                                fontSize: '8.5px',
+                                fontFamily: 'var(--font-mono)',
+                                fontWeight: 800,
+                                padding: '2px 6px',
+                                borderRadius: '2px',
+                                background: bg,
+                                color: col,
+                                border: `1px solid ${col}60`,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                {isRising && <TrendingUp size={10} />}
+                                {isNew && <Flame size={10} />}
+                                {isSustained && <Activity size={10} />}
+                                {label}
+                              </span>
+                            )
+                          })()}
+
+                          <span style={{ fontSize: '8.5px', fontFamily: 'var(--font-mono)', color: '#10B981', fontWeight: 700 }} title="Jumlah domain media massa unik yang meliput peristiwa ini">
+                            {item.sourceCoverage?.distinctPublisherDomainCount || 1} DOMAIN PERS
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8.5px', fontFamily: 'var(--font-mono)', color: '#64748B', flexWrap: 'wrap', gap: '4px' }}>
+                          <span>Jendela: 3j: <strong style={{ color: '#38BDF8' }}>{item.issueActivity.windowCounts?.last3hCount ?? '-'}</strong> │ 12j: <strong style={{ color: '#38BDF8' }}>{item.issueActivity.windowCounts?.last12hCount ?? '-'}</strong> │ 24j: <strong style={{ color: '#38BDF8' }}>{item.issueActivity.windowCounts?.last24hCount ?? '-'}</strong> berita</span>
+                          <span style={{ color: '#94A3B8' }}>{item.issueActivity.stateReason}</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1349,6 +1953,7 @@ export default function LiveRadar() {
           })
         )}
       </div>
+      )}
 
       {/* ─── 4. MODAL POP-UP NOTIFIKASI INTELIJEN TAKTIS (Saat Halaman Dibuka) ─── */}
       {isBriefingModalOpen && briefingSummary && (
