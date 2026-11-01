@@ -17,6 +17,7 @@
     "test:sprint5.1": "node scripts/test-sprint-5-1-validation.js",
     "test:sprint6": "node scripts/test-sprint-6-radar-discovery.js",
     "test:sprint6.1": "node scripts/test-sprint-6-1-operational.js",
+    "test:sprint6.2": "node scripts/test-sprint-6-2-gdelt.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "electron:build": "tsc -b && vite build && electron-builder --win"
   },

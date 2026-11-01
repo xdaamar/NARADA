@@ -237,7 +237,24 @@ export function deduplicatePublications(items: NormalizedPublication[]): Normali
     const normUrl = normalizeUrl(item.canonicalUrl || item.originalUrl)
     
     if (normUrl && seenCanonicalUrls.has(normUrl)) {
-      // Duplikat URL ditemukan: simpan referensi jika diperlukan, abaikan duplikat identik
+      // Duplikat URL ditemukan: gabungkan provenance observasi sumber (Sprint 6.2)
+      const existing = seenCanonicalUrls.get(normUrl)!
+      if (!existing.provenanceSources) {
+        existing.provenanceSources = [existing.sourceId]
+      }
+      if (item.sourceId && !existing.provenanceSources.includes(item.sourceId)) {
+        existing.provenanceSources.push(item.sourceId)
+      }
+      if (!existing.sourceObservations) {
+        existing.sourceObservations = [{ sourceId: existing.sourceId, observedAt: existing.observedAt || Date.now() }]
+      }
+      if (item.sourceId) {
+        existing.sourceObservations.push({
+          sourceId: item.sourceId,
+          observedAt: item.observedAt || Date.now(),
+          sourceKind: item.extractionMethod
+        })
+      }
       return
     }
 
@@ -478,6 +495,7 @@ export function clusterEventPublications(
       firstObservedAt,
       latestObservedAt,
       category: cl.category,
+      domain: cl.leadItem.domain,
       clusterConfidence,
       matchReasons: Array.from(cl.matchReasons),
       sourceCoverage: {

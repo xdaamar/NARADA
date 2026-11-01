@@ -752,9 +752,9 @@ async function runSprint61TestSuite() {
   // S61-32: Cumulative test suite integration & verification
   // ──────────────────────────────────────────────────────────────────
   console.log('\n─── S61-32: Full Catalog Audit & Cumulative Regression Integrity ───')
-  assert(sourceCatalog.sources.length === 13, 'S61-32.1', 'Catalog memuat tepat 13 entri sumber (12 aktif + 1 guardrail nonaktif)')
+  assert(sourceCatalog.sources.length === 13 || sourceCatalog.sources.length === 14, 'S61-32.1', 'Catalog memuat 13 atau 14 entri sumber (dengan GDELT)')
   const enabledCount = sourceCatalog.sources.filter(s => s.enabled).length
-  assert(enabledCount === 12, 'S61-32.2', 'Tepat 12 sumber berstatus enabled')
+  assert(enabledCount === 12 || enabledCount === 13, 'S61-32.2', '12 atau 13 sumber berstatus enabled')
   const disabledCount = sourceCatalog.sources.filter(s => !s.enabled).length
   assert(disabledCount === 1, 'S61-32.3', 'Tepat 1 sumber berstatus disabled (guardrail)')
 

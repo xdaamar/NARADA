@@ -178,6 +178,30 @@ export function mapDomainToGoogleNewsProfile(domain: string): string | null {
 }
 
 /**
+ * Pemetaan Kanonikal Domain Taksonomi ke GDELT Profile ID (Sprint 6.2 WP2 / S62-02)
+ */
+export function mapDomainToGdeltProfile(domain: string): string | null {
+  switch (domain) {
+    case 'NATIONAL_POLICY':
+      return 'gdelt-national-policy'
+    case 'DIGITAL_ECONOMY':
+      return 'gdelt-digital-economy'
+    case 'DEFENSE_SECURITY':
+      return 'gdelt-defense-security'
+    case 'CIVIC_DYNAMICS':
+      return 'gdelt-public-order'
+    case 'PUBLIC_CRISIS':
+      return 'gdelt-public-crisis'
+    case 'INFORMATION_INTEGRITY':
+      return 'gdelt-information-integrity'
+    case 'CYBER_PUBLIC_IMPACT':
+      return 'gdelt-defense-security'
+    default:
+      return null
+  }
+}
+
+/**
  * Ekstraksi domain bersih dari string URL
  */
 function extractDomainFromUrl(urlStr?: string): string | undefined {

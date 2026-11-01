@@ -38,8 +38,10 @@ import {
 } from '../radar/issue-activity-engine.ts'
 import { 
   topicDiscoveryEngine,
-  mapDomainToGoogleNewsProfile 
+  mapDomainToGoogleNewsProfile,
+  mapDomainToGdeltProfile
 } from '../radar/topic-discovery-engine.ts'
+import { parseGdeltDocResponse } from '../ingest/gdelt-adapter.ts'
 import type { 
   NormalizedPublication, 
   EventCluster, 
@@ -149,12 +151,15 @@ async function fetchXmlWithFallback(
   const isFileProto = typeof window !== 'undefined' && window.location.protocol === 'file:'
   const gatewayBase = isFileProto ? 'http://127.0.0.1:5174' : ''
   const gatewayUrl = `${gatewayBase}/api/radar/feed/${sourceId}`
+  const isJsonExpected = sourceId === 'src-gdelt-doc-id' || sourceId.startsWith('gdelt-')
+  const defaultAccept = isJsonExpected ? 'application/json, text/plain, */*' : 'application/rss+xml, application/xml, text/xml, */*'
+
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
     const res = await (fetchFn as any)(gatewayUrl, {
       signal: controller.signal,
-      headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, */*' }
+      headers: { 'Accept': defaultAccept }
     })
     clearTimeout(timer)
     lastHttpStatus = res.status
@@ -174,7 +179,16 @@ async function fetchXmlWithFallback(
 
     if (res.ok) {
       const text = await res.text()
-      if (text.includes('<item>') || text.includes('<entry>') || text.includes('<channel>')) {
+      if (isJsonExpected) {
+        const trimmed = text.trim()
+        const isHtml = trimmed.startsWith('<') || trimmed.toLowerCase().includes('<html') || trimmed.toLowerCase().includes('<!doctype')
+        if (!isHtml && (trimmed.startsWith('{') || trimmed.startsWith('['))) {
+          return { success: true, xml: text, channel: 'API_PROXY', latencyMs: Date.now() - fetchStart, httpStatus: res.status }
+        } else {
+          lastErrorCode = 'MALFORMED_JSON_RESPONSE'
+          lastErrorMessage = 'Respon diterima tetapi bukan format JSON yang valid'
+        }
+      } else if (text.includes('<item>') || text.includes('<entry>') || text.includes('<channel>')) {
         return { success: true, xml: text, channel: 'API_PROXY', latencyMs: Date.now() - fetchStart, httpStatus: res.status }
       } else {
         lastErrorCode = 'MALFORMED_FEED_NO_ITEMS'
@@ -201,7 +215,7 @@ async function fetchXmlWithFallback(
       const timer = setTimeout(() => controller.abort(), timeoutMs)
       const res = await (fetchFn as any)(proxyUrl, {
         signal: controller.signal,
-        headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, */*' }
+        headers: { 'Accept': defaultAccept }
       })
       clearTimeout(timer)
       lastHttpStatus = res.status
@@ -221,7 +235,13 @@ async function fetchXmlWithFallback(
 
       if (res.ok) {
         const text = await res.text()
-        if (text.includes('<item>') || text.includes('<entry>') || text.includes('<channel>')) {
+        if (isJsonExpected) {
+          const trimmed = text.trim()
+          const isHtml = trimmed.startsWith('<') || trimmed.toLowerCase().includes('<html') || trimmed.toLowerCase().includes('<!doctype')
+          if (!isHtml && (trimmed.startsWith('{') || trimmed.startsWith('['))) {
+            return { success: true, xml: text, channel: 'API_PROXY', latencyMs: Date.now() - fetchStart, httpStatus: res.status }
+          }
+        } else if (text.includes('<item>') || text.includes('<entry>') || text.includes('<channel>')) {
           return { success: true, xml: text, channel: 'API_PROXY', latencyMs: Date.now() - fetchStart, httpStatus: res.status }
         }
       }
@@ -238,7 +258,7 @@ async function fetchXmlWithFallback(
       const res = await (fetchFn as any)(directUrl, {
         signal: controller.signal,
         headers: { 
-          'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+          'Accept': defaultAccept,
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0'
         }
       })
@@ -260,7 +280,16 @@ async function fetchXmlWithFallback(
 
       if (res.ok) {
         const text = await res.text()
-        if (text.includes('<item>') || text.includes('<entry>') || text.includes('<channel>')) {
+        if (isJsonExpected) {
+          const trimmed = text.trim()
+          const isHtml = trimmed.startsWith('<') || trimmed.toLowerCase().includes('<html') || trimmed.toLowerCase().includes('<!doctype')
+          if (!isHtml && (trimmed.startsWith('{') || trimmed.startsWith('['))) {
+            return { success: true, xml: text, channel: 'API_DIRECT', latencyMs: Date.now() - fetchStart, httpStatus: res.status }
+          } else {
+            lastErrorCode = 'MALFORMED_JSON_RESPONSE'
+            lastErrorMessage = 'Respon langsung tidak memuat format JSON yang valid'
+          }
+        } else if (text.includes('<item>') || text.includes('<entry>') || text.includes('<channel>')) {
           return { success: true, xml: text, channel: 'API_DIRECT', latencyMs: Date.now() - fetchStart, httpStatus: res.status }
         } else {
           lastErrorCode = 'MALFORMED_FEED_NO_ITEMS'
@@ -479,18 +508,76 @@ export async function fetchSingleRadarSource(
         trendSignals: signals
       }
     } else {
-      let parsedEntries: DebunkKnowledgeEntry[] = []
-      if (src.parserAdapter === 'antara') {
-        parsedEntries = parseAntaraRss(fetchRes.xml, src.maxItems || 25)
-      } else if (src.parserAdapter === 'turnbackhoax' || src.sourceType === 'fact_check') {
-        parsedEntries = parseTurnBackHoaxRss(fetchRes.xml, src.maxItems || 25)
-      } else {
-        parsedEntries = parseGoogleNewsRss(fetchRes.xml, src.maxItems || 25)
-      }
+      let norm: NormalizedPublication[] = []
+      let parsedCount = 0
 
-      const norm = parsedEntries.map(item =>
-        normalizeDebunkEntry(item, src.id, src.sourceType as any, src.displayName, src.domain)
-      )
+      if (src.parserAdapter === 'gdelt_doc' || src.sourceType === 'aggregator') {
+        const gdeltRes = parseGdeltDocResponse(fetchRes.xml, {
+          sourceId: src.id,
+          sourceName: src.displayName,
+          domainHint: src.domain,
+          maxItems: src.maxItems || 50
+        })
+
+        if (gdeltRes.isMalformed) {
+          updateConnectorHealth(src.id, {
+            state: 'DEGRADED',
+            httpStatus: fetchRes.httpStatus,
+            latencyMs,
+            isSuccess: false,
+            errorCode: gdeltRes.errorCode || 'MALFORMED_GDELT_PAYLOAD',
+            userReadableMessage: gdeltRes.errorMessage || 'Format respons GDELT tidak valid'
+          })
+
+          await saveSourceRunLog({
+            id: `run-${src.id}-${Date.now()}`,
+            sourceId: src.id,
+            runType: 'FIXED_FEED',
+            attemptAt: attemptStart,
+            completedAt: Date.now(),
+            status: 'FAILED',
+            httpStatus: fetchRes.httpStatus ?? 200,
+            latencyMs,
+            transportChannel: channel,
+            parsedCount: 0,
+            acceptedCount: 0,
+            errorCode: gdeltRes.errorCode || 'MALFORMED_GDELT_PAYLOAD',
+            errorMessage: gdeltRes.errorMessage || 'Format respons GDELT tidak valid',
+            timestamp: Date.now()
+          })
+
+          return {
+            sourceId: src.id,
+            success: false,
+            httpStatus: fetchRes.httpStatus ?? 200,
+            latencyMs,
+            transportChannel: channel,
+            parsedCount: 0,
+            acceptedCount: 0,
+            errorCode: gdeltRes.errorCode || 'MALFORMED_GDELT_PAYLOAD',
+            errorMessage: gdeltRes.errorMessage || 'Format respons GDELT tidak valid',
+            publications: [],
+            trendSignals: []
+          }
+        }
+
+        norm = gdeltRes.publications
+        parsedCount = gdeltRes.totalArticlesFound
+      } else {
+        let parsedEntries: DebunkKnowledgeEntry[] = []
+        if (src.parserAdapter === 'antara') {
+          parsedEntries = parseAntaraRss(fetchRes.xml, src.maxItems || 25)
+        } else if (src.parserAdapter === 'turnbackhoax' || src.sourceType === 'fact_check') {
+          parsedEntries = parseTurnBackHoaxRss(fetchRes.xml, src.maxItems || 25)
+        } else {
+          parsedEntries = parseGoogleNewsRss(fetchRes.xml, src.maxItems || 25)
+        }
+
+        norm = parsedEntries.map(item =>
+          normalizeDebunkEntry(item, src.id, src.sourceType as any, src.displayName, src.domain)
+        )
+        parsedCount = parsedEntries.length
+      }
 
       updateConnectorHealth(src.id, {
         state: channel === 'API_CORS_PROXY' ? 'DEGRADED' : 'HEALTHY',
@@ -512,7 +599,7 @@ export async function fetchSingleRadarSource(
         latencyMs,
         transportChannel: channel,
         responseBytes,
-        parsedCount: parsedEntries.length,
+        parsedCount,
         acceptedCount: norm.length,
         cacheState: 'LIVE',
         nextDueAt: Date.now() + (src.pollIntervalMs || 900000),
@@ -526,7 +613,7 @@ export async function fetchSingleRadarSource(
         latencyMs,
         transportChannel: channel,
         responseBytes,
-        parsedCount: parsedEntries.length,
+        parsedCount,
         acceptedCount: norm.length,
         cacheState: 'LIVE',
         publications: norm,
@@ -587,15 +674,19 @@ export async function fetchSingleRadarSource(
 }
 
 /**
- * Eksekusi Pencarian Dinamis Google News (Sprint 6.1 WP2 / S61-09 s.d. S61-14)
+ * Eksekusi Pencarian Dinamis Google News / GDELT (Sprint 6.1 WP2 & Sprint 6.2 WP4)
  */
 export async function executeDynamicSearchQuery(
   candidate: TopicCandidate,
-  customFetch?: typeof fetch
+  customFetch?: typeof fetch,
+  targetEngine: 'gnews' | 'gdelt' = 'gnews'
 ): Promise<SingleSourceFetchResult> {
   const fetchStart = Date.now()
   const fetchFn = customFetch || (typeof fetch !== 'undefined' ? fetch : null)
-  const profileId = mapDomainToGoogleNewsProfile(candidate.matchedDomain)
+  const isGdelt = targetEngine === 'gdelt'
+  const profileId = isGdelt
+    ? mapDomainToGdeltProfile(candidate.matchedDomain)
+    : mapDomainToGoogleNewsProfile(candidate.matchedDomain)
 
   if (!profileId) {
     topicDiscoveryEngine.recordSearchExecution(candidate.id, 'CANCELLED')
@@ -608,7 +699,7 @@ export async function executeDynamicSearchQuery(
       parsedCount: 0,
       acceptedCount: 0,
       errorCode: 'NO_PROFILE_MAPPED',
-      errorMessage: `Tidak ada profil Google News yang dipetakan untuk domain ${candidate.matchedDomain}`,
+      errorMessage: `Tidak ada profil ${isGdelt ? 'GDELT' : 'Google News'} yang dipetakan untuk domain ${candidate.matchedDomain}`,
       publications: [],
       trendSignals: [],
       isDynamicSearch: true,
@@ -620,6 +711,7 @@ export async function executeDynamicSearchQuery(
   const isFileProto = typeof window !== 'undefined' && window.location.protocol === 'file:'
   const gatewayBase = isFileProto ? 'http://127.0.0.1:5174' : ''
   const searchUrl = `${gatewayBase}/api/radar/search/${profileId}?topic=${encodeURIComponent(candidate.phrase)}`
+  const acceptHdr = isGdelt ? 'application/json, text/plain, */*' : 'application/rss+xml, application/xml, text/xml, */*'
 
   try {
     const controller = new AbortController()
@@ -627,7 +719,7 @@ export async function executeDynamicSearchQuery(
 
     const res = await (fetchFn as any)(searchUrl, {
       signal: controller.signal,
-      headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, */*' }
+      headers: { 'Accept': acceptHdr }
     })
     clearTimeout(timer)
 
@@ -714,8 +806,121 @@ export async function executeDynamicSearchQuery(
       }
     }
 
-    const xml = await res.text()
-    if (!xml.includes('<item>')) {
+    const text = await res.text()
+
+    if (isGdelt) {
+      const gdeltRes = parseGdeltDocResponse(text, {
+        sourceId: profileId,
+        sourceName: `GDELT Project · Dynamic (${profileId})`,
+        domainHint: candidate.matchedDomain,
+        candidateId: candidate.id
+      })
+
+      if (gdeltRes.isMalformed) {
+        topicDiscoveryEngine.recordSearchExecution(candidate.id, 'INVALID_RESPONSE')
+        return {
+          sourceId: profileId,
+          success: false,
+          httpStatus: 200,
+          latencyMs,
+          transportChannel: 'API_PROXY',
+          parsedCount: 0,
+          acceptedCount: 0,
+          errorCode: gdeltRes.errorCode || 'MALFORMED_GDELT_RESPONSE',
+          errorMessage: gdeltRes.errorMessage || 'Format respons GDELT tidak valid',
+          publications: [],
+          trendSignals: [],
+          isDynamicSearch: true,
+          candidateId: candidate.id,
+          dynamicTopic: candidate.phrase,
+          dynamicProfileId: profileId
+        }
+      }
+
+      if (gdeltRes.validArticlesCount === 0) {
+        topicDiscoveryEngine.recordSearchExecution(candidate.id, 'VALID_EMPTY')
+        await saveSourceRunLog({
+          id: `run-search-${candidate.id}-${Date.now()}`,
+          sourceId: profileId,
+          runType: 'DYNAMIC_SEARCH',
+          attemptAt: fetchStart,
+          completedAt: Date.now(),
+          status: 'SUCCESS',
+          httpStatus: 200,
+          latencyMs,
+          transportChannel: 'API_PROXY',
+          parsedCount: 0,
+          acceptedCount: 0,
+          nextDueAt: Date.now() + 1800000,
+          timestamp: Date.now(),
+          dynamicCandidateId: candidate.id,
+          dynamicTopic: candidate.phrase,
+          dynamicProfileId: profileId
+        })
+        return {
+          sourceId: profileId,
+          success: true,
+          httpStatus: 200,
+          latencyMs,
+          transportChannel: 'API_PROXY',
+          parsedCount: 0,
+          acceptedCount: 0,
+          publications: [],
+          trendSignals: [],
+          isDynamicSearch: true,
+          candidateId: candidate.id,
+          dynamicTopic: candidate.phrase,
+          dynamicProfileId: profileId
+        }
+      }
+
+      const runId = `ds-run-gdelt-${Date.now()}`
+      const norm = gdeltRes.publications.map(pub => {
+        pub.dynamicSearchRunId = runId
+        pub.candidateId = candidate.id
+        pub.normalizedTopic = candidate.normalizedPhrase
+        pub.profileId = profileId
+        return pub
+      })
+
+      topicDiscoveryEngine.recordSearchExecution(candidate.id, 'SUCCESS')
+      await saveSourceRunLog({
+        id: `run-search-${candidate.id}-${Date.now()}`,
+        sourceId: profileId,
+        runType: 'DYNAMIC_SEARCH',
+        attemptAt: fetchStart,
+        completedAt: Date.now(),
+        status: 'SUCCESS',
+        httpStatus: 200,
+        latencyMs,
+        transportChannel: 'API_PROXY',
+        parsedCount: gdeltRes.totalArticlesFound,
+        acceptedCount: norm.length,
+        nextDueAt: Date.now() + 1800000,
+        timestamp: Date.now(),
+        dynamicCandidateId: candidate.id,
+        dynamicTopic: candidate.phrase,
+        dynamicProfileId: profileId
+      })
+
+      return {
+        sourceId: profileId,
+        success: true,
+        httpStatus: 200,
+        latencyMs,
+        transportChannel: 'API_PROXY',
+        parsedCount: gdeltRes.totalArticlesFound,
+        acceptedCount: norm.length,
+        publications: norm,
+        trendSignals: [],
+        isDynamicSearch: true,
+        candidateId: candidate.id,
+        dynamicTopic: candidate.phrase,
+        dynamicProfileId: profileId
+      }
+    }
+
+    if (!text.includes('<item>')) {
       // Valid empty feed
       topicDiscoveryEngine.recordSearchExecution(candidate.id, 'VALID_EMPTY')
       await saveSourceRunLog({
@@ -753,7 +958,7 @@ export async function executeDynamicSearchQuery(
       }
     }
 
-    const parsedEntries = parseGoogleNewsRss(xml, 25)
+    const parsedEntries = parseGoogleNewsRss(text, 25)
     const runId = `ds-run-${Date.now()}`
     const norm = parsedEntries.map(entry => {
       const pub = normalizeDebunkEntry(entry, profileId, 'rss', 'Google News RSS (Dynamic Search)', candidate.matchedDomain)
@@ -841,6 +1046,16 @@ export async function executeDynamicSearchQuery(
       dynamicProfileId: profileId
     }
   }
+}
+
+/**
+ * Eksekusi Pencarian Dinamis GDELT DOC API (Sprint 6.2 WP4 / S62-04)
+ */
+export async function executeGdeltDynamicSearchQuery(
+  candidate: TopicCandidate,
+  customFetch?: typeof fetch
+): Promise<SingleSourceFetchResult> {
+  return executeDynamicSearchQuery(candidate, customFetch, 'gdelt')
 }
 
 /**

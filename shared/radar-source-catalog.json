@@ -6,7 +6,8 @@
     "news.google.com",
     "trends.google.com",
     "www.antaranews.com",
-    "developers.google.com"
+    "developers.google.com",
+    "api.gdeltproject.org"
   ],
   "concurrencyPolicy": {
     "maxGlobalConcurrent": 3,
@@ -25,7 +26,8 @@
     "maxPhraseTokens": 5,
     "candidateExpiryMs": 86400000,
     "defaultProfileId": "gnews-national-policy",
-    "searchBaseUrl": "https://news.google.com/rss/search"
+    "searchBaseUrl": "https://news.google.com/rss/search",
+    "gdeltBaseUrl": "https://api.gdeltproject.org/api/v2/doc/doc"
   },
   "googleNewsProfiles": {
     "gnews-national-policy": {
@@ -81,6 +83,56 @@
       "locale": "id",
       "gl": "ID",
       "ceid": "ID:id"
+    }
+  },
+  "gdeltProfiles": {
+    "gdelt-national-policy": {
+      "id": "gdelt-national-policy",
+      "domain": "NATIONAL_POLICY",
+      "displayName": "GDELT — Kebijakan Negara",
+      "query": "(Prabowo OR presiden OR pemerintah OR DPR OR kementerian OR \"kebijakan negara\") sourcecountry:ID",
+      "timespan": "7d",
+      "maxrecords": 50
+    },
+    "gdelt-digital-economy": {
+      "id": "gdelt-digital-economy",
+      "domain": "DIGITAL_ECONOMY",
+      "displayName": "GDELT — Ekonomi & Transaksi Digital",
+      "query": "(\"pajak digital\" OR \"transaksi digital\" OR \"ekonomi digital\" OR fintech OR marketplace OR \"PPh 22\" OR \"bank digital\") sourcecountry:ID",
+      "timespan": "7d",
+      "maxrecords": 50
+    },
+    "gdelt-defense-security": {
+      "id": "gdelt-defense-security",
+      "domain": "DEFENSE_SECURITY",
+      "displayName": "GDELT — Hankam & TNI",
+      "query": "(TNI OR alutsista OR Papua OR Natuna OR Ambalat OR perbatasan OR keamanan) sourcecountry:ID",
+      "timespan": "7d",
+      "maxrecords": 50
+    },
+    "gdelt-civic-dynamics": {
+      "id": "gdelt-civic-dynamics",
+      "domain": "CIVIC_DYNAMICS",
+      "displayName": "GDELT — Aksi Massa & Dinamika Sipil",
+      "query": "(\"unjuk rasa\" OR demonstrasi OR \"aksi massa\" OR protes OR penolakan OR bentrok OR kericuhan) sourcecountry:ID",
+      "timespan": "7d",
+      "maxrecords": 50
+    },
+    "gdelt-public-crisis": {
+      "id": "gdelt-public-crisis",
+      "domain": "PUBLIC_CRISIS",
+      "displayName": "GDELT — Krisis & Darurat Publik",
+      "query": "(bencana OR banjir OR gempa OR longsor OR pangan OR BBM OR kesehatan OR obat) sourcecountry:ID",
+      "timespan": "7d",
+      "maxrecords": 50
+    },
+    "gdelt-information-integrity": {
+      "id": "gdelt-information-integrity",
+      "domain": "INFORMATION_INTEGRITY",
+      "displayName": "GDELT — Integritas Informasi",
+      "query": "(hoaks OR disinformasi OR misinformasi OR \"cek fakta\" OR klarifikasi OR manipulasi) sourcecountry:ID",
+      "timespan": "7d",
+      "maxrecords": 50
     }
   },
   "sources": [
@@ -315,6 +367,25 @@
       "attributionUrl": "https://trends.google.com",
       "parserAdapter": "google_trends",
       "category": "UMUM_NETRAL",
+      "domain": "NATIONAL_POLICY",
+      "enabled": true
+    },
+    {
+      "id": "src-gdelt-doc-id",
+      "displayName": "GDELT Project — Global Online News Index (Indonesia)",
+      "shortLabel": "GDELT · Doc Index",
+      "sourceType": "aggregator",
+      "outputType": "PUBLICATION",
+      "upstreamUrl": "https://api.gdeltproject.org/api/v2/doc/doc?query=(Indonesia+OR+Jakarta)+sourcecountry:ID&mode=artlist&maxrecords=50&format=json&sort=datedesc",
+      "allowedHost": "api.gdeltproject.org",
+      "pollIntervalMs": 1800000,
+      "ttlMs": 300000,
+      "timeoutMs": 8000,
+      "maxItems": 50,
+      "attributionLabel": "GDELT Project (Global Database of Events, Language, and Tone) DOC 2.0 API",
+      "attributionUrl": "https://www.gdeltproject.org",
+      "parserAdapter": "gdelt_doc",
+      "category": "POLITIK_NEGARA",
       "domain": "NATIONAL_POLICY",
       "enabled": true
     },

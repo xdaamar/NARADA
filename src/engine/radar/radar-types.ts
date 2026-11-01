@@ -17,7 +17,7 @@ import type { ThreatSpectrumCluster } from '../../types.ts'
 
 // ─── 1. Source Definition & Registry Types ───
 
-export type SourceType = 'rss' | 'official' | 'fact_check' | 'search_trend'
+export type SourceType = 'rss' | 'official' | 'fact_check' | 'search_trend' | 'aggregator'
 export type SourceOutputType = 'PUBLICATION' | 'SEARCH_TREND_SIGNAL'
 
 /**
@@ -195,7 +195,7 @@ export interface NormalizedPublication {
   observedAt: number            // Epoch ms saat dilihat oleh sistem NARADA
   retrievedAt: number           // Epoch ms pengambilan terbaru
   lastVerifiedAt: number | null  // Epoch ms pemeriksaan fakta resmi (jika ada)
-  extractionMethod: 'rss' | 'official_feed'
+  extractionMethod: 'rss' | 'official_feed' | 'gdelt_doc' | 'api'
   category: ThreatSpectrumCluster
   domain?: RadarTaxonomyDomain
   topicTags: string[]
@@ -217,6 +217,28 @@ export interface NormalizedPublication {
   candidateId?: string
   normalizedTopic?: string
   profileId?: string
+  provenanceSources?: string[]
+  sourceObservations?: Array<{ sourceId: string; observedAt: number; sourceKind?: string }>
+  isSocialViralityMeasured?: boolean
+}
+
+// ─── 4B. GDELT DOC API 2.0 Raw Schema ───
+
+export interface GdeltDocArticleRaw {
+  url?: string
+  url_mobile?: string
+  title?: string
+  seendate?: string
+  socialimage?: string
+  domain?: string
+  language?: string
+  sourcecountry?: string
+  [key: string]: unknown
+}
+
+export interface GdeltDocApiResponseRaw {
+  articles?: GdeltDocArticleRaw[]
+  [key: string]: unknown
 }
 
 // ─── 5. Event Cluster Model (Agregasi Konservatif) ───

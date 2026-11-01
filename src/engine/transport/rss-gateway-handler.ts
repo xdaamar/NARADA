@@ -44,7 +44,7 @@ export const GATEWAY_SOURCE_REGISTRY: Record<string, {
       allowedHost: s.allowedHost,
       enabled: s.enabled,
       ttlMs: s.ttlMs,
-      contentType: s.sourceType === 'official' ? 'application/json' : 'application/rss+xml; charset=utf-8',
+      contentType: (s.sourceType === 'official' || s.sourceType === 'aggregator' || s.parserAdapter === 'gdelt_doc') ? 'application/json; charset=utf-8' : 'application/rss+xml; charset=utf-8',
       maxItems: s.maxItems,
       domain: s.domain
     }
@@ -253,13 +253,18 @@ export async function handleRadarFeedRequest(
 
       const fetchFn = options?.customFetch || fetch
 
+      const isJsonSource = sourceConfig.contentType.includes('json')
+      const acceptHeader = isJsonSource 
+        ? 'application/json, text/plain, */*' 
+        : 'application/rss+xml, application/xml, text/xml, */*'
+
       // Loop manual untuk redirect validation agar tidak terjadi redirect ke host terlarang
       while (redirectCount <= 3) {
         response = await (fetchFn as any)(currentUrl, {
           signal: controller.signal,
           redirect: 'manual',
           headers: {
-            'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+            'Accept': acceptHeader,
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Cognitive-Defense/1.0'
           }
         })
@@ -412,22 +417,62 @@ export async function handleRadarFeedRequest(
         }
       }
 
-      // Validasi XML: Cek apakah memuat struktur XML yang wajar
-      const isXmlFormat = text.includes('<rss') || text.includes('<feed') || text.includes('<?xml') || text.includes('<item')
-      if (!isXmlFormat) {
-        return {
-          statusCode: 200,
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'X-Radar-State': 'DEGRADED',
-            'X-Radar-Source': sourceId
-          },
-          body: text,
-          isCacheHit: false,
-          sourceId,
-          latencyMs: Date.now() - startTime,
-          errorCode: 'MALFORMED_CONTENT_NOT_XML',
-          errorMessage: 'Respons diterima namun bukan format XML feed standar'
+      // Validasi Konten Sesuai Tipe Sumber (JSON vs XML)
+      if (isJsonSource) {
+        const trimmed = text.trim()
+        const isHtml = trimmed.startsWith('<') || trimmed.toLowerCase().includes('<html') || trimmed.toLowerCase().includes('<!doctype')
+        if (isHtml) {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': sourceId
+            },
+            body: text,
+            isCacheHit: false,
+            sourceId,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_JSON',
+            errorMessage: 'Respons diterima namun bukan format JSON valid (terdeteksi respons HTML)'
+          }
+        }
+
+        try {
+          JSON.parse(text)
+        } catch {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': sourceId
+            },
+            body: text,
+            isCacheHit: false,
+            sourceId,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_JSON',
+            errorMessage: 'Respons diterima namun gagal diparse sebagai struktur JSON'
+          }
+        }
+      } else {
+        const isXmlFormat = text.includes('<rss') || text.includes('<feed') || text.includes('<?xml') || text.includes('<item')
+        if (!isXmlFormat) {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': sourceId
+            },
+            body: text,
+            isCacheHit: false,
+            sourceId,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_XML',
+            errorMessage: 'Respons diterima namun bukan format XML feed standar'
+          }
         }
       }
 
@@ -527,12 +572,16 @@ export function validateDynamicSearchQuery(profileId: string, topic: string): {
   sanitizedTopic?: string
   rejectionReason?: string
   profile?: any
+  isGdelt?: boolean
 } {
-  const profiles = sourceCatalog.googleNewsProfiles as Record<string, any>
-  const profile = profiles[profileId]
+  const gnewsProfiles = (sourceCatalog.googleNewsProfiles || {}) as Record<string, any>
+  const gdeltProfiles = ((sourceCatalog as any).gdeltProfiles || {}) as Record<string, any>
+  const profile = gnewsProfiles[profileId] || gdeltProfiles[profileId]
   if (!profile) {
-    return { isValid: false, rejectionReason: `Profile ID '${profileId}' tidak terdaftar pada profil Google News NARADA` }
+    return { isValid: false, rejectionReason: `Profile ID '${profileId}' tidak terdaftar pada profil Google News atau GDELT NARADA` }
   }
+
+  const isGdelt = Boolean(gdeltProfiles[profileId] || profileId.startsWith('gdelt-'))
 
   if (!topic || typeof topic !== 'string' || !topic.trim()) {
     return { isValid: false, rejectionReason: "Parameter 'topic' wajib diisi untuk pencarian dinamis" }
@@ -561,7 +610,7 @@ export function validateDynamicSearchQuery(profileId: string, topic: string): {
     return { isValid: false, rejectionReason: 'Injeksi protokol, host override, atau operator site: ditolak oleh kebijakan keamanan' }
   }
 
-  return { isValid: true, sanitizedTopic: cleaned, profile }
+  return { isValid: true, sanitizedTopic: cleaned, profile, isGdelt }
 }
 
 /**
@@ -603,6 +652,8 @@ export async function handleRadarSearchRequest(
 
   const sanitizedTopic = validation.sanitizedTopic!
   const profile = validation.profile!
+  const isGdelt = Boolean(validation.isGdelt || profileId.startsWith('gdelt-'))
+  const contentType = isGdelt ? 'application/json; charset=utf-8' : 'application/rss+xml; charset=utf-8'
 
   // 2. Batas Cooldown per Frasa (30 menit)
   const normPhrase = sanitizedTopic.toLowerCase()
@@ -616,7 +667,7 @@ export async function handleRadarSearchRequest(
       return {
         statusCode: cached.httpStatus,
         headers: {
-          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'Content-Type': contentType,
           'X-Radar-Cache': 'HIT',
           'X-Radar-Source': profileId,
           'X-Radar-Search-Topic': sanitizedTopic,
@@ -663,7 +714,7 @@ export async function handleRadarSearchRequest(
     return {
       statusCode: cached.httpStatus,
       headers: {
-        'Content-Type': 'application/rss+xml; charset=utf-8',
+        'Content-Type': contentType,
         'X-Radar-Cache': 'HIT',
         'X-Radar-Source': profileId,
         'X-Radar-Search-Topic': sanitizedTopic,
@@ -684,10 +735,17 @@ export async function handleRadarSearchRequest(
     return existingFlight
   }
 
-  // 7. Konstruksi URL Upstream Google News RSS
-  const queryStr = `(${profile.query}) AND ("${sanitizedTopic}")`
-  const searchBaseUrl = sourceCatalog.dynamicSearchPolicy?.searchBaseUrl || 'https://news.google.com/rss/search'
-  const upstreamSearchUrl = `${searchBaseUrl}?q=${encodeURIComponent(queryStr)}&hl=${profile.locale || 'id'}&gl=${profile.gl || 'ID'}&ceid=${profile.ceid || 'ID:id'}`
+  // 7. Konstruksi URL Upstream Pencarian (Google News RSS vs GDELT DOC API)
+  let upstreamSearchUrl = ''
+  if (isGdelt) {
+    const gdeltBaseUrl = (sourceCatalog as any).dynamicSearchPolicy?.gdeltBaseUrl || 'https://api.gdeltproject.org/api/v2/doc/doc'
+    const queryParam = `("${sanitizedTopic}") ${profile.query}`
+    upstreamSearchUrl = `${gdeltBaseUrl}?query=${encodeURIComponent(queryParam)}&mode=artlist&format=json&sort=datedesc&maxrecords=50&timespan=7d`
+  } else {
+    const queryStr = `(${profile.query}) AND ("${sanitizedTopic}")`
+    const searchBaseUrl = sourceCatalog.dynamicSearchPolicy?.searchBaseUrl || 'https://news.google.com/rss/search'
+    upstreamSearchUrl = `${searchBaseUrl}?q=${encodeURIComponent(queryStr)}&hl=${profile.locale || 'id'}&gl=${profile.gl || 'ID'}&ceid=${profile.ceid || 'ID:id'}`
+  }
 
   const fetchPromise = (async (): Promise<GatewayResponse> => {
     try {
@@ -723,7 +781,7 @@ export async function handleRadarSearchRequest(
           redirect: 'manual',
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0',
-            'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+            'Accept': isGdelt ? 'application/json, text/plain, */*' : 'application/rss+xml, application/xml, text/xml, */*'
           }
         })
 
@@ -830,22 +888,62 @@ export async function handleRadarSearchRequest(
         }
       }
 
-      // Validasi konten XML sebelum dicache
-      const isXmlFormat = bodyText.includes('<rss') || bodyText.includes('<feed') || bodyText.includes('<?xml') || bodyText.includes('<item')
-      if (!isXmlFormat) {
-        return {
-          statusCode: 200,
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'X-Radar-State': 'DEGRADED',
-            'X-Radar-Source': profileId
-          },
-          body: bodyText,
-          isCacheHit: false,
-          sourceId: profileId,
-          latencyMs: Date.now() - startTime,
-          errorCode: 'MALFORMED_CONTENT_NOT_XML',
-          errorMessage: 'Respons diterima namun bukan format XML feed standar'
+      // Validasi format konten sebelum dicache (JSON vs XML)
+      if (isGdelt) {
+        const trimmed = bodyText.trim()
+        const isHtml = trimmed.startsWith('<') || trimmed.toLowerCase().includes('<html') || trimmed.toLowerCase().includes('<!doctype')
+        if (isHtml) {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': profileId
+            },
+            body: bodyText,
+            isCacheHit: false,
+            sourceId: profileId,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_JSON',
+            errorMessage: 'Respons pencarian GDELT bukan format JSON yang valid (terdeteksi respons HTML)'
+          }
+        }
+
+        try {
+          JSON.parse(bodyText)
+        } catch {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': profileId
+            },
+            body: bodyText,
+            isCacheHit: false,
+            sourceId: profileId,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_JSON',
+            errorMessage: 'Respons pencarian GDELT gagal diparse sebagai struktur JSON'
+          }
+        }
+      } else {
+        const isXmlFormat = bodyText.includes('<rss') || bodyText.includes('<feed') || bodyText.includes('<?xml') || bodyText.includes('<item')
+        if (!isXmlFormat) {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': profileId
+            },
+            body: bodyText,
+            isCacheHit: false,
+            sourceId: profileId,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_XML',
+            errorMessage: 'Respons diterima namun bukan format XML feed standar'
+          }
         }
       }
 
@@ -866,7 +964,7 @@ export async function handleRadarSearchRequest(
       return {
         statusCode: response.status,
         headers: {
-          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'Content-Type': contentType,
           'X-Radar-Cache': 'MISS',
           'X-Radar-Source': profileId,
           'X-Radar-Search-Topic': sanitizedTopic,

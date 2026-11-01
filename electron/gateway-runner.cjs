@@ -34,7 +34,7 @@ const GATEWAY_SOURCE_REGISTRY = Object.fromEntries(
       allowedHost: s.allowedHost,
       enabled: s.enabled,
       ttlMs: s.ttlMs,
-      contentType: s.sourceType === 'official' ? 'application/json' : 'application/rss+xml; charset=utf-8',
+      contentType: (s.sourceType === 'official' || s.sourceType === 'aggregator' || s.parserAdapter === 'gdelt_doc') ? 'application/json; charset=utf-8' : 'application/rss+xml; charset=utf-8',
       maxItems: s.maxItems,
       domain: s.domain
     }
@@ -156,6 +156,11 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
       let finalResponse = null
       let responseBody = ''
 
+      const isJsonSource = sourceConfig.contentType.includes('json')
+      const acceptHeader = isJsonSource
+        ? 'application/json, text/plain, */*'
+        : 'application/rss+xml, application/xml, text/xml, */*'
+
       while (redirectCount <= MAX_REDIRECTS) {
         const val = validateUpstreamUrl(targetUrl)
         if (!val.valid) {
@@ -180,7 +185,7 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
             method: 'GET',
             headers: {
               'User-Agent': 'NARADA-Tactical-Radar/2.0 (PUSSIBERAD TNI AD Defense Gateway)',
-              'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+              'Accept': acceptHeader
             },
             redirect: 'manual',
             signal: controller.signal
@@ -215,6 +220,57 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
       const resLatency = Date.now() - startTime
 
       if (finalResponse.ok) {
+        if (isJsonSource) {
+          const trimmed = responseBody.trim()
+          const isHtml = trimmed.startsWith('<') || trimmed.toLowerCase().includes('<html') || trimmed.toLowerCase().includes('<!doctype')
+          if (isHtml) {
+            return {
+              statusCode: 200,
+              headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'X-Radar-State': 'DEGRADED',
+                'X-Radar-Source': sourceId
+              },
+              body: responseBody,
+              latencyMs: resLatency,
+              errorCode: 'MALFORMED_CONTENT_NOT_JSON',
+              errorMessage: 'Respons diterima namun bukan format JSON valid (terdeteksi respons HTML)'
+            }
+          }
+          try {
+            JSON.parse(responseBody)
+          } catch {
+            return {
+              statusCode: 200,
+              headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'X-Radar-State': 'DEGRADED',
+                'X-Radar-Source': sourceId
+              },
+              body: responseBody,
+              latencyMs: resLatency,
+              errorCode: 'MALFORMED_CONTENT_NOT_JSON',
+              errorMessage: 'Respons diterima namun gagal diparse sebagai struktur JSON'
+            }
+          }
+        } else {
+          const isXmlFormat = responseBody.includes('<rss') || responseBody.includes('<feed') || responseBody.includes('<?xml') || responseBody.includes('<item')
+          if (!isXmlFormat) {
+            return {
+              statusCode: 200,
+              headers: {
+                'Content-Type': 'text/plain; charset=utf-8',
+                'X-Radar-State': 'DEGRADED',
+                'X-Radar-Source': sourceId
+              },
+              body: responseBody,
+              latencyMs: resLatency,
+              errorCode: 'MALFORMED_CONTENT_NOT_XML',
+              errorMessage: 'Respons diterima namun bukan format XML feed standar'
+            }
+          }
+        }
+
         gatewayCache.set(sourceId, {
           xml: responseBody,
           httpStatus: finalResponse.status,
@@ -271,11 +327,14 @@ const dynamicSearchHistory = []
 const phraseLastSearchedAt = new Map()
 
 function validateDynamicSearchQuery(profileId, topic) {
-  const profiles = catalog.googleNewsProfiles || {}
-  const profile = profiles[profileId]
+  const gnewsProfiles = catalog.googleNewsProfiles || {}
+  const gdeltProfiles = catalog.gdeltProfiles || {}
+  const profile = gnewsProfiles[profileId] || gdeltProfiles[profileId]
   if (!profile) {
-    return { isValid: false, rejectionReason: `Profile ID '${profileId}' tidak terdaftar pada profil Google News NARADA` }
+    return { isValid: false, rejectionReason: `Profile ID '${profileId}' tidak terdaftar pada profil Google News atau GDELT NARADA` }
   }
+
+  const isGdelt = Boolean(gdeltProfiles[profileId] || profileId.startsWith('gdelt-'))
 
   if (!topic || typeof topic !== 'string' || !topic.trim()) {
     return { isValid: false, rejectionReason: "Parameter 'topic' wajib diisi untuk pencarian dinamis" }
@@ -304,7 +363,7 @@ function validateDynamicSearchQuery(profileId, topic) {
     return { isValid: false, rejectionReason: 'Injeksi protokol, host override, atau operator site: ditolak oleh kebijakan keamanan' }
   }
 
-  return { isValid: true, sanitizedTopic: cleaned, profile }
+  return { isValid: true, sanitizedTopic: cleaned, profile, isGdelt }
 }
 
 async function handleRadarSearchRequest(profileId, queryParams = {}) {
@@ -333,6 +392,8 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
 
   const sanitizedTopic = validation.sanitizedTopic
   const profile = validation.profile
+  const isGdelt = Boolean(validation.isGdelt || profileId.startsWith('gdelt-'))
+  const contentType = isGdelt ? 'application/json; charset=utf-8' : 'application/rss+xml; charset=utf-8'
 
   const normPhrase = sanitizedTopic.toLowerCase()
   const cooldownMs = catalog.dynamicSearchPolicy?.phraseCooldownMs || 1800000
@@ -345,7 +406,7 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
       return {
         statusCode: cached.httpStatus,
         headers: {
-          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'Content-Type': contentType,
           'X-Radar-Cache': 'HIT',
           'X-Radar-Source': profileId,
           'X-Radar-Search-Topic': sanitizedTopic,
@@ -379,7 +440,7 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
     return {
       statusCode: cached.httpStatus,
       headers: {
-        'Content-Type': 'application/rss+xml; charset=utf-8',
+        'Content-Type': contentType,
         'X-Radar-Cache': 'HIT',
         'X-Radar-Source': profileId,
         'X-Radar-Search-Topic': sanitizedTopic,
@@ -393,9 +454,16 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
   const existingFlight = inFlightRequests.get(cacheKey)
   if (existingFlight) return existingFlight
 
-  const queryStr = `(${profile.query}) AND ("${sanitizedTopic}")`
-  const searchBaseUrl = catalog.dynamicSearchPolicy?.searchBaseUrl || 'https://news.google.com/rss/search'
-  const upstreamSearchUrl = `${searchBaseUrl}?q=${encodeURIComponent(queryStr)}&hl=${profile.locale || 'id'}&gl=${profile.gl || 'ID'}&ceid=${profile.ceid || 'ID:id'}`
+  let upstreamSearchUrl = ''
+  if (isGdelt) {
+    const gdeltBaseUrl = catalog.dynamicSearchPolicy?.gdeltBaseUrl || 'https://api.gdeltproject.org/api/v2/doc/doc'
+    const queryParam = `("${sanitizedTopic}") ${profile.query}`
+    upstreamSearchUrl = `${gdeltBaseUrl}?query=${encodeURIComponent(queryParam)}&mode=artlist&format=json&sort=datedesc&maxrecords=50&timespan=7d`
+  } else {
+    const queryStr = `(${profile.query}) AND ("${sanitizedTopic}")`
+    const searchBaseUrl = catalog.dynamicSearchPolicy?.searchBaseUrl || 'https://news.google.com/rss/search'
+    upstreamSearchUrl = `${searchBaseUrl}?q=${encodeURIComponent(queryStr)}&hl=${profile.locale || 'id'}&gl=${profile.gl || 'ID'}&ceid=${profile.ceid || 'ID:id'}`
+  }
 
   const fetchPromise = (async () => {
     try {
@@ -424,7 +492,7 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
             method: 'GET',
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) NARADA-Defense/1.0',
-              'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+              'Accept': isGdelt ? 'application/json, text/plain, */*' : 'application/rss+xml, application/xml, text/xml, */*'
             },
             redirect: 'manual',
             signal: controller.signal
@@ -491,17 +559,55 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
         }
       }
 
-      const isXmlFormat = bodyText.includes('<rss') || bodyText.includes('<feed') || bodyText.includes('<?xml') || bodyText.includes('<item')
-      if (!isXmlFormat) {
-        return {
-          statusCode: 200,
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'X-Radar-State': 'DEGRADED',
-            'X-Radar-Source': profileId
-          },
-          body: bodyText,
-          latencyMs: Date.now() - startTime
+      if (isGdelt) {
+        const trimmed = bodyText.trim()
+        const isHtml = trimmed.startsWith('<') || trimmed.toLowerCase().includes('<html') || trimmed.toLowerCase().includes('<!doctype')
+        if (isHtml) {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': profileId
+            },
+            body: bodyText,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_JSON',
+            errorMessage: 'Respons pencarian GDELT bukan format JSON yang valid (terdeteksi respons HTML)'
+          }
+        }
+
+        try {
+          JSON.parse(bodyText)
+        } catch {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': profileId
+            },
+            body: bodyText,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_JSON',
+            errorMessage: 'Respons pencarian GDELT gagal diparse sebagai struktur JSON'
+          }
+        }
+      } else {
+        const isXmlFormat = bodyText.includes('<rss') || bodyText.includes('<feed') || bodyText.includes('<?xml') || bodyText.includes('<item')
+        if (!isXmlFormat) {
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8',
+              'X-Radar-State': 'DEGRADED',
+              'X-Radar-Source': profileId
+            },
+            body: bodyText,
+            latencyMs: Date.now() - startTime,
+            errorCode: 'MALFORMED_CONTENT_NOT_XML',
+            errorMessage: 'Respons diterima namun bukan format XML feed standar'
+          }
         }
       }
 
@@ -520,7 +626,7 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
       return {
         statusCode: response.status,
         headers: {
-          'Content-Type': 'application/rss+xml; charset=utf-8',
+          'Content-Type': contentType,
           'X-Radar-Cache': 'MISS',
           'X-Radar-Source': profileId,
           'X-Radar-Search-Topic': sanitizedTopic,
