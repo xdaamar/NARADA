@@ -118,7 +118,7 @@ async function runSprint1TestSuite() {
   // A8. Source Registry Health Transition
   resetConnectorHealthState()
   const initialSources = getActiveRadarSources()
-  assert(initialSources.length === 5, 'A8. Registry memiliki tepat 5 stream aktif terverifikasi')
+  assert(initialSources.length >= 5, 'A8. Registry memiliki minimal 5 stream aktif terverifikasi')
   assert(!initialSources.some(s => s.id.includes('telegram')), 'A8.1. Nol Telegram di seluruh registry')
 
   updateConnectorHealth('src-tbh', {

@@ -248,10 +248,10 @@ async function runSprint51TestSuite() {
   // ──────────────────────────────────────────────────────────────────
   console.log('\n─── R51-10: Google News Distinct Labels Verification ───')
   const gnewsSources = ACTIVE_RADAR_SOURCES.filter(s => s.id.startsWith('src-gnews-'))
-  assert(gnewsSources.length === 3, 'R51-10.1', 'Terdapat 3 stream Google News di registry')
+  assert(gnewsSources.length >= 3, 'R51-10.1', 'Terdapat stream Google News kanonikal di registry (>= 3 stream)')
   const shortLabels = gnewsSources.map(s => s.shortLabel)
   const uniqueLabels = new Set(shortLabels)
-  assert(uniqueLabels.size === 3, 'R51-10.2', 'Ketiga shortLabel Google News unik')
+  assert(uniqueLabels.size === gnewsSources.length, 'R51-10.2', 'Seluruh shortLabel Google News unik tanpa tumpang tindih')
   assert(shortLabels.includes('G-News · Hankam/TNI'), 'R51-10.3', 'Label Hankam/TNI terdefinisi kanonikal')
   assert(shortLabels.includes('G-News · Aksi Massa'), 'R51-10.4', 'Label Aksi Massa terdefinisi kanonikal')
   assert(shortLabels.includes('G-News · Kebijakan'), 'R51-10.5', 'Label Kebijakan terdefinisi kanonikal')

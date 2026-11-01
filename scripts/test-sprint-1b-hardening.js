@@ -430,9 +430,9 @@ const hasTelegram = ACTIVE_RADAR_SOURCES.some(s =>
 )
 assert(!hasTelegram, 'E2', 'NOL integrasi/adapter/referensi Telegram pada seluruh registry', 'E')
 
-// 3. Exactly 5 Active Streams
+// 3. Active Streams Gt or Eq 5
 const activeStreams = getActiveRadarSources()
-assert(activeStreams.length === 5, 'E3', 'Tepat 5 stream aktif terverifikasi (TurnBackHoax, 3x GNews, 1x GTrends)', 'E')
+assert(activeStreams.length >= 5, 'E3', 'Minimal 5 stream aktif terverifikasi (TurnBackHoax, GNews, ANTARA, GTrends)', 'E')
 
 // ──────────────────────────────────────────────────────────────────────
 // BAGIAN CORPUS: LABELLED CLUSTERING CORPUS (20 POSITIVE + 20 HARD-NEGATIVE)

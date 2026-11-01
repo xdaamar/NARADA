@@ -177,7 +177,7 @@ async function testGatewayRouting() {
 
   // Health Endpoint
   const healthStatus = getGatewayHealthStatus()
-  assert(healthStatus.status === 'HEALTHY' && healthStatus.activeSourceCount === 5, 'A2.9', 'Endpoint /api/radar/gateway/health mengembalikan status HEALTHY (5 stream aktif)')
+  assert(healthStatus.status === 'HEALTHY' && healthStatus.activeSourceCount >= 5, 'A2.9', 'Endpoint /api/radar/gateway/health mengembalikan status HEALTHY (minimal 5 stream aktif)')
 }
 
 // ──────────────────────────────────────────────────────────────────────

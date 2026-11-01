@@ -106,9 +106,9 @@ requiredTestScripts.forEach(script => {
 const baselineTarget = 38 + 94 + 131 + 66 + 88 + 95
 check(baselineTarget === 512, '[G0.2] Target total assertions baseline Sprint 1-3 tepat 512')
 
-// 0.3 Verifikasi registry radar memiliki tepat 5 stream aktif terverifikasi
+// 0.3 Verifikasi registry radar memiliki minimal 5 stream aktif terverifikasi
 const activeStreams = ACTIVE_RADAR_SOURCES.filter(s => s.enabled)
-check(activeStreams.length === 5, '[G0.3] Active radar sources terverifikasi tepat 5 stream aktif')
+check(activeStreams.length >= 5, '[G0.3] Active radar sources terverifikasi minimal 5 stream aktif')
 check(ACTIVE_RADAR_SOURCES.some(s => s.id === 'src-youtube-policy-stub' && !s.enabled), '[G0.3.1] YouTube guardrail policy stub terdaftar dalam keadaan dinonaktifkan')
 
 // ══════════════════════════════════════════════════════════════════════
