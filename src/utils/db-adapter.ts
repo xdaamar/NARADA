@@ -18,9 +18,15 @@
 import type { AnalysisResult, DebunkKnowledgeEntry } from '../types'
 import type { TopicCandidate } from '../engine/radar/radar-types.ts'
 import type { EvidenceRecord } from '../engine/investigation/investigation-types.ts'
+import type {
+  CommentBatch,
+  CommentRecord,
+  CommentAnalysisRun,
+  CommentReviewAnnotation
+} from '../engine/intelligence/comment-types.ts'
 
 const DB_NAME = 'narada_tactical_db'
-const DB_VERSION = 3
+const DB_VERSION = 4 // Upgraded from DB_VERSION = 3 (Sprint 7) and DB_VERSION = 2 (Sprint 6)
 
 export const STORES = {
   ANALYSES: 'analyses',
@@ -31,6 +37,10 @@ export const STORES = {
   SOURCE_RUN_LOG: 'source_run_log',
   EVIDENCE_RECORDS: 'evidence_records',
   EVIDENCE_ARTIFACTS: 'evidence_artifacts',
+  COMMENT_BATCHES: 'comment_batches',
+  COMMENT_RECORDS: 'comment_records',
+  COMMENT_ANALYSIS_RUNS: 'comment_analysis_runs',
+  COMMENT_REVIEW_ANNOTATIONS: 'comment_review_annotations',
 } as const
 
 export interface StoredImageData {
@@ -57,6 +67,10 @@ const memoryFallback = {
   sourceRunLog: new Map<string, any>(),
   evidenceRecords: new Map<string, EvidenceRecord>(),
   evidenceArtifacts: new Map<string, any>(),
+  commentBatches: new Map<string, CommentBatch>(),
+  commentRecords: new Map<string, CommentRecord>(),
+  commentAnalysisRuns: new Map<string, CommentAnalysisRun>(),
+  commentReviewAnnotations: new Map<string, CommentReviewAnnotation>(),
 }
 
 let dbInstance: IDBDatabase | null = null
@@ -143,6 +157,35 @@ export async function initDB(): Promise<IDBDatabase | null> {
         if (!db.objectStoreNames.contains(STORES.EVIDENCE_ARTIFACTS)) {
           const store = db.createObjectStore(STORES.EVIDENCE_ARTIFACTS, { keyPath: 'id' })
           store.createIndex('evidenceId', 'evidenceId', { unique: false })
+        }
+
+        // Store 9: Comment Batches (Sprint 8)
+        if (!db.objectStoreNames.contains(STORES.COMMENT_BATCHES)) {
+          const store = db.createObjectStore(STORES.COMMENT_BATCHES, { keyPath: 'id' })
+          store.createIndex('caseId', 'caseId', { unique: false })
+          store.createIndex('createdAt', 'createdAt', { unique: false })
+        }
+
+        // Store 10: Comment Records (Sprint 8)
+        if (!db.objectStoreNames.contains(STORES.COMMENT_RECORDS)) {
+          const store = db.createObjectStore(STORES.COMMENT_RECORDS, { keyPath: 'id' })
+          store.createIndex('batchId', 'batchId', { unique: false })
+          store.createIndex('caseId', 'caseId', { unique: false })
+        }
+
+        // Store 11: Comment Analysis Runs (Sprint 8)
+        if (!db.objectStoreNames.contains(STORES.COMMENT_ANALYSIS_RUNS)) {
+          const store = db.createObjectStore(STORES.COMMENT_ANALYSIS_RUNS, { keyPath: 'id' })
+          store.createIndex('batchId', 'batchId', { unique: false })
+          store.createIndex('caseId', 'caseId', { unique: false })
+          store.createIndex('createdAt', 'createdAt', { unique: false })
+        }
+
+        // Store 12: Comment Review Annotations (Sprint 8)
+        if (!db.objectStoreNames.contains(STORES.COMMENT_REVIEW_ANNOTATIONS)) {
+          const store = db.createObjectStore(STORES.COMMENT_REVIEW_ANNOTATIONS, { keyPath: 'id' })
+          store.createIndex('runId', 'runId', { unique: false })
+          store.createIndex('caseId', 'caseId', { unique: false })
         }
       }
 
@@ -757,6 +800,290 @@ export async function getEvidenceArtifactFromDB(id: string): Promise<StoredEvide
     return artifact || null
   } catch {
     return (memoryFallback.evidenceArtifacts.get(id) as StoredEvidenceArtifact) || null
+  }
+}
+
+// ─── CRUD COMMENT INTELLIGENCE (Sprint 8) ───
+
+/**
+ * Menyimpan batch sampel komentar ke IndexedDB
+ */
+export async function saveCommentBatchToDB(batch: CommentBatch): Promise<void> {
+  try {
+    await performTransaction(STORES.COMMENT_BATCHES, 'readwrite', (store) => store.put(batch))
+  } catch {
+    memoryFallback.commentBatches.set(batch.id, batch)
+  }
+}
+
+/**
+ * Mengambil daftar batch sampel komentar (opsional difilter berdasarkan caseId)
+ */
+export async function getCommentBatchesFromDB(caseId?: string): Promise<CommentBatch[]> {
+  try {
+    const batches = await performTransaction<CommentBatch[]>(
+      STORES.COMMENT_BATCHES,
+      'readonly',
+      (store) => {
+        if (caseId) {
+          const index = store.index('caseId')
+          return index.getAll(caseId)
+        }
+        return store.getAll()
+      }
+    )
+    return batches || []
+  } catch {
+    const list = Array.from(memoryFallback.commentBatches.values())
+    if (caseId) {
+      return list.filter(b => b.caseId === caseId)
+    }
+    return list
+  }
+}
+
+/**
+ * Mengambil satu batch komentar berdasarkan ID
+ */
+export async function getCommentBatchByIdFromDB(id: string): Promise<CommentBatch | null> {
+  try {
+    const batch = await performTransaction<CommentBatch | undefined>(
+      STORES.COMMENT_BATCHES,
+      'readonly',
+      (store) => store.get(id)
+    )
+    return batch || null
+  } catch {
+    return memoryFallback.commentBatches.get(id) || null
+  }
+}
+
+/**
+ * Menghapus batch komentar berdasarkan ID
+ */
+export async function deleteCommentBatchFromDB(id: string): Promise<void> {
+  try {
+    await performTransaction(STORES.COMMENT_BATCHES, 'readwrite', (store) => store.delete(id))
+  } catch {
+    memoryFallback.commentBatches.delete(id)
+  }
+}
+
+/**
+ * Menyimpan sekumpulan rekaman komentar ke IndexedDB
+ */
+export async function saveCommentRecordsToDB(records: CommentRecord[]): Promise<void> {
+  try {
+    const db = await initDB()
+    if (!db || isFallbackMode) {
+      for (const record of records) {
+        memoryFallback.commentRecords.set(record.id, record)
+      }
+      return
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      try {
+        const tx = db.transaction(STORES.COMMENT_RECORDS, 'readwrite')
+        const store = tx.objectStore(STORES.COMMENT_RECORDS)
+        for (const record of records) {
+          store.put(record)
+        }
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+      } catch (err) {
+        reject(err)
+      }
+    })
+  } catch {
+    for (const record of records) {
+      memoryFallback.commentRecords.set(record.id, record)
+    }
+  }
+}
+
+/**
+ * Mengambil rekaman komentar berdasarkan batchId atau seluruhnya
+ */
+export async function getCommentRecordsFromDB(batchId?: string): Promise<CommentRecord[]> {
+  try {
+    const records = await performTransaction<CommentRecord[]>(
+      STORES.COMMENT_RECORDS,
+      'readonly',
+      (store) => {
+        if (batchId) {
+          const index = store.index('batchId')
+          return index.getAll(batchId)
+        }
+        return store.getAll()
+      }
+    )
+    return records || []
+  } catch {
+    const list = Array.from(memoryFallback.commentRecords.values())
+    if (batchId) {
+      return list.filter(r => r.batchId === batchId)
+    }
+    return list
+  }
+}
+
+/**
+ * Mengambil rekaman komentar berdasarkan caseId
+ */
+export async function getCommentRecordsByCaseIdFromDB(caseId: string): Promise<CommentRecord[]> {
+  try {
+    const records = await performTransaction<CommentRecord[]>(
+      STORES.COMMENT_RECORDS,
+      'readonly',
+      (store) => {
+        const index = store.index('caseId')
+        return index.getAll(caseId)
+      }
+    )
+    return records || []
+  } catch {
+    return Array.from(memoryFallback.commentRecords.values()).filter(r => r.caseId === caseId)
+  }
+}
+
+/**
+ * Menghapus rekaman komentar terkait suatu batchId
+ */
+export async function deleteCommentRecordsByBatchIdFromDB(batchId: string): Promise<void> {
+  try {
+    const records = await getCommentRecordsFromDB(batchId)
+    const db = await initDB()
+    if (!db || isFallbackMode) {
+      for (const r of records) {
+        memoryFallback.commentRecords.delete(r.id)
+      }
+      return
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      try {
+        const tx = db.transaction(STORES.COMMENT_RECORDS, 'readwrite')
+        const store = tx.objectStore(STORES.COMMENT_RECORDS)
+        for (const r of records) {
+          store.delete(r.id)
+        }
+        tx.oncomplete = () => resolve()
+        tx.onerror = () => reject(tx.error)
+      } catch (err) {
+        reject(err)
+      }
+    })
+  } catch {
+    for (const [id, r] of memoryFallback.commentRecords.entries()) {
+      if (r.batchId === batchId) {
+        memoryFallback.commentRecords.delete(id)
+      }
+    }
+  }
+}
+
+/**
+ * Menyimpan snapshot immutable hasil analisis run komentar ke IndexedDB
+ */
+export async function saveCommentAnalysisRunToDB(run: CommentAnalysisRun): Promise<void> {
+  try {
+    await performTransaction(STORES.COMMENT_ANALYSIS_RUNS, 'readwrite', (store) => store.put(run))
+  } catch {
+    memoryFallback.commentAnalysisRuns.set(run.id, run)
+  }
+}
+
+/**
+ * Mengambil riwayat run analisis komentar
+ */
+export async function getCommentAnalysisRunsFromDB(batchId?: string, caseId?: string): Promise<CommentAnalysisRun[]> {
+  try {
+    const runs = await performTransaction<CommentAnalysisRun[]>(
+      STORES.COMMENT_ANALYSIS_RUNS,
+      'readonly',
+      (store) => {
+        if (batchId) {
+          const index = store.index('batchId')
+          return index.getAll(batchId)
+        }
+        if (caseId) {
+          const index = store.index('caseId')
+          return index.getAll(caseId)
+        }
+        return store.getAll()
+      }
+    )
+    return runs || []
+  } catch {
+    const list = Array.from(memoryFallback.commentAnalysisRuns.values())
+    if (batchId) {
+      return list.filter(r => r.batchId === batchId)
+    }
+    if (caseId) {
+      return list.filter(r => r.caseId === caseId)
+    }
+    return list
+  }
+}
+
+/**
+ * Mengambil satu snapshot run analisis komentar berdasarkan ID
+ */
+export async function getCommentAnalysisRunByIdFromDB(id: string): Promise<CommentAnalysisRun | null> {
+  try {
+    const run = await performTransaction<CommentAnalysisRun | undefined>(
+      STORES.COMMENT_ANALYSIS_RUNS,
+      'readonly',
+      (store) => store.get(id)
+    )
+    return run || null
+  } catch {
+    return memoryFallback.commentAnalysisRuns.get(id) || null
+  }
+}
+
+/**
+ * Menyimpan anotasi review analis manusia ke IndexedDB
+ */
+export async function saveCommentReviewAnnotationToDB(annotation: CommentReviewAnnotation): Promise<void> {
+  try {
+    await performTransaction(STORES.COMMENT_REVIEW_ANNOTATIONS, 'readwrite', (store) => store.put(annotation))
+  } catch {
+    memoryFallback.commentReviewAnnotations.set(annotation.id, annotation)
+  }
+}
+
+/**
+ * Mengambil anotasi review analis manusia berdasarkan runId atau caseId
+ */
+export async function getCommentReviewAnnotationsFromDB(runId?: string, caseId?: string): Promise<CommentReviewAnnotation[]> {
+  try {
+    const annotations = await performTransaction<CommentReviewAnnotation[]>(
+      STORES.COMMENT_REVIEW_ANNOTATIONS,
+      'readonly',
+      (store) => {
+        if (runId) {
+          const index = store.index('runId')
+          return index.getAll(runId)
+        }
+        if (caseId) {
+          const index = store.index('caseId')
+          return index.getAll(caseId)
+        }
+        return store.getAll()
+      }
+    )
+    return annotations || []
+  } catch {
+    const list = Array.from(memoryFallback.commentReviewAnnotations.values())
+    if (runId) {
+      return list.filter(a => a.runId === runId)
+    }
+    if (caseId) {
+      return list.filter(a => a.caseId === caseId)
+    }
+    return list
   }
 }
 

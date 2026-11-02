@@ -31,6 +31,7 @@ import {
   X
 } from 'lucide-react'
 import EvidenceBrowserWorkspace from '../components/EvidenceBrowserWorkspace.tsx'
+import CommentIntelligenceWorkspace from '../components/CommentIntelligenceWorkspace.tsx'
 import type { DebunkKnowledgeEntry } from '../types'
 import {
   getInvestigationCase,
@@ -189,8 +190,8 @@ export default function SocialForensic() {
     }
   }, [activeCase.id, activeCase.mode, activeCase.title, evidenceList.length, refreshCaseData])
 
-  // ─── 2. State Ingestion Console (Sprint 2 - D3 & Gate 0.5 & Sprint 7 Evidence Browser) ───
-  const [ingestTab, setIngestTab] = useState<'TEXT' | 'FILE' | 'URL' | 'PRESET' | 'BROWSER'>('TEXT')
+  // ─── 2. State Ingestion Console (Sprint 2 - D3 & Gate 0.5 & Sprint 7 Evidence Browser & Sprint 8 Comment Intelligence) ───
+  const [ingestTab, setIngestTab] = useState<'TEXT' | 'FILE' | 'URL' | 'PRESET' | 'BROWSER' | 'COMMENTS'>('TEXT')
   const [selectedEvidenceDetail, setSelectedEvidenceDetail] = useState<EvidenceRecord | null>(null)
   const [verifyResultDetail, setVerifyResultDetail] = useState<any | null>(null)
   const [isVerifyingDetail, setIsVerifyingDetail] = useState<boolean>(false)
@@ -1162,6 +1163,29 @@ export default function SocialForensic() {
 
           <button
             type="button"
+            onClick={() => setIngestTab('COMMENTS')}
+            style={{
+              background: ingestTab === 'COMMENTS' ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : 'rgba(16, 185, 129, 0.15)',
+              border: '1px solid #10B981',
+              color: ingestTab === 'COMMENTS' ? '#0B0F17' : '#34D399',
+              padding: '6px 14px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
+            }}
+            title="Buka Subsistem Comment Intelligence & Analisis Sentimen Kognitif (Sprint 8)"
+          >
+            <MessageSquare size={13} />
+            <span>COMMENT INTELLIGENCE</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleExportCasePackage}
             style={{
               background: 'rgba(255, 255, 255, 0.05)',
@@ -1298,7 +1322,7 @@ export default function SocialForensic() {
 
             {/* Tab Ingestion */}
             <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              {(['TEXT', 'FILE', 'URL', 'PRESET', 'BROWSER'] as const).map(tab => (
+              {(['TEXT', 'FILE', 'URL', 'PRESET', 'BROWSER', 'COMMENTS'] as const).map(tab => (
                 <button
                   key={tab}
                   type="button"
@@ -1306,7 +1330,7 @@ export default function SocialForensic() {
                   style={{
                     background: ingestTab === tab ? '#D4AF37' : 'rgba(255, 255, 255, 0.05)',
                     color: ingestTab === tab ? '#0F172A' : '#94A3B8',
-                    border: tab === 'BROWSER' ? '1px solid rgba(212, 175, 55, 0.4)' : 'none',
+                    border: tab === 'BROWSER' ? '1px solid rgba(212, 175, 55, 0.4)' : tab === 'COMMENTS' ? '1px solid rgba(16, 185, 129, 0.4)' : 'none',
                     borderRadius: '4px',
                     padding: '5px 12px',
                     fontSize: '11px',
@@ -1318,7 +1342,8 @@ export default function SocialForensic() {
                   }}
                 >
                   {tab === 'BROWSER' && <Globe size={13} />}
-                  {tab === 'TEXT' ? 'Teks Langsung' : tab === 'FILE' ? 'Unggah Berkas' : tab === 'URL' ? 'Referensi URL' : tab === 'PRESET' ? 'Benchmark Sintetis' : 'Evidence Browser'}
+                  {tab === 'COMMENTS' && <MessageSquare size={13} />}
+                  {tab === 'TEXT' ? 'Teks Langsung' : tab === 'FILE' ? 'Unggah Berkas' : tab === 'URL' ? 'Referensi URL' : tab === 'PRESET' ? 'Benchmark Sintetis' : tab === 'BROWSER' ? 'Evidence Browser' : 'Comment Intelligence'}
                 </button>
               ))}
             </div>
@@ -1522,6 +1547,20 @@ export default function SocialForensic() {
                   onEvidenceSaved={(record) => {
                     refreshCaseData(activeCase.id)
                     setIngestSuccessMsg(`Bukti digital terverifikasi [${record.id}] berhasil ditambahkan ke kasus.`)
+                    setTimeout(() => setIngestSuccessMsg(null), 5000)
+                  }}
+                />
+              </div>
+            )}
+
+            {/* TAB CONTENT: COMMENT INTELLIGENCE (Sprint 8) */}
+            {ingestTab === 'COMMENTS' && (
+              <div style={{ marginTop: '4px' }}>
+                <CommentIntelligenceWorkspace
+                  activeCase={activeCase}
+                  onClose={() => setIngestTab('TEXT')}
+                  onBatchCreated={(batch) => {
+                    setIngestSuccessMsg(`Batch komentar [${batch.batchLabel}] berhasil dibuat untuk kasus ini.`)
                     setTimeout(() => setIngestSuccessMsg(null), 5000)
                   }}
                 />
