@@ -817,7 +817,7 @@ export default function SocialForensic() {
       )}
 
       {/* ─── HEADER UTAMA: TACTICAL ARMORED STEEL CASE PLATE ─── */}
-      <div className="steel-chassis-card" style={{ marginBottom: '20px', position: 'relative' }}>
+      <div className="steel-chassis-card" style={{ marginBottom: '20px', padding: '22px 26px', position: 'relative' }}>
         <span className="bolt-tl" />
         <span className="bolt-tr" />
         <span className="bolt-bl" />
@@ -825,21 +825,23 @@ export default function SocialForensic() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
               <button
                 type="button"
                 onClick={() => navigate('/radar')}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                  color: '#94A3B8',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.18)',
+                  color: '#CBD5E1',
                   borderRadius: '4px',
-                  padding: '4px 8px',
+                  padding: '5px 10px',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '11px'
+                  gap: '5px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <ArrowLeft size={13} />
@@ -851,10 +853,10 @@ export default function SocialForensic() {
                 fontSize: '11px',
                 fontWeight: 800,
                 color: '#D4AF37',
-                padding: '3px 8px',
+                padding: '4px 10px',
                 borderRadius: '4px',
-                background: 'rgba(212, 175, 55, 0.1)',
-                border: '1px solid rgba(212, 175, 55, 0.3)',
+                background: 'rgba(212, 175, 55, 0.12)',
+                border: '1px solid rgba(212, 175, 55, 0.35)',
                 letterSpacing: '1px'
               }}>
                 {activeCase.caseNumber}
@@ -862,9 +864,10 @@ export default function SocialForensic() {
 
               <span style={{
                 fontSize: '10px',
-                fontWeight: 700,
-                padding: '3px 8px',
+                fontWeight: 800,
+                padding: '4px 10px',
                 borderRadius: '4px',
+                letterSpacing: '0.5px',
                 background: activeCase.mode === 'SYNTHETIC_BENCHMARK' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)',
                 color: activeCase.mode === 'SYNTHETIC_BENCHMARK' ? '#FBBF24' : '#34D399',
                 border: `1px solid ${activeCase.mode === 'SYNTHETIC_BENCHMARK' ? '#F59E0B' : '#10B981'}`
@@ -874,16 +877,17 @@ export default function SocialForensic() {
             </div>
 
             <h1 style={{
-              fontSize: '20px',
+              fontSize: '22px',
               fontFamily: 'var(--font-display)',
               fontWeight: 800,
               color: '#F8FAFC',
-              letterSpacing: '1px',
-              margin: '0 0 6px 0'
+              letterSpacing: '0.8px',
+              margin: '0 0 8px 0',
+              lineHeight: 1.3
             }}>
               {activeCase.title}
             </h1>
-            <p style={{ fontSize: '12px', color: '#94A3B8', margin: 0, maxWidth: '780px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '13px', color: '#CBD5E1', margin: 0, maxWidth: '820px', lineHeight: 1.6 }}>
               {activeCase.summary}
             </p>
           </div>
@@ -891,7 +895,7 @@ export default function SocialForensic() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {/* Status Dropdown */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '11px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>STATUS:</span>
+              <span style={{ fontSize: '11px', color: '#94A3B8', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>STATUS:</span>
               <select
                 value={activeCase.status}
                 onChange={(e) => {
@@ -902,7 +906,7 @@ export default function SocialForensic() {
                   background: '#0F172A',
                   border: '1px solid rgba(255, 255, 255, 0.2)',
                   color: '#F1F5F9',
-                  padding: '5px 10px',
+                  padding: '6px 12px',
                   borderRadius: '4px',
                   fontSize: '11px',
                   fontWeight: 700,
@@ -924,7 +928,7 @@ export default function SocialForensic() {
               onClick={() => setIsAuditModalOpen(true)}
               style={{
                 background: 'rgba(255, 255, 255, 0.06)',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                border: '1px solid rgba(255, 255, 255, 0.18)',
                 color: '#CBD5E1',
                 padding: '6px 12px',
                 borderRadius: '4px',
@@ -933,7 +937,8 @@ export default function SocialForensic() {
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '6px',
+                transition: 'all 0.15s ease'
               }}
             >
               <History size={13} />
@@ -974,26 +979,26 @@ export default function SocialForensic() {
 
         {/* Baris Metadata Kasus */}
         <div style={{
-          marginTop: '14px',
-          paddingTop: '10px',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          marginTop: '16px',
+          paddingTop: '12px',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           fontSize: '11px',
-          color: '#64748B',
+          color: '#94A3B8',
           flexWrap: 'wrap',
-          gap: '10px'
+          gap: '12px'
         }}>
           <div>
-            <span>Dikelola oleh: <strong>{activeCase.createdByLocalOperator}</strong></span>
+            <span>Dikelola oleh: <strong style={{ color: '#F1F5F9' }}>{activeCase.createdByLocalOperator}</strong></span>
             <span style={{ margin: '0 8px' }}>•</span>
             <span>Diperbarui: {new Date(activeCase.updatedAt).toLocaleTimeString('id-ID')} WIB</span>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <span>Katalog Bukti: <strong style={{ color: '#F1F5F9' }}>{evidenceList.length}</strong> Berkas</span>
-            <span>Klaim Terdaftar: <strong style={{ color: '#F1F5F9' }}>{claimsList.length}</strong> Klaim</span>
-            <span>Relasi Aktif: <strong style={{ color: '#F1F5F9' }}>{relationsList.length}</strong> Tautan</span>
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <span>Katalog Bukti: <strong style={{ color: '#38BDF8' }}>{evidenceList.length}</strong> Berkas</span>
+            <span>Klaim Terdaftar: <strong style={{ color: '#D4AF37' }}>{claimsList.length}</strong> Klaim</span>
+            <span>Relasi Aktif: <strong style={{ color: '#34D399' }}>{relationsList.length}</strong> Tautan</span>
           </div>
         </div>
       </div>
@@ -1014,26 +1019,26 @@ export default function SocialForensic() {
       )}
 
       {/* ─── PANEL CAKUPAN BUKTI & KESIAPAN KASUS (SPRINT 3 - P1) ─── */}
-      <div className="steel-chassis-card" style={{ marginBottom: '20px', position: 'relative' }}>
+      <div className="steel-chassis-card" style={{ marginBottom: '20px', padding: '20px 24px', position: 'relative' }}>
         <span className="bolt-tl" />
         <span className="bolt-tr" />
         <span className="bolt-bl" />
         <span className="bolt-br" />
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldCheck size={16} color="#D4AF37" />
-            <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '1px', color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+            <ShieldCheck size={17} color="#D4AF37" />
+            <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', color: '#F8FAFC', fontFamily: 'var(--font-mono)' }}>
               CAKUPAN BUKTI & KESIAPAN KASUS (INVESTIGATION COVERAGE & READINESS)
             </span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '10px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>STATUS KESIAPAN:</span>
+            <span style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>STATUS KESIAPAN:</span>
             <span style={{
               fontSize: '10px',
               fontWeight: 800,
-              padding: '3px 10px',
+              padding: '4px 10px',
               borderRadius: '4px',
               letterSpacing: '0.8px',
               background: coverageSummary.readinessStatus === 'READY_FOR_ANALYST_CONCLUSION' ? 'rgba(16, 185, 129, 0.15)' :
@@ -1045,7 +1050,7 @@ export default function SocialForensic() {
                 coverageSummary.readinessStatus === 'CONCLUDED_BY_ANALYST' ? '#38BDF8' :
                 coverageSummary.readinessStatus === 'CONFLICTS_UNRESOLVED' ? '#F87171' :
                 coverageSummary.readinessStatus === 'EVIDENCE_REVIEW_REQUIRED' ? '#D4AF37' :
-                '#94A3B8',
+                '#CBD5E1',
               border: `1px solid ${
                 coverageSummary.readinessStatus === 'READY_FOR_ANALYST_CONCLUSION' ? '#10B981' :
                 coverageSummary.readinessStatus === 'CONCLUDED_BY_ANALYST' ? '#38BDF8' :
@@ -1060,21 +1065,21 @@ export default function SocialForensic() {
         </div>
 
         {/* Alasan Status */}
-        <p style={{ fontSize: '11px', color: '#CBD5E1', margin: '0 0 14px 0', lineHeight: 1.5 }}>
+        <p style={{ fontSize: '12px', color: '#CBD5E1', margin: '0 0 16px 0', lineHeight: 1.6 }}>
           {coverageSummary.readinessReason}
         </p>
 
         {/* 4 Indikator Terukur (Numerator / Denominator Transparan) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '16px' }}>
           {coverageSummary.indicators.map((ind, idx) => (
-            <div key={idx} style={{ background: '#0F172A', padding: '10px 12px', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <span style={{ fontSize: '10px', color: '#94A3B8', fontWeight: 600 }}>{ind.label}</span>
+            <div key={idx} style={{ background: 'rgba(15, 23, 42, 0.85)', padding: '12px 14px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '11px', color: '#CBD5E1', fontWeight: 600 }}>{ind.label}</span>
                 <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: ind.status === 'COMPLETE' ? '#34D399' : '#D4AF37' }}>
                   {ind.current}/{ind.total} ({ind.percentage}%)
                 </span>
               </div>
-              <div style={{ width: '100%', height: '4px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '5px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '3px', overflow: 'hidden' }}>
                 <div style={{
                   width: `${ind.percentage}%`,
                   height: '100%',
@@ -1082,7 +1087,7 @@ export default function SocialForensic() {
                   transition: 'width 0.3s ease'
                 }} />
               </div>
-              <div style={{ fontSize: '9px', color: '#64748B', marginTop: '4px' }}>
+              <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '6px' }}>
                 {ind.details}
               </div>
             </div>
@@ -1091,17 +1096,17 @@ export default function SocialForensic() {
 
         {/* Tindakan Terarah (Suggested Actions) */}
         {coverageSummary.suggestedActions.length > 0 && (
-          <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px 14px', borderRadius: '4px', borderLeft: '3px solid #D4AF37', marginBottom: '14px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 800, color: '#D4AF37', letterSpacing: '0.8px', marginBottom: '6px' }}>
+          <div style={{ background: 'rgba(15, 23, 42, 0.7)', padding: '12px 16px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.06)', borderLeft: '3px solid #D4AF37', marginBottom: '16px' }}>
+            <div style={{ fontSize: '10px', fontWeight: 800, color: '#D4AF37', letterSpacing: '0.8px', marginBottom: '8px' }}>
               REKOMENDASI TINDAKAN TERARAH (DETERMINISTIC NEXT ACTIONS):
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {coverageSummary.suggestedActions.slice(0, 3).map((act, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '11px', color: '#CBD5E1' }}>
                   <span style={{
                     fontSize: '9px',
                     fontWeight: 800,
-                    padding: '1px 6px',
+                    padding: '2px 6px',
                     borderRadius: '3px',
                     background: act.priority === 'HIGH' ? 'rgba(239, 68, 68, 0.2)' : act.priority === 'MEDIUM' ? 'rgba(212, 175, 55, 0.2)' : 'rgba(100, 116, 139, 0.2)',
                     color: act.priority === 'HIGH' ? '#F87171' : act.priority === 'MEDIUM' ? '#D4AF37' : '#94A3B8',
@@ -1110,8 +1115,8 @@ export default function SocialForensic() {
                     {act.priority}
                   </span>
                   <div>
-                    <strong>{act.description}</strong>
-                    <span style={{ fontSize: '10px', color: '#64748B', marginLeft: '6px' }}>({act.ruleExplanation})</span>
+                    <strong style={{ color: '#F8FAFC' }}>{act.description}</strong>
+                    <span style={{ fontSize: '10px', color: '#94A3B8', marginLeft: '6px' }}>({act.ruleExplanation})</span>
                   </div>
                 </div>
               ))}
@@ -1120,7 +1125,7 @@ export default function SocialForensic() {
         )}
 
         {/* Toolbar Operasional Terpadu (Sprint 3 Command Strip) */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '12px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '14px', alignItems: 'center' }}>
           <button
             type="button"
             onClick={() => {
@@ -1380,24 +1385,24 @@ export default function SocialForensic() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* ── PANEL 1: SECURE EVIDENCE INGESTION CONSOLE (D3 & G0.5) ── */}
-          <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <div className="steel-chassis-card" style={{ padding: '20px 24px', position: 'relative' }}>
             <span className="bolt-tl" />
             <span className="bolt-tr" />
             <span className="bolt-bl" />
             <span className="bolt-br" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Upload size={15} color="#D4AF37" />
-                <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '1px', color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+                <Upload size={16} color="#D4AF37" />
+                <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', color: '#F8FAFC', fontFamily: 'var(--font-mono)' }}>
                   PORTAL PEMASUKAN BUKTI LOKAL (SECURE INGESTION)
                 </span>
               </div>
-              <span style={{ fontSize: '10px', color: '#64748B' }}>Local-First • Anti-SSRF • UU PDP</span>
+              <span style={{ fontSize: '11px', color: '#94A3B8' }}>Local-First • Anti-SSRF • UU PDP</span>
             </div>
 
             {/* Tab Ingestion */}
-            <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
               {(['TEXT', 'FILE', 'URL', 'PRESET', 'BROWSER', 'COMMENTS'] as const).map(tab => (
                 <button
                   key={tab}
@@ -1657,20 +1662,20 @@ export default function SocialForensic() {
           </div>
 
           {/* ── PANEL 2: CLAIM MANAGEMENT & REVIEW LIST (D5) ── */}
-          <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <div className="steel-chassis-card" style={{ padding: '20px 24px', position: 'relative' }}>
             <span className="bolt-tl" />
             <span className="bolt-tr" />
             <span className="bolt-bl" />
             <span className="bolt-br" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Layers size={15} color="#D4AF37" />
-                <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '1px', color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+                <Layers size={16} color="#D4AF37" />
+                <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', color: '#F8FAFC', fontFamily: 'var(--font-mono)' }}>
                   DAFTAR KLAIM ATOMIK & PENELAAHAN STATUS (D5)
                 </span>
               </div>
-              <span style={{ fontSize: '10px', color: '#64748B' }}>Claim vs Publication Firewall</span>
+              <span style={{ fontSize: '11px', color: '#94A3B8' }}>Claim vs Publication Firewall</span>
             </div>
 
             {/* Form Tambah Klaim Baru */}
@@ -1681,7 +1686,7 @@ export default function SocialForensic() {
                 placeholder="Rumuskan klaim spesifik yang akan diuji (contoh: Alutsista TNI AL dinyatakan tidak beroperasi)..."
                 value={newClaimText}
                 onChange={e => setNewClaimText(e.target.value)}
-                style={{ flex: 1, fontSize: '11px' }}
+                style={{ flex: 1, fontSize: '12px' }}
                 onKeyDown={e => { if (e.key === 'Enter') handleCreateNewClaim() }}
               />
               <button
@@ -1691,7 +1696,7 @@ export default function SocialForensic() {
                   background: 'linear-gradient(135deg, #1E293B, #0F172A)',
                   border: '1px solid #D4AF37',
                   color: '#D4AF37',
-                  padding: '6px 12px',
+                  padding: '6px 14px',
                   borderRadius: '4px',
                   fontSize: '11px',
                   fontWeight: 700,
@@ -1704,7 +1709,7 @@ export default function SocialForensic() {
 
             {/* Daftar Klaim yang Terdaftar */}
             {claimsList.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#64748B', fontSize: '12px' }}>
+              <div style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '6px' }}>
                 Belum ada klaim atomik terdaftar dalam berkas kasus ini.
               </div>
             ) : (
@@ -1720,9 +1725,9 @@ export default function SocialForensic() {
                     <div
                       key={c.id}
                       style={{
-                        background: '#0F172A',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        padding: '12px 14px',
+                        background: 'rgba(15, 23, 42, 0.85)',
+                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                        padding: '14px 16px',
                         borderRadius: '6px',
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -1732,15 +1737,15 @@ export default function SocialForensic() {
                       }}
                     >
                       <div style={{ flex: 1, minWidth: '240px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>
                           "{c.claimText}"
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: '#64748B' }}>
-                          <span style={{ fontFamily: 'monospace' }}>{c.id}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#94A3B8' }}>
+                          <span style={{ fontFamily: 'monospace', color: '#CBD5E1' }}>{c.id}</span>
                           <span>•</span>
-                          <span style={{ color: '#10B981' }}>{suppCount} Bukti Dukung</span>
+                          <span style={{ color: '#34D399', fontWeight: 600 }}>{suppCount} Bukti Dukung</span>
                           <span>•</span>
-                          <span style={{ color: '#EF4444' }}>{contCount} Bukti Bantah</span>
+                          <span style={{ color: '#F87171', fontWeight: 600 }}>{contCount} Bukti Bantah</span>
                         </div>
                       </div>
 
@@ -1816,51 +1821,51 @@ export default function SocialForensic() {
           </div>
 
           {/* ── PANEL 3: EVIDENCE PROVENANCE & INTEGRITY LEDGER (D4) ── */}
-          <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <div className="steel-chassis-card" style={{ padding: '20px 24px', position: 'relative' }}>
             <span className="bolt-tl" />
             <span className="bolt-tr" />
             <span className="bolt-bl" />
             <span className="bolt-br" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Database size={15} color="#D4AF37" />
-                <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '1px', color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+                <Database size={16} color="#D4AF37" />
+                <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', color: '#F8FAFC', fontFamily: 'var(--font-mono)' }}>
                   LEDGER BUKTI DIGITAL & INTEGRITAS HASH (D4)
                 </span>
               </div>
-              <span style={{ fontSize: '10px', color: '#64748B' }}>SHA-256 Byte Snapshot</span>
+              <span style={{ fontSize: '11px', color: '#94A3B8' }}>SHA-256 Byte Snapshot</span>
             </div>
 
             {evidenceList.length === 0 ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#64748B', fontSize: '12px' }}>
+              <div style={{ padding: '28px', textAlign: 'center', color: '#94A3B8', fontSize: '12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '6px' }}>
                 Belum ada rekaman bukti digital tersimpan dalam kasus ini.
               </div>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
+              <div style={{ overflowX: 'auto', background: '#090C10', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '6px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
                   <thead>
-                    <tr style={{ background: '#0F172A', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#94A3B8' }}>
-                      <th style={{ padding: '8px' }}>ID BUKTI</th>
-                      <th style={{ padding: '8px' }}>TIPE & SUMBER</th>
-                      <th style={{ padding: '8px' }}>PROVENANCE WAKTU</th>
-                      <th style={{ padding: '8px' }}>KONTEN (REDAKSI)</th>
-                      <th style={{ padding: '8px' }}>HASH SHA-256</th>
-                      <th style={{ padding: '8px' }}>INTEGRITAS</th>
-                      <th style={{ padding: '8px', width: '70px' }}>AKSI</th>
+                    <tr style={{ background: '#0F172A', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', color: '#CBD5E1' }}>
+                      <th style={{ padding: '10px 12px' }}>ID BUKTI</th>
+                      <th style={{ padding: '10px 12px' }}>TIPE & SUMBER</th>
+                      <th style={{ padding: '10px 12px' }}>PROVENANCE WAKTU</th>
+                      <th style={{ padding: '10px 12px' }}>KONTEN (REDAKSI)</th>
+                      <th style={{ padding: '10px 12px' }}>HASH SHA-256</th>
+                      <th style={{ padding: '10px 12px' }}>INTEGRITAS</th>
+                      <th style={{ padding: '10px 12px', width: '70px' }}>AKSI</th>
                     </tr>
                   </thead>
                   <tbody>
                     {evidenceList.map(ev => (
                       <tr key={ev.id} style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                        <td style={{ padding: '8px', fontFamily: 'monospace', color: '#D4AF37', verticalAlign: 'top' }}>
+                        <td style={{ padding: '10px 12px', fontFamily: 'monospace', color: '#D4AF37', verticalAlign: 'top' }}>
                           {ev.id}
                         </td>
-                        <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                        <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
                           <div style={{ fontWeight: 700, color: '#F1F5F9' }}>{ev.sourceLabel}</div>
-                          <div style={{ fontSize: '9px', color: '#64748B' }}>{ev.evidenceType}</div>
+                          <div style={{ fontSize: '10px', color: '#94A3B8' }}>{ev.evidenceType}</div>
                         </td>
-                        <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                        <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
                           <span style={{
                             fontSize: '9px',
                             padding: '2px 6px',
@@ -1871,12 +1876,12 @@ export default function SocialForensic() {
                             {ev.sourceTimestampProvenance}
                           </span>
                         </td>
-                        <td style={{ padding: '8px', verticalAlign: 'top', maxWidth: '240px', color: '#CBD5E1' }}>
+                        <td style={{ padding: '10px 12px', verticalAlign: 'top', maxWidth: '240px', color: '#CBD5E1' }}>
                           <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {ev.redactedText || ev.extractedText}
                           </div>
                         </td>
-                        <td style={{ padding: '8px', verticalAlign: 'top', fontFamily: 'monospace', fontSize: '9px', color: '#64748B' }}>
+                        <td style={{ padding: '10px 12px', verticalAlign: 'top', fontFamily: 'monospace', fontSize: '10px', color: '#94A3B8' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <span>{ev.contentHashNormalized.slice(0, 12)}...</span>
                             <button
@@ -1892,14 +1897,14 @@ export default function SocialForensic() {
                             </button>
                           </div>
                         </td>
-                        <td style={{ padding: '8px', verticalAlign: 'top' }}>
+                        <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
                           <span style={{
                             fontSize: '9px',
                             padding: '2px 6px',
                             borderRadius: '3px',
                             fontWeight: 700,
                             background: ev.metadata?.integrityStatus === 'VERIFIED' ? 'rgba(16, 185, 129, 0.15)' : ev.metadata?.integrityStatus === 'TAMPERED' ? 'rgba(239, 68, 68, 0.2)' : ev.metadata?.integrityStatus === 'MISSING_ARTIFACT' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(100, 116, 139, 0.15)',
-                            color: ev.metadata?.integrityStatus === 'VERIFIED' ? '#34D399' : ev.metadata?.integrityStatus === 'TAMPERED' ? '#F87171' : ev.metadata?.integrityStatus === 'MISSING_ARTIFACT' ? '#FBBF24' : '#94A3B8',
+                            color: ev.metadata?.integrityStatus === 'VERIFIED' ? '#34D399' : ev.metadata?.integrityStatus === 'TAMPERED' ? '#F87171' : ev.metadata?.integrityStatus === 'MISSING_ARTIFACT' ? '#FBBF24' : '#CBD5E1',
                             border: `1px solid ${ev.metadata?.integrityStatus === 'VERIFIED' ? 'rgba(16, 185, 129, 0.4)' : ev.metadata?.integrityStatus === 'TAMPERED' ? '#EF4444' : 'rgba(255, 255, 255, 0.1)'}`
                           }}>
                             {ev.metadata?.integrityStatus === 'VERIFIED' ? 'TERVERIFIKASI' : ev.metadata?.integrityStatus === 'TAMPERED' ? 'TAMPERED' : ev.metadata?.integrityStatus === 'MISSING_ARTIFACT' ? 'HILANG' : 'BELUM DIUJI'}
@@ -1955,135 +1960,137 @@ export default function SocialForensic() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* ── PANEL 4: NARRATIVE SIMILARITY PROFILE (D6 - BER-DENOMINATOR JUJUR) ── */}
-          <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <div className="steel-chassis-card" style={{ padding: '20px 24px', position: 'relative' }}>
             <span className="bolt-tl" />
             <span className="bolt-tr" />
             <span className="bolt-bl" />
             <span className="bolt-br" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={15} color="#D4AF37" />
-                <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '1px', color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+                <Sparkles size={16} color="#D4AF37" />
+                <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', color: '#F8FAFC', fontFamily: 'var(--font-mono)' }}>
                   PROFIL KEMIRIPAN TEKS (NARRATIVE SIMILARITY)
                 </span>
               </div>
-              <span style={{ fontSize: '10px', color: '#64748B' }}>Jaccard N-Gram • Tanpa Vonis Aktor</span>
+              <span style={{ fontSize: '11px', color: '#94A3B8' }}>Jaccard N-Gram • Tanpa Vonis Aktor</span>
             </div>
 
             {/* 3 Metric Cards: Near Duplicate, High Similarity, Distinct */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '14px' }}>
-              <div style={{ background: '#0F172A', padding: '12px 10px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-                <div style={{ fontSize: '9px', fontWeight: 800, color: '#F87171', letterSpacing: '0.8px' }}>NEAR DUPLICATE</div>
-                <div style={{ fontSize: '20px', fontWeight: 800, color: '#F1F5F9', margin: '4px 0' }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.85)', padding: '12px 14px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.35)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: '#F87171', letterSpacing: '0.8px' }}>NEAR DUPLICATE</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#F8FAFC', margin: '4px 0' }}>
                   {narrativeProfileResult.profile.nearDuplicatePercent}%
                 </div>
-                <div style={{ fontSize: '10px', color: '#64748B' }}>
+                <div style={{ fontSize: '10px', color: '#94A3B8' }}>
                   {narrativeProfileResult.profile.nearDuplicateCount} dari {narrativeProfileResult.profile.totalAnalyzedRecords} sampel
                 </div>
               </div>
 
-              <div style={{ background: '#0F172A', padding: '12px 10px', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
-                <div style={{ fontSize: '9px', fontWeight: 800, color: '#FBBF24', letterSpacing: '0.8px' }}>HIGH SIMILARITY</div>
-                <div style={{ fontSize: '20px', fontWeight: 800, color: '#F1F5F9', margin: '4px 0' }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.85)', padding: '12px 14px', borderRadius: '6px', border: '1px solid rgba(245, 158, 11, 0.35)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: '#FBBF24', letterSpacing: '0.8px' }}>HIGH SIMILARITY</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#F8FAFC', margin: '4px 0' }}>
                   {narrativeProfileResult.profile.highSimilarityPercent}%
                 </div>
-                <div style={{ fontSize: '10px', color: '#64748B' }}>
+                <div style={{ fontSize: '10px', color: '#94A3B8' }}>
                   {narrativeProfileResult.profile.highSimilarityCount} dari {narrativeProfileResult.profile.totalAnalyzedRecords} sampel
                 </div>
               </div>
 
-              <div style={{ background: '#0F172A', padding: '12px 10px', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
-                <div style={{ fontSize: '9px', fontWeight: 800, color: '#34D399', letterSpacing: '0.8px' }}>DISTINCT</div>
-                <div style={{ fontSize: '20px', fontWeight: 800, color: '#F1F5F9', margin: '4px 0' }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.85)', padding: '12px 14px', borderRadius: '6px', border: '1px solid rgba(16, 185, 129, 0.35)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: '#34D399', letterSpacing: '0.8px' }}>DISTINCT</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#F8FAFC', margin: '4px 0' }}>
                   {narrativeProfileResult.profile.distinctPercent}%
                 </div>
-                <div style={{ fontSize: '10px', color: '#64748B' }}>
+                <div style={{ fontSize: '10px', color: '#94A3B8' }}>
                   {narrativeProfileResult.profile.distinctCount} dari {narrativeProfileResult.profile.totalAnalyzedRecords} sampel
                 </div>
               </div>
             </div>
 
             {/* Denominator & Transparansi Statistik */}
-            <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '10px', borderRadius: '4px', fontSize: '10px', color: '#94A3B8', lineHeight: 1.5 }}>
+            <div style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(255, 255, 255, 0.06)', padding: '12px 14px', borderRadius: '6px', fontSize: '11px', color: '#CBD5E1', lineHeight: 1.6 }}>
               <div><strong>Denominator:</strong> {narrativeProfileResult.profile.totalAnalyzedRecords} record dianalisis ({narrativeProfileResult.profile.totalPairsCompared} pasangan uji dikomparasikan).</div>
-              <div><strong>Status Sampel:</strong> {narrativeProfileResult.profile.sampleSufficiencyState}</div>
-              <div style={{ color: '#64748B', marginTop: '4px' }}>
+              <div style={{ marginTop: '2px' }}><strong>Status Sampel:</strong> <span style={{ color: '#D4AF37', fontWeight: 700 }}>{narrativeProfileResult.profile.sampleSufficiencyState}</span></div>
+              <div style={{ color: '#94A3B8', marginTop: '6px', fontSize: '10px', fontStyle: 'italic' }}>
                 *Catatan Ilmiah: Kemiripan teks merefleksikan leksikon sampel masukan, bukan bukti keterlibatan akun botnet atau sindikat bayaran.
               </div>
             </div>
           </div>
 
           {/* ── PANEL 5: TEMPORAL VELOCITY & CADENCE ANALYSIS (D6.C) ── */}
-          <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <div className="steel-chassis-card" style={{ padding: '20px 24px', position: 'relative' }}>
             <span className="bolt-tl" />
             <span className="bolt-tr" />
             <span className="bolt-bl" />
             <span className="bolt-br" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Clock size={15} color="#D4AF37" />
-                <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '1px', color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+                <Clock size={16} color="#D4AF37" />
+                <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', color: '#F8FAFC', fontFamily: 'var(--font-mono)' }}>
                   ANALISIS KADENSI TEMPORAL & LAJU SEMBURAN
                 </span>
               </div>
               <span style={{
-                fontSize: '9px',
-                padding: '2px 6px',
-                borderRadius: '3px',
+                fontSize: '10px',
+                padding: '3px 8px',
+                borderRadius: '4px',
+                fontWeight: 700,
                 background: temporalAnalysisResult.availability === 'AVAILABLE' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                color: temporalAnalysisResult.availability === 'AVAILABLE' ? '#34D399' : '#FBBF24'
+                color: temporalAnalysisResult.availability === 'AVAILABLE' ? '#34D399' : '#FBBF24',
+                border: `1px solid ${temporalAnalysisResult.availability === 'AVAILABLE' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(245, 158, 11, 0.4)'}`
               }}>
                 {temporalAnalysisResult.availability}
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-              <div style={{ background: '#0F172A', padding: '12px', borderRadius: '6px' }}>
-                <div style={{ fontSize: '10px', color: '#64748B', marginBottom: '4px' }}>LAJU SEMBURAN (BURST VELOCITY)</div>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: temporalAnalysisResult.burstVelocityPerMinute !== null ? '#F1F5F9' : '#64748B' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.85)', padding: '14px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '6px', fontWeight: 600 }}>LAJU SEMBURAN (BURST VELOCITY)</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: temporalAnalysisResult.burstVelocityPerMinute !== null ? '#F8FAFC' : '#64748B' }}>
                   {temporalAnalysisResult.burstVelocityPerMinute !== null ? `${temporalAnalysisResult.burstVelocityPerMinute} rec/menit` : 'TIDAK TERSEDIA'}
                 </div>
               </div>
 
-              <div style={{ background: '#0F172A', padding: '12px', borderRadius: '6px' }}>
-                <div style={{ fontSize: '10px', color: '#64748B', marginBottom: '4px' }}>INTERVAL RATA-RATA</div>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: temporalAnalysisResult.averageIntervalSeconds !== null ? '#F1F5F9' : '#64748B' }}>
+              <div style={{ background: 'rgba(15, 23, 42, 0.85)', padding: '14px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <div style={{ fontSize: '10px', color: '#94A3B8', marginBottom: '6px', fontWeight: 600 }}>INTERVAL RATA-RATA</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: temporalAnalysisResult.averageIntervalSeconds !== null ? '#F8FAFC' : '#64748B' }}>
                   {temporalAnalysisResult.averageIntervalSeconds !== null ? `${temporalAnalysisResult.averageIntervalSeconds} detik` : 'TIDAK TERSEDIA'}
                 </div>
               </div>
             </div>
 
-            <div style={{ fontSize: '10px', color: '#94A3B8', lineHeight: 1.5 }}>
-              <div>Cakupan Stempel Waktu: <strong>{temporalAnalysisResult.sourceTimestampCoveragePercent}%</strong> ({temporalAnalysisResult.validTimestampCount} dari {temporalAnalysisResult.totalSampleCount} berkas)</div>
+            <div style={{ fontSize: '11px', color: '#CBD5E1', lineHeight: 1.6, background: 'rgba(15, 23, 42, 0.6)', padding: '10px 12px', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div>Cakupan Stempel Waktu: <strong style={{ color: '#F1F5F9' }}>{temporalAnalysisResult.sourceTimestampCoveragePercent}%</strong> ({temporalAnalysisResult.validTimestampCount} dari {temporalAnalysisResult.totalSampleCount} berkas)</div>
               {temporalAnalysisResult.limitations.map((lim, idx) => (
-                <div key={idx} style={{ color: '#F59E0B', marginTop: '2px' }}>• {lim}</div>
+                <div key={idx} style={{ color: '#FBBF24', marginTop: '3px', fontSize: '10px' }}>• {lim}</div>
               ))}
             </div>
           </div>
 
           {/* ── PANEL 6: NARRATIVE RELATIONSHIP GRAPH (D6.E) ── */}
-          <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <div className="steel-chassis-card" style={{ padding: '20px 24px', position: 'relative' }}>
             <span className="bolt-tl" />
             <span className="bolt-tr" />
             <span className="bolt-bl" />
             <span className="bolt-br" />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Share2 size={15} color="#D4AF37" />
-                <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '1px', color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+                <Share2 size={16} color="#D4AF37" />
+                <span style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1px', color: '#F8FAFC', fontFamily: 'var(--font-mono)' }}>
                   GRAF TOPOLOGI HUBUNGAN NARATIF & KLAIM
                 </span>
               </div>
-              <span style={{ fontSize: '10px', color: '#64748B' }}>{relationshipGraph.nodes.length} Simpul • {relationshipGraph.edges.length} Tautan</span>
+              <span style={{ fontSize: '11px', color: '#94A3B8' }}>{relationshipGraph.nodes.length} Simpul • {relationshipGraph.edges.length} Tautan</span>
             </div>
 
             {/* Interactive SVG Graph Viewer */}
             <div style={{
-              background: '#0B111A',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
+              background: '#090C10',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               borderRadius: '6px',
               height: '240px',
               position: 'relative',
