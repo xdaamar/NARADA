@@ -29,7 +29,9 @@ import {
   Plus,
   Compass,
   HelpCircle,
-  ArrowDownRight
+  ArrowDownRight,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network.ts'
@@ -96,6 +98,22 @@ export default function LiveRadar() {
   })
   const [sourceChannel, setSourceChannel] = useState<'API_PROXY' | 'API_DIRECT' | 'API_CORS_PROXY' | 'LOCAL_ARCHIVE'>('LOCAL_ARCHIVE')
   const [connectorHealth, setConnectorHealth] = useState<Record<string, ConnectorHealth>>(() => getAllConnectorHealth())
+  const [isConnectorDetailsOpen, setIsConnectorDetailsOpen] = useState<boolean>(false)
+
+  const connectorSummary = useMemo(() => {
+    const list = Object.values(connectorHealth)
+    const online = list.filter(c => c.state === 'HEALTHY').length
+    const degraded = list.filter(c => c.state === 'DEGRADED' || c.state === 'RATE_LIMITED' || c.state === 'STALE' || c.state === 'CONNECTING').length
+    const offline = list.filter(c => c.state === 'UNAVAILABLE').length
+    const disabled = list.filter(c => c.state === 'DISABLED').length
+    return {
+      total: list.length,
+      online,
+      degraded,
+      offline,
+      disabled
+    }
+  }, [connectorHealth])
 
   // State Pop-up Notifikasi Intelijen Taktis
   const [isBriefingModalOpen, setIsBriefingModalOpen] = useState<boolean>(false)
@@ -661,77 +679,229 @@ export default function LiveRadar() {
           </div>
         </div>
 
-        {/* ─── KESEHATAN KONEKTOR SUMBER (SPRINT 6 MULTI-STREAM TELEMETRY STRIP) ─── */}
+        {/* ─── KESEHATAN KONEKTOR SUMBER (SPRINT 6 MULTI-STREAM TELEMETRY STRIP - COLLAPSIBLE ACCORDION) ─── */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          marginTop: '10px',
           paddingTop: '8px',
           borderTop: '1px solid #1E2734',
-          flexWrap: 'wrap',
-          fontSize: '9.5px',
-          fontFamily: 'var(--font-mono)'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
         }}>
-          <span style={{ color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Radio size={11} color="#38BDF8" /> STATUS KONEKTOR RADAR ({Object.keys(connectorHealth).length} KANAL):
-          </span>
-          {Object.values(connectorHealth).map(ch => {
-            const isHealthy = ch.state === 'HEALTHY'
-            const isConnecting = ch.state === 'CONNECTING'
-            const isDegraded = ch.state === 'DEGRADED'
-            const isRateLimited = ch.state === 'RATE_LIMITED'
-            const isStale = ch.state === 'STALE'
-            const isUnknown = ch.state === 'UNKNOWN'
-            const isDisabled = ch.state === 'DISABLED'
-            const dotColor = isDisabled ? '#475569' : isHealthy ? '#10B981' : isConnecting ? '#38BDF8' : isDegraded ? '#F59E0B' : isRateLimited ? '#A855F7' : isStale ? '#38BDF8' : isUnknown ? '#94A3B8' : '#EF4444'
-            const statusLabel = isDisabled ? 'DISABLED' : isHealthy ? 'ONLINE' : isConnecting ? 'CONNECTING' : isDegraded ? 'PROXY' : isRateLimited ? 'RATE_LIMIT' : isStale ? 'CACHE' : isUnknown ? 'IDLE' : 'OFFLINE'
-            
-            const schedule = sourceScheduleStates[ch.sourceId]
-            const lastSuccessStr = ch.lastSuccessAt ? new Date(ch.lastSuccessAt).toLocaleTimeString('id-ID') : (schedule?.lastSuccessAt ? new Date(schedule.lastSuccessAt).toLocaleTimeString('id-ID') : 'Belum Ada')
-            const lastAttemptStr = schedule?.lastAttemptAt ? new Date(schedule.lastAttemptAt).toLocaleTimeString('id-ID') : 'Belum Ada'
-            const nextRefreshStr = schedule?.nextDueAt ? (schedule.nextDueAt <= Date.now() ? 'Saat ini (Due)' : new Date(schedule.nextDueAt).toLocaleTimeString('id-ID')) : 'Tergantung Jadwal'
-            const cbStatus = schedule?.circuitBreakerStatus || 'CLOSED'
-            const httpStatusStr = ch.httpStatus ? `HTTP Status: ${ch.httpStatus}\n` : ''
-            
-            const tooltipText = `${ch.sourceName} (${ch.sourceId})\nStatus: ${ch.state} [${statusLabel}]\n${httpStatusStr}Latensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nItem Diterima: ${ch.itemCount || ch.itemCountLastFetch || 0}\nTerakhir Sukses: ${lastSuccessStr}\nTerakhir Dicoba: ${lastAttemptStr}\nJadwal Berikutnya: ${nextRefreshStr}\nCircuit Breaker: ${cbStatus}\nKegagalan Beruntun: ${ch.consecutiveFailures || schedule?.consecutiveFailures || 0}\nKeterangan: ${ch.userReadableMessage}`
+          {/* Header Bar Ringkas (Always Visible 1-Line) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '8px'
+          }}>
+            <div 
+              onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                userSelect: 'none'
+              }}
+              title="Klik untuk buka / tutup rincian 14 kanal radar"
+            >
+              <span style={{ color: '#94A3B8', fontWeight: 700, fontSize: '10.5px', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <Radio size={12} color="#38BDF8" />
+                <span>STATUS KONEKTOR RADAR:</span>
+              </span>
 
-            const displayName = ch.shortLabel || (
-              ch.sourceName.includes('—')
-                ? 'G-News · ' + ch.sourceName.split('—')[1].split('(')[0].trim()
-                : ch.sourceName.replace('Google Trends Indonesia (Search Interest)', 'Google Trends ID').split('(')[0].trim()
-            )
-
-            return (
-              <div
-                key={ch.sourceId}
-                title={tooltipText}
-                style={{
+              {/* Status Counters */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '5px',
-                  padding: '3px 8px',
+                  gap: '4px',
+                  padding: '2px 7px',
                   borderRadius: '3px',
-                  background: '#0B111A',
-                  border: `1px solid ${dotColor}35`,
-                  color: isDisabled ? '#64748B' : '#CBD5E1',
-                  opacity: isDisabled ? 0.7 : 1
-                }}
-              >
-                <span style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: dotColor,
-                  boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none'
-                }} />
-                <span style={{ fontWeight: 700, color: isDisabled ? '#94A3B8' : '#F1F5F9' }}>{displayName}</span>
-                <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
-                {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
-                  <span style={{ color: '#64748B' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  color: '#10B981',
+                  fontSize: '9.5px',
+                  fontWeight: 700,
+                  fontFamily: 'var(--font-mono)'
+                }}>
+                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 4px #10B981' }} />
+                  {connectorSummary.online} Online
+                </span>
+
+                {connectorSummary.degraded > 0 && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 7px',
+                    borderRadius: '3px',
+                    background: 'rgba(245, 158, 11, 0.12)',
+                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    color: '#F59E0B',
+                    fontSize: '9.5px',
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-mono)'
+                  }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F59E0B' }} />
+                    {connectorSummary.degraded} Degraded
+                  </span>
+                )}
+
+                {connectorSummary.offline > 0 && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 7px',
+                    borderRadius: '3px',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#EF4444',
+                    fontSize: '9.5px',
+                    fontWeight: 700,
+                    fontFamily: 'var(--font-mono)'
+                  }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#EF4444' }} />
+                    {connectorSummary.offline} Offline
+                  </span>
+                )}
+
+                {connectorSummary.disabled > 0 && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 7px',
+                    borderRadius: '3px',
+                    background: 'rgba(100, 116, 139, 0.12)',
+                    border: '1px solid rgba(100, 116, 139, 0.3)',
+                    color: '#64748B',
+                    fontSize: '9.5px',
+                    fontWeight: 600,
+                    fontFamily: 'var(--font-mono)'
+                  }}>
+                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#64748B' }} />
+                    {connectorSummary.disabled} Nonaktif
+                  </span>
                 )}
               </div>
-            )
-          })}
+            </div>
+
+            {/* Toggle Button */}
+            <button
+              type="button"
+              onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                background: isConnectorDetailsOpen ? 'rgba(56, 189, 248, 0.12)' : '#090D14',
+                border: isConnectorDetailsOpen ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #1E2734',
+                borderRadius: '4px',
+                color: isConnectorDetailsOpen ? '#38BDF8' : '#94A3B8',
+                fontSize: '10px',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)',
+                padding: '3px 8px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              title={isConnectorDetailsOpen ? 'Tutup rincian kanal' : 'Buka rincian 14 kanal radar'}
+            >
+              <span>{isConnectorDetailsOpen ? 'Sembunyikan Kanal' : `Lihat Detail (${connectorSummary.total} Kanal)`}</span>
+              {isConnectorDetailsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            </button>
+          </div>
+
+          {/* Tray Dropdown Detail Kanal (Hanya Tampil Saat Buka) */}
+          {isConnectorDetailsOpen && (
+            <div style={{
+              background: '#070B11',
+              border: '1px solid #1E2734',
+              borderRadius: '6px',
+              padding: '10px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              animation: 'fadeIn 200ms ease-out'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                <span>RINCIAN MULTI-STREAM TELEMETRY & CIRCUIT BREAKER (HOVER UNTUK METRIK LENGKAP)</span>
+                <span>STATUS KONEKSI: {connectorSummary.online}/{connectorSummary.total} AKTIF</span>
+              </div>
+              
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                flexWrap: 'wrap',
+                fontSize: '9.5px',
+                fontFamily: 'var(--font-mono)'
+              }}>
+                {Object.values(connectorHealth).map(ch => {
+                  const isHealthy = ch.state === 'HEALTHY'
+                  const isConnecting = ch.state === 'CONNECTING'
+                  const isDegraded = ch.state === 'DEGRADED'
+                  const isRateLimited = ch.state === 'RATE_LIMITED'
+                  const isStale = ch.state === 'STALE'
+                  const isUnknown = ch.state === 'UNKNOWN'
+                  const isDisabled = ch.state === 'DISABLED'
+                  const dotColor = isDisabled ? '#475569' : isHealthy ? '#10B981' : isConnecting ? '#38BDF8' : isDegraded ? '#F59E0B' : isRateLimited ? '#A855F7' : isStale ? '#38BDF8' : isUnknown ? '#94A3B8' : '#EF4444'
+                  const statusLabel = isDisabled ? 'DISABLED' : isHealthy ? 'ONLINE' : isConnecting ? 'CONNECTING' : isDegraded ? 'PROXY' : isRateLimited ? 'RATE_LIMIT' : isStale ? 'CACHE' : isUnknown ? 'IDLE' : 'OFFLINE'
+                  
+                  const schedule = sourceScheduleStates[ch.sourceId]
+                  const lastSuccessStr = ch.lastSuccessAt ? new Date(ch.lastSuccessAt).toLocaleTimeString('id-ID') : (schedule?.lastSuccessAt ? new Date(schedule.lastSuccessAt).toLocaleTimeString('id-ID') : 'Belum Ada')
+                  const lastAttemptStr = schedule?.lastAttemptAt ? new Date(schedule.lastAttemptAt).toLocaleTimeString('id-ID') : 'Belum Ada'
+                  const nextRefreshStr = schedule?.nextDueAt ? (schedule.nextDueAt <= Date.now() ? 'Saat ini (Due)' : new Date(schedule.nextDueAt).toLocaleTimeString('id-ID')) : 'Tergantung Jadwal'
+                  const cbStatus = schedule?.circuitBreakerStatus || 'CLOSED'
+                  const httpStatusStr = ch.httpStatus ? `HTTP Status: ${ch.httpStatus}\n` : ''
+                  
+                  const tooltipText = `${ch.sourceName} (${ch.sourceId})\nStatus: ${ch.state} [${statusLabel}]\n${httpStatusStr}Latensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nItem Diterima: ${ch.itemCount || ch.itemCountLastFetch || 0}\nTerakhir Sukses: ${lastSuccessStr}\nTerakhir Dicoba: ${lastAttemptStr}\nJadwal Berikutnya: ${nextRefreshStr}\nCircuit Breaker: ${cbStatus}\nKegagalan Beruntun: ${ch.consecutiveFailures || schedule?.consecutiveFailures || 0}\nKeterangan: ${ch.userReadableMessage}`
+
+                  const displayName = ch.shortLabel || (
+                    ch.sourceName.includes('—')
+                      ? 'G-News · ' + ch.sourceName.split('—')[1].split('(')[0].trim()
+                      : ch.sourceName.replace('Google Trends Indonesia (Search Interest)', 'Google Trends ID').split('(')[0].trim()
+                  )
+
+                  return (
+                    <div
+                      key={ch.sourceId}
+                      title={tooltipText}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '3px 8px',
+                        borderRadius: '3px',
+                        background: '#0B111A',
+                        border: `1px solid ${dotColor}35`,
+                        color: isDisabled ? '#64748B' : '#CBD5E1',
+                        opacity: isDisabled ? 0.7 : 1,
+                        cursor: 'help'
+                      }}
+                    >
+                      <span style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: dotColor,
+                        boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none'
+                      }} />
+                      <span style={{ fontWeight: 700, color: isDisabled ? '#94A3B8' : '#F1F5F9' }}>{displayName}</span>
+                      <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
+                      {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
+                        <span style={{ color: '#64748B' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
