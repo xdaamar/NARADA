@@ -14,6 +14,7 @@ const {
   closeEvidenceBrowser,
   getBrowserStatus
 } = require('./evidence-browser-manager.cjs')
+const sqliteService = require('./sqlite-service.cjs')
 
 // Single instance lock to prevent duplicate processes and port conflicts
 const gotTheLock = app.requestSingleInstanceLock()
@@ -126,6 +127,145 @@ app.whenReady().then(async () => {
     return getBrowserStatus()
   })
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // Registrasi IPC SQLite Database Handlers (Sprint 9 Work Package B)
+  // Seluruh handler terikat kuat pada validasi pengirim (isTrustedSender)
+  // dan mengeksekusi fungsi repository spesifik (Tanpa arbitrary SQL)
+  // ══════════════════════════════════════════════════════════════════════════
+  ipcMain.handle('narada:db:status', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getDatabaseStatus()
+  })
+
+  ipcMain.handle('narada:db:is-migration-completed', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.isMigrationCompleted()
+  })
+
+  ipcMain.handle('narada:db:import-dump', async (event, dump) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.importDumpFromIndexedDB(dump)
+  })
+
+  ipcMain.handle('narada:db:create-backup', async (event, dest) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.createDatabaseBackup(dest || null)
+  })
+
+  ipcMain.handle('narada:db:check-integrity', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.checkDatabaseIntegrity()
+  })
+
+  // Kasus Investigasi
+  ipcMain.handle('narada:db:save-case', async (event, caseData) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveInvestigationCase(caseData)
+  })
+
+  ipcMain.handle('narada:db:get-case', async (event, id) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getInvestigationCase(id)
+  })
+
+  ipcMain.handle('narada:db:get-all-cases', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getAllInvestigationCases()
+  })
+
+  ipcMain.handle('narada:db:delete-case', async (event, id) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.deleteInvestigationCase(id)
+  })
+
+  // Bukti Digital Forensik
+  ipcMain.handle('narada:db:save-evidence', async (event, record) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveEvidenceRecord(record)
+  })
+
+  ipcMain.handle('narada:db:get-evidence', async (event, caseId) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getEvidenceRecords(caseId)
+  })
+
+  ipcMain.handle('narada:db:delete-evidence', async (event, id) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.deleteEvidenceRecord(id)
+  })
+
+  // Batch & Record Komentar
+  ipcMain.handle('narada:db:save-comment-batch', async (event, batch) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveCommentBatch(batch)
+  })
+
+  ipcMain.handle('narada:db:get-comment-batches', async (event, caseId) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getCommentBatches(caseId)
+  })
+
+  ipcMain.handle('narada:db:get-comment-batch-by-id', async (event, id) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getCommentBatchById(id)
+  })
+
+  ipcMain.handle('narada:db:save-comment-records', async (event, records) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveCommentRecords(records)
+  })
+
+  ipcMain.handle('narada:db:get-comment-records', async (event, batchId) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getCommentRecords(batchId)
+  })
+
+  // Comment Analysis Runs
+  ipcMain.handle('narada:db:save-comment-run', async (event, run) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveCommentAnalysisRun(run)
+  })
+
+  ipcMain.handle('narada:db:get-comment-runs', async (event, batchId) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getCommentAnalysisRuns(batchId)
+  })
+
+  ipcMain.handle('narada:db:get-comment-run-by-id', async (event, id) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getCommentAnalysisRunById(id)
+  })
+
+  // Comment Review Annotations
+  ipcMain.handle('narada:db:save-comment-annotation', async (event, ann) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveCommentReviewAnnotation(ann)
+  })
+
+  ipcMain.handle('narada:db:get-comment-annotations', async (event, runId, caseId) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getCommentReviewAnnotations(runId, caseId)
+  })
+
+  // Radar Cache
+  ipcMain.handle('narada:db:save-radar-items', async (event, items) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveRadarCacheItems(items)
+  })
+
+  ipcMain.handle('narada:db:get-radar-items', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getCachedRadarItems()
+  })
+
+  // Inisialisasi Database Utama di userData
+  try {
+    const dbInit = sqliteService.initSqliteDatabase()
+    console.log('[NARADA Main] SQLite database initialized:', dbInit)
+  } catch (err) {
+    console.error('[NARADA Main] SQLite database initialization failed:', err)
+  }
+
   if (!isDev) {
     try {
       gatewayInstance = await startGatewayServer(5174, '127.0.0.1')
@@ -139,6 +279,12 @@ app.whenReady().then(async () => {
 
 app.on('will-quit', async () => {
   await closeEvidenceBrowser()
+  try {
+    sqliteService.closeSqliteDatabase()
+    console.log('[NARADA Main] SQLite database closed gracefully')
+  } catch (e) {
+    console.error('[NARADA Main] Error closing SQLite database:', e)
+  }
   if (gatewayInstance && gatewayInstance.server) {
     try {
       await stopGatewayServer(gatewayInstance.server)

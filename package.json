@@ -24,8 +24,11 @@
     "test:sprint8": "node scripts/test-sprint-8-intelligence.js",
     "test:sprint8:idb": "node scripts/test-sprint-8-indexeddb.js",
     "test:sprint8:smoke": "node scripts/test-sprint-8-electron-smoke.js",
+    "test:sprint9": "node scripts/test-sprint-9-acceptance.js",
+    "test:sprint9:sqlite": "node scripts/test-sprint-9-sqlite.js",
+    "test:sprint9:smoke": "node scripts/test-sprint-9-electron-smoke.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
-    "electron:build": "tsc -b && vite build && electron-builder --win"
+    "electron:build": "tsc -b && vite build && electron-builder --win nsis --x64"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",

@@ -98,6 +98,17 @@ export function hydrateFromLocalStorage(): void {
       auditEventsList.push(...parsed)
     }
 
+    // Jika berjalan di Electron dengan SQLite aktif, ambil kasus dari SQLite
+    if (window.naradaDatabase) {
+      window.naradaDatabase.getAllCases().then((sqliteCases) => {
+        if (Array.isArray(sqliteCases)) {
+          sqliteCases.forEach(c => casesMap.set(c.id, c))
+        }
+      }).catch(err => {
+        console.warn('[CaseStore] Gagal hidrasi kasus dari SQLite:', err)
+      })
+    }
+
     isHydrated = true
   } catch (err) {
     console.warn('[CaseStore] Gagal membaca storage lokal:', err)
@@ -108,7 +119,16 @@ export function hydrateFromLocalStorage(): void {
  * Menyimpan snapshot ke localStorage secara aman
  */
 function persistToLocalStorage(): void {
-  if (typeof window === 'undefined' || !window.localStorage) return
+  if (typeof window === 'undefined') return
+
+  // Sinkronisasi otomatis ke SQLite Electron jika tersedia (Sprint 9)
+  if (window.naradaDatabase) {
+    for (const c of casesMap.values()) {
+      window.naradaDatabase.saveCase(c).catch(e => console.warn('[CaseStore] Gagal simpan kasus ke SQLite:', e))
+    }
+  }
+
+  if (!window.localStorage) return
   try {
     localStorage.setItem(STORAGE_KEYS.CASES, JSON.stringify(Array.from(casesMap.values())))
     localStorage.setItem(STORAGE_KEYS.EVIDENCE, JSON.stringify(Array.from(evidenceMap.values())))

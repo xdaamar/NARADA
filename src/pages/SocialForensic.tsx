@@ -32,6 +32,13 @@ import {
 } from 'lucide-react'
 import EvidenceBrowserWorkspace from '../components/EvidenceBrowserWorkspace.tsx'
 import CommentIntelligenceWorkspace from '../components/CommentIntelligenceWorkspace.tsx'
+import { generateCaseDossierPdf } from '../engine/export/case-dossier-pdf.ts'
+import {
+  getCommentBatchesFromDB,
+  getCommentAnalysisRunsFromDB,
+  getCommentReviewAnnotationsFromDB,
+  getCachedRadarItems
+} from '../utils/db-adapter.ts'
 import type { DebunkKnowledgeEntry } from '../types'
 import {
   getInvestigationCase,
@@ -403,6 +410,51 @@ export default function SocialForensic() {
       triggerCopyFeedback('Paket kasus berhasil diekspor.')
     } catch (err) {
       setIngestErrorMsg('Gagal mengekspor paket kasus: ' + String(err))
+    }
+  }
+
+  const [isExportingDossier, setIsExportingDossier] = useState<boolean>(false)
+
+  const handleExportUnifiedDossierPdf = async () => {
+    setIsExportingDossier(true)
+    try {
+      const batches = await getCommentBatchesFromDB(activeCase.id)
+      const runs: any[] = []
+      const annotations: any[] = []
+      for (const b of batches) {
+        const bRuns = await getCommentAnalysisRunsFromDB(b.id)
+        runs.push(...bRuns)
+        for (const r of bRuns) {
+          const anns = await getCommentReviewAnnotationsFromDB(r.id, activeCase.id)
+          annotations.push(...anns)
+        }
+      }
+      const radarEntries = await getCachedRadarItems()
+
+      const result = await generateCaseDossierPdf({
+        investigationCase: activeCase,
+        evidenceRecords: evidenceList,
+        claims: claimsList,
+        assessments: assessmentsList,
+        commentBatches: batches,
+        commentAnalysisRuns: runs,
+        commentReviewAnnotations: annotations,
+        radarItems: radarEntries
+      })
+
+      const blob = new Blob([result.pdfBytes as any], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = result.filename
+      a.click()
+      URL.revokeObjectURL(url)
+
+      triggerCopyFeedback(`Dossier PDF taktis [${result.filename}] berhasil diekspor (${result.pageCount} halaman, SHA-256: ${result.sha256.slice(0, 10)}...).`)
+    } catch (err: any) {
+      setIngestErrorMsg('Gagal membuat dossier PDF: ' + (err?.message || String(err)))
+    } finally {
+      setIsExportingDossier(false)
     }
   }
 
@@ -1182,6 +1234,30 @@ export default function SocialForensic() {
           >
             <MessageSquare size={13} />
             <span>COMMENT INTELLIGENCE</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportUnifiedDossierPdf}
+            disabled={isExportingDossier}
+            style={{
+              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(180, 140, 20, 0.35) 100%)',
+              border: '1px solid #D4AF37',
+              color: '#F8FAFC',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: isExportingDossier ? 'wait' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 0 10px rgba(212, 175, 55, 0.25)'
+            }}
+            title="Ekspor Laporan Dossier Kasus Lengkap Terpadu Doktrinal (A4 PDF)"
+          >
+            <FileText size={12} color="#D4AF37" />
+            <span>{isExportingDossier ? 'Membuat PDF...' : 'Ekspor Dossier (PDF)'}</span>
           </button>
 
           <button

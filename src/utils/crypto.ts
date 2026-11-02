@@ -24,11 +24,21 @@ export async function generateSHA256(text: string): Promise<string> {
 /**
  * Software implementation fallback untuk SHA-256 murni
  */
-export function fallbackSHA256(ascii: string): string {
-  try {
-    ascii = unescape(encodeURIComponent(ascii))
-  } catch {
-    // Abaikan jika sudah dalam bentuk byte stream
+export function fallbackSHA256(input: string | Uint8Array): string {
+  let ascii: string
+  if (typeof input !== 'string') {
+    let binary = ''
+    const len = input.length
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(input[i])
+    }
+    ascii = binary
+  } else {
+    try {
+      ascii = unescape(encodeURIComponent(input))
+    } catch {
+      ascii = input
+    }
   }
 
   function rightRotate(value: number, amount: number) {

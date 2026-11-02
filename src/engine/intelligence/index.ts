@@ -70,7 +70,7 @@ export function executeCommentAnalysis(
     ...partialConfig
   }
 
-  const runId = `RUN-${batch.id.replace('BAT-', '')}-${Date.now().toString(36).toUpperCase()}`
+  const runId = `RUN-${batch.id.replace('BAT-', '')}-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
   const createdAt = new Date().toISOString()
   const warnings: string[] = []
 

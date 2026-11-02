@@ -8,7 +8,8 @@ import {
   Settings,
   Activity,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FolderKanban
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import LiveRadar from './pages/LiveRadar'
@@ -19,23 +20,34 @@ import SettingsPage from './pages/SettingsPage'
 import TacticalTopBar from './components/TacticalTopBar'
 import InteractiveDoctrineModal from './components/InteractiveDoctrineModal'
 
-// ─── Nav Items Config dengan Keyboard Hotkeys ───
-// Catatan: Forensik Medsos & Buzzer TIDAK ditaruh di sidebar utama karena merupakan
-// sub-analisis mendalam yang dibuka terarah dari kartu 'Sedang Dipantau' di Radar Berita.
+import { 
+  getStorageDurabilityStatus,
+  runIndexedDbToSqliteMigration,
+  type StorageDurabilityState
+} from './utils/db-adapter.ts'
+
+// ─── Nav Items Config dengan Keyboard Hotkeys (Sprint 9 Information Architecture) ───
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
-  { to: '/radar', icon: Radio, label: 'Radar Berita Viral', exact: true, hotkey: 'Alt+2' },
-  { to: '/analyzer', icon: ScanText, label: 'Multi-Input Analyzer', hotkey: 'Alt+3' },
-  { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+4' },
+  { to: '/radar', icon: Radio, label: 'Radar Situasional', exact: true, hotkey: 'Alt+2' },
+  { to: '/social-forensic', icon: FolderKanban, label: 'Investigasi Kasus', hotkey: 'Alt+3' },
+  { to: '/analyzer', icon: ScanText, label: 'Multi-Input Analyzer', hotkey: 'Alt+4' },
+  { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]
 
 // ─── Sidebar Component (Tactical Armored Steel Plate) ───
 interface SidebarProps {
   isCollapsed: boolean
   onToggle: () => void
+  storageState: StorageDurabilityState
 }
 
-function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+function Sidebar({ isCollapsed, onToggle, storageState }: SidebarProps) {
+  const isPersisted = storageState.status === 'PERSISTED'
+  const isDegraded = storageState.status === 'DEGRADED'
+  const statusColor = isPersisted ? '#10B981' : isDegraded ? '#F59E0B' : '#EF4444'
+  const statusLabel = isPersisted ? (storageState.engine === 'SQLITE' ? 'SQLITE DURABLE' : 'INDEXED_DB READY') : isDegraded ? 'STORAGE DEGRADED' : 'STORAGE ERROR'
+
   return (
     <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Header: Logo Crest & Tombol Toggle Show/Hide Sejajar Rapi dengan TopBar */}
@@ -138,18 +150,20 @@ function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         </NavLink>
       </nav>
 
-      {/* Footer Sidebar: Hanya muncul saat bilah samping di-show */}
+      {/* Footer Sidebar: Status Penyimpanan Jujur */}
       {!isCollapsed && (
         <div className="sidebar-footer">
           <div className="system-status">
-            <div className="status-dot" />
+            <div className="status-dot" style={{ background: statusColor, boxShadow: `0 0 8px ${statusColor}` }} />
             <div className="system-status-detail">
-              <div className="status-text" style={{ fontWeight: 700, color: '#F1F5F9' }}>SISTEM AKTIF</div>
-              <div className="status-text" style={{ color: '#64748B', marginTop: '1px', fontSize: '9px' }}>
-                AI ENGINE ONLINE
+              <div className="status-text" style={{ fontWeight: 700, color: '#F1F5F9' }}>
+                {isPersisted ? 'SISTEM AKTIF' : 'PERINGATAN'}
+              </div>
+              <div className="status-text" style={{ color: statusColor, marginTop: '1px', fontSize: '9px', fontWeight: 600 }}>
+                {statusLabel}
               </div>
             </div>
-            <Activity size={14} style={{ marginLeft: 'auto', color: '#10B981', opacity: 0.85 }} />
+            <Activity size={14} style={{ marginLeft: 'auto', color: statusColor, opacity: 0.85 }} />
           </div>
         </div>
       )}
@@ -161,6 +175,10 @@ function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 function AppShell() {
   const navigate = useNavigate()
   const [isDoctrineModalOpen, setIsDoctrineModalOpen] = useState<boolean>(false)
+  const [storageState, setStorageState] = useState<StorageDurabilityState>({
+    status: 'PERSISTED',
+    engine: 'SQLITE'
+  })
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     try {
       return localStorage.getItem('narada_sidebar_collapsed') === 'true'
@@ -168,6 +186,22 @@ function AppShell() {
       return false
     }
   })
+
+  // Inisialisasi status penyimpanan & migrasi otomatis IndexedDB ke SQLite
+  useEffect(() => {
+    getStorageDurabilityStatus().then(status => {
+      setStorageState(status)
+    })
+
+    runIndexedDbToSqliteMigration().then(res => {
+      if (res.success && res.stats && !res.stats.alreadyCompleted) {
+        console.log('[App] Migrasi IndexedDB ke SQLite selesai:', res.stats)
+        getStorageDurabilityStatus().then(setStorageState)
+      }
+    }).catch(err => {
+      console.warn('[App] Migrasi SQLite error:', err)
+    })
+  }, [])
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed((prev) => {
@@ -204,8 +238,11 @@ function AppShell() {
           navigate('/radar')
         } else if (e.key === '3') {
           e.preventDefault()
-          navigate('/analyzer')
+          navigate('/social-forensic')
         } else if (e.key === '4') {
+          e.preventDefault()
+          navigate('/analyzer')
+        } else if (e.key === '5') {
           e.preventDefault()
           navigate('/reports')
         }
@@ -247,7 +284,7 @@ function AppShell() {
 
   return (
     <div className="app-layout">
-      <Sidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
+      <Sidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} storageState={storageState} />
       <div className="main-content">
         <TacticalTopBar
           onOpenDoctrineModal={() => setIsDoctrineModalOpen(true)}

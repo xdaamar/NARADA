@@ -78,6 +78,8 @@ export interface SimilarityEngineOptions {
   similarityThreshold?: number       // default: 0.75
   minSubstantiveTokens?: number      // default: 4
   minClusterSize?: number            // default: 2
+  maxCandidatesPerItem?: number      // default: 50 (Bounded candidates per comment to prevent O(n^2))
+  maxComparisonsBudget?: number      // default: 50000 (Global comparison budget cap)
 }
 
 /**
@@ -90,6 +92,8 @@ export function detectCommentSimilarityClusters(
   const threshold = options.similarityThreshold ?? 0.75
   const minSubstantive = options.minSubstantiveTokens ?? 4
   const minClusterSize = options.minClusterSize ?? 2
+  const maxCandidatesPerItem = options.maxCandidatesPerItem ?? 50
+  const maxComparisonsBudget = options.maxComparisonsBudget ?? 50000
 
   if (!comments || comments.length === 0) return []
 
@@ -138,23 +142,42 @@ export function detectCommentSimilarityClusters(
     }
   }
 
+  // Threshold frekuensi tinggi: kata yang muncul di > 40% korpus (jika N > 20) dikecualikan dari indexing kandidat
+  const highFrequencyCutoff = Math.max(15, Math.floor(profiles.length * 0.40))
+
   const clusters: SimilarityGroup[] = []
+  let totalComparisons = 0
 
   // 3. Pengelompokan Berdasarkan Kandidat
   for (let i = 0; i < profiles.length; i++) {
+    if (totalComparisons >= maxComparisonsBudget) break
+
     const pA = profiles[i]
     if (pA.clustered || pA.isGeneric) continue
 
-    // Cari kandidat yang berbagi kata kunci dari indeks
+    // Cari kandidat yang berbagi kata kunci dari indeks (urutkan dari kata kunci paling diskriminatif)
     const candidateIndices = new Set<number>()
-    for (const t of pA.tokens) {
-      if (t.length >= 3) {
-        const bucket = wordIndex.get(t)
-        if (bucket) {
-          for (const bIdx of bucket) {
-            if (bIdx > i && !profiles[bIdx].clustered) {
-              candidateIndices.add(bIdx)
-            }
+    
+    // Sortir token pA berdasarkan ukuran bucket terkecil (paling spesifik/diskriminatif)
+    const sortedTokens = [...pA.tokens]
+      .filter(t => t.length >= 3)
+      .sort((a, b) => {
+        const sizeA = wordIndex.get(a)?.length ?? 0
+        const sizeB = wordIndex.get(b)?.length ?? 0
+        return sizeA - sizeB
+      })
+
+    for (const t of sortedTokens) {
+      if (candidateIndices.size >= maxCandidatesPerItem) break
+      const bucket = wordIndex.get(t)
+      if (bucket) {
+        // Abaikan bucket yang terlalu padat jika ada alternatif
+        if (bucket.length > highFrequencyCutoff && candidateIndices.size > 0) continue
+
+        for (const bIdx of bucket) {
+          if (bIdx > i && !profiles[bIdx].clustered) {
+            candidateIndices.add(bIdx)
+            if (candidateIndices.size >= maxCandidatesPerItem) break
           }
         }
       }
@@ -163,6 +186,9 @@ export function detectCommentSimilarityClusters(
     const matchedMembers: Array<{ index: number; score: number }> = [{ index: i, score: 1.0 }]
 
     for (const j of candidateIndices) {
+      if (totalComparisons >= maxComparisonsBudget) break
+      totalComparisons++
+
       const pB = profiles[j]
       // Periksa rasio panjang token (hanya bandingkan jika perbedaan panjang <= 50%)
       const lenRatio = Math.min(pA.tokens.length, pB.tokens.length) / Math.max(pA.tokens.length, pB.tokens.length)

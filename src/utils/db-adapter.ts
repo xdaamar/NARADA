@@ -25,6 +25,45 @@ import type {
   CommentReviewAnnotation
 } from '../engine/intelligence/comment-types.ts'
 
+export interface StorageDurabilityState {
+  status: 'PERSISTED' | 'DEGRADED' | 'FAILED'
+  engine: 'SQLITE' | 'INDEXED_DB' | 'MEMORY_FALLBACK'
+  dbPath?: string | null
+  lastError?: string | null
+  recordCounts?: Record<string, number>
+}
+
+declare global {
+  interface Window {
+    naradaDatabase?: {
+      getStatus: () => Promise<StorageDurabilityState>
+      isMigrationCompleted: () => Promise<boolean>
+      importDump: (dump: any) => Promise<{ success: boolean; stats: any }>
+      createBackup: (dest?: string) => Promise<{ success: boolean; backupPath: string }>
+      checkIntegrity: () => Promise<{ ok: boolean; result?: string }>
+      saveCase: (c: any) => Promise<{ success: boolean; id: string }>
+      getCaseById: (id: string) => Promise<any>
+      getAllCases: () => Promise<any[]>
+      deleteCase: (id: string) => Promise<{ success: boolean }>
+      saveEvidence: (rec: any) => Promise<{ success: boolean; id: string }>
+      getEvidenceRecords: (caseId?: string) => Promise<any[]>
+      deleteEvidence: (id: string) => Promise<{ success: boolean }>
+      saveCommentBatch: (b: any) => Promise<{ success: boolean; id: string }>
+      getCommentBatches: (caseId?: string) => Promise<any[]>
+      getCommentBatchById: (id: string) => Promise<any>
+      saveCommentRecords: (recs: any[]) => Promise<{ success: boolean; inserted: number }>
+      getCommentRecords: (batchId?: string) => Promise<any[]>
+      saveCommentAnalysisRun: (run: any) => Promise<{ success: boolean; id: string }>
+      getCommentAnalysisRuns: (batchId?: string) => Promise<any[]>
+      getCommentAnalysisRunById: (id: string) => Promise<any>
+      saveCommentReviewAnnotation: (ann: any) => Promise<{ success: boolean; id: string }>
+      getCommentReviewAnnotations: (runId: string, caseId?: string) => Promise<any[]>
+      saveRadarItems: (items: any[]) => Promise<{ success: boolean; count: number }>
+      getCachedRadarItems: () => Promise<any[]>
+    }
+  }
+}
+
 const DB_NAME = 'narada_tactical_db'
 const DB_VERSION = 4 // Upgraded from DB_VERSION = 3 (Sprint 7) and DB_VERSION = 2 (Sprint 6)
 
@@ -707,6 +746,14 @@ export async function cleanOldIssueActivitySnapshots(maxAgeMs: number = 7 * 8640
  * Menyimpan rekaman bukti digital EvidenceRecord ke IndexedDB
  */
 export async function saveEvidenceRecordToDB(record: EvidenceRecord): Promise<void> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      await window.naradaDatabase.saveEvidence(record)
+      return
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite saveEvidence failed, falling back:', err)
+    }
+  }
   try {
     await performTransaction(STORES.EVIDENCE_RECORDS, 'readwrite', (store) => store.put(record))
   } catch {
@@ -718,6 +765,14 @@ export async function saveEvidenceRecordToDB(record: EvidenceRecord): Promise<vo
  * Mengambil rekaman bukti digital berdasarkan caseId atau seluruh rekaman
  */
 export async function getEvidenceRecordsFromDB(caseId?: string): Promise<EvidenceRecord[]> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      const records = await window.naradaDatabase.getEvidenceRecords(caseId)
+      if (Array.isArray(records)) return records
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite getEvidence failed, falling back:', err)
+    }
+  }
   try {
     const records = await performTransaction<EvidenceRecord[]>(
       STORES.EVIDENCE_RECORDS,
@@ -744,6 +799,15 @@ export async function getEvidenceRecordsFromDB(caseId?: string): Promise<Evidenc
  * Mengambil rekaman bukti berdasarkan ID
  */
 export async function getEvidenceRecordByIdFromDB(id: string): Promise<EvidenceRecord | null> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      const all = await window.naradaDatabase.getEvidenceRecords()
+      const found = all?.find((r: any) => r.id === id)
+      if (found) return found
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite getEvidenceById failed, falling back:', err)
+    }
+  }
   try {
     const record = await performTransaction<EvidenceRecord | undefined>(
       STORES.EVIDENCE_RECORDS,
@@ -760,6 +824,14 @@ export async function getEvidenceRecordByIdFromDB(id: string): Promise<EvidenceR
  * Menghapus rekaman bukti berdasarkan ID
  */
 export async function deleteEvidenceRecordFromDB(id: string): Promise<void> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      await window.naradaDatabase.deleteEvidence(id)
+      return
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite deleteEvidence failed, falling back:', err)
+    }
+  }
   try {
     await performTransaction(STORES.EVIDENCE_RECORDS, 'readwrite', (store) => store.delete(id))
   } catch {
@@ -809,6 +881,14 @@ export async function getEvidenceArtifactFromDB(id: string): Promise<StoredEvide
  * Menyimpan batch sampel komentar ke IndexedDB
  */
 export async function saveCommentBatchToDB(batch: CommentBatch): Promise<void> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      await window.naradaDatabase.saveCommentBatch(batch)
+      return
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite saveCommentBatch failed, falling back:', err)
+    }
+  }
   try {
     await performTransaction(STORES.COMMENT_BATCHES, 'readwrite', (store) => store.put(batch))
   } catch {
@@ -820,6 +900,14 @@ export async function saveCommentBatchToDB(batch: CommentBatch): Promise<void> {
  * Mengambil daftar batch sampel komentar (opsional difilter berdasarkan caseId)
  */
 export async function getCommentBatchesFromDB(caseId?: string): Promise<CommentBatch[]> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      const batches = await window.naradaDatabase.getCommentBatches(caseId)
+      if (Array.isArray(batches)) return batches
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite getCommentBatches failed, falling back:', err)
+    }
+  }
   try {
     const batches = await performTransaction<CommentBatch[]>(
       STORES.COMMENT_BATCHES,
@@ -846,6 +934,14 @@ export async function getCommentBatchesFromDB(caseId?: string): Promise<CommentB
  * Mengambil satu batch komentar berdasarkan ID
  */
 export async function getCommentBatchByIdFromDB(id: string): Promise<CommentBatch | null> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      const batch = await window.naradaDatabase.getCommentBatchById(id)
+      if (batch) return batch
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite getCommentBatchById failed, falling back:', err)
+    }
+  }
   try {
     const batch = await performTransaction<CommentBatch | undefined>(
       STORES.COMMENT_BATCHES,
@@ -873,6 +969,14 @@ export async function deleteCommentBatchFromDB(id: string): Promise<void> {
  * Menyimpan sekumpulan rekaman komentar ke IndexedDB
  */
 export async function saveCommentRecordsToDB(records: CommentRecord[]): Promise<void> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      await window.naradaDatabase.saveCommentRecords(records)
+      return
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite saveCommentRecords failed, falling back:', err)
+    }
+  }
   try {
     const db = await initDB()
     if (!db || isFallbackMode) {
@@ -906,6 +1010,14 @@ export async function saveCommentRecordsToDB(records: CommentRecord[]): Promise<
  * Mengambil rekaman komentar berdasarkan batchId atau seluruhnya
  */
 export async function getCommentRecordsFromDB(batchId?: string): Promise<CommentRecord[]> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      const records = await window.naradaDatabase.getCommentRecords(batchId)
+      if (Array.isArray(records)) return records
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite getCommentRecords failed, falling back:', err)
+    }
+  }
   try {
     const records = await performTransaction<CommentRecord[]>(
       STORES.COMMENT_RECORDS,
@@ -987,6 +1099,14 @@ export async function deleteCommentRecordsByBatchIdFromDB(batchId: string): Prom
  * Menyimpan snapshot immutable hasil analisis run komentar ke IndexedDB
  */
 export async function saveCommentAnalysisRunToDB(run: CommentAnalysisRun): Promise<void> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      await window.naradaDatabase.saveCommentAnalysisRun(run)
+      return
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite saveCommentAnalysisRun failed, falling back:', err)
+    }
+  }
   try {
     await performTransaction(STORES.COMMENT_ANALYSIS_RUNS, 'readwrite', (store) => store.put(run))
   } catch {
@@ -998,6 +1118,17 @@ export async function saveCommentAnalysisRunToDB(run: CommentAnalysisRun): Promi
  * Mengambil riwayat run analisis komentar
  */
 export async function getCommentAnalysisRunsFromDB(batchId?: string, caseId?: string): Promise<CommentAnalysisRun[]> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      const runs = await window.naradaDatabase.getCommentAnalysisRuns(batchId)
+      if (Array.isArray(runs)) {
+        if (caseId) return runs.filter((r: any) => r.caseId === caseId)
+        return runs
+      }
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite getCommentAnalysisRuns failed, falling back:', err)
+    }
+  }
   try {
     const runs = await performTransaction<CommentAnalysisRun[]>(
       STORES.COMMENT_ANALYSIS_RUNS,
@@ -1031,6 +1162,14 @@ export async function getCommentAnalysisRunsFromDB(batchId?: string, caseId?: st
  * Mengambil satu snapshot run analisis komentar berdasarkan ID
  */
 export async function getCommentAnalysisRunByIdFromDB(id: string): Promise<CommentAnalysisRun | null> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      const run = await window.naradaDatabase.getCommentAnalysisRunById(id)
+      if (run) return run
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite getCommentAnalysisRunById failed, falling back:', err)
+    }
+  }
   try {
     const run = await performTransaction<CommentAnalysisRun | undefined>(
       STORES.COMMENT_ANALYSIS_RUNS,
@@ -1047,6 +1186,14 @@ export async function getCommentAnalysisRunByIdFromDB(id: string): Promise<Comme
  * Menyimpan anotasi review analis manusia ke IndexedDB
  */
 export async function saveCommentReviewAnnotationToDB(annotation: CommentReviewAnnotation): Promise<void> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      await window.naradaDatabase.saveCommentReviewAnnotation(annotation)
+      return
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite saveCommentReviewAnnotation failed, falling back:', err)
+    }
+  }
   try {
     await performTransaction(STORES.COMMENT_REVIEW_ANNOTATIONS, 'readwrite', (store) => store.put(annotation))
   } catch {
@@ -1058,6 +1205,16 @@ export async function saveCommentReviewAnnotationToDB(annotation: CommentReviewA
  * Mengambil anotasi review analis manusia berdasarkan runId atau caseId
  */
 export async function getCommentReviewAnnotationsFromDB(runId?: string, caseId?: string): Promise<CommentReviewAnnotation[]> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      if (runId) {
+        const ann = await window.naradaDatabase.getCommentReviewAnnotations(runId, caseId)
+        if (Array.isArray(ann)) return ann
+      }
+    } catch (err) {
+      console.warn('[DBAdapter] SQLite getCommentReviewAnnotations failed, falling back:', err)
+    }
+  }
   try {
     const annotations = await performTransaction<CommentReviewAnnotation[]>(
       STORES.COMMENT_REVIEW_ANNOTATIONS,
@@ -1099,5 +1256,112 @@ export function isStorageDegraded(): boolean {
  */
 export function getStorageMode(): 'PERSISTED' | 'MEMORY_FALLBACK' {
   return isStorageDegraded() ? 'MEMORY_FALLBACK' : 'PERSISTED'
+}
+
+/**
+ * Mendapatkan Status Lengkap Daya Tahan Penyimpanan (Sprint 9 S9-DB & S9-S8-08/09)
+ */
+export async function getStorageDurabilityStatus(): Promise<StorageDurabilityState> {
+  if (typeof window !== 'undefined' && window.naradaDatabase) {
+    try {
+      return await window.naradaDatabase.getStatus()
+    } catch (err: any) {
+      return {
+        status: 'FAILED',
+        engine: 'SQLITE',
+        lastError: err?.message || 'IPC error',
+        recordCounts: {}
+      }
+    }
+  }
+
+  if (isFallbackMode) {
+    return {
+      status: 'DEGRADED',
+      engine: 'MEMORY_FALLBACK',
+      lastError: 'IndexedDB unavailable, running in memory-only fallback',
+      recordCounts: {
+        commentBatches: memoryFallback.commentBatches.size,
+        commentRecords: memoryFallback.commentRecords.size,
+        evidence: memoryFallback.evidenceRecords.size
+      }
+    }
+  }
+
+  return {
+    status: 'PERSISTED',
+    engine: 'INDEXED_DB',
+    lastError: null,
+    recordCounts: {}
+  }
+}
+
+/**
+ * Menjalankan Migrasi Otomatis dari IndexedDB v4 ke SQLite Main Process (Sprint 9 S9-MIG)
+ */
+export async function runIndexedDbToSqliteMigration(): Promise<{ success: boolean; stats?: any; error?: string }> {
+  if (typeof window === 'undefined' || !window.naradaDatabase) {
+    return { success: false, error: 'Lingkungan Electron SQLite tidak terdeteksi' }
+  }
+
+  try {
+    const isCompleted = await window.naradaDatabase.isMigrationCompleted()
+    if (isCompleted) {
+      return { success: true, stats: { alreadyCompleted: true } }
+    }
+
+    const db = await initDB()
+    const dump: Record<string, any[]> = {
+      investigation_cases: [],
+      evidence_records: [],
+      evidence_artifacts: [],
+      comment_batches: [],
+      comment_records: [],
+      comment_analysis_runs: [],
+      comment_review_annotations: [],
+      radar_cache: []
+    }
+
+    // Ambil riwayat kasus dari localStorage jika ada
+    try {
+      const rawCases = localStorage.getItem('narada_inv_cases_v2')
+      if (rawCases) {
+        dump.investigation_cases = JSON.parse(rawCases)
+      }
+    } catch (e) {
+      console.warn('[Migration] Gagal mengekstrak kasus dari localStorage:', e)
+    }
+
+    // Jika IndexedDB ada dan dapat diakses, ekstrak seluruh tabel
+    if (db) {
+      const storeMappings: Array<{ store: string; target: string }> = [
+        { store: STORES.EVIDENCE_RECORDS, target: 'evidence_records' },
+        { store: STORES.EVIDENCE_ARTIFACTS, target: 'evidence_artifacts' },
+        { store: STORES.COMMENT_BATCHES, target: 'comment_batches' },
+        { store: STORES.COMMENT_RECORDS, target: 'comment_records' },
+        { store: STORES.COMMENT_ANALYSIS_RUNS, target: 'comment_analysis_runs' },
+        { store: STORES.COMMENT_REVIEW_ANNOTATIONS, target: 'comment_review_annotations' },
+        { store: STORES.RADAR_CACHE, target: 'radar_cache' }
+      ]
+
+      for (const map of storeMappings) {
+        if (db.objectStoreNames.contains(map.store)) {
+          try {
+            const records = await performTransaction<any[]>(map.store, 'readonly', (store) => store.getAll())
+            dump[map.target] = records || []
+          } catch (err) {
+            console.warn(`[Migration] Peringatan pembacaan store ${map.store}:`, err)
+          }
+        }
+      }
+    }
+
+    // Eksekusi impor transaksi ACID di Electron Main Process
+    const importRes = await window.naradaDatabase.importDump(dump)
+    return { success: true, stats: importRes.stats }
+  } catch (err: any) {
+    console.error('[Migration] Terjadi kegagalan saat migrasi IndexedDB ke SQLite:', err)
+    return { success: false, error: err?.message || 'Migration failure' }
+  }
 }
 
