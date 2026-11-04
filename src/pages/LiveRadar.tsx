@@ -89,7 +89,7 @@ export default function LiveRadar() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
   const [lastSyncTime, setLastSyncTime] = useState<string>('Memuat...')
-  const [syncIntervalHours, setSyncIntervalHours] = useState<number>(1) // Default: 1 Jam
+  const [syncIntervalHours, setSyncIntervalHours] = useState<number>(0.5) // SPRINT 10: Default 30 Menit
   const [telemetry, setTelemetry] = useState<NetworkTelemetryInfo>({
     status: 'ONLINE',
     latencyMs: 14,
@@ -666,7 +666,8 @@ export default function LiveRadar() {
                   cursor: 'pointer'
                 }}
               >
-                <option value={1}>Auto-Sync: 1 Jam (Rekomendasi)</option>
+                <option value={0.5}>Auto-Sync: 30 Menit (Standar Intelijen)</option>
+                <option value={1}>Auto-Sync: 1 Jam</option>
                 <option value={2}>Auto-Sync: 2 Jam</option>
                 <option value={6}>Auto-Sync: 6 Jam</option>
                 <option value={0}>Auto-Sync: Nonaktif (Manual Saja)</option>

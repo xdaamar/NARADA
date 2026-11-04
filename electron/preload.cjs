@@ -81,6 +81,10 @@ contextBridge.exposeInMainWorld('naradaDatabase', {
   saveClaimAssessment: (assessment) => ipcRenderer.invoke('narada:db:save-claim-assessment', assessment),
   getClaimAssessment: (claimId) => ipcRenderer.invoke('narada:db:get-claim-assessment', claimId),
   savePublisher: (publisher) => ipcRenderer.invoke('narada:db:save-publisher', publisher),
-  getPublishers: () => ipcRenderer.invoke('narada:db:get-publishers')
+  getPublishers: () => ipcRenderer.invoke('narada:db:get-publishers'),
+  saveDiscoveryCandidate: (candidate) => ipcRenderer.invoke('narada:db:save-discovery-candidate', candidate),
+  getDiscoveryCandidates: (platform) => ipcRenderer.invoke('narada:db:get-discovery-candidates', platform),
+  saveScanRunLog: (log) => ipcRenderer.invoke('narada:db:save-scan-history', log),
+  getScanRunLogs: (limit) => ipcRenderer.invoke('narada:db:get-scan-history', limit)
 })
 

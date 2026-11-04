@@ -615,7 +615,9 @@ export async function fetchSingleRadarSource(
         latencyMs,
         itemCount: norm.length,
         isSuccess: true,
-        userReadableMessage: `Berhasil menarik ${norm.length} artikel publikasi`
+        userReadableMessage: norm.length > 0
+          ? `Berhasil menarik ${norm.length} artikel publikasi`
+          : 'Koneksi aktif (0 artikel baru pada jendela pencarian)'
       })
 
       await saveSourceRunLog({
@@ -663,7 +665,9 @@ export async function fetchSingleRadarSource(
       rateLimitStatus: fetchRes.rateLimitStatus,
       errorCode: fetchRes.errorCode ?? 'FETCH_TIMEOUT_OR_NETWORK_ERROR',
       errorMessage: fetchRes.errorMessage ?? `Gagal terhubung ke feed ${src.displayName}`,
-      userReadableMessage: `${fetchRes.errorMessage || `Gagal terhubung ke feed ${src.displayName}`}${statusSuffix}`,
+      userReadableMessage: isRateLimited
+        ? 'Laju permintaan terlampaui (HTTP 429). Menunggu jeda reset.'
+        : `${fetchRes.errorMessage || `Gagal terhubung ke feed ${src.displayName}`}${statusSuffix}`,
       isSuccess: false
     })
 

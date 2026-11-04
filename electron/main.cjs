@@ -299,6 +299,27 @@ app.whenReady().then(async () => {
     return sqliteService.getPublishers()
   })
 
+  // SPRINT 10: Search Discovery Candidates & Scan History IPC Handlers
+  ipcMain.handle('narada:db:save-discovery-candidate', async (event, candidate) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveDiscoveryCandidate(candidate)
+  })
+
+  ipcMain.handle('narada:db:get-discovery-candidates', async (event, platform) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getDiscoveryCandidates(platform)
+  })
+
+  ipcMain.handle('narada:db:save-scan-history', async (event, log) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveScanRunLog(log)
+  })
+
+  ipcMain.handle('narada:db:get-scan-history', async (event, limit) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getScanRunLogs(limit)
+  })
+
   // Inisialisasi Database Utama di userData
   try {
     const dbInit = sqliteService.initSqliteDatabase()

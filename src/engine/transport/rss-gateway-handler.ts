@@ -63,6 +63,7 @@ interface CacheEntry {
 
 const gatewayCache = new Map<string, CacheEntry>()
 const inFlightRequests = new Map<string, Promise<GatewayResponse>>()
+let lastGdeltCallTime = 0 // SPRINT 10: Pacing limiter untuk GDELT DOC API (maksimal 1 per 5 detik)
 
 export interface GatewayResponse {
   statusCode: number
@@ -224,7 +225,17 @@ export async function handleRadarFeedRequest(
   // 6. Jalankan Fetch Nyata ke Upstream dengan Pengamanan Ketat
   const fetchPromise = (async (): Promise<GatewayResponse> => {
     try {
-      const timeoutMs = customTimeoutMs || DEFAULT_TIMEOUT_MS
+      // SPRINT 10: Batas waktu 12 detik dan jeda 5 detik khusus GDELT API untuk mencegah HTTP 429
+      const isGdeltHost = sourceConfig.allowedHost === 'api.gdeltproject.org' || sourceConfig.upstreamUrl.includes('gdeltproject.org')
+      const timeoutMs = customTimeoutMs || (isGdeltHost ? 12000 : DEFAULT_TIMEOUT_MS)
+
+      if (isGdeltHost) {
+        const elapsed = Date.now() - lastGdeltCallTime
+        if (elapsed < 5000) {
+          await new Promise(r => setTimeout(r, 5000 - elapsed))
+        }
+        lastGdeltCallTime = Date.now()
+      }
 
       // Validasi URL upstream sebelum memanggil
       const validation = validateUpstreamUrl(sourceConfig.upstreamUrl)
@@ -842,7 +853,15 @@ export async function handleRadarSearchRequest(
         }
       }
 
-      const timeoutMs = customTimeoutMs || DEFAULT_TIMEOUT_MS
+      if (isGdelt) {
+        const elapsed = Date.now() - lastGdeltCallTime
+        if (elapsed < 5000) {
+          await new Promise(r => setTimeout(r, 5000 - elapsed))
+        }
+        lastGdeltCallTime = Date.now()
+      }
+
+      const timeoutMs = customTimeoutMs || (isGdelt ? 12000 : DEFAULT_TIMEOUT_MS)
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), timeoutMs)
       const fetchFn = options?.customFetch || fetch

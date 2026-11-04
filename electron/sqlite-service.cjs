@@ -288,11 +288,51 @@ function applyDatabaseSchema() {
       data_json TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_publishers_domain ON publishers(registrable_domain);
+
+    -- SPRINT 10: DISCOVERY CANDIDATES & SCAN HISTORY
+    CREATE TABLE IF NOT EXISTS discovery_candidates (
+      id TEXT PRIMARY KEY,
+      provider_id TEXT NOT NULL,
+      query_id TEXT NOT NULL,
+      target_platform TEXT NOT NULL,
+      original_url TEXT NOT NULL,
+      canonical_url TEXT NOT NULL,
+      title TEXT NOT NULL,
+      snippet TEXT,
+      published_at INTEGER,
+      discovered_at INTEGER NOT NULL,
+      search_rank INTEGER,
+      content_status TEXT NOT NULL,
+      relevance_status TEXT NOT NULL,
+      relevance_score REAL,
+      ingestion_status TEXT NOT NULL,
+      is_provisional INTEGER DEFAULT 1,
+      data_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_disc_platform ON discovery_candidates(target_platform);
+    CREATE INDEX IF NOT EXISTS idx_disc_relevance ON discovery_candidates(relevance_status);
+
+    CREATE TABLE IF NOT EXISTS scan_history (
+      run_id TEXT PRIMARY KEY,
+      trigger_type TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      completed_at INTEGER NOT NULL,
+      duration_ms INTEGER NOT NULL,
+      attempted INTEGER NOT NULL,
+      succeeded INTEGER NOT NULL,
+      failed INTEGER NOT NULL,
+      items_discovered INTEGER NOT NULL,
+      items_accepted INTEGER NOT NULL,
+      errors_json TEXT,
+      data_json TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_scan_started ON scan_history(started_at);
   `)
 
   // Catat Migrasi Skema
   const stmt = db.prepare('INSERT OR IGNORE INTO schema_migrations (version, applied_at, description) VALUES (?, ?, ?)')
-  stmt.run(CURRENT_SCHEMA_VERSION, new Date().toISOString(), 'Sprint 9 Unified Tactical SQLite Schema')
+  stmt.run(CURRENT_SCHEMA_VERSION, new Date().toISOString(), 'Sprint 10 Source Acquisition & Discovery SQLite Schema')
 }
 
 /**
@@ -995,6 +1035,80 @@ function getPublishers() {
   return rows.map(r => JSON.parse(r.data_json))
 }
 
+function saveDiscoveryCandidate(candidate) {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO discovery_candidates (
+      id, provider_id, query_id, target_platform, original_url, canonical_url,
+      title, snippet, published_at, discovered_at, search_rank, content_status,
+      relevance_status, relevance_score, ingestion_status, is_provisional, data_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    candidate.id,
+    candidate.providerId,
+    candidate.queryId,
+    candidate.targetPlatform,
+    candidate.originalUrl,
+    candidate.canonicalUrl,
+    candidate.title,
+    candidate.snippet || '',
+    candidate.publishedAt || null,
+    candidate.discoveredAt,
+    candidate.searchRank || 0,
+    candidate.contentStatus,
+    candidate.relevanceStatus,
+    candidate.relevanceScore || null,
+    candidate.ingestionStatus,
+    candidate.isProvisional ? 1 : 0,
+    JSON.stringify(candidate),
+    new Date().toISOString()
+  )
+  return { success: true, id: candidate.id }
+}
+
+function getDiscoveryCandidates(platform = null) {
+  if (!db) return []
+  let rows
+  if (platform) {
+    rows = db.prepare('SELECT data_json FROM discovery_candidates WHERE target_platform = ? ORDER BY discovered_at DESC').all(platform)
+  } else {
+    rows = db.prepare('SELECT data_json FROM discovery_candidates ORDER BY discovered_at DESC').all()
+  }
+  return rows.map(r => JSON.parse(r.data_json))
+}
+
+function saveScanRunLog(log) {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO scan_history (
+      run_id, trigger_type, started_at, completed_at, duration_ms,
+      attempted, succeeded, failed, items_discovered, items_accepted, errors_json, data_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    log.runId,
+    log.triggerType,
+    log.startedAt,
+    log.completedAt,
+    log.durationMs,
+    log.connectorsAttempted,
+    log.connectorsSucceeded,
+    log.connectorsFailed,
+    log.itemsDiscovered,
+    log.itemsAccepted,
+    JSON.stringify(log.errors || []),
+    JSON.stringify(log)
+  )
+  return { success: true, runId: log.runId }
+}
+
+function getScanRunLogs(limit = 50) {
+  if (!db) return []
+  const rows = db.prepare('SELECT data_json FROM scan_history ORDER BY started_at DESC LIMIT ?').all(limit)
+  return rows.map(r => JSON.parse(r.data_json))
+}
+
 module.exports = {
   initSqliteDatabase,
   closeSqliteDatabase,
@@ -1030,5 +1144,9 @@ module.exports = {
   saveClaimAssessment,
   getClaimAssessment,
   savePublisher,
-  getPublishers
+  getPublishers,
+  saveDiscoveryCandidate,
+  getDiscoveryCandidates,
+  saveScanRunLog,
+  getScanRunLogs
 }

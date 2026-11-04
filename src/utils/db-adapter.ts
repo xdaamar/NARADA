@@ -30,6 +30,11 @@ import type {
   ClaimAssessmentRecord,
   PublisherProfile
 } from '../engine/intelligence/claim-types.ts'
+import type {
+  SearchDiscoveryResult,
+  ScanRunLog,
+  TargetPlatform
+} from '../engine/acquisition/source-contracts.ts'
 
 export interface StorageDurabilityState {
   status: 'PERSISTED' | 'DEGRADED' | 'FAILED'
@@ -74,12 +79,16 @@ declare global {
       getClaimAssessment: (claimId: string) => Promise<any>
       savePublisher: (publisher: any) => Promise<{ success: boolean; id: string }>
       getPublishers: () => Promise<any[]>
+      saveDiscoveryCandidate: (candidate: any) => Promise<{ success: boolean; id: string }>
+      getDiscoveryCandidates: (platform?: string) => Promise<any[]>
+      saveScanRunLog: (log: any) => Promise<{ success: boolean; runId: string }>
+      getScanRunLogs: (limit?: number) => Promise<any[]>
     }
   }
 }
 
 const DB_NAME = 'narada_tactical_db'
-const DB_VERSION = 5 // Upgraded from DB_VERSION = 4 (Sprint 8)
+const DB_VERSION = 6 // Upgraded from DB_VERSION = 5 (Sprint 9)
 
 export const STORES = {
   ANALYSES: 'analyses',
@@ -98,6 +107,8 @@ export const STORES = {
   EVIDENCE: 'evidence',
   CLAIM_ASSESSMENTS: 'claim_assessments',
   PUBLISHERS: 'publishers',
+  DISCOVERY_CANDIDATES: 'discovery_candidates',
+  SCAN_HISTORY: 'scan_history',
 } as const
 
 export interface StoredImageData {
@@ -132,6 +143,8 @@ const memoryFallback = {
   evidence: new Map<string, ClaimEvidenceItem>(),
   claimAssessments: new Map<string, ClaimAssessmentRecord>(),
   publishers: new Map<string, PublisherProfile>(),
+  discoveryCandidates: new Map<string, SearchDiscoveryResult>(),
+  scanHistory: new Map<string, ScanRunLog>(),
 }
 
 let dbInstance: IDBDatabase | null = null
@@ -278,6 +291,21 @@ export async function initDB(): Promise<IDBDatabase | null> {
           const store = db.createObjectStore(STORES.PUBLISHERS, { keyPath: 'id' })
           store.createIndex('registrableDomain', 'registrableDomain', { unique: false })
           store.createIndex('publisherType', 'publisherType', { unique: false })
+        }
+
+        // Store 17: Discovery Candidates (Sprint 10)
+        if (!db.objectStoreNames.contains(STORES.DISCOVERY_CANDIDATES)) {
+          const store = db.createObjectStore(STORES.DISCOVERY_CANDIDATES, { keyPath: 'id' })
+          store.createIndex('targetPlatform', 'targetPlatform', { unique: false })
+          store.createIndex('relevanceStatus', 'relevanceStatus', { unique: false })
+          store.createIndex('discoveredAt', 'discoveredAt', { unique: false })
+        }
+
+        // Store 18: Scan History (Sprint 10)
+        if (!db.objectStoreNames.contains(STORES.SCAN_HISTORY)) {
+          const store = db.createObjectStore(STORES.SCAN_HISTORY, { keyPath: 'runId' })
+          store.createIndex('triggerType', 'triggerType', { unique: false })
+          store.createIndex('startedAt', 'startedAt', { unique: false })
         }
       }
 
@@ -1594,5 +1622,111 @@ export async function getAllPublishersFromDB(): Promise<PublisherProfile[]> {
     return Array.from(memoryFallback.publishers.values())
   }
 }
+
+/**
+ * Menyimpan kandidat hasil pencarian / Dorking ke Database (Sprint 10)
+ */
+export async function saveDiscoveryCandidateToDB(candidate: SearchDiscoveryResult): Promise<void> {
+  // 1. Sinkronisasi ke SQLite jika berjalan di lingkungan Electron
+  if (typeof window !== 'undefined' && window.naradaDatabase?.saveDiscoveryCandidate) {
+    try {
+      await window.naradaDatabase.saveDiscoveryCandidate(candidate)
+    } catch (err) {
+      console.warn('[NARADA DB-Adapter] Sinkronisasi kandidat discovery ke SQLite gagal:', err)
+    }
+  }
+
+  // 2. Simpan ke IndexedDB
+  if (isFallbackMode) {
+    memoryFallback.discoveryCandidates.set(candidate.id, candidate)
+    return
+  }
+
+  try {
+    await performTransaction(STORES.DISCOVERY_CANDIDATES, 'readwrite', (store) => store.put(candidate))
+  } catch {
+    memoryFallback.discoveryCandidates.set(candidate.id, candidate)
+  }
+}
+
+/**
+ * Mengambil kandidat discovery yang tersimpan
+ */
+export async function getDiscoveryCandidatesFromDB(platform?: TargetPlatform): Promise<SearchDiscoveryResult[]> {
+  if (typeof window !== 'undefined' && window.naradaDatabase?.getDiscoveryCandidates) {
+    try {
+      const fromSqlite = await window.naradaDatabase.getDiscoveryCandidates(platform)
+      if (Array.isArray(fromSqlite) && fromSqlite.length > 0) return fromSqlite
+    } catch {
+      // Fallback ke IndexedDB
+    }
+  }
+
+  if (isFallbackMode) {
+    const all = Array.from(memoryFallback.discoveryCandidates.values())
+    return platform ? all.filter(c => c.targetPlatform === platform) : all
+  }
+
+  try {
+    const all = await performTransaction<SearchDiscoveryResult[]>(STORES.DISCOVERY_CANDIDATES, 'readonly', (store) => store.getAll())
+    const list = all || []
+    return platform ? list.filter(c => c.targetPlatform === platform) : list
+  } catch {
+    const all = Array.from(memoryFallback.discoveryCandidates.values())
+    return platform ? all.filter(c => c.targetPlatform === platform) : all
+  }
+}
+
+/**
+ * Menyimpan rekaman riwayat pemindaian radar (ScanRunLog)
+ */
+export async function saveScanRunLogToDB(log: ScanRunLog): Promise<void> {
+  if (typeof window !== 'undefined' && window.naradaDatabase?.saveScanRunLog) {
+    try {
+      await window.naradaDatabase.saveScanRunLog(log)
+    } catch (err) {
+      console.warn('[NARADA DB-Adapter] Sinkronisasi riwayat scan ke SQLite gagal:', err)
+    }
+  }
+
+  if (isFallbackMode) {
+    memoryFallback.scanHistory.set(log.runId, log)
+    return
+  }
+
+  try {
+    await performTransaction(STORES.SCAN_HISTORY, 'readwrite', (store) => store.put(log))
+  } catch {
+    memoryFallback.scanHistory.set(log.runId, log)
+  }
+}
+
+/**
+ * Membaca riwayat pemindaian radar
+ */
+export async function getScanRunLogsFromDB(limit = 50): Promise<ScanRunLog[]> {
+  if (typeof window !== 'undefined' && window.naradaDatabase?.getScanRunLogs) {
+    try {
+      const fromSqlite = await window.naradaDatabase.getScanRunLogs(limit)
+      if (Array.isArray(fromSqlite) && fromSqlite.length > 0) return fromSqlite
+    } catch {
+      // Fallback
+    }
+  }
+
+  if (isFallbackMode) {
+    const all = Array.from(memoryFallback.scanHistory.values())
+    return all.sort((a, b) => b.startedAt - a.startedAt).slice(0, limit)
+  }
+
+  try {
+    const all = await performTransaction<ScanRunLog[]>(STORES.SCAN_HISTORY, 'readonly', (store) => store.getAll())
+    return (all || []).sort((a, b) => b.startedAt - a.startedAt).slice(0, limit)
+  } catch {
+    const all = Array.from(memoryFallback.scanHistory.values())
+    return all.sort((a, b) => b.startedAt - a.startedAt).slice(0, limit)
+  }
+}
+
 
 

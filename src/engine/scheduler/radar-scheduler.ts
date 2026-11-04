@@ -20,9 +20,10 @@ import {
   processRadarIngestion,
   type SingleSourceFetchResult 
 } from '../data/live-radar-service.ts'
-import { getCachedRadarItems } from '../../utils/db-adapter.ts'
+import { getCachedRadarItems, saveScanRunLogToDB } from '../../utils/db-adapter.ts'
 import { topicDiscoveryEngine } from '../radar/topic-discovery-engine.ts'
 import type { NormalizedPublication, SearchTrendSignal } from '../radar/radar-types.ts'
+import type { ScanRunLog } from '../acquisition/source-contracts.ts'
 import sourceCatalog from '../../../shared/radar-source-catalog.json' with { type: 'json' }
 
 export type CircuitBreakerStatus = 'CLOSED' | 'OPEN' | 'HALF_OPEN'
@@ -43,12 +44,20 @@ export interface RadarSchedulerStatus {
   isRunning: boolean
   tickIntervalMs: number
   intervalHours?: number
+  intervalMinutes?: number
   lastSyncTimestamp: number | null
   nextSyncTimestamp: number | null
   totalEntries: number
   lastSyncSource: string
   isSyncing: boolean
   sourceStates?: Record<string, SourceScheduleState>
+  lastScanStartedAt?: number | null
+  lastScanCompletedAt?: number | null
+  lastSuccessfulScanAt?: number | null
+  lastSourceResponseAt?: number | null
+  lastNewItemReceivedAt?: number | null
+  nextScheduledAt?: number | null
+  scanDurationMs?: number
 }
 
 type RadarUpdateListener = (entries: DebunkKnowledgeEntry[]) => void
@@ -93,7 +102,8 @@ export const radarConcurrencyLimiter = new ConcurrencyLimiter()
 export class RadarSchedulerEngine {
   private timerId: ReturnType<typeof setInterval> | null = null
   private tickIntervalMs: number = 10000
-  private intervalHours: number = 1 // Backward-compatibility display
+  private intervalMinutes: number = 30 // SPRINT 10: Default interval 30 menit
+  private intervalHours: number = 0.5 // Backward-compatibility display
   private lastSyncTimestamp: number | null = null
   private nextSyncTimestamp: number | null = null
   private isSyncing: boolean = false
@@ -101,6 +111,17 @@ export class RadarSchedulerEngine {
   private broadcastChannel: BroadcastChannel | null = null
   private listeners: Set<RadarUpdateListener> = new Set()
   private sourceStates: Map<string, SourceScheduleState> = new Map()
+
+  // SPRINT 10: Metrik waktu eksekusi presisi & riwayat scan
+  private lastScanStartedAt: number | null = null
+  private lastScanCompletedAt: number | null = null
+  private lastSuccessfulScanAt: number | null = null
+  private lastSourceResponseAt: number | null = null
+  private lastNewItemReceivedAt: number | null = null
+  private nextScheduledAt: number | null = null
+  private scanDurationMs: number = 0
+  private catchupExecuted: boolean = false
+  private scanHistory: ScanRunLog[] = []
 
   constructor() {
     this.initSourceStates()
@@ -210,8 +231,10 @@ export class RadarSchedulerEngine {
       state.circuitBreakerOpenUntil = null
       state.rateLimitResetAt = null
       state.nextDueAt = now + state.pollIntervalMs + jitter
+      this.lastSourceResponseAt = now
     } else {
       state.consecutiveFailures++
+      this.lastSourceResponseAt = now
 
       // HTTP 429 Rate Limited
       if (httpStatus === 429) {
@@ -244,6 +267,15 @@ export class RadarSchedulerEngine {
     }
 
     this.isSyncing = true
+    this.lastScanStartedAt = now
+    const runStart = Date.now()
+
+    let connectorsAttempted = 0
+    let connectorsSucceeded = 0
+    let connectorsFailed = 0
+    let rateLimitHits = 0
+    const errors: Array<{ connectorId: string; code: string; message: string }> = []
+
     try {
       const enabledSources = sourceCatalog.sources.filter(s => s.enabled)
       const dueSources = enabledSources.filter(s => this.isSourceDue(s.id, now))
@@ -253,12 +285,22 @@ export class RadarSchedulerEngine {
 
       // 1. Eksekusi Feed Sumber yang sedang Due melalui Concurrency Limiter
       const fetchTasks = dueSources.map(src => {
+        connectorsAttempted++
         return radarConcurrencyLimiter.run(async () => {
           const res: SingleSourceFetchResult = await fetchSingleRadarSource(src.id, customFetch)
           this.recordSourceAttempt(src.id, res.success, res.httpStatus, res.retryAfterSec, Date.now())
           if (res.success) {
+            connectorsSucceeded++
             if (res.publications) incomingPubs.push(...res.publications)
             if (res.trendSignals) incomingTrends.push(...res.trendSignals)
+          } else {
+            connectorsFailed++
+            if (res.httpStatus === 429) rateLimitHits++
+            errors.push({
+              connectorId: src.id,
+              code: res.errorCode || 'FETCH_FAILED',
+              message: res.errorMessage || 'Gagal mengambil data'
+            })
           }
           return res
         })
@@ -280,10 +322,38 @@ export class RadarSchedulerEngine {
 
       await Promise.allSettled([...fetchTasks, ...searchTasks])
 
+      const completionTime = Date.now()
+      this.lastScanCompletedAt = completionTime
+      this.scanDurationMs = completionTime - runStart
+      this.nextScheduledAt = completionTime + (this.intervalMinutes * 60 * 1000)
+
+      // Catat log hasil pemindaian
+      const scanLog: ScanRunLog = {
+        runId: `scan-${now}-${Math.random().toString(36).slice(2, 7)}`,
+        triggerType: 'AUTO',
+        startedAt: runStart,
+        completedAt: completionTime,
+        durationMs: this.scanDurationMs,
+        connectorsAttempted,
+        connectorsSucceeded,
+        connectorsFailed,
+        itemsDiscovered: incomingPubs.length + incomingTrends.length,
+        itemsAccepted: incomingPubs.length + incomingTrends.length,
+        itemsRejected: 0,
+        duplicatesCount: 0,
+        rateLimitHits,
+        errors
+      }
+      this.scanHistory.unshift(scanLog)
+      if (this.scanHistory.length > 50) this.scanHistory.pop()
+      saveScanRunLogToDB(scanLog).catch(() => {})
+
       // 3. Masukkan hasil ke Ingesti Kanonikal jika ada data baru
       if (incomingPubs.length > 0 || incomingTrends.length > 0) {
         const liveResult = await processRadarIngestion(incomingPubs, incomingTrends, now)
         this.lastSyncTimestamp = now
+        this.lastSuccessfulScanAt = completionTime
+        this.lastNewItemReceivedAt = completionTime
         this.lastSyncSource = 'SCHEDULER_TICK'
         this.notifyListeners(liveResult.entries, true)
         return liveResult.entries
@@ -308,6 +378,7 @@ export class RadarSchedulerEngine {
 
     if (tickIntervalMs > 0) {
       this.nextSyncTimestamp = Date.now() + tickIntervalMs
+      this.nextScheduledAt = Date.now() + (this.intervalMinutes * 60 * 1000)
 
       this.timerId = setInterval(() => {
         this.schedulerTick().catch((err) => {
@@ -316,6 +387,7 @@ export class RadarSchedulerEngine {
       }, tickIntervalMs)
     } else {
       this.nextSyncTimestamp = null
+      this.nextScheduledAt = null
     }
   }
 
@@ -328,6 +400,23 @@ export class RadarSchedulerEngine {
       this.timerId = null
     }
     this.nextSyncTimestamp = null
+    this.nextScheduledAt = null
+  }
+
+  /**
+   * Mengubah interval sinkronisasi dalam menit (Standar Sprint 10: 30 menit default)
+   */
+  public setIntervalMinutes(mins: number): void {
+    this.intervalMinutes = mins
+    this.intervalHours = mins / 60
+    if (mins > 0) {
+      this.nextScheduledAt = Date.now() + (mins * 60 * 1000)
+      if (!this.timerId) {
+        this.start(this.tickIntervalMs)
+      }
+    } else {
+      this.nextScheduledAt = null
+    }
   }
 
   /**
@@ -335,22 +424,64 @@ export class RadarSchedulerEngine {
    */
   public setIntervalHours(hours: number): void {
     this.intervalHours = hours
-    // Scheduler tetap menggunakan internal tick 10s untuk per-source cadence
-    if (!this.timerId && hours > 0) {
-      this.start(this.tickIntervalMs)
+    this.intervalMinutes = Math.round(hours * 60)
+    if (hours > 0) {
+      this.nextScheduledAt = Date.now() + (this.intervalMinutes * 60 * 1000)
+      if (!this.timerId) {
+        this.start(this.tickIntervalMs)
+      }
+    } else {
+      this.nextScheduledAt = null
     }
+  }
+
+  /**
+   * Memeriksa apakah startup catch-up scan diperlukan setelah restart aplikasi
+   */
+  public isCatchupNeeded(now = Date.now()): boolean {
+    if (this.catchupExecuted) return false
+    if (!this.lastScanCompletedAt) return true
+    const elapsed = now - this.lastScanCompletedAt
+    return elapsed >= (this.intervalMinutes * 60 * 1000)
+  }
+
+  /**
+   * Menjalankan pemindaian catch-up saat startup (dibatasi 1x per startup)
+   */
+  public async performStartupCatchup(_now = Date.now(), customFetch?: typeof fetch): Promise<DebunkKnowledgeEntry[] | null> {
+    if (this.catchupExecuted || this.isSyncing) return null
+    this.catchupExecuted = true
+    return this.triggerNow(customFetch, 'STARTUP_CATCHUP')
+  }
+
+  /**
+   * Mengambil riwayat pemindaian terkini
+   */
+  public getScanHistory(): ScanRunLog[] {
+    return [...this.scanHistory]
   }
 
   /**
    * Memicu sinkronisasi instan secara on-demand (Manual Refresh)
    * Menghormati Circuit Breaker OPEN & HTTP 429 Retry-After, dan melalui Global Concurrency Limiter
    */
-  public async triggerNow(customFetch?: typeof fetch): Promise<DebunkKnowledgeEntry[]> {
+  public async triggerNow(
+    customFetch?: typeof fetch,
+    triggerType: 'MANUAL' | 'STARTUP_CATCHUP' = 'MANUAL'
+  ): Promise<DebunkKnowledgeEntry[]> {
     if (this.isSyncing) {
       return getCachedRadarItems()
     }
 
     this.isSyncing = true
+    const runStart = Date.now()
+    this.lastScanStartedAt = runStart
+
+    let connectorsAttempted = 0
+    let connectorsSucceeded = 0
+    let connectorsFailed = 0
+    let rateLimitHits = 0
+    const errors: Array<{ connectorId: string; code: string; message: string }> = []
 
     try {
       const now = Date.now()
@@ -369,12 +500,22 @@ export class RadarSchedulerEngine {
       const incomingTrends: SearchTrendSignal[] = []
 
       const fetchTasks = eligibleSources.map(src => {
+        connectorsAttempted++
         return radarConcurrencyLimiter.run(async () => {
           const res = await fetchSingleRadarSource(src.id, customFetch)
           this.recordSourceAttempt(src.id, res.success, res.httpStatus, res.retryAfterSec, Date.now())
           if (res.success) {
+            connectorsSucceeded++
             if (res.publications) incomingPubs.push(...res.publications)
             if (res.trendSignals) incomingTrends.push(...res.trendSignals)
+          } else {
+            connectorsFailed++
+            if (res.httpStatus === 429) rateLimitHits++
+            errors.push({
+              connectorId: src.id,
+              code: res.errorCode || 'FETCH_FAILED',
+              message: res.errorMessage || 'Gagal mengambil data'
+            })
           }
           return res
         })
@@ -396,10 +537,37 @@ export class RadarSchedulerEngine {
 
       await Promise.allSettled([...fetchTasks, ...searchTasks])
 
+      const completionTime = Date.now()
+      this.lastScanCompletedAt = completionTime
+      this.scanDurationMs = completionTime - runStart
+
+      // Catat log hasil pemindaian
+      const scanLog: ScanRunLog = {
+        runId: `scan-${now}-${Math.random().toString(36).slice(2, 7)}`,
+        triggerType,
+        startedAt: runStart,
+        completedAt: completionTime,
+        durationMs: this.scanDurationMs,
+        connectorsAttempted,
+        connectorsSucceeded,
+        connectorsFailed,
+        itemsDiscovered: incomingPubs.length + incomingTrends.length,
+        itemsAccepted: incomingPubs.length + incomingTrends.length,
+        itemsRejected: 0,
+        duplicatesCount: 0,
+        rateLimitHits,
+        errors
+      }
+      this.scanHistory.unshift(scanLog)
+      if (this.scanHistory.length > 50) this.scanHistory.pop()
+      saveScanRunLogToDB(scanLog).catch(() => {})
+
       if (incomingPubs.length > 0 || incomingTrends.length > 0) {
         const liveResult = await processRadarIngestion(incomingPubs, incomingTrends, now)
         this.lastSyncTimestamp = now
-        this.lastSyncSource = 'MANUAL_TRIGGER'
+        this.lastSuccessfulScanAt = completionTime
+        this.lastNewItemReceivedAt = completionTime
+        this.lastSyncSource = triggerType === 'STARTUP_CATCHUP' ? 'STARTUP_CATCHUP' : 'MANUAL_TRIGGER'
         this.notifyListeners(liveResult.entries, true)
         return liveResult.entries
       }
@@ -461,12 +629,20 @@ export class RadarSchedulerEngine {
       isRunning: this.timerId !== null,
       tickIntervalMs: this.tickIntervalMs,
       intervalHours: this.intervalHours,
+      intervalMinutes: this.intervalMinutes,
       lastSyncTimestamp: this.lastSyncTimestamp,
       nextSyncTimestamp: this.nextSyncTimestamp,
       totalEntries: this.listeners.size,
       lastSyncSource: this.lastSyncSource,
       isSyncing: this.isSyncing,
-      sourceStates: this.getAllSourceScheduleStates()
+      sourceStates: this.getAllSourceScheduleStates(),
+      lastScanStartedAt: this.lastScanStartedAt,
+      lastScanCompletedAt: this.lastScanCompletedAt,
+      lastSuccessfulScanAt: this.lastSuccessfulScanAt,
+      lastSourceResponseAt: this.lastSourceResponseAt,
+      lastNewItemReceivedAt: this.lastNewItemReceivedAt,
+      nextScheduledAt: this.nextScheduledAt,
+      scanDurationMs: this.scanDurationMs
     }
   }
 }
