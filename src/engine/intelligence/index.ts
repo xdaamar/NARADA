@@ -44,6 +44,13 @@ export * from './similarity-engine.ts'
 export * from './burst-engine.ts'
 export * from './coordination-engine.ts'
 
+// Sprint 09: Intelligence Core & Claim Assessment Exports
+export * from './claim-types.ts'
+export * from './relevance-engine.ts'
+export * from './claim-extraction-engine.ts'
+export * from './evidence-correlation-engine.ts'
+export * from './claim-assessment-engine.ts'
+
 /**
  * Konfigurasi Default Analisis Komentar
  */

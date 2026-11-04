@@ -241,6 +241,53 @@ function applyDatabaseSchema() {
     );
     CREATE INDEX IF NOT EXISTS idx_annotations_run ON comment_review_annotations(run_id);
     CREATE INDEX IF NOT EXISTS idx_annotations_case ON comment_review_annotations(case_id);
+
+    -- SPRINT 09: CLAIMS & ASSESSMENTS PERSISTENCE
+    CREATE TABLE IF NOT EXISTS claims (
+      id TEXT PRIMARY KEY,
+      source_article_id TEXT NOT NULL,
+      claim_type TEXT NOT NULL,
+      modality TEXT NOT NULL,
+      polarity TEXT NOT NULL,
+      normalized_text TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      data_json TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_claims_article ON claims(source_article_id);
+    CREATE INDEX IF NOT EXISTS idx_claims_type ON claims(claim_type);
+
+    CREATE TABLE IF NOT EXISTS claim_evidence (
+      id TEXT PRIMARY KEY,
+      claim_id TEXT NOT NULL,
+      source_publisher_id TEXT NOT NULL,
+      evidence_relation TEXT NOT NULL,
+      directness TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      data_json TEXT NOT NULL,
+      FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_evidence_claim ON claim_evidence(claim_id);
+    CREATE INDEX IF NOT EXISTS idx_evidence_relation ON claim_evidence(evidence_relation);
+
+    CREATE TABLE IF NOT EXISTS claim_assessments (
+      id TEXT PRIMARY KEY,
+      claim_id TEXT NOT NULL UNIQUE,
+      verdict TEXT NOT NULL,
+      confidence_level TEXT NOT NULL,
+      assessed_at TEXT NOT NULL,
+      data_json TEXT NOT NULL,
+      FOREIGN KEY(claim_id) REFERENCES claims(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_assessments_verdict ON claim_assessments(verdict);
+
+    CREATE TABLE IF NOT EXISTS publishers (
+      id TEXT PRIMARY KEY,
+      registrable_domain TEXT NOT NULL,
+      publisher_type TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      data_json TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_publishers_domain ON publishers(registrable_domain);
   `)
 
   // Catat Migrasi Skema
@@ -844,6 +891,110 @@ function checkDatabaseIntegrity() {
   }
 }
 
+// ─── SPRINT 09: CLAIMS & EVIDENCE PERSISTENCE METHODS ───
+
+function saveClaim(claim) {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO claims (id, source_article_id, claim_type, modality, polarity, normalized_text, created_at, data_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    claim.id,
+    claim.sourceArticleId,
+    claim.claimType,
+    claim.modality,
+    claim.polarity,
+    claim.normalizedText,
+    claim.createdAt || new Date().toISOString(),
+    JSON.stringify(claim)
+  )
+  return { success: true, id: claim.id }
+}
+
+function getClaims(articleId = null) {
+  if (!db) return []
+  if (articleId) {
+    const rows = db.prepare('SELECT data_json FROM claims WHERE source_article_id = ? ORDER BY created_at ASC').all(articleId)
+    return rows.map(r => JSON.parse(r.data_json))
+  }
+  const rows = db.prepare('SELECT data_json FROM claims ORDER BY created_at DESC').all()
+  return rows.map(r => JSON.parse(r.data_json))
+}
+
+function saveClaimEvidence(evidence) {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO claim_evidence (id, claim_id, source_publisher_id, evidence_relation, directness, created_at, data_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    evidence.id,
+    evidence.claimId,
+    evidence.sourcePublisherId,
+    evidence.evidenceRelation,
+    evidence.directness,
+    evidence.createdAt || new Date().toISOString(),
+    JSON.stringify(evidence)
+  )
+  return { success: true, id: evidence.id }
+}
+
+function getClaimEvidence(claimId = null) {
+  if (!db) return []
+  if (claimId) {
+    const rows = db.prepare('SELECT data_json FROM claim_evidence WHERE claim_id = ? ORDER BY created_at ASC').all(claimId)
+    return rows.map(r => JSON.parse(r.data_json))
+  }
+  const rows = db.prepare('SELECT data_json FROM claim_evidence ORDER BY created_at DESC').all()
+  return rows.map(r => JSON.parse(r.data_json))
+}
+
+function saveClaimAssessment(assessment) {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO claim_assessments (id, claim_id, verdict, confidence_level, assessed_at, data_json)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    assessment.id,
+    assessment.claimId,
+    assessment.verdict,
+    assessment.confidenceLevel,
+    assessment.assessedAt || new Date().toISOString(),
+    JSON.stringify(assessment)
+  )
+  return { success: true, id: assessment.id }
+}
+
+function getClaimAssessment(claimId) {
+  if (!db) return null
+  const row = db.prepare('SELECT data_json FROM claim_assessments WHERE claim_id = ?').get(claimId)
+  return row ? JSON.parse(row.data_json) : null
+}
+
+function savePublisher(publisher) {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO publishers (id, registrable_domain, publisher_type, display_name, data_json)
+    VALUES (?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    publisher.id,
+    publisher.registrableDomain,
+    publisher.publisherType,
+    publisher.displayName,
+    JSON.stringify(publisher)
+  )
+  return { success: true, id: publisher.id }
+}
+
+function getPublishers() {
+  if (!db) return []
+  const rows = db.prepare('SELECT data_json FROM publishers ORDER BY display_name ASC').all()
+  return rows.map(r => JSON.parse(r.data_json))
+}
+
 module.exports = {
   initSqliteDatabase,
   closeSqliteDatabase,
@@ -871,5 +1022,13 @@ module.exports = {
   saveRadarCacheItems,
   getCachedRadarItems,
   createDatabaseBackup,
-  checkDatabaseIntegrity
+  checkDatabaseIntegrity,
+  saveClaim,
+  getClaims,
+  saveClaimEvidence,
+  getClaimEvidence,
+  saveClaimAssessment,
+  getClaimAssessment,
+  savePublisher,
+  getPublishers
 }

@@ -71,6 +71,16 @@ contextBridge.exposeInMainWorld('naradaDatabase', {
 
   // Radar
   saveRadarItems: (items) => ipcRenderer.invoke('narada:db:save-radar-items', items),
-  getCachedRadarItems: () => ipcRenderer.invoke('narada:db:get-radar-items')
+  getCachedRadarItems: () => ipcRenderer.invoke('narada:db:get-radar-items'),
+
+  // Sprint 09 Claims & Evidence Intelligence
+  saveClaim: (claim) => ipcRenderer.invoke('narada:db:save-claim', claim),
+  getClaims: (articleId) => ipcRenderer.invoke('narada:db:get-claims', articleId),
+  saveClaimEvidence: (evidence) => ipcRenderer.invoke('narada:db:save-claim-evidence', evidence),
+  getClaimEvidence: (claimId) => ipcRenderer.invoke('narada:db:get-claim-evidence', claimId),
+  saveClaimAssessment: (assessment) => ipcRenderer.invoke('narada:db:save-claim-assessment', assessment),
+  getClaimAssessment: (claimId) => ipcRenderer.invoke('narada:db:get-claim-assessment', claimId),
+  savePublisher: (publisher) => ipcRenderer.invoke('narada:db:save-publisher', publisher),
+  getPublishers: () => ipcRenderer.invoke('narada:db:get-publishers')
 })
 

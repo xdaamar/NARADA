@@ -258,6 +258,47 @@ app.whenReady().then(async () => {
     return sqliteService.getCachedRadarItems()
   })
 
+  // SPRINT 09: Claims & Evidence Intelligence IPC Handlers
+  ipcMain.handle('narada:db:save-claim', async (event, claim) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveClaim(claim)
+  })
+
+  ipcMain.handle('narada:db:get-claims', async (event, articleId) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getClaims(articleId)
+  })
+
+  ipcMain.handle('narada:db:save-claim-evidence', async (event, evidence) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveClaimEvidence(evidence)
+  })
+
+  ipcMain.handle('narada:db:get-claim-evidence', async (event, claimId) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getClaimEvidence(claimId)
+  })
+
+  ipcMain.handle('narada:db:save-claim-assessment', async (event, assessment) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveClaimAssessment(assessment)
+  })
+
+  ipcMain.handle('narada:db:get-claim-assessment', async (event, claimId) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getClaimAssessment(claimId)
+  })
+
+  ipcMain.handle('narada:db:save-publisher', async (event, publisher) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.savePublisher(publisher)
+  })
+
+  ipcMain.handle('narada:db:get-publishers', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getPublishers()
+  })
+
   // Inisialisasi Database Utama di userData
   try {
     const dbInit = sqliteService.initSqliteDatabase()

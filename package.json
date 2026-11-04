@@ -27,6 +27,7 @@
     "test:sprint9": "node scripts/test-sprint-9-acceptance.js",
     "test:sprint9:sqlite": "node scripts/test-sprint-9-sqlite.js",
     "test:sprint9:smoke": "node scripts/test-sprint-9-electron-smoke.js",
+    "test:sprint9:core": "node scripts/test-sprint-9-intelligence-core.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "electron:build": "tsc -b && vite build && electron-builder --win nsis --x64"
   },

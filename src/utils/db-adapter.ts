@@ -24,6 +24,12 @@ import type {
   CommentAnalysisRun,
   CommentReviewAnnotation
 } from '../engine/intelligence/comment-types.ts'
+import type {
+  ClaimRecord,
+  ClaimEvidenceItem,
+  ClaimAssessmentRecord,
+  PublisherProfile
+} from '../engine/intelligence/claim-types.ts'
 
 export interface StorageDurabilityState {
   status: 'PERSISTED' | 'DEGRADED' | 'FAILED'
@@ -60,12 +66,20 @@ declare global {
       getCommentReviewAnnotations: (runId: string, caseId?: string) => Promise<any[]>
       saveRadarItems: (items: any[]) => Promise<{ success: boolean; count: number }>
       getCachedRadarItems: () => Promise<any[]>
+      saveClaim: (claim: any) => Promise<{ success: boolean; id: string }>
+      getClaims: (articleId?: string) => Promise<any[]>
+      saveClaimEvidence: (evidence: any) => Promise<{ success: boolean; id: string }>
+      getClaimEvidence: (claimId?: string) => Promise<any[]>
+      saveClaimAssessment: (assessment: any) => Promise<{ success: boolean; id: string }>
+      getClaimAssessment: (claimId: string) => Promise<any>
+      savePublisher: (publisher: any) => Promise<{ success: boolean; id: string }>
+      getPublishers: () => Promise<any[]>
     }
   }
 }
 
 const DB_NAME = 'narada_tactical_db'
-const DB_VERSION = 4 // Upgraded from DB_VERSION = 3 (Sprint 7) and DB_VERSION = 2 (Sprint 6)
+const DB_VERSION = 5 // Upgraded from DB_VERSION = 4 (Sprint 8)
 
 export const STORES = {
   ANALYSES: 'analyses',
@@ -80,6 +94,10 @@ export const STORES = {
   COMMENT_RECORDS: 'comment_records',
   COMMENT_ANALYSIS_RUNS: 'comment_analysis_runs',
   COMMENT_REVIEW_ANNOTATIONS: 'comment_review_annotations',
+  CLAIMS: 'claims',
+  EVIDENCE: 'evidence',
+  CLAIM_ASSESSMENTS: 'claim_assessments',
+  PUBLISHERS: 'publishers',
 } as const
 
 export interface StoredImageData {
@@ -110,6 +128,10 @@ const memoryFallback = {
   commentRecords: new Map<string, CommentRecord>(),
   commentAnalysisRuns: new Map<string, CommentAnalysisRun>(),
   commentReviewAnnotations: new Map<string, CommentReviewAnnotation>(),
+  claims: new Map<string, ClaimRecord>(),
+  evidence: new Map<string, ClaimEvidenceItem>(),
+  claimAssessments: new Map<string, ClaimAssessmentRecord>(),
+  publishers: new Map<string, PublisherProfile>(),
 }
 
 let dbInstance: IDBDatabase | null = null
@@ -225,6 +247,37 @@ export async function initDB(): Promise<IDBDatabase | null> {
           const store = db.createObjectStore(STORES.COMMENT_REVIEW_ANNOTATIONS, { keyPath: 'id' })
           store.createIndex('runId', 'runId', { unique: false })
           store.createIndex('caseId', 'caseId', { unique: false })
+        }
+
+        // Store 13: Claims (Sprint 9)
+        if (!db.objectStoreNames.contains(STORES.CLAIMS)) {
+          const store = db.createObjectStore(STORES.CLAIMS, { keyPath: 'id' })
+          store.createIndex('sourceArticleId', 'sourceArticleId', { unique: false })
+          store.createIndex('claimType', 'claimType', { unique: false })
+          store.createIndex('createdAt', 'createdAt', { unique: false })
+        }
+
+        // Store 14: Evidence Items (Sprint 9)
+        if (!db.objectStoreNames.contains(STORES.EVIDENCE)) {
+          const store = db.createObjectStore(STORES.EVIDENCE, { keyPath: 'id' })
+          store.createIndex('claimId', 'claimId', { unique: false })
+          store.createIndex('sourcePublisherId', 'sourcePublisherId', { unique: false })
+          store.createIndex('evidenceRelation', 'evidenceRelation', { unique: false })
+        }
+
+        // Store 15: Claim Assessments (Sprint 9)
+        if (!db.objectStoreNames.contains(STORES.CLAIM_ASSESSMENTS)) {
+          const store = db.createObjectStore(STORES.CLAIM_ASSESSMENTS, { keyPath: 'id' })
+          store.createIndex('claimId', 'claimId', { unique: true })
+          store.createIndex('verdict', 'verdict', { unique: false })
+          store.createIndex('assessedAt', 'assessedAt', { unique: false })
+        }
+
+        // Store 16: Publishers (Sprint 9)
+        if (!db.objectStoreNames.contains(STORES.PUBLISHERS)) {
+          const store = db.createObjectStore(STORES.PUBLISHERS, { keyPath: 'id' })
+          store.createIndex('registrableDomain', 'registrableDomain', { unique: false })
+          store.createIndex('publisherType', 'publisherType', { unique: false })
         }
       }
 
@@ -1364,4 +1417,182 @@ export async function runIndexedDbToSqliteMigration(): Promise<{ success: boolea
     return { success: false, error: err?.message || 'Migration failure' }
   }
 }
+
+// ─── SPRINT 09: HELPER PENYIMPANAN KLAIM & ASESMEN (WP-06) ───
+
+/**
+ * Menyimpan rekaman klaim ke IndexedDB / fallback memory
+ */
+export async function saveClaimToDB(claim: ClaimRecord): Promise<void> {
+  if (isFallbackMode) {
+    memoryFallback.claims.set(claim.id, claim)
+    return
+  }
+  try {
+    await performTransaction(STORES.CLAIMS, 'readwrite', (store) => store.put(claim))
+  } catch {
+    memoryFallback.claims.set(claim.id, claim)
+  }
+}
+
+/**
+ * Membaca rekaman klaim (opsional difilter berdasarkan articleId)
+ */
+export async function getClaimsFromDB(articleId?: string): Promise<ClaimRecord[]> {
+  if (isFallbackMode) {
+    const all = Array.from(memoryFallback.claims.values())
+    return articleId ? all.filter(c => c.sourceArticleId === articleId) : all
+  }
+  try {
+    const all = await performTransaction<ClaimRecord[]>(STORES.CLAIMS, 'readonly', (store) => store.getAll())
+    return articleId ? (all || []).filter(c => c.sourceArticleId === articleId) : (all || [])
+  } catch {
+    const all = Array.from(memoryFallback.claims.values())
+    return articleId ? all.filter(c => c.sourceArticleId === articleId) : all
+  }
+}
+
+/**
+ * Membaca klaim berdasarkan ID
+ */
+export async function getClaimByIdFromDB(claimId: string): Promise<ClaimRecord | null> {
+  if (isFallbackMode) {
+    return memoryFallback.claims.get(claimId) || null
+  }
+  try {
+    const res = await performTransaction<ClaimRecord>(STORES.CLAIMS, 'readonly', (store) => store.get(claimId))
+    return res || memoryFallback.claims.get(claimId) || null
+  } catch {
+    return memoryFallback.claims.get(claimId) || null
+  }
+}
+
+/**
+ * Menyimpan item bukti ke IndexedDB / fallback
+ */
+export async function saveEvidenceItemToDB(evidence: ClaimEvidenceItem): Promise<void> {
+  if (isFallbackMode) {
+    memoryFallback.evidence.set(evidence.id, evidence)
+    return
+  }
+  try {
+    await performTransaction(STORES.EVIDENCE, 'readwrite', (store) => store.put(evidence))
+  } catch {
+    memoryFallback.evidence.set(evidence.id, evidence)
+  }
+}
+
+/**
+ * Membaca seluruh item bukti (opsional berdasarkan claimId)
+ */
+export async function getEvidenceItemsFromDB(claimId?: string): Promise<ClaimEvidenceItem[]> {
+  if (isFallbackMode) {
+    const all = Array.from(memoryFallback.evidence.values())
+    return claimId ? all.filter(e => e.claimId === claimId) : all
+  }
+  try {
+    const all = await performTransaction<ClaimEvidenceItem[]>(STORES.EVIDENCE, 'readonly', (store) => store.getAll())
+    return claimId ? (all || []).filter(e => e.claimId === claimId) : (all || [])
+  } catch {
+    const all = Array.from(memoryFallback.evidence.values())
+    return claimId ? all.filter(e => e.claimId === claimId) : all
+  }
+}
+
+/**
+ * Menyimpan asesmen klaim ke IndexedDB / fallback
+ */
+export async function saveClaimAssessmentToDB(assessment: ClaimAssessmentRecord): Promise<void> {
+  if (isFallbackMode) {
+    memoryFallback.claimAssessments.set(assessment.claimId, assessment)
+    return
+  }
+  try {
+    await performTransaction(STORES.CLAIM_ASSESSMENTS, 'readwrite', (store) => store.put(assessment))
+  } catch {
+    memoryFallback.claimAssessments.set(assessment.claimId, assessment)
+  }
+}
+
+/**
+ * Membaca asesmen untuk satu klaim tertentu
+ */
+export async function getClaimAssessmentFromDB(claimId: string): Promise<ClaimAssessmentRecord | null> {
+  if (isFallbackMode) {
+    return memoryFallback.claimAssessments.get(claimId) || null
+  }
+  try {
+    const res = await performTransaction<ClaimAssessmentRecord>(STORES.CLAIM_ASSESSMENTS, 'readonly', (store) => store.get(claimId))
+    return res || memoryFallback.claimAssessments.get(claimId) || null
+  } catch {
+    return memoryFallback.claimAssessments.get(claimId) || null
+  }
+}
+
+/**
+ * Membaca seluruh asesmen klaim
+ */
+export async function getAllClaimAssessmentsFromDB(): Promise<ClaimAssessmentRecord[]> {
+  if (isFallbackMode) {
+    return Array.from(memoryFallback.claimAssessments.values())
+  }
+  try {
+    const all = await performTransaction<ClaimAssessmentRecord[]>(STORES.CLAIM_ASSESSMENTS, 'readonly', (store) => store.getAll())
+    return all || []
+  } catch {
+    return Array.from(memoryFallback.claimAssessments.values())
+  }
+}
+
+/**
+ * Menyimpan profil penerbit
+ */
+export async function savePublisherProfileToDB(publisher: PublisherProfile): Promise<void> {
+  if (isFallbackMode) {
+    memoryFallback.publishers.set(publisher.id, publisher)
+    return
+  }
+  try {
+    await performTransaction(STORES.PUBLISHERS, 'readwrite', (store) => store.put(publisher))
+  } catch {
+    memoryFallback.publishers.set(publisher.id, publisher)
+  }
+}
+
+/**
+ * Membaca profil penerbit berdasarkan ID atau nama domain
+ */
+export async function getPublisherProfileFromDB(idOrDomain: string): Promise<PublisherProfile | null> {
+  if (isFallbackMode) {
+    for (const p of memoryFallback.publishers.values()) {
+      if (p.id === idOrDomain || p.registrableDomain === idOrDomain) return p
+    }
+    return null
+  }
+  try {
+    const all = await performTransaction<PublisherProfile[]>(STORES.PUBLISHERS, 'readonly', (store) => store.getAll())
+    return (all || []).find(p => p.id === idOrDomain || p.registrableDomain === idOrDomain) || null
+  } catch {
+    for (const p of memoryFallback.publishers.values()) {
+      if (p.id === idOrDomain || p.registrableDomain === idOrDomain) return p
+    }
+    return null
+  }
+}
+
+/**
+ * Membaca seluruh penerbit terdaftar
+ */
+export async function getAllPublishersFromDB(): Promise<PublisherProfile[]> {
+  if (isFallbackMode) {
+    return Array.from(memoryFallback.publishers.values())
+  }
+  try {
+    const all = await performTransaction<PublisherProfile[]>(STORES.PUBLISHERS, 'readonly', (store) => store.getAll())
+    return all || []
+  } catch {
+    return Array.from(memoryFallback.publishers.values())
+  }
+}
+
 
