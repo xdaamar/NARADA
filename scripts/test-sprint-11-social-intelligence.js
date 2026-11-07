@@ -309,6 +309,42 @@ await testAsync('S11-C01.5', 'BraveSearchAdapter menangani HTTP 429 Rate Limited
   assert.equal(res.errorCode, 'SEARCH_RATE_LIMITED')
 })
 
+await testAsync('S11-C01.6', 'BraveSearchAdapter menolak kueri BUDGET_NOT_CONFIGURED jika limit <= 0', async () => {
+  const brave = new BraveSearchAdapter({ apiKey: 'test-token', dailyRequestLimit: 0 })
+  const res = await brave.search('test query')
+  assert.equal(res.success, false)
+  assert.equal(res.errorCode, 'BUDGET_NOT_CONFIGURED')
+})
+
+await testAsync('S11-C01.7', 'BraveSearchAdapter menyensor token API dari pesan error (redaction)', async () => {
+  const mockErrorFetch = async () => {
+    throw new Error('Gagal otentikasi token secret-token-abcdef1234567890-xyz pada Brave API')
+  }
+  const brave = new BraveSearchAdapter({ apiKey: 'secret-token-abcdef1234567890-xyz' })
+  const res = await brave.search('test query', { customFetch: mockErrorFetch })
+  assert.equal(res.success, false)
+  assert.ok(!res.errorMessage.includes('secret-token-abcdef1234567890-xyz'), 'Token rahasia tidak boleh bocor')
+  assert.ok(res.errorMessage.includes('[REDACTED_TOKEN]'), 'Token harus disensor dengan [REDACTED_TOKEN]')
+})
+
+await testAsync('S11-C01.8', 'BraveSearchAdapter mengekstrak verifikasi operator penelusuran', async () => {
+  const mockOperatorFetch = async () => ({
+    status: 200,
+    ok: true,
+    json: async () => ({
+      query: {
+        original: 'site:x.com "TNI"',
+        search_operators: { applied: true, site: 'x.com' }
+      },
+      web: { results: [] }
+    })
+  })
+  const brave = new BraveSearchAdapter({ apiKey: 'valid-token' })
+  const res = await brave.search('site:x.com "TNI"', { customFetch: mockOperatorFetch })
+  assert.equal(res.success, true)
+  assert.equal(res.operatorApplied, true)
+})
+
 // ─── GATE D: YOUTUBE OFFICIAL API QUOTA CORRECTION & PAGINATION ───
 console.log('\n─── Gate D: YouTube Official API Quota Correction & Pagination ───')
 
@@ -323,8 +359,8 @@ test('S11-D01.1', 'YouTubeQuotaManager memisahkan bucket search.list (100 kueri)
   assert.equal(state.buckets.generalUnits.remaining, 10000)
 })
 
-test('S11-D01.2', 'Endpoint costs sesuai registry resmi YouTube Data API v3', () => {
-  assert.equal(YOUTUBE_ENDPOINT_COSTS['search.list'].units, 100)
+test('S11-D01.2', 'Endpoint costs sesuai registry resmi YouTube Data API v3 (search: 1 kuota terpisah, list: 1 unit)', () => {
+  assert.equal(YOUTUBE_ENDPOINT_COSTS['search.list'].units, 1)
   assert.equal(YOUTUBE_ENDPOINT_COSTS['search.list'].isSearchCall, true)
   assert.equal(YOUTUBE_ENDPOINT_COSTS['videos.list'].units, 1)
   assert.equal(YOUTUBE_ENDPOINT_COSTS['commentThreads.list'].units, 1)
@@ -338,22 +374,29 @@ test('S11-D01.3', 'Perhitungan rollover harian berbasis midnight Pacific Time (P
   assert.ok(diffHours > 0 && diffHours <= 25, 'Midnight PT harus berada dalam rentang 0-25 jam')
 })
 
-test('S11-D01.4', 'Reservasi atomik dan rollback kuota saat operasi dibatalkan', () => {
+test('S11-D01.4', 'Reservasi atomik dan rollback kuota saat operasi dibatalkan sebelum pengiriman', () => {
   const qm = new YouTubeQuotaManager()
   const res = qm.reserveQuota('search.list')
   assert.equal(res.allowed, true)
   assert.ok(res.reservationId.startsWith('yt-res-'))
 
-  // Sebelum commit, used units bertambah
+  // Sebelum dispatch, usedSearches bertambah 1, generalUnits tetap 0
   let state = qm.getQuotaState()
   assert.equal(state.buckets.searchRequests.used, 1)
-  assert.equal(state.buckets.generalUnits.used, 100)
+  assert.equal(state.buckets.generalUnits.used, 0)
 
-  // Rollback jika fetch gagal
+  // Rollback sebelum dispatch (batal lokal)
   qm.rollbackUsage(res.reservationId)
   state = qm.getQuotaState()
   assert.equal(state.buckets.searchRequests.used, 0)
   assert.equal(state.buckets.generalUnits.used, 0)
+
+  // Pengujian kebijakan konservatif: jika sudah dispatched, rollback ditolak
+  const res2 = qm.reserveQuota('videos.list')
+  qm.markDispatched(res2.reservationId)
+  qm.rollbackUsage(res2.reservationId)
+  state = qm.getQuotaState()
+  assert.equal(state.buckets.generalUnits.used, 1, 'Permintaan dispatched tidak boleh di-refund sembarangan')
 })
 
 await testAsync('S11-D01.5', 'Pengambilan komentar mendukung paginasi multi-halaman berbiaya 1 unit/halaman', async () => {
@@ -545,21 +588,31 @@ test('S11-G01.2', 'Konten hiburan atau gosip ditolak IRRELEVANT tanpa bias', () 
   assert.equal(rel.rejectionReason, 'UNRELATED_TOPIC')
 })
 
-test('S11-G01.3', 'Analisis sentimen komentar video tunggal menggunakan Lexicon Engine Sprint 08', () => {
+test('S11-G01.3', 'Fail-Closed YouTube Policy & Sprint 08 Lexicon Engine untuk komentar non-YouTube', () => {
   const singleVideoComments = [
     { id: 'c1', postId: 'v1', platform: 'youtube', platformCommentId: 'y1', authorHandle: 'warga1', textOriginal: 'Bagus dan hebat TNI atas patroli perbatasannya, sangat membanggakan!', normalizedText: '', likeCount: 5, replyCount: 0, publishedAt: Date.now(), acquiredAt: Date.now(), retentionExpiresAt: null, validationState: 'VALID' },
     { id: 'c2', postId: 'v1', platform: 'youtube', platformCommentId: 'y2', authorHandle: 'warga2', textOriginal: 'Hebat dan mantap TNI AL, jaga terus laut nusantara.', normalizedText: '', likeCount: 2, replyCount: 0, publishedAt: Date.now(), acquiredAt: Date.now(), retentionExpiresAt: null, validationState: 'VALID' }
   ]
 
-  const analysis = socialIntelligencePipeline.analyzeSocialComments(singleVideoComments, {
+  // Data YouTube diblokir fail-closed tanpa amandemen tertulis resmi
+  const ytAnalysis = socialIntelligencePipeline.analyzeSocialComments(singleVideoComments, {
     platform: 'youtube',
     channelIds: ['channel-dispenal']
   })
 
-  assert.equal(analysis.isPermitted, true)
-  assert.equal(analysis.policyStatus, 'PERMITTED')
-  assert.equal(analysis.sentimentSummary.positive, 2)
-  assert.equal(analysis.sentimentSummary.dominantSentiment, 'POSITIVE')
+  assert.equal(ytAnalysis.isPermitted, false)
+  assert.equal(ytAnalysis.policyStatus, 'POLICY_BLOCKED')
+  assert.equal(ytAnalysis.sentimentSummary.dominantSentiment, 'BLOCKED')
+
+  // Regresi Sprint 08: Data non-YouTube (manual/web) tetap diizinkan dan dianalisis
+  const webComments = singleVideoComments.map(c => ({ ...c, platform: 'web' }))
+  const webAnalysis = socialIntelligencePipeline.analyzeSocialComments(webComments, {
+    platform: 'web'
+  })
+  assert.equal(webAnalysis.isPermitted, true)
+  assert.equal(webAnalysis.policyStatus, 'PERMITTED')
+  assert.equal(webAnalysis.sentimentSummary.positive, 2)
+  assert.equal(webAnalysis.sentimentSummary.dominantSentiment, 'POSITIVE')
 })
 
 // ─── GATE H: SPREAD & TEMPORAL OBSERVATIONS (NO ATTRIBUTION) ───
@@ -913,11 +966,11 @@ test('S11-ADV-Q', '[Fixture Q] Percobaan analisis koordinasi multi-kanal YouTube
 // ─── GATE M: PERFORMANCE SMOKE TEST & BOUNDED QUERIES ───
 console.log('\n─── Gate M: Performance Smoke Test & Bounded Queries ───')
 
-test('S11-M01.1', 'Pemrosesan batch 200 komentar selesai dalam budget waktu < 200ms', () => {
+test('S11-M01.1', 'Pemrosesan batch 200 komentar non-YouTube selesai dalam budget waktu < 200ms', () => {
   const batch200 = Array.from({ length: 200 }, (_, i) => ({
     id: `c-perf-${i}`,
     postId: 'post-perf',
-    platform: 'youtube',
+    platform: 'web',
     platformCommentId: `pc-${i}`,
     authorHandle: `warga_${i}`,
     textOriginal: `Tanggapan warga nomor ${i} terkait pengamanan perbatasan wilayah perairan.`,
@@ -932,8 +985,7 @@ test('S11-M01.1', 'Pemrosesan batch 200 komentar selesai dalam budget waktu < 20
 
   const t0 = performance.now()
   const result = socialIntelligencePipeline.analyzeSocialComments(batch200, {
-    platform: 'youtube',
-    channelIds: ['channel-single']
+    platform: 'web'
   })
   const t1 = performance.now()
   const duration = t1 - t0

@@ -318,13 +318,14 @@ export const PLATFORM_CAPABILITY_MATRIX: Record<SocialPlatform, PlatformCapabili
     {
       platform: 'youtube',
       capability: 'DERIVED_ANALYSIS',
-      status: 'AVAILABLE',
-      description: 'Analisis sentimen kognitif terisolasi pada satu video atau satu kanal mandiri.',
-      legalBasisOrPolicyRef: 'Gate L Addendum & YouTube Developer Policies Section III.E.2',
-      isPermitted: true,
+      status: 'POLICY_BLOCKED',
+      description: 'Analisis sentimen, kemiripan, burst, dan koordinasi pada data YouTube API diblokir secara fail-closed (Belum ada persetujuan tertulis resmi Derived Metrics Policy Amendment).',
+      legalBasisOrPolicyRef: 'YouTube Developer Policies Section III.E.2 & Derived Metrics Policy (Requires Written Amendment/Approval)',
+      isPermitted: false,
       requiresCredentials: false,
       limitations: [
-        'Sentimen lintas-kanal atau lintas-platform dengan YouTube DIBLOKIR (POLICY_BLOCKED).',
+        'Analisis turunan (sentimen, copypasta, burst, koordinasi) pada data YouTube API diblokir secara fail-closed karena belum memiliki persetujuan tertulis resmi (Derived Metrics Policy Amendment).',
+        'Sentimen lintas-kanal atau lintas-platform dengan YouTube DIBLOKIR MUTLAK (POLICY_BLOCKED).',
         'Pola koordinasi penonton/buzzer attribution dilarang.'
       ]
     },

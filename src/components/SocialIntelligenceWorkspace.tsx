@@ -249,12 +249,17 @@ export default function SocialIntelligenceWorkspace({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>
-                Search Provider Primer
+                Search Provider Adapter
               </span>
-              <span style={{ fontSize: '10px', color: '#10B981', fontWeight: 700 }}>BRAVE API</span>
+              <span style={{ fontSize: '9px', background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', padding: '1px 5px', borderRadius: '2px', fontWeight: 700 }}>
+                MOCK_VALIDATED
+              </span>
             </div>
             <div style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9', marginTop: '4px' }}>
-              Brave Search ($5.00/1k query)
+              Brave Search Adapter (Mock Tested)
+            </div>
+            <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>
+              Live Status: CONFIGURATION_REQUIRED (Kunci API live belum dikonfigurasi)
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
               <span style={{ fontSize: '9px', background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', padding: '1px 5px', borderRadius: '2px', fontWeight: 600 }}>
@@ -291,13 +296,13 @@ export default function SocialIntelligenceWorkspace({
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '4px' }}>
               <span>Search.list Bucket:</span>
               <span style={{ fontWeight: 700, color: '#F8FAFC' }}>
-                {quotaState.buckets?.searchRequests?.remaining ?? 100} / {quotaState.buckets?.searchRequests?.dailyLimit ?? 100} call
+                {quotaState.buckets?.searchRequests?.remaining ?? 100} / {quotaState.buckets?.searchRequests?.dailyLimit ?? 100} call (1 kuota/call)
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '2px' }}>
               <span>General Units Bucket:</span>
               <span style={{ fontWeight: 700, color: '#F8FAFC' }}>
-                {quotaState.buckets?.generalUnits?.remaining ?? 10000} / {quotaState.buckets?.generalUnits?.dailyLimit ?? 10000} unit
+                {quotaState.buckets?.generalUnits?.remaining ?? 10000} / {quotaState.buckets?.generalUnits?.dailyLimit ?? 10000} unit (1 unit/call)
               </span>
             </div>
             <div style={{ fontSize: '9px', color: '#64748B', marginTop: '4px' }}>
@@ -314,14 +319,15 @@ export default function SocialIntelligenceWorkspace({
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '10px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase' }}>
-                Tata Kelola Kepatuhan Gate L
+                Tata Kelola Kepatuhan YouTube
               </span>
               <ShieldCheck size={13} color="#10B981" />
             </div>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#10B981', marginTop: '4px' }}>
-              Aktif & Menegakkan Hukum
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#F59E0B', marginTop: '4px' }}>
+              Fail-Closed: Derived Analytics POLICY_BLOCKED
             </div>
             <div style={{ fontSize: '10px', color: '#94A3B8', marginTop: '2px' }}>
+              • Derived Metrics: DIBLOKIR (Perlu persetujuan tertulis resmi)<br />
               • Section III.E.2: Agregasi lintas-kanal DIBLOKIR<br />
               • Section III.E.4: Batas retensi 30 hari kalender
             </div>
@@ -422,7 +428,7 @@ export default function SocialIntelligenceWorkspace({
                   </div>
 
                   <div style={{ fontSize: '10px', color: '#64748B', borderTop: '1px solid #1F2937', paddingTop: '8px' }}>
-                    {platform === 'youtube' && 'Konektor resmi aktif via Google Cloud. Mematuhi retensi 30 hari & isolasi kanal.'}
+                    {platform === 'youtube' && 'Konektor resmi via GCP. Retensi 30 hari & isolasi kanal. Analisis turunan: POLICY_BLOCKED (belum ada amandemen resmi).'}
                     {platform === 'facebook' && 'Penemuan via indeks pencarian publik. Meta Research API memerlukan akreditasi institusi.'}
                     {platform === 'instagram' && 'Penemuan via Dorking reels/p. Scraping login dilarang keras.'}
                     {platform === 'tiktok' && 'Hanya penemuan tautan publik. Research API memerlukan persetujuan formal TikTok.'}
@@ -651,10 +657,10 @@ export default function SocialIntelligenceWorkspace({
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
                             <span style={{ fontWeight: 700, color: '#94A3B8' }}>{cmt.authorHandle}</span>
                             <span style={{
-                              color: cmt.sentimentVerdict === 'POSITIVE' ? '#10B981' : cmt.sentimentVerdict === 'NEGATIVE' ? '#EF4444' : '#64748B',
+                              color: cmt.platform === 'youtube' ? '#EF4444' : (cmt.sentimentVerdict === 'POSITIVE' ? '#10B981' : cmt.sentimentVerdict === 'NEGATIVE' ? '#EF4444' : '#64748B'),
                               fontWeight: 700
                             }}>
-                              {cmt.sentimentVerdict || 'NEUTRAL'}
+                              {cmt.platform === 'youtube' ? 'POLICY_BLOCKED' : (cmt.sentimentVerdict || 'NEUTRAL')}
                             </span>
                           </div>
                           <div style={{ fontSize: '11px', color: '#E2E8F0', marginTop: '4px' }}>

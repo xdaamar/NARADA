@@ -265,6 +265,9 @@ export interface SearchProviderAdapter {
     }>
     errorCode?: string
     errorMessage?: string
+    costEstimatedUsd?: number
+    operatorApplied?: boolean
+    queryCleaned?: string
   }>
 }
 
@@ -312,6 +315,9 @@ export class GoogleCustomSearchAdapter implements SearchProviderAdapter {
     items: Array<{ url: string; title: string; snippet: string; searchRank: number; publishedAt?: string | null }>
     errorCode?: string
     errorMessage?: string
+    costEstimatedUsd?: number
+    operatorApplied?: boolean
+    queryCleaned?: string
   }> {
     if (!this.isConfigured()) {
       return {

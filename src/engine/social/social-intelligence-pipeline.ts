@@ -239,9 +239,29 @@ export class SocialIntelligencePipeline {
       rationale: string
     }
   } {
-    // ─── GATE L: KEBIJAKAN YOUTUBE (Section III.E.2) ───
-    if (context?.platform === 'youtube' && !context?.skipPolicyCheck) {
-      const distinctChannels = new Set((context.channelIds || []).filter(Boolean))
+    // ─── GATE L & SPRINT 11B: KEBIJAKAN YOUTUBE (Section III.E.2 & Derived Metrics Policy) ───
+    const isYouTubeData = context?.platform === 'youtube' || comments.some(c => c.platform === 'youtube')
+    if (isYouTubeData && !context?.skipPolicyCheck) {
+      // Periksa apakah terdapat bukti tertulis resmi persetujuan amandemen Derived Metrics Policy untuk NARADA
+      // Doktrin Fail-Closed: Tanpa bukti tertulis amandemen resmi, analisis turunan DILARANG KERAS.
+      const hasVerifiedAmendment = false
+      if (!hasVerifiedAmendment) {
+        return {
+          isPermitted: false,
+          policyStatus: 'POLICY_BLOCKED',
+          rejectionRationale: 'Kebijakan Pengembang YouTube melarang penciptaan metrik dan analisis turunan (sentimen, copypasta, burst, koordinasi) tanpa persetujuan tertulis resmi (YouTube Derived Metrics Policy Amendment). Kapabilitas ini dinonaktifkan secara fail-closed demi kepatuhan hukum.',
+          sentimentSummary: { positive: 0, negative: 0, neutral: 0, mixed: 0, uncertain: 0, dominantSentiment: 'BLOCKED' },
+          similarityClusters: [],
+          burstDetected: false,
+          coordinationIndicator: {
+            label: 'POLICY_BLOCKED',
+            rationale: 'Analisis turunan data YouTube diblokir (POLICY_BLOCKED): Belum ada persetujuan tertulis resmi YouTube Derived Metrics Policy Amendment untuk klien API NARADA.'
+          }
+        }
+      }
+
+      // Jika kelak memiliki izin amandemen, tetap tegakkan batasan isolasi kanal Section III.E.2:
+      const distinctChannels = new Set((context?.channelIds || []).filter(Boolean))
       if (distinctChannels.size > 1) {
         return {
           isPermitted: false,
@@ -377,10 +397,10 @@ export class SocialIntelligencePipeline {
 
     const platformBreakdown: Record<SocialPlatform, { postsCount: number; commentsCount: number; discoveryOnlyCount: number; status: any }> = {
       youtube: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'AVAILABLE' },
-      facebook: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'AVAILABLE' },
-      instagram: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'AVAILABLE' },
-      tiktok: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'AVAILABLE' },
-      x: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'AVAILABLE' },
+      facebook: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'ACCESS_RESTRICTED' },
+      instagram: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'ACCESS_RESTRICTED' },
+      tiktok: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'APPROVAL_REQUIRED' },
+      x: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'CONFIGURATION_REQUIRED' },
       web: { postsCount: 0, commentsCount: 0, discoveryOnlyCount: 0, status: 'AVAILABLE' }
     }
 

@@ -63,10 +63,11 @@ export interface QuotaReservation {
   isSearchCall: boolean
   reservedAt: number
   committed: boolean
+  dispatched?: boolean
 }
 
 export const YOUTUBE_ENDPOINT_COSTS: Record<string, { units: number; isSearchCall?: boolean }> = {
-  'search.list': { units: 100, isSearchCall: true },
+  'search.list': { units: 1, isSearchCall: true },
   'videos.list': { units: 1 },
   'commentThreads.list': { units: 1 },
   'comments.list': { units: 1 },
@@ -245,17 +246,28 @@ export class YouTubeQuotaManager {
       units: cost,
       isSearchCall: isSearch,
       reservedAt: Date.now(),
-      committed: false
+      committed: false,
+      dispatched: false
     })
 
-    this.usedUnits += cost
-    if (isSearch) this.usedSearches += 1
+    if (isSearch) {
+      this.usedSearches += 1
+    } else {
+      this.usedUnits += cost
+    }
     this.lastRequestAt = Date.now()
 
     return {
       reservationId,
       allowed: true,
       costUnits: cost
+    }
+  }
+
+  public markDispatched(reservationId: string): void {
+    const res = this.reservations.get(reservationId)
+    if (res) {
+      res.dispatched = true
     }
   }
 
@@ -267,12 +279,20 @@ export class YouTubeQuotaManager {
     }
   }
 
-  public rollbackUsage(reservationId: string): void {
+  public rollbackUsage(reservationId: string, force = false): void {
     const res = this.reservations.get(reservationId)
     if (res && !res.committed) {
-      this.usedUnits = Math.max(0, this.usedUnits - res.units)
+      // Kebijakan Konservatif: Jika permintaan sudah dikirim ke jaringan Google,
+      // jangan kembalikan kuota secara sepihak karena server Google kemungkinan besar telah memprosesnya.
+      if (res.dispatched && !force) {
+        res.committed = true
+        return
+      }
+
       if (res.isSearchCall) {
         this.usedSearches = Math.max(0, this.usedSearches - 1)
+      } else {
+        this.usedUnits = Math.max(0, this.usedUnits - res.units)
       }
       this.reservations.delete(reservationId)
     }
@@ -433,6 +453,8 @@ export class YouTubeConnector implements SourceConnector {
 
     const endpoint = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`
 
+    this.quotaManager.markDispatched(reservation.reservationId)
+
     try {
       const res = await (fetchFn as any)(endpoint, {
         headers: { 'Accept': 'application/json' }
@@ -592,6 +614,8 @@ export class YouTubeConnector implements SourceConnector {
 
     const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${this.apiKey}`
 
+    this.quotaManager.markDispatched(reservation.reservationId)
+
     try {
       const res = await (fetchFn as any)(url)
       this.quotaManager.commitUsage(reservation.reservationId)
@@ -725,6 +749,8 @@ export class YouTubeConnector implements SourceConnector {
       }
 
       const url = `https://www.googleapis.com/youtube/v3/commentThreads?${params.toString()}`
+
+      this.quotaManager.markDispatched(reservation.reservationId)
 
       try {
         const res = await (fetchFn as any)(url)

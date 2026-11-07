@@ -51,7 +51,7 @@ export class BraveSearchAdapter implements SearchProviderAdapter {
     dailyRequestLimit?: number
     headroomRequests?: number
   }) {
-    this.dailyRequestLimit = options?.dailyRequestLimit || 200 // Default 200 requests/day ($1.00/day)
+    this.dailyRequestLimit = options?.dailyRequestLimit !== undefined ? options.dailyRequestLimit : 200 // Default 200 requests/day ($1.00/day)
     this.headroomRequests = options?.headroomRequests || 10
     this.lastResetAt = this.calculateMidnightUtc()
 
@@ -123,6 +123,8 @@ export class BraveSearchAdapter implements SearchProviderAdapter {
     errorCode?: string
     errorMessage?: string
     costEstimatedUsd?: number
+    operatorApplied?: boolean
+    queryCleaned?: string
   }> {
     if (!this.isConfigured()) {
       return {
@@ -130,6 +132,15 @@ export class BraveSearchAdapter implements SearchProviderAdapter {
         items: [],
         errorCode: 'SEARCH_CREDENTIALS_REQUIRED',
         errorMessage: 'Kredensial Brave Search API (X-Subscription-Token) belum dikonfigurasi pada pengaturan NARADA.'
+      }
+    }
+
+    if (this.dailyRequestLimit <= 0) {
+      return {
+        success: false,
+        items: [],
+        errorCode: 'BUDGET_NOT_CONFIGURED',
+        errorMessage: 'Batas anggaran (request ceiling) harian Brave Search belum dikonfigurasi.'
       }
     }
 
@@ -215,17 +226,28 @@ export class BraveSearchAdapter implements SearchProviderAdapter {
         publishedAt: item.page_age || item.age || null
       }))
 
+      // Validasi metadata operator penelusuran dari respons Brave API
+      const searchOperators = data.query?.search_operators || data.query?.operators
+      const operatorApplied = Boolean(
+        data.query?.is_navigational !== true &&
+        (searchOperators?.applied === true || searchOperators?.site !== undefined || dorkQuery.includes('site:'))
+      )
+
       return {
         success: true,
         items,
-        costEstimatedUsd: BRAVE_COST_PER_REQUEST_USD
+        costEstimatedUsd: BRAVE_COST_PER_REQUEST_USD,
+        operatorApplied,
+        queryCleaned: data.query?.cleaned || dorkQuery
       }
     } catch (err: any) {
+      const sanitizedMsg = (err?.message || 'Gagal menghubungi server Brave Search API')
+        .replace(/([a-zA-Z0-9_-]{20,})/g, '[REDACTED_TOKEN]')
       return {
         success: false,
         items: [],
         errorCode: 'NETWORK_ERROR',
-        errorMessage: err?.message || 'Gagal menghubungi server Brave Search API'
+        errorMessage: sanitizedMsg
       }
     }
   }
