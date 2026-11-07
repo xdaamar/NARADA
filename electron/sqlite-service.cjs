@@ -328,11 +328,73 @@ function applyDatabaseSchema() {
       data_json TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_scan_started ON scan_history(started_at);
+
+    -- SPRINT 11: AUTOMATED SOCIAL INTELLIGENCE PERSISTENCE
+    CREATE TABLE IF NOT EXISTS social_posts (
+      id TEXT PRIMARY KEY,
+      platform TEXT NOT NULL,
+      platform_post_id TEXT,
+      canonical_url TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content_text TEXT,
+      author_handle TEXT,
+      published_at INTEGER,
+      acquired_at INTEGER NOT NULL,
+      retention_expires_at INTEGER,
+      content_status TEXT NOT NULL,
+      relevance_status TEXT NOT NULL,
+      relevance_score REAL,
+      issue_id TEXT,
+      claim_id TEXT,
+      is_provisional INTEGER DEFAULT 1,
+      data_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_soc_posts_platform ON social_posts(platform);
+    CREATE INDEX IF NOT EXISTS idx_soc_posts_acquired ON social_posts(acquired_at);
+    CREATE INDEX IF NOT EXISTS idx_soc_posts_issue ON social_posts(issue_id);
+
+    CREATE TABLE IF NOT EXISTS social_comments (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      platform TEXT NOT NULL,
+      platform_comment_id TEXT,
+      author_handle TEXT,
+      text_original TEXT NOT NULL,
+      normalized_text TEXT,
+      like_count INTEGER DEFAULT 0,
+      reply_count INTEGER DEFAULT 0,
+      published_at INTEGER,
+      acquired_at INTEGER NOT NULL,
+      retention_expires_at INTEGER,
+      sentiment_verdict TEXT,
+      data_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(post_id) REFERENCES social_posts(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_soc_cmts_post ON social_comments(post_id);
+    CREATE INDEX IF NOT EXISTS idx_soc_cmts_platform ON social_comments(platform);
+    CREATE INDEX IF NOT EXISTS idx_soc_cmts_acquired ON social_comments(acquired_at);
+
+    CREATE TABLE IF NOT EXISTS social_analysis_runs (
+      run_id TEXT PRIMARY KEY,
+      issue_id TEXT,
+      trigger_type TEXT NOT NULL,
+      started_at INTEGER NOT NULL,
+      completed_at INTEGER NOT NULL,
+      duration_ms INTEGER NOT NULL,
+      pipeline_version TEXT NOT NULL,
+      summary_json TEXT NOT NULL,
+      data_json TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_soc_runs_issue ON social_analysis_runs(issue_id);
+    CREATE INDEX IF NOT EXISTS idx_soc_runs_started ON social_analysis_runs(started_at);
   `)
 
   // Catat Migrasi Skema
   const stmt = db.prepare('INSERT OR IGNORE INTO schema_migrations (version, applied_at, description) VALUES (?, ?, ?)')
   stmt.run(CURRENT_SCHEMA_VERSION, new Date().toISOString(), 'Sprint 10 Source Acquisition & Discovery SQLite Schema')
+  stmt.run(2, new Date().toISOString(), 'Sprint 11 Automated Social Intelligence SQLite Schema')
 }
 
 /**
@@ -1111,14 +1173,169 @@ function getScanRunLogs(limit = 50) {
 
 function purgeExpiredYouTubeData(cutoffTimestamp) {
   if (!db) return { success: false, deletedCount: 0 }
-  const info = db.prepare('DELETE FROM discovery_candidates WHERE target_platform = ? AND discovered_at < ?').run('youtube', cutoffTimestamp)
-  return { success: true, deletedCount: info.changes }
+  const infoDisc = db.prepare('DELETE FROM discovery_candidates WHERE target_platform = ? AND discovered_at < ?').run('youtube', cutoffTimestamp)
+  let postChanges = 0
+  let commentChanges = 0
+  try {
+    const infoPosts = db.prepare('DELETE FROM social_posts WHERE platform = ? AND acquired_at < ?').run('youtube', cutoffTimestamp)
+    postChanges = infoPosts.changes
+    const infoComments = db.prepare('DELETE FROM social_comments WHERE platform = ? AND acquired_at < ?').run('youtube', cutoffTimestamp)
+    commentChanges = infoComments.changes
+  } catch {}
+  return { success: true, deletedCount: infoDisc.changes + postChanges + commentChanges }
 }
 
 function purgeAllYouTubeData() {
   if (!db) return { success: false, deletedCount: 0 }
-  const info = db.prepare('DELETE FROM discovery_candidates WHERE target_platform = ?').run('youtube')
-  return { success: true, deletedCount: info.changes }
+  const infoDisc = db.prepare('DELETE FROM discovery_candidates WHERE target_platform = ?').run('youtube')
+  let postChanges = 0
+  let commentChanges = 0
+  try {
+    const infoPosts = db.prepare('DELETE FROM social_posts WHERE platform = ?').run('youtube')
+    postChanges = infoPosts.changes
+    const infoComments = db.prepare('DELETE FROM social_comments WHERE platform = ?').run('youtube')
+    commentChanges = infoComments.changes
+  } catch {}
+  return { success: true, deletedCount: infoDisc.changes + postChanges + commentChanges }
+}
+
+// ─── SPRINT 11: SOCIAL INTELLIGENCE DAOS ───
+function saveSocialPost(post) {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO social_posts (
+      id, platform, platform_post_id, canonical_url, title, content_text,
+      author_handle, published_at, acquired_at, retention_expires_at, content_status,
+      relevance_status, relevance_score, issue_id, claim_id, is_provisional, data_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    post.id,
+    post.platform,
+    post.platformPostId || null,
+    post.canonicalUrl,
+    post.title,
+    post.contentText || '',
+    post.author?.handle || post.authorHandle || null,
+    post.publishedAt || null,
+    post.acquiredAt,
+    post.retentionExpiresAt || null,
+    post.contentStatus,
+    post.relevanceStatus,
+    post.relevanceScore || null,
+    post.issueId || null,
+    post.claimId || null,
+    post.isProvisional ? 1 : 0,
+    JSON.stringify(post),
+    new Date().toISOString()
+  )
+  return { success: true, id: post.id }
+}
+
+function getSocialPosts(filter = {}) {
+  if (!db) return []
+  const { platform, issueId, limit = 100 } = filter || {}
+  let query = 'SELECT data_json FROM social_posts'
+  const conditions = []
+  const params = []
+
+  if (platform) {
+    conditions.push('platform = ?')
+    params.push(platform)
+  }
+  if (issueId) {
+    conditions.push('issue_id = ?')
+    params.push(issueId)
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ')
+  }
+  query += ' ORDER BY acquired_at DESC LIMIT ?'
+  params.push(limit)
+
+  const rows = db.prepare(query).all(...params)
+  return rows.map(r => JSON.parse(r.data_json))
+}
+
+function saveSocialComments(comments) {
+  if (!db) throw new Error('Database not initialized')
+  if (!Array.isArray(comments) || comments.length === 0) return { success: true, count: 0 }
+
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO social_comments (
+      id, post_id, platform, platform_comment_id, author_handle, text_original,
+      normalized_text, like_count, reply_count, published_at, acquired_at,
+      retention_expires_at, sentiment_verdict, data_json, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  let count = 0
+  for (const c of comments) {
+    stmt.run(
+      c.id,
+      c.postId,
+      c.platform,
+      c.platformCommentId || null,
+      c.authorHandle || '',
+      c.textOriginal,
+      c.normalizedText || '',
+      c.likeCount || 0,
+      c.replyCount || 0,
+      c.publishedAt || null,
+      c.acquiredAt,
+      c.retentionExpiresAt || null,
+      c.sentimentVerdict || null,
+      JSON.stringify(c),
+      new Date().toISOString()
+    )
+    count++
+  }
+  return { success: true, count }
+}
+
+function getSocialComments(postId = null, limit = 200) {
+  if (!db) return []
+  let rows
+  if (postId) {
+    rows = db.prepare('SELECT data_json FROM social_comments WHERE post_id = ? ORDER BY acquired_at DESC LIMIT ?').all(postId, limit)
+  } else {
+    rows = db.prepare('SELECT data_json FROM social_comments ORDER BY acquired_at DESC LIMIT ?').all(limit)
+  }
+  return rows.map(r => JSON.parse(r.data_json))
+}
+
+function saveSocialAnalysisRun(run) {
+  if (!db) throw new Error('Database not initialized')
+  const stmt = db.prepare(`
+    INSERT OR REPLACE INTO social_analysis_runs (
+      run_id, issue_id, trigger_type, started_at, completed_at, duration_ms,
+      pipeline_version, summary_json, data_json
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+  stmt.run(
+    run.runId,
+    run.issueId || null,
+    run.triggerType || 'MANUAL',
+    run.startedAt,
+    run.completedAt,
+    run.durationMs,
+    run.pipelineVersion || '1.1.0',
+    JSON.stringify(run.summary || {}),
+    JSON.stringify(run)
+  )
+  return { success: true, runId: run.runId }
+}
+
+function getSocialAnalysisRuns(issueId = null, limit = 50) {
+  if (!db) return []
+  let rows
+  if (issueId) {
+    rows = db.prepare('SELECT data_json FROM social_analysis_runs WHERE issue_id = ? ORDER BY started_at DESC LIMIT ?').all(issueId, limit)
+  } else {
+    rows = db.prepare('SELECT data_json FROM social_analysis_runs ORDER BY started_at DESC LIMIT ?').all(limit)
+  }
+  return rows.map(r => JSON.parse(r.data_json))
 }
 
 module.exports = {
@@ -1162,5 +1379,11 @@ module.exports = {
   saveScanRunLog,
   getScanRunLogs,
   purgeExpiredYouTubeData,
-  purgeAllYouTubeData
+  purgeAllYouTubeData,
+  saveSocialPost,
+  getSocialPosts,
+  saveSocialComments,
+  getSocialComments,
+  saveSocialAnalysisRun,
+  getSocialAnalysisRuns
 }

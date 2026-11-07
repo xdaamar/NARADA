@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import EvidenceBrowserWorkspace from '../components/EvidenceBrowserWorkspace.tsx'
 import CommentIntelligenceWorkspace from '../components/CommentIntelligenceWorkspace.tsx'
+import SocialIntelligenceWorkspace from '../components/SocialIntelligenceWorkspace.tsx'
 import { generateCaseDossierPdf } from '../engine/export/case-dossier-pdf.ts'
 import {
   getCommentBatchesFromDB,
@@ -197,8 +198,8 @@ export default function SocialForensic() {
     }
   }, [activeCase.id, activeCase.mode, activeCase.title, evidenceList.length, refreshCaseData])
 
-  // ─── 2. State Ingestion Console (Sprint 2 - D3 & Gate 0.5 & Sprint 7 Evidence Browser & Sprint 8 Comment Intelligence) ───
-  const [ingestTab, setIngestTab] = useState<'TEXT' | 'FILE' | 'URL' | 'PRESET' | 'BROWSER' | 'COMMENTS'>('TEXT')
+  // ─── 2. State Ingestion Console (Sprint 2 - D3 & Gate 0.5 & Sprint 7 Evidence Browser & Sprint 8 Comment Intelligence & Sprint 11 Social Intelligence) ───
+  const [ingestTab, setIngestTab] = useState<'TEXT' | 'FILE' | 'URL' | 'PRESET' | 'BROWSER' | 'COMMENTS' | 'SOCIAL_INTELLIGENCE'>('TEXT')
   const [selectedEvidenceDetail, setSelectedEvidenceDetail] = useState<EvidenceRecord | null>(null)
   const [verifyResultDetail, setVerifyResultDetail] = useState<any | null>(null)
   const [isVerifyingDetail, setIsVerifyingDetail] = useState<boolean>(false)
@@ -1243,6 +1244,29 @@ export default function SocialForensic() {
 
           <button
             type="button"
+            onClick={() => setIngestTab('SOCIAL_INTELLIGENCE')}
+            style={{
+              background: ingestTab === 'SOCIAL_INTELLIGENCE' ? 'linear-gradient(135deg, #00F3FF 0%, #0088AA 100%)' : 'rgba(0, 243, 255, 0.15)',
+              border: '1px solid #00F3FF',
+              color: ingestTab === 'SOCIAL_INTELLIGENCE' ? '#0B0F17' : '#00F3FF',
+              padding: '6px 14px',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 2px 8px rgba(0, 243, 255, 0.2)'
+            }}
+            title="Buka Subsistem Automated Social Intelligence & Platform Acquisition Pipeline (Sprint 11)"
+          >
+            <Share2 size={13} />
+            <span>SOCIAL INTELLIGENCE</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleExportUnifiedDossierPdf}
             disabled={isExportingDossier}
             style={{
@@ -1644,6 +1668,16 @@ export default function SocialForensic() {
                     setIngestSuccessMsg(`Batch komentar [${batch.batchLabel}] berhasil dibuat untuk kasus ini.`)
                     setTimeout(() => setIngestSuccessMsg(null), 5000)
                   }}
+                />
+              </div>
+            )}
+
+            {/* TAB CONTENT: SOCIAL INTELLIGENCE (Sprint 11) */}
+            {ingestTab === 'SOCIAL_INTELLIGENCE' && (
+              <div style={{ marginTop: '4px' }}>
+                <SocialIntelligenceWorkspace
+                  activeCase={activeCase}
+                  onClose={() => setIngestTab('TEXT')}
                 />
               </div>
             )}

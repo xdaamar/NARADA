@@ -75,7 +75,7 @@ const STRATEGIC_DOMAIN_PATTERNS: Record<string, { weight: number; patterns: stri
     patterns: [
       'tni', 'tni ad', 'kemhan', 'alutsista', 'kedaulatan', 'perbatasan',
       'natuna', 'ambalat', 'papua', 'kkb', 'opm', 'marinir', 'kopassus',
-      'kodam', 'patroli laut', 'pesawat tempur', 'kapal perang', 'hankam'
+      'kodam', 'patroli laut', 'pesawat tempur', 'kapal perang', 'kapal selam', 'dispenal', 'dispenau', 'hankam'
     ]
   },
   CYBER_PUBLIC_IMPACT: {

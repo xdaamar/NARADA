@@ -87,6 +87,18 @@ contextBridge.exposeInMainWorld('naradaDatabase', {
   saveScanRunLog: (log) => ipcRenderer.invoke('narada:db:save-scan-history', log),
   getScanRunLogs: (limit) => ipcRenderer.invoke('narada:db:get-scan-history', limit),
   purgeExpiredYouTubeData: (cutoff) => ipcRenderer.invoke('narada:db:purge-expired-youtube', cutoff),
-  purgeAllYouTubeData: () => ipcRenderer.invoke('narada:db:purge-all-youtube')
+  purgeAllYouTubeData: () => ipcRenderer.invoke('narada:db:purge-all-youtube'),
+
+  // Sprint 11 Social Intelligence & Platform Content
+  saveSocialPost: (post) => ipcRenderer.invoke('narada:db:save-social-post', post),
+  getSocialPosts: (filter) => ipcRenderer.invoke('narada:db:get-social-posts', filter),
+  saveSocialComments: (comments) => ipcRenderer.invoke('narada:db:save-social-comments', comments),
+  getSocialComments: (postId, limit) => ipcRenderer.invoke('narada:db:get-social-comments', postId, limit),
+  saveSocialAnalysisRun: (run) => ipcRenderer.invoke('narada:db:save-social-run', run),
+  getSocialAnalysisRuns: (issueId, limit) => ipcRenderer.invoke('narada:db:get-social-runs', issueId, limit),
+
+  // Sprint 11 Credential Isolation
+  storeCredential: (keyName, secret) => ipcRenderer.invoke('narada:sec:store-credential', keyName, secret),
+  hasCredential: (keyName) => ipcRenderer.invoke('narada:sec:has-credential', keyName)
 })
 

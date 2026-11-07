@@ -35,6 +35,11 @@ import type {
   ScanRunLog,
   TargetPlatform
 } from '../engine/acquisition/source-contracts.ts'
+import type {
+  SocialPostRecord,
+  SocialCommentRecord,
+  SocialAnalysisRunSummary
+} from '../engine/social/social-contracts.ts'
 
 export interface StorageDurabilityState {
   status: 'PERSISTED' | 'DEGRADED' | 'FAILED'
@@ -83,12 +88,20 @@ declare global {
       getDiscoveryCandidates: (platform?: string) => Promise<any[]>
       saveScanRunLog: (log: any) => Promise<{ success: boolean; runId: string }>
       getScanRunLogs: (limit?: number) => Promise<any[]>
+      purgeExpiredYouTubeData?: (cutoff: number) => Promise<{ success: boolean; deletedCount: number }>
+      purgeAllYouTubeData?: () => Promise<{ success: boolean; deletedCount: number }>
+      saveSocialPost?: (post: any) => Promise<{ success: boolean; id: string }>
+      getSocialPosts?: (filter?: any) => Promise<any[]>
+      saveSocialComments?: (comments: any[]) => Promise<{ success: boolean; count: number }>
+      getSocialComments?: (postId?: string, limit?: number) => Promise<any[]>
+      saveSocialAnalysisRun?: (run: any) => Promise<{ success: boolean; runId: string }>
+      getSocialAnalysisRuns?: (issueId?: string, limit?: number) => Promise<any[]>
     }
   }
 }
 
 const DB_NAME = 'narada_tactical_db'
-const DB_VERSION = 6 // Upgraded from DB_VERSION = 5 (Sprint 9)
+const DB_VERSION = 7 // Upgraded from DB_VERSION = 6 (Sprint 10) to 7 for Sprint 11 Social Intelligence
 
 export const STORES = {
   ANALYSES: 'analyses',
@@ -109,6 +122,9 @@ export const STORES = {
   PUBLISHERS: 'publishers',
   DISCOVERY_CANDIDATES: 'discovery_candidates',
   SCAN_HISTORY: 'scan_history',
+  SOCIAL_POSTS: 'social_posts',
+  SOCIAL_COMMENTS: 'social_comments',
+  SOCIAL_ANALYSIS_RUNS: 'social_analysis_runs',
 } as const
 
 export interface StoredImageData {
@@ -145,6 +161,9 @@ const memoryFallback = {
   publishers: new Map<string, PublisherProfile>(),
   discoveryCandidates: new Map<string, SearchDiscoveryResult>(),
   scanHistory: new Map<string, ScanRunLog>(),
+  socialPosts: new Map<string, SocialPostRecord>(),
+  socialComments: new Map<string, SocialCommentRecord>(),
+  socialAnalysisRuns: new Map<string, SocialAnalysisRunSummary>(),
 }
 
 let dbInstance: IDBDatabase | null = null
@@ -305,6 +324,29 @@ export async function initDB(): Promise<IDBDatabase | null> {
         if (!db.objectStoreNames.contains(STORES.SCAN_HISTORY)) {
           const store = db.createObjectStore(STORES.SCAN_HISTORY, { keyPath: 'runId' })
           store.createIndex('triggerType', 'triggerType', { unique: false })
+          store.createIndex('startedAt', 'startedAt', { unique: false })
+        }
+
+        // Store 19: Social Posts (Sprint 11)
+        if (!db.objectStoreNames.contains(STORES.SOCIAL_POSTS)) {
+          const store = db.createObjectStore(STORES.SOCIAL_POSTS, { keyPath: 'id' })
+          store.createIndex('platform', 'platform', { unique: false })
+          store.createIndex('issueId', 'issueId', { unique: false })
+          store.createIndex('acquiredAt', 'acquiredAt', { unique: false })
+        }
+
+        // Store 20: Social Comments (Sprint 11)
+        if (!db.objectStoreNames.contains(STORES.SOCIAL_COMMENTS)) {
+          const store = db.createObjectStore(STORES.SOCIAL_COMMENTS, { keyPath: 'id' })
+          store.createIndex('postId', 'postId', { unique: false })
+          store.createIndex('platform', 'platform', { unique: false })
+          store.createIndex('acquiredAt', 'acquiredAt', { unique: false })
+        }
+
+        // Store 21: Social Analysis Runs (Sprint 11)
+        if (!db.objectStoreNames.contains(STORES.SOCIAL_ANALYSIS_RUNS)) {
+          const store = db.createObjectStore(STORES.SOCIAL_ANALYSIS_RUNS, { keyPath: 'runId' })
+          store.createIndex('issueId', 'issueId', { unique: false })
           store.createIndex('startedAt', 'startedAt', { unique: false })
         }
       }
@@ -1731,9 +1773,21 @@ export async function getScanRunLogsFromDB(limit = 50): Promise<ScanRunLog[]> {
 /**
  * Menghapus data YouTube yang telah melampaui retensi 30 hari kalender (Section III.E.4)
  */
-export async function purgeExpiredYouTubeDataFromDB(now = Date.now()): Promise<{ purgedCount: number }> {
+export async function purgeExpiredYouTubeDataFromDB(cutoffOrNow?: number): Promise<{ purgedCount: number }> {
   const RETENTION_MS = 30 * 24 * 60 * 60 * 1000
-  const cutoff = now - RETENTION_MS
+  let cutoff: number
+  let now: number
+  if (!cutoffOrNow) {
+    now = Date.now()
+    cutoff = now - RETENTION_MS
+  } else if (cutoffOrNow < Date.now() - (15 * 86400000)) {
+    // Caller already passed an absolute cutoff timestamp
+    cutoff = cutoffOrNow
+    now = cutoff + RETENTION_MS
+  } else {
+    now = cutoffOrNow
+    cutoff = now - RETENTION_MS
+  }
   let purgedCount = 0
 
   // 1. Bersihkan di SQLite jika tersedia
@@ -1750,6 +1804,20 @@ export async function purgeExpiredYouTubeDataFromDB(now = Date.now()): Promise<{
   for (const [id, item] of memoryFallback.discoveryCandidates.entries()) {
     if (item.targetPlatform === 'youtube' && item.discoveredAt < cutoff) {
       memoryFallback.discoveryCandidates.delete(id)
+      purgedCount++
+    }
+  }
+
+  for (const [id, item] of memoryFallback.socialPosts.entries()) {
+    if (item.platform === 'youtube' && (item.acquiredAt < cutoff || (item.retentionExpiresAt && item.retentionExpiresAt <= now))) {
+      memoryFallback.socialPosts.delete(id)
+      purgedCount++
+    }
+  }
+
+  for (const [id, item] of memoryFallback.socialComments.entries()) {
+    if (item.platform === 'youtube' && (item.acquiredAt < cutoff || (item.retentionExpiresAt && item.retentionExpiresAt <= now))) {
+      memoryFallback.socialComments.delete(id)
       purgedCount++
     }
   }
@@ -1796,6 +1864,20 @@ export async function purgeAllYouTubeDataFromDB(): Promise<{ deletedCount: numbe
     }
   }
 
+  for (const [id, item] of memoryFallback.socialPosts.entries()) {
+    if (item.platform === 'youtube') {
+      memoryFallback.socialPosts.delete(id)
+      deletedCount++
+    }
+  }
+
+  for (const [id, item] of memoryFallback.socialComments.entries()) {
+    if (item.platform === 'youtube') {
+      memoryFallback.socialComments.delete(id)
+      deletedCount++
+    }
+  }
+
   if (!isFallbackMode) {
     try {
       const all = await performTransaction<SearchDiscoveryResult[]>(STORES.DISCOVERY_CANDIDATES, 'readonly', (store) => store.getAll())
@@ -1807,6 +1889,24 @@ export async function purgeAllYouTubeDataFromDB(): Promise<{ deletedCount: numbe
           }
         }
       }
+      const allPosts = await performTransaction<SocialPostRecord[]>(STORES.SOCIAL_POSTS, 'readonly', (store) => store.getAll())
+      if (allPosts) {
+        for (const item of allPosts) {
+          if (item.platform === 'youtube') {
+            await performTransaction(STORES.SOCIAL_POSTS, 'readwrite', (store) => store.delete(item.id))
+            deletedCount++
+          }
+        }
+      }
+      const allComments = await performTransaction<SocialCommentRecord[]>(STORES.SOCIAL_COMMENTS, 'readonly', (store) => store.getAll())
+      if (allComments) {
+        for (const item of allComments) {
+          if (item.platform === 'youtube') {
+            await performTransaction(STORES.SOCIAL_COMMENTS, 'readwrite', (store) => store.delete(item.id))
+            deletedCount++
+          }
+        }
+      }
     } catch {
       // ignore
     }
@@ -1814,6 +1914,163 @@ export async function purgeAllYouTubeDataFromDB(): Promise<{ deletedCount: numbe
 
   return { deletedCount }
 }
+
+// ─── SPRINT 11: SOCIAL INTELLIGENCE PERSISTENCE ADAPTER ───
+
+/**
+ * Menyimpan rekaman konten sosial terakuisisi kanonikal ke SQLite / IndexedDB
+ */
+export async function saveSocialPostToDB(post: SocialPostRecord): Promise<{ success: boolean; id: string }> {
+  if (typeof window !== 'undefined' && (window as any).naradaDatabase?.saveSocialPost) {
+    try {
+      const res = await (window as any).naradaDatabase.saveSocialPost(post)
+      if (res?.success) return res
+    } catch {
+      // Fallback
+    }
+  }
+
+  memoryFallback.socialPosts.set(post.id, post)
+  if (!isFallbackMode) {
+    try {
+      await performTransaction(STORES.SOCIAL_POSTS, 'readwrite', (store) => store.put(post))
+    } catch {
+      // Memory fallback aktif
+    }
+  }
+
+  return { success: true, id: post.id }
+}
+
+/**
+ * Mengambil daftar konten sosial terakuisisi dengan filter opsional
+ */
+export async function getSocialPostsFromDB(filter?: {
+  platform?: TargetPlatform
+  issueId?: string
+  limit?: number
+}): Promise<SocialPostRecord[]> {
+  if (typeof window !== 'undefined' && (window as any).naradaDatabase?.getSocialPosts) {
+    try {
+      const res = await (window as any).naradaDatabase.getSocialPosts(filter)
+      if (Array.isArray(res)) return res
+    } catch {
+      // Fallback
+    }
+  }
+
+  let posts = Array.from(memoryFallback.socialPosts.values())
+  if (filter?.platform) {
+    posts = posts.filter(p => p.platform === filter.platform)
+  }
+  if (filter?.issueId) {
+    posts = posts.filter(p => p.issueId === filter.issueId)
+  }
+
+  posts.sort((a, b) => b.acquiredAt - a.acquiredAt)
+  if (filter?.limit) {
+    posts = posts.slice(0, filter.limit)
+  }
+  return posts
+}
+
+/**
+ * Menyimpan batch komentar sosial terakuisisi
+ */
+export async function saveSocialCommentsToDB(comments: SocialCommentRecord[]): Promise<{ success: boolean; count: number }> {
+  if (typeof window !== 'undefined' && (window as any).naradaDatabase?.saveSocialComments) {
+    try {
+      const res = await (window as any).naradaDatabase.saveSocialComments(comments)
+      if (res?.success) return res
+    } catch {
+      // Fallback
+    }
+  }
+
+  for (const c of comments) {
+    memoryFallback.socialComments.set(c.id, c)
+  }
+
+  if (!isFallbackMode) {
+    try {
+      await Promise.all(
+        comments.map(c => performTransaction(STORES.SOCIAL_COMMENTS, 'readwrite', (store) => store.put(c)))
+      )
+    } catch {
+      // Memory fallback aktif
+    }
+  }
+
+  return { success: true, count: comments.length }
+}
+
+/**
+ * Mengambil komentar sosial terakuisisi berdasarkan postId
+ */
+export async function getSocialCommentsFromDB(postId?: string, limit = 200): Promise<SocialCommentRecord[]> {
+  if (typeof window !== 'undefined' && (window as any).naradaDatabase?.getSocialComments) {
+    try {
+      const res = await (window as any).naradaDatabase.getSocialComments(postId, limit)
+      if (Array.isArray(res)) return res
+    } catch {
+      // Fallback
+    }
+  }
+
+  let comments = Array.from(memoryFallback.socialComments.values())
+  if (postId) {
+    comments = comments.filter(c => c.postId === postId)
+  }
+  comments.sort((a, b) => b.acquiredAt - a.acquiredAt)
+  return comments.slice(0, limit)
+}
+
+/**
+ * Menyimpan snapshot eksekusi automated social intelligence run
+ */
+export async function saveSocialAnalysisRunToDB(run: SocialAnalysisRunSummary): Promise<{ success: boolean; runId: string }> {
+  if (typeof window !== 'undefined' && (window as any).naradaDatabase?.saveSocialAnalysisRun) {
+    try {
+      const res = await (window as any).naradaDatabase.saveSocialAnalysisRun(run)
+      if (res?.success) return res
+    } catch {
+      // Fallback
+    }
+  }
+
+  memoryFallback.socialAnalysisRuns.set(run.runId, run)
+  if (!isFallbackMode) {
+    try {
+      await performTransaction(STORES.SOCIAL_ANALYSIS_RUNS, 'readwrite', (store) => store.put(run))
+    } catch {
+      // Memory fallback aktif
+    }
+  }
+
+  return { success: true, runId: run.runId }
+}
+
+/**
+ * Mengambil riwayat run automated social intelligence
+ */
+export async function getSocialAnalysisRunsFromDB(issueId?: string, limit = 50): Promise<SocialAnalysisRunSummary[]> {
+  if (typeof window !== 'undefined' && (window as any).naradaDatabase?.getSocialAnalysisRuns) {
+    try {
+      const res = await (window as any).naradaDatabase.getSocialAnalysisRuns(issueId, limit)
+      if (Array.isArray(res)) return res
+    } catch {
+      // Fallback
+    }
+  }
+
+  let runs = Array.from(memoryFallback.socialAnalysisRuns.values())
+  if (issueId) {
+    runs = runs.filter(r => r.issueId === issueId)
+  }
+  runs.sort((a, b) => b.startedAt - a.startedAt)
+  return runs.slice(0, limit)
+}
+
 
 
 

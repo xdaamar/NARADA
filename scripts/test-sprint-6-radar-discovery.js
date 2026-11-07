@@ -550,7 +550,8 @@ async function runSprint6TestSuite() {
   // ──────────────────────────────────────────────────────────────────
   console.log('\n─── S6-26: IndexedDB Migration Schema Integrity ───')
   const dbAdapterSource = fs.readFileSync(path.resolve('src/utils/db-adapter.ts'), 'utf-8')
-  assert(dbAdapterSource.includes('DB_VERSION = 2') || dbAdapterSource.includes('DB_VERSION = 3'), 'S6-26.1', 'DB_VERSION dinaikkan ke versi >= 2')
+  const dbVerMatch = dbAdapterSource.match(/DB_VERSION\s*=\s*(\d+)/)
+  assert(dbVerMatch && parseInt(dbVerMatch[1], 10) >= 2, 'S6-26.1', 'DB_VERSION dinaikkan ke versi >= 2')
   assert(dbAdapterSource.includes('topic_candidates'), 'S6-26.2', 'Store topic_candidates terdaftar')
   assert(dbAdapterSource.includes('issue_activity_snapshots'), 'S6-26.3', 'Store issue_activity_snapshots terdaftar')
   assert(dbAdapterSource.includes('source_run_log'), 'S6-26.4', 'Store source_run_log terdaftar')

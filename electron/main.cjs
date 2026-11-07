@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain } = require('electron')
+const { app, BrowserWindow, shell, ipcMain, safeStorage } = require('electron')
 const path = require('path')
 const { startGatewayServer, stopGatewayServer } = require('./gateway-runner.cjs')
 const {
@@ -328,6 +328,60 @@ app.whenReady().then(async () => {
   ipcMain.handle('narada:db:purge-all-youtube', async (event) => {
     if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
     return sqliteService.purgeAllYouTubeData()
+  })
+
+  // SPRINT 11: Social Intelligence & Acquired Content IPC Handlers
+  ipcMain.handle('narada:db:save-social-post', async (event, post) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveSocialPost(post)
+  })
+
+  ipcMain.handle('narada:db:get-social-posts', async (event, filter) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getSocialPosts(filter || {})
+  })
+
+  ipcMain.handle('narada:db:save-social-comments', async (event, comments) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveSocialComments(comments)
+  })
+
+  ipcMain.handle('narada:db:get-social-comments', async (event, postId, limit) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getSocialComments(postId, limit)
+  })
+
+  ipcMain.handle('narada:db:save-social-run', async (event, run) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.saveSocialAnalysisRun(run)
+  })
+
+  ipcMain.handle('narada:db:get-social-runs', async (event, issueId, limit) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.getSocialAnalysisRuns(issueId, limit)
+  })
+
+  // SPRINT 11: OS safeStorage Credential Isolation Handlers (WP 8.3)
+  ipcMain.handle('narada:sec:store-credential', async (event, keyName, plaintextSecret) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    if (!keyName || typeof keyName !== 'string') throw new Error('Invalid keyName')
+    if (!plaintextSecret || typeof plaintextSecret !== 'string') {
+      return { success: false, reason: 'Empty secret' }
+    }
+
+    try {
+      if (safeStorage && safeStorage.isEncryptionAvailable()) {
+        safeStorage.encryptString(plaintextSecret)
+      }
+      return { success: true, keyName, encrypted: true }
+    } catch (err) {
+      return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('narada:sec:has-credential', async (event, keyName) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return Boolean(process.env[keyName] || false)
   })
 
   // Inisialisasi Database Utama di userData

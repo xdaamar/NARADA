@@ -29,6 +29,20 @@ import {
   youtubeRetentionManager,
   YOUTUBE_MAX_RETENTION_MS
 } from './youtube-retention.ts'
+import type { SocialContentStatus } from '../social/social-contracts.ts'
+
+export interface YouTubeQuotaBuckets {
+  searchRequests: {
+    dailyLimit: number
+    used: number
+    remaining: number
+  }
+  generalUnits: {
+    dailyLimit: number
+    used: number
+    remaining: number
+  }
+}
 
 export interface YouTubeQuotaState {
   dailyLimitUnits: number
@@ -37,6 +51,51 @@ export interface YouTubeQuotaState {
   resetTimestamp: number
   isExhausted: boolean
   lastRequestAt: number | null
+  buckets: YouTubeQuotaBuckets
+  priorityHeadroomUnits: number
+  nextResetPtIso: string
+}
+
+export interface QuotaReservation {
+  reservationId: string
+  endpoint: string
+  units: number
+  isSearchCall: boolean
+  reservedAt: number
+  committed: boolean
+}
+
+export const YOUTUBE_ENDPOINT_COSTS: Record<string, { units: number; isSearchCall?: boolean }> = {
+  'search.list': { units: 100, isSearchCall: true },
+  'videos.list': { units: 1 },
+  'commentThreads.list': { units: 1 },
+  'comments.list': { units: 1 },
+  'channels.list': { units: 1 }
+}
+
+/**
+ * Menghitung waktu pergantian hari (midnight) berikutnya berdasarkan zona waktu Pacific Time (PT)
+ * sesuai dokumentasi resmi Google Cloud Platform & YouTube Data API
+ */
+export function calculateNextPacificMidnight(nowMs = Date.now()): number {
+  const d = new Date(nowMs)
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+  const parts = Object.fromEntries(formatter.formatToParts(d).map(p => [p.type, p.value]))
+  const h = parseInt(parts.hour, 10) % 24
+  const m = parseInt(parts.minute, 10)
+  const s = parseInt(parts.second, 10)
+  const msIntoDay = ((h * 60 + m) * 60 + s) * 1000 + (nowMs % 1000)
+  const msRemaining = (24 * 60 * 60 * 1000) - msIntoDay
+  return nowMs + msRemaining
 }
 
 export interface YouTubeVideoMetadata {
@@ -67,56 +126,170 @@ export interface YouTubeCommentItem {
 }
 
 /**
- * Manajer Kuota YouTube API v3
+ * Manajer Kuota YouTube API v3 Terkoreksi (Sprint 11 WP 2 & Gate D)
+ * Menegakkan:
+ * 1. Bucket terpisah untuk search.list (100 panggilan/hari)
+ * 2. Bucket unit gabungan untuk endpoint lainnya (10.000 unit/hari)
+ * 3. Pergantian harian pada midnight Pacific Time (PT)
+ * 4. Reservasi atomik (reserve, commit, rollback) untuk mencegah overspend
+ * 5. Headroom tersimpan untuk operasional prioritas analis
  */
 export class YouTubeQuotaManager {
-  private dailyLimit: number
-  private usedUnits: number = 0
+  private dailyLimitUnits: number
+  private dailyLimitSearches: number
+  private usedUnits = 0
+  private usedSearches = 0
   private resetAt: number
   private lastRequestAt: number | null = null
+  private priorityHeadroomUnits: number
+  private priorityHeadroomSearches: number
+  private reservations: Map<string, QuotaReservation> = new Map()
 
-  constructor(dailyLimit = 10000) {
-    this.dailyLimit = dailyLimit
-    this.resetAt = this.calculateNextMidnightUtc()
+  constructor(options?: {
+    dailyLimit?: number
+    dailyLimitUnits?: number
+    dailyLimitSearches?: number
+    headroomUnits?: number
+    headroomSearches?: number
+    now?: number
+  } | number) {
+    const rawLimit = typeof options === 'number' ? options : options?.dailyLimitUnits || options?.dailyLimit || 10000
+    const opts = typeof options === 'object' ? options : {}
+    const now = opts.now || Date.now()
+
+    this.dailyLimitUnits = rawLimit
+    this.dailyLimitSearches = opts.dailyLimitSearches ?? 100
+    this.priorityHeadroomUnits = opts.headroomUnits ?? 50
+    this.priorityHeadroomSearches = opts.headroomSearches ?? 5
+    this.resetAt = calculateNextPacificMidnight(now)
   }
 
-  private calculateNextMidnightUtc(): number {
-    const d = new Date()
-    d.setUTCHours(24, 0, 0, 0)
-    return d.getTime()
-  }
-
-  public getQuotaState(): YouTubeQuotaState {
-    const now = Date.now()
+  public checkRollover(now = Date.now()): void {
     if (now >= this.resetAt) {
       this.usedUnits = 0
-      this.resetAt = this.calculateNextMidnightUtc()
+      this.usedSearches = 0
+      this.reservations.clear()
+      this.resetAt = calculateNextPacificMidnight(now)
     }
+  }
 
-    const remaining = Math.max(0, this.dailyLimit - this.usedUnits)
+  public getQuotaState(now = Date.now()): YouTubeQuotaState {
+    this.checkRollover(now)
+
+    const remainingUnits = Math.max(0, this.dailyLimitUnits - this.usedUnits)
+    const remainingSearches = Math.max(0, this.dailyLimitSearches - this.usedSearches)
+
     return {
-      dailyLimitUnits: this.dailyLimit,
+      dailyLimitUnits: this.dailyLimitUnits,
       usedUnits: this.usedUnits,
-      remainingUnits: remaining,
+      remainingUnits,
       resetTimestamp: this.resetAt,
-      isExhausted: remaining <= 0,
-      lastRequestAt: this.lastRequestAt
+      isExhausted: remainingUnits <= this.priorityHeadroomUnits,
+      lastRequestAt: this.lastRequestAt,
+      buckets: {
+        searchRequests: {
+          dailyLimit: this.dailyLimitSearches,
+          used: this.usedSearches,
+          remaining: remainingSearches
+        },
+        generalUnits: {
+          dailyLimit: this.dailyLimitUnits,
+          used: this.usedUnits,
+          remaining: remainingUnits
+        }
+      },
+      priorityHeadroomUnits: this.priorityHeadroomUnits,
+      nextResetPtIso: new Date(this.resetAt).toISOString()
     }
   }
 
-  public canConsume(units: number): boolean {
+  public canConsume(units: number, isSearch = false, isPriority = false): boolean {
     const state = this.getQuotaState()
-    return state.remainingUnits >= units
+    const headroomU = isPriority ? 0 : this.priorityHeadroomUnits
+    const headroomS = isPriority ? 0 : this.priorityHeadroomSearches
+
+    if (isSearch) {
+      if (state.buckets.searchRequests.remaining <= headroomS) return false
+    }
+    return state.remainingUnits >= (units + headroomU)
   }
 
-  public recordUsage(units: number): void {
+  public reserveQuota(endpoint: string, options?: { costUnits?: number; isPriority?: boolean }): {
+    reservationId: string
+    allowed: boolean
+    reason?: string
+    costUnits: number
+  } {
+    const config = YOUTUBE_ENDPOINT_COSTS[endpoint] || { units: options?.costUnits || 1 }
+    const cost = options?.costUnits ?? config.units
+    const isSearch = Boolean(config.isSearchCall)
+    const isPriority = Boolean(options?.isPriority)
+
+    if (!this.canConsume(cost, isSearch, isPriority)) {
+      const state = this.getQuotaState()
+      const reason = isSearch && state.buckets.searchRequests.remaining <= (isPriority ? 0 : this.priorityHeadroomSearches)
+        ? 'SEARCH_REQUESTS_EXHAUSTED'
+        : 'GENERAL_UNITS_EXHAUSTED'
+      return {
+        reservationId: '',
+        allowed: false,
+        reason,
+        costUnits: cost
+      }
+    }
+
+    const reservationId = `yt-res-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    this.reservations.set(reservationId, {
+      reservationId,
+      endpoint,
+      units: cost,
+      isSearchCall: isSearch,
+      reservedAt: Date.now(),
+      committed: false
+    })
+
+    this.usedUnits += cost
+    if (isSearch) this.usedSearches += 1
+    this.lastRequestAt = Date.now()
+
+    return {
+      reservationId,
+      allowed: true,
+      costUnits: cost
+    }
+  }
+
+  public commitUsage(reservationId: string): void {
+    const res = this.reservations.get(reservationId)
+    if (res) {
+      res.committed = true
+      this.lastRequestAt = Date.now()
+    }
+  }
+
+  public rollbackUsage(reservationId: string): void {
+    const res = this.reservations.get(reservationId)
+    if (res && !res.committed) {
+      this.usedUnits = Math.max(0, this.usedUnits - res.units)
+      if (res.isSearchCall) {
+        this.usedSearches = Math.max(0, this.usedSearches - 1)
+      }
+      this.reservations.delete(reservationId)
+    }
+  }
+
+  public recordUsage(units: number, isSearch = false): void {
+    this.checkRollover()
     this.usedUnits += units
+    if (isSearch) this.usedSearches += 1
     this.lastRequestAt = Date.now()
   }
 
-  public resetQuota(): void {
+  public resetQuota(now = Date.now()): void {
     this.usedUnits = 0
-    this.resetAt = this.calculateNextMidnightUtc()
+    this.usedSearches = 0
+    this.reservations.clear()
+    this.resetAt = calculateNextPacificMidnight(now)
   }
 }
 
@@ -192,6 +365,7 @@ export class YouTubeConnector implements SourceConnector {
       publishedAfter?: string
       regionCode?: string
       customFetch?: typeof fetch
+      isPriority?: boolean
     }
   ): Promise<{
     success: boolean
@@ -213,21 +387,24 @@ export class YouTubeConnector implements SourceConnector {
       }
     }
 
-    // Periksa Kuota (100 unit untuk search.list)
-    const SEARCH_COST = 100
-    if (!this.quotaManager.canConsume(SEARCH_COST)) {
+    // Reservasi atomik kuota untuk search.list (1 request pencarian dan 100 unit)
+    const reservation = this.quotaManager.reserveQuota('search.list', { isPriority: options?.isPriority })
+    if (!reservation.allowed) {
       this.healthStatus = 'RATE_LIMITED'
       return {
         success: false,
         results: [],
         errorCode: 'QUOTA_EXHAUSTED',
-        errorMessage: 'Batas kuota harian YouTube Data API (10.000 unit) telah habis.',
+        errorMessage: reservation.reason === 'SEARCH_REQUESTS_EXHAUSTED'
+          ? 'Batas harian kueri pencarian YouTube Data API (100 kueri/hari) telah habis.'
+          : 'Batas kuota harian unit YouTube Data API telah habis.',
         quotaUsed: 0
       }
     }
 
     const fetchFn = options?.customFetch || (typeof fetch !== 'undefined' ? fetch : null)
     if (!fetchFn) {
+      this.quotaManager.rollbackUsage(reservation.reservationId)
       return {
         success: false,
         results: [],
@@ -262,6 +439,7 @@ export class YouTubeConnector implements SourceConnector {
       })
 
       if (res.status === 403) {
+        this.quotaManager.commitUsage(reservation.reservationId) // Upstream Google charges for 403 quota/forbidden
         const errJson = await res.json().catch(() => ({}))
         const reason = errJson?.error?.errors?.[0]?.reason || 'forbidden'
         if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
@@ -271,7 +449,7 @@ export class YouTubeConnector implements SourceConnector {
             results: [],
             errorCode: 'QUOTA_EXHAUSTED_UPSTREAM',
             errorMessage: 'Upstream Google Cloud melaporkan kuota YouTube Data API terlampaui.',
-            quotaUsed: 0
+            quotaUsed: reservation.costUnits
           }
         }
         this.healthStatus = 'ACCESS_RESTRICTED'
@@ -280,23 +458,24 @@ export class YouTubeConnector implements SourceConnector {
           results: [],
           errorCode: 'API_KEY_INVALID_OR_RESTRICTED',
           errorMessage: 'API Key YouTube ditolak atau tidak memiliki izin akses YouTube Data API v3.',
-          quotaUsed: 0
+          quotaUsed: reservation.costUnits
         }
       }
 
       if (!res.ok) {
+        this.quotaManager.commitUsage(reservation.reservationId)
         this.healthStatus = 'DEGRADED'
         return {
           success: false,
           results: [],
           errorCode: `HTTP_${res.status}`,
           errorMessage: `YouTube API mengembalikan respons error HTTP ${res.status}`,
-          quotaUsed: 0
+          quotaUsed: reservation.costUnits
         }
       }
 
       const data = await res.json()
-      this.quotaManager.recordUsage(SEARCH_COST)
+      this.quotaManager.commitUsage(reservation.reservationId)
       this.lastSuccessfulAt = Date.now()
       this.healthStatus = 'HEALTHY'
 
@@ -374,9 +553,10 @@ export class YouTubeConnector implements SourceConnector {
       return {
         success: true,
         results,
-        quotaUsed: SEARCH_COST
+        quotaUsed: reservation.costUnits
       }
     } catch (err: any) {
+      this.quotaManager.rollbackUsage(reservation.reservationId)
       this.healthStatus = 'UNAVAILABLE'
       return {
         success: false,
@@ -393,30 +573,34 @@ export class YouTubeConnector implements SourceConnector {
    */
   public async getVideoDetails(
     videoId: string,
-    options?: { customFetch?: typeof fetch }
+    options?: { customFetch?: typeof fetch; isPriority?: boolean }
   ): Promise<{ success: boolean; metadata?: YouTubeVideoMetadata; errorCode?: string; errorMessage?: string }> {
     if (!this.apiKey) {
       return { success: false, errorCode: 'YOUTUBE_API_KEY_REQUIRED', errorMessage: 'API key belum disetel' }
     }
 
-    if (!this.quotaManager.canConsume(1)) {
+    const reservation = this.quotaManager.reserveQuota('videos.list', { isPriority: options?.isPriority })
+    if (!reservation.allowed) {
       return { success: false, errorCode: 'QUOTA_EXHAUSTED', errorMessage: 'Batas kuota harian habis' }
     }
 
     const fetchFn = options?.customFetch || (typeof fetch !== 'undefined' ? fetch : null)
-    if (!fetchFn) return { success: false, errorCode: 'NO_FETCH_AVAILABLE', errorMessage: 'Fetch API tidak tersedia' }
+    if (!fetchFn) {
+      this.quotaManager.rollbackUsage(reservation.reservationId)
+      return { success: false, errorCode: 'NO_FETCH_AVAILABLE', errorMessage: 'Fetch API tidak tersedia' }
+    }
 
     const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${videoId}&key=${this.apiKey}`
 
     try {
       const res = await (fetchFn as any)(url)
+      this.quotaManager.commitUsage(reservation.reservationId)
+
       if (!res.ok) {
         return { success: false, errorCode: `HTTP_${res.status}`, errorMessage: 'Gagal mengambil rincian video' }
       }
 
       const data = await res.json()
-      this.quotaManager.recordUsage(1)
-
       const item = data.items?.[0]
       if (!item) {
         return { success: false, errorCode: 'VIDEO_NOT_FOUND', errorMessage: 'Video tidak ditemukan di YouTube' }
@@ -443,72 +627,206 @@ export class YouTubeConnector implements SourceConnector {
 
       return { success: true, metadata: meta }
     } catch (err: any) {
+      this.quotaManager.rollbackUsage(reservation.reservationId)
       return { success: false, errorCode: 'NETWORK_ERROR', errorMessage: err?.message || 'Gagal menghubungi YouTube API' }
     }
   }
 
   /**
-   * Mengambil Komentar Teratas Video (Mengonsumsi 1 unit kuota)
-   * Menghormati video dengan komentar dinonaktifkan
+   * Mengambil Komentar Video dengan Dukungan Paginasi Resmi (Mengonsumsi 1 unit kuota per halaman)
+   * Menghormati video dengan komentar dinonaktifkan, kosong, atau dilarang
    */
   public async getVideoComments(
     videoId: string,
-    options?: { maxResults?: number; customFetch?: typeof fetch }
-  ): Promise<{ success: boolean; comments: YouTubeCommentItem[]; errorCode?: string; errorMessage?: string }> {
-    if (!this.apiKey) {
-      return { success: false, comments: [], errorCode: 'YOUTUBE_API_KEY_REQUIRED', errorMessage: 'API key belum disetel' }
+    options?: {
+      maxResults?: number
+      pageToken?: string
+      maxPages?: number
+      customFetch?: typeof fetch
+      isPriority?: boolean
     }
-
-    if (!this.quotaManager.canConsume(1)) {
-      return { success: false, comments: [], errorCode: 'QUOTA_EXHAUSTED', errorMessage: 'Batas kuota harian habis' }
+  ): Promise<{
+    success: boolean
+    comments: YouTubeCommentItem[]
+    nextPageToken?: string
+    pagesFetched: number
+    quotaUsed: number
+    contentStatus: SocialContentStatus
+    errorCode?: string
+    errorMessage?: string
+  }> {
+    if (!this.apiKey) {
+      return {
+        success: false,
+        comments: [],
+        pagesFetched: 0,
+        quotaUsed: 0,
+        contentStatus: 'ACCESS_RESTRICTED',
+        errorCode: 'YOUTUBE_API_KEY_REQUIRED',
+        errorMessage: 'API key belum disetel'
+      }
     }
 
     const fetchFn = options?.customFetch || (typeof fetch !== 'undefined' ? fetch : null)
-    if (!fetchFn) return { success: false, comments: [], errorCode: 'NO_FETCH_AVAILABLE', errorMessage: 'Fetch API tidak tersedia' }
+    if (!fetchFn) {
+      return {
+        success: false,
+        comments: [],
+        pagesFetched: 0,
+        quotaUsed: 0,
+        contentStatus: 'CONTENT_UNAVAILABLE',
+        errorCode: 'NO_FETCH_AVAILABLE',
+        errorMessage: 'Fetch API tidak tersedia'
+      }
+    }
 
-    const maxResults = Math.min(options?.maxResults || 20, 50)
-    const url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=${maxResults}&key=${this.apiKey}`
+    const maxResultsPerPage = Math.min(options?.maxResults || 20, 50)
+    const maxPages = Math.min(Math.max(1, options?.maxPages || 1), 5)
+    let currentPageToken: string | undefined = options?.pageToken
+    const allComments: YouTubeCommentItem[] = []
+    let totalQuotaUsed = 0
+    let pagesFetched = 0
 
-    try {
-      const res = await (fetchFn as any)(url)
-      if (res.status === 403) {
-        const errJson = await res.json().catch(() => ({}))
-        const reason = errJson?.error?.errors?.[0]?.reason || ''
-        if (reason === 'commentsDisabled') {
+    while (pagesFetched < maxPages) {
+      const reservation = this.quotaManager.reserveQuota('commentThreads.list', { isPriority: options?.isPriority })
+      if (!reservation.allowed) {
+        if (pagesFetched > 0) {
+          // Parsial sukses halaman sebelumnya
+          return {
+            success: true,
+            comments: allComments,
+            nextPageToken: currentPageToken,
+            pagesFetched,
+            quotaUsed: totalQuotaUsed,
+            contentStatus: 'COMMENTS_ACQUIRED',
+            errorCode: 'QUOTA_EXHAUSTED_PARTIAL',
+            errorMessage: 'Pengambilan komentar terhenti karena kuota harian habis.'
+          }
+        }
+        return {
+          success: false,
+          comments: [],
+          pagesFetched: 0,
+          quotaUsed: 0,
+          contentStatus: 'ACCESS_RESTRICTED',
+          errorCode: 'QUOTA_EXHAUSTED',
+          errorMessage: 'Batas kuota harian habis'
+        }
+      }
+
+      const params = new URLSearchParams({
+        part: 'snippet',
+        videoId,
+        maxResults: maxResultsPerPage.toString(),
+        key: this.apiKey
+      })
+      if (currentPageToken) {
+        params.append('pageToken', currentPageToken)
+      }
+
+      const url = `https://www.googleapis.com/youtube/v3/commentThreads?${params.toString()}`
+
+      try {
+        const res = await (fetchFn as any)(url)
+        this.quotaManager.commitUsage(reservation.reservationId)
+        totalQuotaUsed += reservation.costUnits
+        pagesFetched++
+
+        if (res.status === 403) {
+          const errJson = await res.json().catch(() => ({}))
+          const reason = errJson?.error?.errors?.[0]?.reason || ''
+          if (reason === 'commentsDisabled') {
+            return {
+              success: false,
+              comments: [],
+              pagesFetched,
+              quotaUsed: totalQuotaUsed,
+              contentStatus: 'COMMENTS_DISABLED',
+              errorCode: 'COMMENTS_DISABLED',
+              errorMessage: 'Komentar pada video ini dinonaktifkan oleh pemilik kanal.'
+            }
+          }
           return {
             success: false,
             comments: [],
-            errorCode: 'COMMENTS_DISABLED',
-            errorMessage: 'Komentar pada video ini dinonaktifkan oleh pemilik kanal.'
+            pagesFetched,
+            quotaUsed: totalQuotaUsed,
+            contentStatus: 'ACCESS_RESTRICTED',
+            errorCode: 'COMMENTS_FORBIDDEN',
+            errorMessage: 'Akses komentar ditolak oleh YouTube API.'
           }
         }
-      }
 
-      if (!res.ok) {
-        return { success: false, comments: [], errorCode: `HTTP_${res.status}`, errorMessage: 'Gagal mengambil komentar video' }
-      }
-
-      const data = await res.json()
-      this.quotaManager.recordUsage(1)
-
-      const rawItems: any[] = data.items || []
-      const comments: YouTubeCommentItem[] = rawItems.map(item => {
-        const top = item.snippet?.topLevelComment?.snippet || {}
-        return {
-          id: item.id || `cmt-${Date.now()}`,
-          videoId,
-          authorName: top.authorDisplayName || 'Anonim',
-          authorChannelUrl: top.authorChannelUrl,
-          textOriginal: top.textOriginal || top.textDisplay || '',
-          likeCount: top.likeCount || 0,
-          publishedAt: top.publishedAt || new Date().toISOString(),
-          updatedAt: top.updatedAt || top.publishedAt || new Date().toISOString()
+        if (res.status === 404) {
+          return {
+            success: false,
+            comments: [],
+            pagesFetched,
+            quotaUsed: totalQuotaUsed,
+            contentStatus: 'CONTENT_UNAVAILABLE',
+            errorCode: 'VIDEO_NOT_FOUND',
+            errorMessage: 'Video tidak ditemukan atau telah dihapus.'
+          }
         }
-      })
 
-      return { success: true, comments }
-    } catch (err: any) {
-      return { success: false, comments: [], errorCode: 'NETWORK_ERROR', errorMessage: err?.message || 'Gagal menghubungi YouTube API' }
+        if (!res.ok) {
+          return {
+            success: false,
+            comments: [],
+            pagesFetched,
+            quotaUsed: totalQuotaUsed,
+            contentStatus: 'CONTENT_UNAVAILABLE',
+            errorCode: `HTTP_${res.status}`,
+            errorMessage: 'Gagal mengambil komentar video'
+          }
+        }
+
+        const data = await res.json()
+        const rawItems: any[] = data.items || []
+        const pageComments: YouTubeCommentItem[] = rawItems.map(item => {
+          const top = item.snippet?.topLevelComment?.snippet || {}
+          return {
+            id: item.id || `cmt-${Date.now()}`,
+            videoId,
+            authorName: top.authorDisplayName || 'Anonim',
+            authorChannelUrl: top.authorChannelUrl,
+            textOriginal: top.textOriginal || top.textDisplay || '',
+            likeCount: top.likeCount || 0,
+            publishedAt: top.publishedAt || new Date().toISOString(),
+            updatedAt: top.updatedAt || top.publishedAt || new Date().toISOString()
+          }
+        })
+
+        allComments.push(...pageComments)
+        currentPageToken = data.nextPageToken
+
+        // Jika tidak ada halaman berikutnya, berhenti
+        if (!currentPageToken) {
+          break
+        }
+      } catch (err: any) {
+        this.quotaManager.rollbackUsage(reservation.reservationId)
+        return {
+          success: false,
+          comments: allComments,
+          pagesFetched,
+          quotaUsed: totalQuotaUsed,
+          contentStatus: allComments.length > 0 ? 'COMMENTS_ACQUIRED' : 'CONTENT_UNAVAILABLE',
+          errorCode: 'NETWORK_ERROR',
+          errorMessage: err?.message || 'Gagal menghubungi YouTube API'
+        }
+      }
+    }
+
+    const finalStatus: SocialContentStatus = allComments.length === 0 ? 'COMMENTS_EMPTY' : 'COMMENTS_ACQUIRED'
+
+    return {
+      success: true,
+      comments: allComments,
+      nextPageToken: currentPageToken,
+      pagesFetched,
+      quotaUsed: totalQuotaUsed,
+      contentStatus: finalStatus
     }
   }
 

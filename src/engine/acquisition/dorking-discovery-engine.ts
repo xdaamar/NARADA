@@ -26,8 +26,18 @@ import type {
   AcquisitionProvenance
 } from './source-contracts.ts'
 import { fallbackSHA256 } from '../../utils/crypto.ts'
+import { BraveSearchAdapter, braveSearchAdapter } from './brave-search-adapter.ts'
+
+export { BraveSearchAdapter, braveSearchAdapter }
 
 export const DORKING_ENGINE_VERSION = '1.0.0'
+
+export const GOOGLE_CSE_DEPRECATION_NOTICE = {
+  isDeprecated: true,
+  sunsetDeadline: '2027-01-01',
+  officialPolicyReference: 'Google Custom Search JSON API Deprecation & Migration Roadmap',
+  rationale: 'Google Custom Search JSON API ditutup untuk pengguna baru dan dijadwalkan berakhir pada 1 Januari 2027. Pengguna diarahkan bermigrasi ke Brave Search API sebagai penyedia pencarian berdaulat primer.'
+}
 
 export interface PlatformDomainDefinition {
   platform: TargetPlatform
@@ -265,6 +275,7 @@ export interface SearchProviderAdapter {
 export class GoogleCustomSearchAdapter implements SearchProviderAdapter {
   public readonly providerId = 'google-custom-search-api'
   public readonly displayName = 'Google Programmable Search / Custom Search JSON API'
+  public readonly deprecationNotice = GOOGLE_CSE_DEPRECATION_NOTICE
 
   private apiKey: string | null = null
   private searchEngineId: string | null = null
