@@ -37,6 +37,28 @@ export type ConfigurationStatus =
   | 'INVALID_CREDENTIALS'
   | 'NOT_APPLICABLE'
 
+export type CapabilityStatus =
+  | 'PERMITTED'
+  | 'POLICY_BLOCKED'
+  | 'APPROVAL_REQUIRED'
+  | 'DEPRECATED'
+
+export type YouTubePolicySection =
+  | 'SECTION_III_E_2_DATA_AGGREGATION'
+  | 'SECTION_III_E_4_RETENTION_DELETION'
+  | 'SECTION_III_A_CLIENT_TERMS'
+  | 'SECTION_II_ATTRIBUTION'
+
+export interface YouTubeCapabilityGate {
+  capabilityName: string
+  status: CapabilityStatus
+  policySection: YouTubePolicySection
+  rationale: string
+  allowIndividualResource: boolean
+  allowCrossChannel: boolean
+  allowCrossPlatform: boolean
+}
+
 export type ConnectorCapability =
   | 'URL_DISCOVERY'
   | 'VIDEO_METADATA'
@@ -147,6 +169,152 @@ export interface SearchDiscoveryResult {
   provenance: AcquisitionProvenance
   limitations: string[]
   isProvisional: boolean
+  retentionExpiresAt?: number
+  isCrossChannelAggregationProhibited?: boolean
+  attributionRequired?: boolean
+}
+
+/**
+ * Registry Kebijakan & Gerbang Kapabilitas YouTube API Services (Section III.E.2 & III.E.4)
+ */
+export const YOUTUBE_CAPABILITY_GATES: Record<string, YouTubeCapabilityGate> = {
+  YOUTUBE_SINGLE_VIDEO_METADATA: {
+    capabilityName: 'YOUTUBE_SINGLE_VIDEO_METADATA',
+    status: 'PERMITTED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Pengambilan metadata video tunggal publik diizinkan melalui endpoint resmi videos.list.',
+    allowIndividualResource: true,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  },
+  YOUTUBE_SINGLE_VIDEO_COMMENTS: {
+    capabilityName: 'YOUTUBE_SINGLE_VIDEO_COMMENTS',
+    status: 'PERMITTED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Pengambilan komentar untuk video tunggal diizinkan dengan menghormati status privasi video.',
+    allowIndividualResource: true,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  },
+  YOUTUBE_SINGLE_VIDEO_SENTIMENT: {
+    capabilityName: 'YOUTUBE_SINGLE_VIDEO_SENTIMENT',
+    status: 'PERMITTED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Estimasi sentimen terisolasi pada lingkup satu video tunggal diizinkan.',
+    allowIndividualResource: true,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  },
+  YOUTUBE_SINGLE_CHANNEL_ANALYSIS: {
+    capabilityName: 'YOUTUBE_SINGLE_CHANNEL_ANALYSIS',
+    status: 'PERMITTED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Analisis video dan komentar dalam satu kanal milik pemilik konten yang sama diizinkan.',
+    allowIndividualResource: true,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  },
+  YOUTUBE_CROSS_CHANNEL_COMMENT_AGGREGATION: {
+    capabilityName: 'YOUTUBE_CROSS_CHANNEL_COMMENT_AGGREGATION',
+    status: 'POLICY_BLOCKED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Kebijakan Pengembang YouTube Bagian III.E.2 melarang agregasi data antarpemilik konten/kanal yang tidak terkait tanpa izin tertulis eksplisit.',
+    allowIndividualResource: false,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  },
+  YOUTUBE_CROSS_CHANNEL_SENTIMENT_COMBINATION: {
+    capabilityName: 'YOUTUBE_CROSS_CHANNEL_SENTIMENT_COMBINATION',
+    status: 'POLICY_BLOCKED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Kombinasi sentimen komentar melintasi berbagai pemilik kanal dilarang oleh Bagian III.E.2.',
+    allowIndividualResource: false,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  },
+  YOUTUBE_CROSS_CHANNEL_ISSUE_STATISTICS: {
+    capabilityName: 'YOUTUBE_CROSS_CHANNEL_ISSUE_STATISTICS',
+    status: 'POLICY_BLOCKED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Statistik agregat tingkat isu dari beberapa pemilik kanal YouTube yang tidak terkait dilarang tanpa izin resmi.',
+    allowIndividualResource: false,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  },
+  YOUTUBE_CROSS_PLATFORM_METRICS_COMBINATION: {
+    capabilityName: 'YOUTUBE_CROSS_PLATFORM_METRICS_COMBINATION',
+    status: 'POLICY_BLOCKED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Penggabungan metrik turunan YouTube ke dalam metrik agregat gabungan lintas platform dilarang.',
+    allowIndividualResource: false,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  },
+  YOUTUBE_CROSS_PLATFORM_COORDINATION_INDICATORS: {
+    capabilityName: 'YOUTUBE_CROSS_PLATFORM_COORDINATION_INDICATORS',
+    status: 'POLICY_BLOCKED',
+    policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+    rationale: 'Indikator pola koordinasi lintas kanal atau lintas platform yang mengikutsertakan data YouTube dilarang secara kebijakan.',
+    allowIndividualResource: false,
+    allowCrossChannel: false,
+    allowCrossPlatform: false
+  }
+}
+
+/**
+ * Evaluasi izin kapabilitas operasional data YouTube berdasarkan kebijakan resmi
+ */
+export function evaluateYouTubeCapability(
+  capabilityName: string,
+  context?: {
+    isCrossChannel?: boolean
+    isCrossPlatform?: boolean
+    channelIds?: string[]
+  }
+): {
+  isPermitted: boolean
+  status: CapabilityStatus
+  policySection: YouTubePolicySection
+  rationale: string
+} {
+  const gate = YOUTUBE_CAPABILITY_GATES[capabilityName]
+  if (!gate) {
+    return {
+      isPermitted: false,
+      status: 'APPROVAL_REQUIRED',
+      policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+      rationale: `Kapabilitas '${capabilityName}' belum terverifikasi memiliki dasar izin eksplisit.`
+    }
+  }
+
+  // Jika konteks menyatakan cross-channel dan terdapat lebih dari 1 channel
+  if (context?.isCrossChannel || (context?.channelIds && new Set(context.channelIds.filter(Boolean)).size > 1)) {
+    if (!gate.allowCrossChannel) {
+      return {
+        isPermitted: false,
+        status: 'POLICY_BLOCKED',
+        policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+        rationale: 'Kebijakan Pengembang YouTube Bagian III.E.2 melarang agregasi data antarpemilik kanal yang berbeda.'
+      }
+    }
+  }
+
+  // Jika konteks menyatakan cross-platform
+  if (context?.isCrossPlatform && !gate.allowCrossPlatform) {
+    return {
+      isPermitted: false,
+      status: 'POLICY_BLOCKED',
+      policySection: 'SECTION_III_E_2_DATA_AGGREGATION',
+      rationale: 'Kebijakan Pengembang YouTube melarang pencampuran metrik turunan YouTube ke dalam agregasi lintas platform.'
+    }
+  }
+
+  return {
+    isPermitted: gate.status === 'PERMITTED',
+    status: gate.status,
+    policySection: gate.policySection,
+    rationale: gate.rationale
+  }
 }
 
 /**

@@ -18,6 +18,7 @@ import type { ClaimRecord } from '../intelligence/claim-types.ts'
 import { evaluateIntelligenceRelevance } from '../intelligence/relevance-engine.ts'
 import { extractClaimsFromArticle } from '../intelligence/claim-extraction-engine.ts'
 import { saveDiscoveryCandidateToDB, getDiscoveryCandidatesFromDB } from '../../utils/db-adapter.ts'
+import { youtubeRetentionManager, YOUTUBE_MAX_RETENTION_MS } from './youtube-retention.ts'
 
 export interface RouteDiscoveryResult {
   candidate: SearchDiscoveryResult
@@ -33,6 +34,27 @@ export async function routeDiscoveryCandidate(
   candidate: SearchDiscoveryResult,
   options?: { persist?: boolean }
 ): Promise<RouteDiscoveryResult> {
+  // ─── 0. AUDIT KEPATUHAN KEBIJAKAN YOUTUBE (RETENSI & GOVERNANCE) ───
+  if (candidate.targetPlatform === 'youtube') {
+    candidate.attributionRequired = true
+    candidate.isCrossChannelAggregationProhibited = true
+    candidate.retentionExpiresAt = candidate.retentionExpiresAt || (Date.now() + YOUTUBE_MAX_RETENTION_MS)
+
+    if (youtubeRetentionManager.isRecordExpired(candidate)) {
+      candidate.ingestionStatus = 'REJECTED'
+      candidate.limitations.push('YOUTUBE_POLICY_III_E_4: Ditolak karena telah melampaui batas retensi 30 hari kalender')
+      if (options?.persist) {
+        await saveDiscoveryCandidateToDB(candidate).catch(() => {})
+      }
+      return {
+        candidate,
+        extractedClaims: [],
+        isAccepted: false,
+        rejectionReason: 'Data YouTube kedaluwarsa (> 30 hari) per Kebijakan Pengembang YouTube Section III.E.4'
+      }
+    }
+  }
+
   const combinedText = `${candidate.title}. ${candidate.snippet}`
 
   // 1. Evaluasi Relevansi via Sprint 09 Relevance Engine

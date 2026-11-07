@@ -85,6 +85,8 @@ contextBridge.exposeInMainWorld('naradaDatabase', {
   saveDiscoveryCandidate: (candidate) => ipcRenderer.invoke('narada:db:save-discovery-candidate', candidate),
   getDiscoveryCandidates: (platform) => ipcRenderer.invoke('narada:db:get-discovery-candidates', platform),
   saveScanRunLog: (log) => ipcRenderer.invoke('narada:db:save-scan-history', log),
-  getScanRunLogs: (limit) => ipcRenderer.invoke('narada:db:get-scan-history', limit)
+  getScanRunLogs: (limit) => ipcRenderer.invoke('narada:db:get-scan-history', limit),
+  purgeExpiredYouTubeData: (cutoff) => ipcRenderer.invoke('narada:db:purge-expired-youtube', cutoff),
+  purgeAllYouTubeData: () => ipcRenderer.invoke('narada:db:purge-all-youtube')
 })
 

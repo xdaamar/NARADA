@@ -36,6 +36,7 @@ export type CoordinationIndicatorTaxonomy =
   | 'WEAK_PATTERN'
   | 'PATTERN_WARRANTS_REVIEW'
   | 'INSUFFICIENT_DATA'
+  | 'POLICY_BLOCKED'
 
 export type HumanReviewStatus =
   | 'UNREVIEWED'
@@ -191,6 +192,8 @@ export interface CoordinationIndicator {
   alternativeExplanations: string[]
   safeguardDisclosures: string[]
   summaryRationale: string
+  isPolicyBlocked?: boolean
+  policyBlockReason?: string
 }
 
 /**

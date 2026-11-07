@@ -320,6 +320,16 @@ app.whenReady().then(async () => {
     return sqliteService.getScanRunLogs(limit)
   })
 
+  ipcMain.handle('narada:db:purge-expired-youtube', async (event, cutoffTimestamp) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.purgeExpiredYouTubeData(cutoffTimestamp)
+  })
+
+  ipcMain.handle('narada:db:purge-all-youtube', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    return sqliteService.purgeAllYouTubeData()
+  })
+
   // Inisialisasi Database Utama di userData
   try {
     const dbInit = sqliteService.initSqliteDatabase()

@@ -1109,6 +1109,18 @@ function getScanRunLogs(limit = 50) {
   return rows.map(r => JSON.parse(r.data_json))
 }
 
+function purgeExpiredYouTubeData(cutoffTimestamp) {
+  if (!db) return { success: false, deletedCount: 0 }
+  const info = db.prepare('DELETE FROM discovery_candidates WHERE target_platform = ? AND discovered_at < ?').run('youtube', cutoffTimestamp)
+  return { success: true, deletedCount: info.changes }
+}
+
+function purgeAllYouTubeData() {
+  if (!db) return { success: false, deletedCount: 0 }
+  const info = db.prepare('DELETE FROM discovery_candidates WHERE target_platform = ?').run('youtube')
+  return { success: true, deletedCount: info.changes }
+}
+
 module.exports = {
   initSqliteDatabase,
   closeSqliteDatabase,
@@ -1148,5 +1160,7 @@ module.exports = {
   saveDiscoveryCandidate,
   getDiscoveryCandidates,
   saveScanRunLog,
-  getScanRunLogs
+  getScanRunLogs,
+  purgeExpiredYouTubeData,
+  purgeAllYouTubeData
 }

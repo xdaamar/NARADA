@@ -46,6 +46,68 @@ export function evaluateCoordinationPattern(
   similarityGroups: SimilarityGroup[],
   burstAnalysis: BurstAnalysisSummary
 ): CoordinationIndicator {
+  // ─── 0. EVALUASI KEPATUHAN KEBIJAKAN YOUTUBE DATA AGGREGATION (SECTION III.E.2) ───
+  const youtubeComments = comments.filter(c => {
+    const isYtUrl = Boolean(c.sourceUrl && (c.sourceUrl.includes('youtube.com') || c.sourceUrl.includes('youtu.be')))
+    const isYtPlatform = Boolean((c.metadata?.platform as string)?.toLowerCase() === 'youtube')
+    const isYtSource = Boolean(c.sourceLabel?.toLowerCase().includes('youtube'))
+    return isYtUrl || isYtPlatform || isYtSource
+  })
+
+  if (youtubeComments.length > 0) {
+    const channelIds = new Set<string>()
+    for (const c of youtubeComments) {
+      const ch = (c.metadata?.channelId as string) || (c.metadata?.channelTitle as string) || c.authorHandle || ''
+      if (ch) channelIds.add(ch)
+    }
+
+    const otherPlatformComments = comments.filter(c => !youtubeComments.includes(c))
+
+    // Kasus 1: Cross-Channel Aggregation pada data YouTube
+    if (channelIds.size > 1) {
+      return {
+        indicator: 'POLICY_BLOCKED',
+        confidence: 'INSUFFICIENT',
+        triggeredFamilies: [],
+        involvedCommentIds: [],
+        involvedSimilarityGroupIds: [],
+        sourceDiversityScore: 0,
+        uniquePublishersCount: 0,
+        temporalConcentrationRatio: 0,
+        alternativeExplanations: [
+          'YouTube API Services Developer Policies Section III.E.2 melarang agregasi data antarpemilik konten/kanal yang tidak terkait.',
+          'Operasi koordinasi lintas-kanal diblokir demi menjaga kepatuhan hukum kebijakan pengembang YouTube.'
+        ],
+        safeguardDisclosures: SAFEGUARD_DISCLOSURES,
+        summaryRationale: `POLICY_BLOCKED: Terdeteksi ${channelIds.size} kanal YouTube berbeda dalam sampel. Agregasi lintas-kanal YouTube dilarang keras oleh Section III.E.2. Analisis koordinasi hanya diizinkan pada lingkup per-kanal/per-video tunggal.`,
+        isPolicyBlocked: true,
+        policyBlockReason: 'YOUTUBE_POLICY_III_E_2_CROSS_CHANNEL_AGGREGATION_RESTRICTED'
+      }
+    }
+
+    // Kasus 2: Cross-Platform Metrics Combination dengan YouTube
+    if (otherPlatformComments.length > 0) {
+      return {
+        indicator: 'POLICY_BLOCKED',
+        confidence: 'INSUFFICIENT',
+        triggeredFamilies: [],
+        involvedCommentIds: [],
+        involvedSimilarityGroupIds: [],
+        sourceDiversityScore: 0,
+        uniquePublishersCount: 0,
+        temporalConcentrationRatio: 0,
+        alternativeExplanations: [
+          'YouTube API Services Developer Policies melarang penggabungan data turunan YouTube ke dalam metrik agregat gabungan lintas platform.',
+          'Data YouTube harus dianalisis secara terisolasi tanpa mencampur metrik koordinasi platform lain.'
+        ],
+        safeguardDisclosures: SAFEGUARD_DISCLOSURES,
+        summaryRationale: 'POLICY_BLOCKED: Terdeteksi pencampuran data YouTube dengan komentar platform lain. Penggabungan metrik koordinasi lintas platform dilarang oleh kebijakan YouTube.',
+        isPolicyBlocked: true,
+        policyBlockReason: 'YOUTUBE_POLICY_III_E_2_CROSS_PLATFORM_COMBINATION_RESTRICTED'
+      }
+    }
+  }
+
   const sampleSize = comments.length
 
   // 1. Evaluasi Kecukupan Sampel (Section 11 / S8-COORD-04)

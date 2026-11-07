@@ -18,8 +18,17 @@ import type {
   SourceConnector,
   SearchDiscoveryResult,
   CanonicalConnectorHealth,
-  ConfigurationStatus
+  ConfigurationStatus,
+  CapabilityStatus,
+  YouTubePolicySection
 } from './source-contracts.ts'
+import {
+  evaluateYouTubeCapability
+} from './source-contracts.ts'
+import {
+  youtubeRetentionManager,
+  YOUTUBE_MAX_RETENTION_MS
+} from './youtube-retention.ts'
 
 export interface YouTubeQuotaState {
   dailyLimitUnits: number
@@ -347,9 +356,14 @@ export class YouTubeConnector implements SourceConnector {
               deduplicationState: 'UNIQUE'
             },
             limitations: [
-              'Data berasal dari ringkasan metadata API; teks transkrip lengkap memerlukan resolusi lanjutan'
+              'Data berasal dari ringkasan metadata API; teks transkrip lengkap memerlukan resolusi lanjutan',
+              'YOUTUBE_POLICY_III_E_2: Agregasi data lintas-kanal dilarang keras tanpa persetujuan tertulis eksplisit',
+              'YOUTUBE_POLICY_III_E_4: Data tunduk pada batas retensi maksimal 30 hari kalender'
             ],
-            isProvisional: true
+            isProvisional: true,
+            retentionExpiresAt: Date.now() + YOUTUBE_MAX_RETENTION_MS,
+            isCrossChannelAggregationProhibited: true,
+            attributionRequired: true
           }
         })
 
@@ -496,6 +510,55 @@ export class YouTubeConnector implements SourceConnector {
     } catch (err: any) {
       return { success: false, comments: [], errorCode: 'NETWORK_ERROR', errorMessage: err?.message || 'Gagal menghubungi YouTube API' }
     }
+  }
+
+  /**
+   * Evaluasi Kepatuhan Kebijakan Pengembang YouTube (Section III.E.2 & III.E.4)
+   */
+  public evaluateCapability(
+    capabilityName: string,
+    context?: { isCrossChannel?: boolean; isCrossPlatform?: boolean; channelIds?: string[] }
+  ): { isPermitted: boolean; status: CapabilityStatus; policySection: YouTubePolicySection; rationale: string } {
+    return evaluateYouTubeCapability(capabilityName, context)
+  }
+
+  /**
+   * Memeriksa apakah suatu kapabilitas operasional diizinkan
+   */
+  public isCapabilityPermitted(
+    capabilityName: string,
+    context?: { isCrossChannel?: boolean; isCrossPlatform?: boolean; channelIds?: string[] }
+  ): boolean {
+    const res = evaluateYouTubeCapability(capabilityName, context)
+    return res.isPermitted
+  }
+
+  /**
+   * Memvalidasi apakah agregasi komentar memenuhi batas kebijakan III.E.2
+   */
+  public validateCommentAggregation(channelIds: string[]) {
+    return youtubeRetentionManager.validateCommentAggregation(channelIds)
+  }
+
+  /**
+   * Memvalidasi apakah kombinasi metrik lintas platform diizinkan
+   */
+  public validateCrossPlatformCombination(platforms: string[]) {
+    return youtubeRetentionManager.validateCrossPlatformCombination(platforms)
+  }
+
+  /**
+   * Mengambil dokumentasi kepatuhan hukum untuk UI/Audit
+   */
+  public getComplianceDocumentation() {
+    return youtubeRetentionManager.getComplianceDocumentation()
+  }
+
+  /**
+   * Mengaudit atau memfilter data kedaluwarsa (30 hari)
+   */
+  public filterActiveRecords<T extends { acquiredAt?: number; discoveredAt?: number }>(records: T[], now = Date.now()) {
+    return youtubeRetentionManager.filterActiveRecords(records, now)
   }
 }
 

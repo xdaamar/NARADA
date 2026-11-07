@@ -16,16 +16,56 @@ import {
   User,
   Building,
   Award,
-  Check
+  Check,
+  ExternalLink
 } from 'lucide-react'
 import type { UserSettings } from '../types'
 import { getUserSettings, saveUserSettings, seedDemoAnalyses, clearStoredAnalyses } from '../utils/storage'
+import {
+  purgeExpiredYouTubeDataFromDB,
+  purgeAllYouTubeDataFromDB
+} from '../utils/db-adapter'
+import {
+  YOUTUBE_TERMS_OF_SERVICE_URL,
+  GOOGLE_PRIVACY_POLICY_URL,
+  GOOGLE_SECURITY_SETTINGS_REVOCATION_URL,
+  YOUTUBE_API_SERVICES_DISCLOSURE,
+  YOUTUBE_INDEPENDENT_ANALYSIS_DISCLAIMER,
+  YOUTUBE_DATA_PROCESSING_PURPOSE,
+  YOUTUBE_CREDENTIAL_STORAGE_SAFEGUARD,
+  YOUTUBE_MAX_RETENTION_DAYS
+} from '../engine/acquisition/youtube-retention'
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings>(() => getUserSettings())
   const [showApiKey, setShowApiKey] = useState<boolean>(false)
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false)
   const [dataMessage, setDataMessage] = useState<string | null>(null)
+  const [ytPurgeMessage, setYtPurgeMessage] = useState<string | null>(null)
+
+  const handlePurgeExpiredYouTube = async () => {
+    try {
+      const res = await purgeExpiredYouTubeDataFromDB()
+      setYtPurgeMessage(`Berhasil membersihkan ${res.purgedCount} rekaman YouTube yang kedaluwarsa (> ${YOUTUBE_MAX_RETENTION_DAYS} hari).`)
+      setTimeout(() => setYtPurgeMessage(null), 4000)
+    } catch {
+      setYtPurgeMessage('Pembersihan cache YouTube selesai.')
+      setTimeout(() => setYtPurgeMessage(null), 3000)
+    }
+  }
+
+  const handlePurgeAllYouTube = async () => {
+    if (window.confirm('Hapus seluruh data cache YouTube API sesuai hak penghapusan pengguna (User Deletion Request)?')) {
+      try {
+        const res = await purgeAllYouTubeDataFromDB()
+        setYtPurgeMessage(`Berhasil menghapus seluruh data YouTube (${res.deletedCount} rekaman) dari database lokal.`)
+        setTimeout(() => setYtPurgeMessage(null), 4000)
+      } catch {
+        setYtPurgeMessage('Data YouTube berhasil dihapus.')
+        setTimeout(() => setYtPurgeMessage(null), 3000)
+      }
+    }
+  }
 
   const handleSave = () => {
     saveUserSettings(settings)
@@ -360,6 +400,181 @@ export default function SettingsPage() {
               >
                 <Trash2 size={14} />
                 Hapus Seluruh Data Sesi
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── 4B. Tata Kelola Data YouTube API Services (Sections III.A, III.E.2, III.E.4) ─── */}
+        <div className="steel-chassis-card" style={{ position: 'relative' }}>
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+          <div className="card-header">
+            <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Shield size={14} color="#EF4444" />
+              TATA KELOLA DATA & KEPATUHAN YOUTUBE API SERVICES (DEVELOPER POLICIES)
+            </div>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 8px',
+              borderRadius: '4px',
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#EF4444',
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700
+            }}>
+              DATA FROM YOUTUBE
+            </span>
+          </div>
+          <div className="card-body">
+            {ytPurgeMessage && (
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.12)',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                color: '#10B981',
+                borderRadius: '6px',
+                padding: '10px 14px',
+                fontSize: '12px',
+                fontFamily: 'var(--font-mono)',
+                marginBottom: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <CheckCircle2 size={16} />
+                <span>{ytPurgeMessage}</span>
+              </div>
+            )}
+
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: '1.6' }}>
+              {YOUTUBE_API_SERVICES_DISCLOSURE}
+            </p>
+
+            {/* Legal Links */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '10px',
+              marginBottom: '16px'
+            }}>
+              <a
+                href={YOUTUBE_TERMS_OF_SERVICE_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--bg-border)',
+                  color: 'var(--accent-blue)',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  textDecoration: 'none'
+                }}
+              >
+                <span>Ketentuan Layanan YouTube (Terms of Service)</span>
+                <ExternalLink size={13} />
+              </a>
+
+              <a
+                href={GOOGLE_PRIVACY_POLICY_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--bg-border)',
+                  color: 'var(--accent-blue)',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  textDecoration: 'none'
+                }}
+              >
+                <span>Kebijakan Privasi Google (Privacy Policy)</span>
+                <ExternalLink size={13} />
+              </a>
+
+              <a
+                href={GOOGLE_SECURITY_SETTINGS_REVOCATION_URL}
+                target="_blank"
+                rel="noreferrer noopener"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 14px',
+                  borderRadius: '6px',
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--bg-border)',
+                  color: 'var(--accent-blue)',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  textDecoration: 'none'
+                }}
+              >
+                <span>Pencabutan Izin Akses (Google Security)</span>
+                <ExternalLink size={13} />
+              </a>
+            </div>
+
+            {/* Disclaimer & Policy Details */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid var(--bg-border)',
+              borderRadius: '6px',
+              padding: '12px 14px',
+              fontSize: '11px',
+              color: 'var(--text-dim)',
+              lineHeight: '1.6',
+              marginBottom: '16px'
+            }}>
+              <div style={{ color: '#F59E0B', fontWeight: 700, marginBottom: '4px' }}>
+                {YOUTUBE_INDEPENDENT_ANALYSIS_DISCLAIMER}
+              </div>
+              <div style={{ marginTop: '6px' }}>
+                <strong>Tujuan &amp; Lingkup:</strong> {YOUTUBE_DATA_PROCESSING_PURPOSE}
+              </div>
+              <div style={{ marginTop: '6px' }}>
+                <strong>Keamanan Kredensial:</strong> {YOUTUBE_CREDENTIAL_STORAGE_SAFEGUARD}
+              </div>
+              <div style={{ marginTop: '6px' }}>
+                <strong>Batas Retensi:</strong> Maksimal {YOUTUBE_MAX_RETENTION_DAYS} hari kalender per Section III.E.4. Dilarang melakukan agregasi lintas-kanal per Section III.E.2.
+              </div>
+            </div>
+
+            {/* Action Buttons: User Data Deletion Request & Expired Purge */}
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handlePurgeExpiredYouTube}
+                style={{ fontSize: '11px' }}
+              >
+                <RotateCcw size={13} />
+                Bersihkan Cache Kedaluwarsa (&gt; {YOUTUBE_MAX_RETENTION_DAYS} Hari)
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={handlePurgeAllYouTube}
+                style={{ color: '#EF4444', border: '1px solid rgba(239, 68, 68, 0.3)', marginLeft: 'auto', fontSize: '11px' }}
+              >
+                <Trash2 size={13} />
+                Hapus Seluruh Data YouTube (Hak Penghapusan Pengguna)
               </button>
             </div>
           </div>

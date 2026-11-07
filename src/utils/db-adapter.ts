@@ -1728,5 +1728,92 @@ export async function getScanRunLogsFromDB(limit = 50): Promise<ScanRunLog[]> {
   }
 }
 
+/**
+ * Menghapus data YouTube yang telah melampaui retensi 30 hari kalender (Section III.E.4)
+ */
+export async function purgeExpiredYouTubeDataFromDB(now = Date.now()): Promise<{ purgedCount: number }> {
+  const RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+  const cutoff = now - RETENTION_MS
+  let purgedCount = 0
+
+  // 1. Bersihkan di SQLite jika tersedia
+  if (typeof window !== 'undefined' && (window as any).naradaDatabase?.purgeExpiredYouTubeData) {
+    try {
+      const res = await (window as any).naradaDatabase.purgeExpiredYouTubeData(cutoff)
+      if (res?.deletedCount) purgedCount += res.deletedCount
+    } catch {
+      // Fallback
+    }
+  }
+
+  // 2. Bersihkan di Memory Fallback
+  for (const [id, item] of memoryFallback.discoveryCandidates.entries()) {
+    if (item.targetPlatform === 'youtube' && item.discoveredAt < cutoff) {
+      memoryFallback.discoveryCandidates.delete(id)
+      purgedCount++
+    }
+  }
+
+  // 3. Bersihkan di IndexedDB
+  if (!isFallbackMode) {
+    try {
+      const all = await performTransaction<SearchDiscoveryResult[]>(STORES.DISCOVERY_CANDIDATES, 'readonly', (store) => store.getAll())
+      if (all) {
+        for (const item of all) {
+          if (item.targetPlatform === 'youtube' && item.discoveredAt < cutoff) {
+            await performTransaction(STORES.DISCOVERY_CANDIDATES, 'readwrite', (store) => store.delete(item.id))
+            purgedCount++
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return { purgedCount }
+}
+
+/**
+ * Menghapus seluruh data YouTube API atas permintaan pengguna (User Data Deletion Request)
+ */
+export async function purgeAllYouTubeDataFromDB(): Promise<{ deletedCount: number }> {
+  let deletedCount = 0
+
+  if (typeof window !== 'undefined' && (window as any).naradaDatabase?.purgeAllYouTubeData) {
+    try {
+      const res = await (window as any).naradaDatabase.purgeAllYouTubeData()
+      if (res?.deletedCount) deletedCount += res.deletedCount
+    } catch {
+      // Fallback
+    }
+  }
+
+  for (const [id, item] of memoryFallback.discoveryCandidates.entries()) {
+    if (item.targetPlatform === 'youtube') {
+      memoryFallback.discoveryCandidates.delete(id)
+      deletedCount++
+    }
+  }
+
+  if (!isFallbackMode) {
+    try {
+      const all = await performTransaction<SearchDiscoveryResult[]>(STORES.DISCOVERY_CANDIDATES, 'readonly', (store) => store.getAll())
+      if (all) {
+        for (const item of all) {
+          if (item.targetPlatform === 'youtube') {
+            await performTransaction(STORES.DISCOVERY_CANDIDATES, 'readwrite', (store) => store.delete(item.id))
+            deletedCount++
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return { deletedCount }
+}
+
 
 

@@ -10,3 +10,5 @@ export * from './source-contracts.ts'
 export * from './youtube-connector.ts'
 export * from './dorking-discovery-engine.ts'
 export * from './discovery-router.ts'
+export * from './youtube-retention.ts'
+
