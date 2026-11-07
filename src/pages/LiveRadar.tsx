@@ -9,7 +9,6 @@ import {
   Building,
   Clock,
   Filter,
-  Database,
   Trash2,
   AlertTriangle,
   X,
@@ -28,7 +27,6 @@ import {
   Activity,
   Plus,
   Compass,
-  HelpCircle,
   ArrowDownRight,
   ChevronDown,
   ChevronUp
@@ -467,13 +465,36 @@ export default function LiveRadar() {
             gap: '10px',
             margin: 0
           }}>
-            <Radio size={20} color="#3B82F6" />
+            <Radio size={20} color="#38BDF8" />
             Radar Berita Viral & Early-Warning Intelijen
           </h1>
         </div>
 
         {/* Telemetri Live Status Strip & Tombol Briefing Popup */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Tombol Pindai Isu Terkini (Aksi Primer Utama) */}
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={triggerSync}
+            disabled={isSyncing}
+            style={{
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              padding: '7px 14px',
+              background: '#C8102E',
+              borderColor: '#DC2626',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: isSyncing ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <RefreshCw size={13} className={isSyncing ? 'spin-animation' : ''} />
+            <span>{isSyncing ? 'Menyinkronkan...' : 'Pindai Isu Terkini'}</span>
+          </button>
+
           {/* Tombol Buka Pop-up Notifikasi Intelijen */}
           <button
             type="button"
@@ -498,31 +519,23 @@ export default function LiveRadar() {
             <span>LAPORAN INTELIJEN TERKINI ({triageCounts.HOAKS + triageCounts.UNVERIFIED})</span>
           </button>
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            background: 'rgba(217, 119, 6, 0.12)',
-            border: '1px solid rgba(217, 119, 6, 0.35)',
-            borderRadius: 'var(--radius-pill)',
-          }}>
-            <Database size={13} color="#D97706" />
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#FBBF24' }}>
-              {debunkItems.length} ISU AKTIF DALAM BUFFER
-            </span>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 14px',
-            background: '#121822',
-            border: '1px solid #1E2734',
-            borderRadius: 'var(--radius-pill)',
-            boxShadow: 'var(--shadow-steel-plate)'
-          }}>
+          {/* Consolidated Telemetry Pill (Klik untuk Buka/Tutup Rincian Kanal) */}
+          <div
+            onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '7px 14px',
+              background: '#121822',
+              border: isConnectorDetailsOpen ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid #1E2734',
+              borderRadius: 'var(--radius-pill)',
+              boxShadow: 'var(--shadow-steel-plate)',
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+            title="Klik untuk membuka / menutup rincian status konektor radar"
+          >
             <span style={{
               width: 8,
               height: 8,
@@ -531,13 +544,14 @@ export default function LiveRadar() {
               boxShadow: `0 0 8px ${telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B'}`,
               display: 'inline-block'
             }} />
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: sourceChannel === 'LOCAL_ARCHIVE' ? '#F59E0B' : '#F1F5F9' }}>
-              {sourceChannel === 'API_DIRECT' ? 'LIVE RSS MULTI-STREAM' : sourceChannel === 'API_PROXY' ? 'GATEWAY / PROXY (LIVE)' : 'STALE CACHE (OFFLINE)'}
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9' }}>
+              14 KANAL RADAR ({connectorSummary.online} ONLINE)
             </span>
             <span style={{ color: '#2D3848' }}>│</span>
             <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
               SYNC: {lastSyncTime}
             </span>
+            {isConnectorDetailsOpen ? <ChevronUp size={12} color="#38BDF8" /> : <ChevronDown size={12} color="#94A3B8" />}
           </div>
         </div>
       </div>
@@ -559,50 +573,127 @@ export default function LiveRadar() {
         <span className="bolt-bl" />
         <span className="bolt-br" />
 
-        {/* Header Label Deck Operasi */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1E2734', paddingBottom: '6px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: 'var(--accent-gold)', fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px' }}>///</span>
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9', letterSpacing: '0.5px' }}>
-              DECK OPERASI KONTROL BUFFER & SINKRONISASI
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-            <span>TELEMETRI KANAL:</span>
-            <span style={{ color: telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B', fontWeight: 700 }}>
-              {telemetry.status} ({telemetry.latencyMs}ms)
-            </span>
-          </div>
-        </div>
-
-        {/* Baris Tombol Aksi Siklus Hidup Buffer (Sesuai Permintaan Pengguna) */}
+        {/* Header Label & Navigasi Workspace Mode */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          borderBottom: '1px solid #1E2734',
+          paddingBottom: '8px',
           flexWrap: 'wrap',
           gap: '10px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            {/* Tombol Pindai Isu Terkini */}
+          {/* Workspace Primary View Tabs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--accent-gold)', fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px', marginRight: '4px' }}>///</span>
             <button
               type="button"
-              className="btn btn-primary"
-              onClick={triggerSync}
-              disabled={isSyncing}
+              onClick={() => {
+                setActiveViewMode('ALL')
+                setSelectedTriage('ALL')
+              }}
               style={{
+                padding: '6px 12px',
+                borderRadius: '4px',
                 fontSize: '11px',
                 fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                padding: '7px 14px',
-                background: '#C8102E',
-                borderColor: '#DC2626'
+                fontWeight: 800,
+                border: '1px solid',
+                borderColor: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#38BDF8' : '#253244',
+                background: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? 'rgba(56, 189, 248, 0.18)' : '#0F1622',
+                color: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#FFFFFF' : '#94A3B8',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
               }}
             >
-              <RefreshCw size={13} className={isSyncing ? 'spin-animation' : ''} />
-              <span>{isSyncing ? 'Menyinkronkan...' : 'Pindai Isu Terkini'}</span>
+              <Radio size={13} color={activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#38BDF8' : '#64748B'} />
+              <span>ARUS RADAR (FEED)</span>
+              <span style={{
+                fontSize: '9.5px',
+                padding: '1px 5px',
+                borderRadius: '2px',
+                background: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#38BDF8' : '#1A2330',
+                color: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#000000' : '#94A3B8',
+                fontWeight: 900
+              }}>
+                {debunkItems.length}
+              </span>
             </button>
 
+            <button
+              type="button"
+              onClick={() => setActiveViewMode('TRENDS')}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 800,
+                border: '1px solid',
+                borderColor: activeViewMode === 'TRENDS' ? '#A855F7' : '#253244',
+                background: activeViewMode === 'TRENDS' ? 'rgba(168, 85, 247, 0.2)' : '#0F1622',
+                color: activeViewMode === 'TRENDS' ? '#FFFFFF' : '#94A3B8',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Activity size={13} color={activeViewMode === 'TRENDS' ? '#C084FC' : '#64748B'} />
+              <span>SINYAL PENELUSURAN</span>
+              <span style={{
+                fontSize: '9.5px',
+                padding: '1px 5px',
+                borderRadius: '2px',
+                background: activeViewMode === 'TRENDS' ? '#A855F7' : '#1A2330',
+                color: activeViewMode === 'TRENDS' ? '#000000' : '#94A3B8',
+                fontWeight: 900
+              }}>
+                {trendSignals.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveViewMode('WATCHLIST')}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 800,
+                border: '1px solid',
+                borderColor: activeViewMode === 'WATCHLIST' ? '#EC4899' : '#253244',
+                background: activeViewMode === 'WATCHLIST' ? 'rgba(236, 72, 153, 0.2)' : '#0F1622',
+                color: activeViewMode === 'WATCHLIST' ? '#FFFFFF' : '#94A3B8',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Compass size={13} color={activeViewMode === 'WATCHLIST' ? '#F472B6' : '#64748B'} />
+              <span>TOPIC WATCHLIST</span>
+              <span style={{
+                fontSize: '9.5px',
+                padding: '1px 5px',
+                borderRadius: '2px',
+                background: activeViewMode === 'WATCHLIST' ? '#EC4899' : '#1A2330',
+                color: activeViewMode === 'WATCHLIST' ? '#000000' : '#94A3B8',
+                fontWeight: 900
+              }}>
+                {topicCandidates.filter(c => c.status !== 'REJECTED' && c.status !== 'EXPIRED').length}
+              </span>
+            </button>
+          </div>
+
+          {/* Toolbar Pengelolaan Buffer & Auto-Sync */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {/* Tombol Bersihkan Buffer Isu Tuntas */}
             <button
               type="button"
@@ -611,20 +702,20 @@ export default function LiveRadar() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                fontSize: '11px',
+                gap: '5px',
+                fontSize: '10.5px',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
-                padding: '7px 12px',
-                background: '#1A2332',
+                padding: '5px 10px',
+                background: '#141C28',
                 border: '1px solid #2B384E',
                 color: '#94A3B8',
                 borderRadius: '4px',
                 cursor: 'pointer'
               }}
             >
-              <Trash2 size={13} color="#94A3B8" />
-              <span>Bersihkan Isu Tuntas ({triageCounts.FAKTA + triageCounts.NETRAL})</span>
+              <Trash2 size={12} color="#94A3B8" />
+              <span>Bersihkan Tuntas ({triageCounts.FAKTA + triageCounts.NETRAL})</span>
             </button>
 
             {/* Tombol Reset Buffer Total */}
@@ -634,9 +725,9 @@ export default function LiveRadar() {
                 onClick={handleClearAllBuffer}
                 title="Kosongkan seluruh buffer isu saat ini"
                 style={{
-                  fontSize: '11px',
+                  fontSize: '10.5px',
                   fontFamily: 'var(--font-mono)',
-                  padding: '7px 10px',
+                  padding: '5px 8px',
                   background: 'transparent',
                   border: '1px solid #2B384E',
                   color: '#64748B',
@@ -649,8 +740,8 @@ export default function LiveRadar() {
             )}
 
             {/* Selector Interval Pembaruan Otomatis */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Clock size={13} color="#94A3B8" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Clock size={12} color="#94A3B8" />
               <select
                 value={syncIntervalHours}
                 onChange={(e) => setSyncIntervalHours(Number(e.target.value))}
@@ -659,32 +750,26 @@ export default function LiveRadar() {
                   border: '1px solid #2D3848',
                   borderRadius: '4px',
                   color: '#F1F5F9',
-                  fontSize: '11px',
+                  fontSize: '10.5px',
                   fontFamily: 'var(--font-mono)',
-                  padding: '6px 10px',
+                  padding: '5px 8px',
                   outline: 'none',
                   cursor: 'pointer'
                 }}
               >
-                <option value={0.5}>Auto-Sync: 30 Menit (Standar Intelijen)</option>
+                <option value={0.5}>Auto-Sync: 30m</option>
                 <option value={1}>Auto-Sync: 1 Jam</option>
                 <option value={2}>Auto-Sync: 2 Jam</option>
                 <option value={6}>Auto-Sync: 6 Jam</option>
-                <option value={0}>Auto-Sync: Nonaktif (Manual Saja)</option>
+                <option value={0}>Auto-Sync: Manual</option>
               </select>
             </div>
-          </div>
-
-          <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-            STATUS SINKRONISASI: <span style={{ color: '#94A3B8', fontWeight: 600 }}>{lastSyncTime}</span>
           </div>
         </div>
 
         {/* ─── KESEHATAN KONEKTOR SUMBER (SPRINT 6 MULTI-STREAM TELEMETRY STRIP - COLLAPSIBLE ACCORDION) ─── */}
         <div style={{
-          marginTop: '10px',
-          paddingTop: '8px',
-          borderTop: '1px solid #1E2734',
+          paddingTop: '4px',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px'
@@ -710,7 +795,7 @@ export default function LiveRadar() {
             >
               <span style={{ color: '#94A3B8', fontWeight: 700, fontSize: '10.5px', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '5px' }}>
                 <Radio size={12} color="#38BDF8" />
-                <span>STATUS KONEKTOR RADAR:</span>
+                <span>STATUS KONEKTOR RADAR (14 KANAL):</span>
               </span>
 
               {/* Status Counters */}
@@ -835,10 +920,9 @@ export default function LiveRadar() {
               </div>
               
               <div style={{
-                display: 'flex',
-                alignItems: 'center',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))',
                 gap: '6px',
-                flexWrap: 'wrap',
                 fontSize: '9.5px',
                 fontFamily: 'var(--font-mono)'
               }}>
@@ -873,11 +957,12 @@ export default function LiveRadar() {
                       key={ch.sourceId}
                       title={tooltipText}
                       style={{
-                        display: 'inline-flex',
+                        display: 'flex',
                         alignItems: 'center',
-                        gap: '5px',
-                        padding: '3px 8px',
-                        borderRadius: '3px',
+                        justifyContent: 'space-between',
+                        gap: '6px',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
                         background: '#0B111A',
                         border: `1px solid ${dotColor}35`,
                         color: isDisabled ? '#64748B' : '#CBD5E1',
@@ -885,18 +970,25 @@ export default function LiveRadar() {
                         cursor: 'help'
                       }}
                     >
-                      <span style={{
-                        width: '6px',
-                        height: '6px',
-                        borderRadius: '50%',
-                        background: dotColor,
-                        boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none'
-                      }} />
-                      <span style={{ fontWeight: 700, color: isDisabled ? '#94A3B8' : '#F1F5F9' }}>{displayName}</span>
-                      <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
-                      {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
-                        <span style={{ color: '#64748B' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
-                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <span style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: dotColor,
+                          boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none',
+                          flexShrink: 0
+                        }} />
+                        <span style={{ fontWeight: 700, color: isDisabled ? '#94A3B8' : '#F1F5F9', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {displayName}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                        <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
+                        {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
+                          <span style={{ color: '#64748B', fontSize: '9px' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -907,14 +999,15 @@ export default function LiveRadar() {
       </div>
 
       {/* ─── 2B. Sasis Plat Baja: Deck Filter Spektrum & Konsol Pencarian ─── */}
+      {activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' && (
       <div 
         className="steel-chassis-card"
         style={{
-          padding: '14px 18px',
+          padding: '12px 18px',
           marginBottom: '16px',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
+          gap: '10px',
           position: 'relative'
         }}
       >
@@ -930,15 +1023,27 @@ export default function LiveRadar() {
           flexWrap: 'wrap',
           gap: '12px'
         }}>
-          {/* Label Filter Spektrum */}
+          {/* Label Filter Spektrum & Counter Ringkas */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: 'var(--accent-gold)', fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px' }}>///</span>
             <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9', letterSpacing: '0.5px' }}>
               DECK FILTER SPEKTRUM & KONSOL PENCARIAN
             </span>
+            <span style={{
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              color: '#38BDF8',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              padding: '1px 6px',
+              borderRadius: '3px',
+              fontWeight: 700
+            }}>
+              {filteredItems.length} ISU TERFILTER
+            </span>
           </div>
 
-          {/* Input Pencarian Klaim / Kata Kunci */}
+          {/* Input Pencarian Klaim / Kata Kunci dengan Tombol Clear */}
           <div style={{
             position: 'relative',
             width: '320px',
@@ -958,11 +1063,31 @@ export default function LiveRadar() {
                 color: '#F1F5F9',
                 fontSize: '11px',
                 fontFamily: 'var(--font-mono)',
-                padding: '6px 10px 6px 30px',
+                padding: '6px 28px 6px 30px',
                 outline: 'none',
                 boxSizing: 'border-box'
               }}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: '#94A3B8',
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+                title="Hapus pencarian"
+              >
+                <X size={12} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -970,22 +1095,19 @@ export default function LiveRadar() {
         <div style={{ height: '1px', background: '#1E2734' }} />
 
         {/* ─── Filter Status Triage & View Mode (Command Center Tabs - Sprint 6 WP9) ─── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {/* Baris 1: Status Utama Triage & Mode Tampilan */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Baris 1: Status Utama Triage */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             {[
               { key: 'ALL', label: 'SEMUA ISU AKTIF', count: triageCounts.ALL, color: '#38BDF8', icon: Radio },
               { key: 'MOMENTUM', label: 'ISU BARU & MENINGKAT', count: triageCounts.MOMENTUM, color: '#F43F5E', icon: TrendingUp },
-              { key: 'SUSTAINED', label: 'STABIL (SUSTAINED)', count: triageCounts.SUSTAINED, color: '#06B6D4', icon: Activity },
-              { key: 'COOLING', label: 'MELANDAI (COOLING)', count: triageCounts.COOLING, color: '#94A3B8', icon: ArrowDownRight },
-              { key: 'INSUFFICIENT_DATA', label: 'SAMPEL TERBATAS', count: triageCounts.INSUFFICIENT_DATA, color: '#D97706', icon: HelpCircle },
               { key: 'UNVERIFIED', label: 'SEDANG DIPANTAU', count: triageCounts.UNVERIFIED, color: '#F59E0B', icon: Eye },
               { key: 'HOAKS', label: 'TERINDIKASI HOAKS', count: triageCounts.HOAKS, color: '#EF4444', icon: AlertTriangle },
               { key: 'RESOLVED', label: 'FAKTA & AMAN', count: triageCounts.FAKTA + triageCounts.NETRAL, color: '#10B981', icon: ShieldCheck },
-              { key: 'TRENDS', label: 'SINYAL PENELUSURAN', count: trendSignals.length, color: '#A855F7', icon: Activity },
-              { key: 'WATCHLIST', label: 'TOPIC WATCHLIST', count: topicCandidates.filter(c => c.status !== 'REJECTED' && c.status !== 'EXPIRED').length, color: '#EC4899', icon: Compass },
+              { key: 'SUSTAINED', label: 'LIPUTAN BERLANJUT', count: triageCounts.SUSTAINED, color: '#06B6D4', icon: Activity },
+              { key: 'COOLING', label: 'MELANDAI (COOLING)', count: triageCounts.COOLING, color: '#94A3B8', icon: ArrowDownRight },
             ].map(tab => {
-              const isSelected = activeViewMode === tab.key
+              const isSelected = activeViewMode === tab.key || (activeViewMode === 'ALL' && selectedTriage === tab.key)
               return (
                 <button
                   key={tab.key}
@@ -997,9 +1119,9 @@ export default function LiveRadar() {
                     }
                   }}
                   style={{
-                    padding: '7px 13px',
+                    padding: '5px 10px',
                     borderRadius: '4px',
-                    fontSize: '11px',
+                    fontSize: '10.5px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 800,
                     border: '1px solid',
@@ -1009,17 +1131,17 @@ export default function LiveRadar() {
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '7px',
-                    boxShadow: isSelected ? `0 0 12px ${tab.color}35` : 'none',
+                    gap: '6px',
+                    boxShadow: isSelected ? `0 0 10px ${tab.color}30` : 'none',
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <tab.icon size={13} color={isSelected ? tab.color : '#64748B'} />
+                  <tab.icon size={12} color={isSelected ? tab.color : '#64748B'} />
                   <span>{tab.label}</span>
                   <span style={{
-                    fontSize: '10px',
-                    padding: '1px 6px',
-                    borderRadius: '3px',
+                    fontSize: '9.5px',
+                    padding: '1px 5px',
+                    borderRadius: '2px',
                     background: isSelected ? tab.color : '#1A2330',
                     color: isSelected ? '#000000' : '#CBD5E1',
                     fontWeight: 900
@@ -1031,10 +1153,10 @@ export default function LiveRadar() {
             })}
           </div>
 
-          {/* Baris 2: Klaster Spektrum Cerdas (Hanya Menampilkan Klaster yang Ada Isunya / count > 0) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Filter size={11} /> KLASTER TERDETEKSI:
+          {/* Baris 2: Klaster Spektrum Cerdas */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', paddingTop: '2px' }}>
+            <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Filter size={11} /> KLASTER:
             </span>
             {CLUSTER_OPTIONS
               .filter(opt => opt.key === 'ALL' || (clusterCounts[opt.key] ?? 0) > 0)
@@ -1047,7 +1169,7 @@ export default function LiveRadar() {
                     type="button"
                     onClick={() => setSelectedCluster(opt.key)}
                     style={{
-                      padding: '3px 9px',
+                      padding: '3px 8px',
                       borderRadius: '3px',
                       fontSize: '9.5px',
                       fontFamily: 'var(--font-mono)',
@@ -1059,7 +1181,7 @@ export default function LiveRadar() {
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '5px'
+                      gap: '4px'
                     }}
                   >
                     <span>{opt.label}</span>
@@ -1076,9 +1198,40 @@ export default function LiveRadar() {
                   </button>
                 )
               })}
+
+            {/* Tombol Reset Filter jika aktif */}
+            {(selectedCluster !== 'ALL' || activeViewMode !== 'ALL' || selectedTriage !== 'ALL' || searchQuery) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCluster('ALL')
+                  setActiveViewMode('ALL')
+                  setSelectedTriage('ALL')
+                  setSearchQuery('')
+                }}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '3px',
+                  fontSize: '9px',
+                  fontFamily: 'var(--font-mono)',
+                  color: '#EF4444',
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  cursor: 'pointer',
+                  marginLeft: 'auto',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}
+              >
+                <X size={10} />
+                <span>Reset Filter</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
+      )}
 
       {/* ─── 3A. Panel Khusus Sinyal Penelusuran Google Trends (Sprint 6 WP9 Section 13.3) ─── */}
       {activeViewMode === 'TRENDS' && (
@@ -1571,12 +1724,12 @@ export default function LiveRadar() {
                 key={item.id}
                 className="steel-chassis-card"
                 style={{
-                  padding: '16px',
+                  padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   position: 'relative',
-                  gap: '12px',
+                  gap: '10px',
                   borderTop: score >= 75 ? '2px solid #EF4444' : '1px solid #1E2734'
                 }}
               >
@@ -1585,21 +1738,22 @@ export default function LiveRadar() {
                 <span className="bolt-bl" />
                 <span className="bolt-br" />
 
-                {/* Top Metrik & Lencana */}
-                <div>
+                {/* Konten Utama Kartu */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* Baris 1: Klaster & Status Triage */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    marginBottom: '8px',
-                    gap: '8px'
+                    gap: '8px',
+                    flexWrap: 'wrap'
                   }}>
                     {/* Lencana Klaster */}
                     <span style={{
                       fontSize: '9px',
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 700,
-                      padding: '2px 6px',
+                      padding: '2px 7px',
                       borderRadius: '3px',
                       background: `${clusterMeta.color}18`,
                       color: clusterMeta.color,
@@ -1609,8 +1763,8 @@ export default function LiveRadar() {
                       {clusterMeta.label}
                     </span>
 
-                    {/* Lencana Vonis & Indeks Ancaman */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    {/* Lencana Vonis & Indeks Relevansi Heuristik */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{
                         fontSize: '9px',
                         fontFamily: 'var(--font-mono)',
@@ -1624,23 +1778,7 @@ export default function LiveRadar() {
                         {verdictLabel}
                       </span>
 
-                      {/* Lencana Semantic Firewall: Rujukan Fact-Check Terkait (Sprint 1C Package 3) */}
-                      {item.factCheckReference && (
-                        <span style={{
-                          fontSize: '9px',
-                          fontFamily: 'var(--font-mono)',
-                          fontWeight: 800,
-                          padding: '2px 7px',
-                          borderRadius: '3px',
-                          background: 'rgba(56, 189, 248, 0.15)',
-                          color: '#38BDF8',
-                          border: '1px solid rgba(56, 189, 248, 0.45)'
-                        }} title={`Rujukan Fact-Check Terkait: ${item.factCheckReference.referenceTitle}`}>
-                          REFERENSI FACT-CHECK TERKAIT — PERLU TINJAUAN
-                        </span>
-                      )}
-
-                      {/* Skor Relevansi Konteks (Sprint 1B: Skor Heuristik Deterministik, BUKAN Probabilitas Ancaman) */}
+                      {/* Skor Relevansi Konteks (Indikator Heuristik, BUKAN Probabilitas Ancaman) */}
                       <span style={{
                         fontSize: '9px',
                         fontFamily: 'var(--font-mono)',
@@ -1651,36 +1789,23 @@ export default function LiveRadar() {
                         color: scoreColor,
                         border: `1px solid ${scoreColor}40`
                       }} title="Skor Relevansi Konteks (0 - 100): Indikator heuristik keselarasan topik pantauan, bukan probabilitas kebenaran atau tingkat bahaya.">
-                        RELEVANSI: {score}/100
+                        RELEVANSI {score}/100
                       </span>
                     </div>
                   </div>
 
-                  {/* Audit Trail Dual-Timestamp (Penangkapan vs Penerbitan Sumber Nyata) */}
+                  {/* Naskah / Klaim Isu Viral */}
                   <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '4px 8px',
-                    background: '#0B111A',
-                    border: '1px solid #1E2734',
-                    borderRadius: '3px',
-                    fontSize: '9px',
-                    fontFamily: 'var(--font-mono)',
-                    marginBottom: '8px'
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: '#F8FAFC',
+                    lineHeight: 1.45
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94A3B8' }}>
-                      <Clock size={10} color="#38BDF8" />
-                      <span>DITANGKAP: <strong style={{ color: item.interceptedAt ? '#E2E8F0' : '#64748B' }}>{item.interceptedAt || (item.isLive ? 'Baru saja' : 'Belum ada data')}</strong></span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94A3B8' }}>
-                      <ShieldCheck size={10} color="#10B981" />
-                      <span>TERBIT SUMBER: <strong style={{ color: item.publishedDate && item.publishedDate !== 'Waktu Publikasi Tidak Tersedia' ? '#10B981' : '#64748B' }}>{item.publishedDate || 'Tanggal tidak tersedia'}</strong></span>
-                    </div>
+                    {item.claim}
                   </div>
 
-                  {/* Lencana Freshness Deterministik & Alasan Relevansi */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  {/* Baris Sinyal Kontekstual & Freshness */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
                     {/* Freshness Badge dari FreshnessEngine */}
                     {(() => {
                       const { timestamp: pTs } = parseSourceDate(item.publishedDate)
@@ -1692,335 +1817,188 @@ export default function LiveRadar() {
                       const badgeBg = isBrk ? 'rgba(239, 68, 68, 0.2)' : isAkt ? 'rgba(245, 158, 11, 0.15)' : isBerk ? 'rgba(56, 189, 248, 0.15)' : 'rgba(100, 116, 139, 0.15)'
 
                       return (
-                        <div style={{
+                        <span style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          fontSize: '9px',
+                          gap: '3px',
+                          fontSize: '8.5px',
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 800,
                           color: badgeColor,
                           background: badgeBg,
-                          border: `1px solid ${badgeColor}`,
-                          padding: '2px 6px',
-                          borderRadius: '3px'
+                          border: `1px solid ${badgeColor}60`,
+                          padding: '2px 5px',
+                          borderRadius: '2px'
                         }}>
-                          {isBrk && <Flame size={10} />}
-                          <span>{fresh.status === 'BREAKING' ? 'BREAKING (<3 JAM)' : fresh.status === 'AKTUAL' ? 'AKTUAL (<12 JAM)' : fresh.status === 'BERKEMBANG' ? 'HARI INI (<24 JAM)' : fresh.status === 'KONTEKS' ? 'KONTEKS (>24 JAM)' : 'WAKTU TIDAK TERSEDIA'}</span>
-                        </div>
+                          {isBrk && <Flame size={9} />}
+                          <span>{fresh.status === 'BREAKING' ? 'BREAKING (<3J)' : fresh.status === 'AKTUAL' ? 'AKTUAL (<12J)' : fresh.status === 'BERKEMBANG' ? 'HARI INI (<24J)' : fresh.status === 'KONTEKS' ? 'KONTEKS (>24J)' : 'WAKTU N/A'}</span>
+                        </span>
                       )
                     })()}
 
-                    {item.viralityReason && (
-                      <div style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        fontSize: '9px',
+                    {/* Cakupan Domain Pers Independen */}
+                    <span style={{
+                      fontSize: '8.5px',
+                      fontFamily: 'var(--font-mono)',
+                      color: '#10B981',
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      padding: '2px 6px',
+                      borderRadius: '2px',
+                      fontWeight: 700
+                    }} title="Jumlah domain media massa independen terverifikasi">
+                      {item.sourceCoverage?.distinctPublisherDomainCount || 1} DOMAIN PERS
+                    </span>
+
+                    {/* Momentum Aktivitas Isu jika ada */}
+                    {item.issueActivity && (
+                      (() => {
+                        const st = item.issueActivity.state
+                        const isRising = st === 'RISING'
+                        const isNew = st === 'NEW'
+                        const isSustained = st === 'SUSTAINED'
+                        const bg = isRising ? 'rgba(239, 68, 68, 0.15)' : isNew ? 'rgba(245, 158, 11, 0.15)' : isSustained ? 'rgba(56, 189, 248, 0.15)' : 'rgba(100, 116, 139, 0.15)'
+                        const col = isRising ? '#F87171' : isNew ? '#FBBF24' : isSustained ? '#38BDF8' : '#94A3B8'
+                        const label = isRising ? 'LIPUTAN MENINGKAT' : isNew ? 'ISU BARU' : isSustained ? 'LIPUTAN BERLANJUT' : 'MELANDAI'
+                        return (
+                          <span style={{
+                            fontSize: '8.5px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            padding: '2px 6px',
+                            borderRadius: '2px',
+                            background: bg,
+                            color: col,
+                            border: `1px solid ${col}40`,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
+                          }}>
+                            {isRising && <TrendingUp size={9} />}
+                            {isNew && <Flame size={9} />}
+                            {label}
+                          </span>
+                        )
+                      })()
+                    )}
+
+                    {/* Lencana Referensi Fact-Check jika terhubung */}
+                    {item.factCheckReference && (
+                      <span style={{
+                        fontSize: '8.5px',
                         fontFamily: 'var(--font-mono)',
                         fontWeight: 700,
-                        color: item.viralityReason.includes('🚨') ? '#FCA5A5' : item.viralityReason.includes('🔥') ? '#FCD34D' : '#93C5FD',
-                        background: item.viralityReason.includes('🚨') ? 'rgba(239, 68, 68, 0.14)' : item.viralityReason.includes('🔥') ? 'rgba(245, 158, 11, 0.14)' : 'rgba(59, 130, 246, 0.14)',
-                        border: `1px solid ${item.viralityReason.includes('🚨') ? 'rgba(239, 68, 68, 0.35)' : item.viralityReason.includes('🔥') ? 'rgba(245, 158, 11, 0.35)' : 'rgba(59, 130, 246, 0.35)'}`,
-                        padding: '2px 7px',
-                        borderRadius: '3px',
-                        letterSpacing: '0.3px'
-                      }}>
-                        <span>{item.viralityReason}</span>
-                      </div>
-                    )}
-
-                    {/* Lencana Momentum & Cakupan Liputan Berita (Sprint 6 WP6 / WP9) */}
-                    {item.issueActivity && (
-                      <div style={{
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '5px',
-                        padding: '6px 8px',
-                        background: '#070C14',
-                        border: '1px solid #1E2734',
-                        borderRadius: '3px',
-                        marginTop: '4px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
-                          {(() => {
-                            const st = item.issueActivity.state
-                            const isRising = st === 'RISING'
-                            const isNew = st === 'NEW'
-                            const isSustained = st === 'SUSTAINED'
-                            const isCooling = st === 'COOLING'
-                            const bg = isRising ? 'rgba(239, 68, 68, 0.2)' : isNew ? 'rgba(245, 158, 11, 0.2)' : isSustained ? 'rgba(56, 189, 248, 0.2)' : 'rgba(100, 116, 139, 0.2)'
-                            const col = isRising ? '#EF4444' : isNew ? '#F59E0B' : isSustained ? '#38BDF8' : '#94A3B8'
-                            const label = isRising ? 'CAKUPAN PEMBERITAAN MENINGKAT' : isNew ? 'ISU BARU' : isSustained ? 'LIPUTAN BERLANJUT' : isCooling ? 'AKTIVITAS PEMBERITAAN MENURUN' : 'DATA BELUM CUKUP'
-                            return (
-                              <span style={{
-                                fontSize: '8.5px',
-                                fontFamily: 'var(--font-mono)',
-                                fontWeight: 800,
-                                padding: '2px 6px',
-                                borderRadius: '2px',
-                                background: bg,
-                                color: col,
-                                border: `1px solid ${col}60`,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                              }}>
-                                {isRising && <TrendingUp size={10} />}
-                                {isNew && <Flame size={10} />}
-                                {isSustained && <Activity size={10} />}
-                                {label}
-                              </span>
-                            )
-                          })()}
-
-                          <span style={{ fontSize: '8.5px', fontFamily: 'var(--font-mono)', color: '#10B981', fontWeight: 700 }} title="Jumlah domain media massa unik yang meliput peristiwa ini">
-                            {item.sourceCoverage?.distinctPublisherDomainCount || 1} DOMAIN PERS
-                          </span>
-                        </div>
-
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '8.5px', fontFamily: 'var(--font-mono)', color: '#64748B', flexWrap: 'wrap', gap: '4px' }}>
-                          <span>Jendela: 3j: <strong style={{ color: '#38BDF8' }}>{item.issueActivity.windowCounts?.last3hCount ?? '-'}</strong> │ 12j: <strong style={{ color: '#38BDF8' }}>{item.issueActivity.windowCounts?.last12hCount ?? '-'}</strong> │ 24j: <strong style={{ color: '#38BDF8' }}>{item.issueActivity.windowCounts?.last24hCount ?? '-'}</strong> berita</span>
-                          <span style={{ color: '#94A3B8' }}>{item.issueActivity.stateReason}</span>
-                        </div>
-                      </div>
+                        padding: '2px 6px',
+                        borderRadius: '2px',
+                        background: 'rgba(56, 189, 248, 0.12)',
+                        color: '#38BDF8',
+                        border: '1px solid rgba(56, 189, 248, 0.35)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px'
+                      }} title={`Referensi Fact-Check Terkait: ${item.factCheckReference.referenceTitle}`}>
+                        <ShieldCheck size={9} />
+                        <span>REFERENSI FACT-CHECK TERKAIT</span>
+                      </span>
                     )}
                   </div>
 
-                  {/* Naskah / Klaim Isu Viral */}
-                  <div style={{
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    color: '#F1F5F9',
-                    lineHeight: 1.45,
-                    marginBottom: '8px'
-                  }}>
-                    {item.claim}
-                  </div>
-
-                  {/* Plat Penilaian Multidimensi & Integritas Provenance (Zero Fake Social Metrics) */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: '4px',
-                    padding: '6px 8px',
-                    background: '#0D141F',
-                    border: '1px solid #1E293B',
-                    borderRadius: '4px',
-                    marginBottom: '8px',
-                    textAlign: 'center'
-                  }}>
-                    <div>
-                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>STATUS WAKTU</div>
-                      <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', marginTop: '2px' }}>
-                        {(() => {
-                          const { timestamp: pTs } = parseSourceDate(item.publishedDate)
-                          const fresh = evaluateFreshness(pTs)
-                          return fresh.status
-                        })()}
-                      </div>
-                    </div>
-                    <div style={{ borderLeft: '1px solid #1A2433', borderRight: '1px solid #1A2433' }}>
-                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>DOMAIN TOPIK</div>
-                      <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F59E0B', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {clusterMeta.label}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>METADATA PROVENANCE</div>
-                      <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: item.sourceUrl ? '#10B981' : '#64748B', marginTop: '2px' }}>
-                        {item.sourceUrl ? 'CANONICAL ✓' : 'OBSERVASI'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Semantic Firewall: Fact-Check Reference Card (Package 3 - Sprint 1C) */}
-                  {item.factCheckReference && (
-                    <div style={{
-                      background: '#071018',
-                      border: '1px solid #1E3A5F',
-                      borderRadius: '4px',
-                      padding: '8px 10px',
-                      marginBottom: '8px',
-                      fontSize: '9.5px',
-                      fontFamily: 'var(--font-mono)'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
-                          <ShieldCheck size={11} color="#38BDF8" style={{ flexShrink: 0 }} />
-                          <span style={{ color: '#64748B' }}>Rujukan Klarifikasi:</span>
-                          <span style={{ color: '#38BDF8', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {item.factCheckReference.referenceTitle}
-                          </span>
-                        </div>
-                        {item.factCheckReference.referenceUrl && (
-                          <a
-                            href={item.factCheckReference.referenceUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{
-                              color: '#38BDF8',
-                              background: 'rgba(56, 189, 248, 0.15)',
-                              border: '1px solid rgba(56, 189, 248, 0.35)',
-                              padding: '2px 6px',
-                              borderRadius: '3px',
-                              textDecoration: 'none',
-                              fontWeight: 700,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '3px',
-                              flexShrink: 0,
-                              fontSize: '9px'
-                            }}
-                          >
-                            <ExternalLink size={9} />
-                            <span>Buka Cek Fakta ↗</span>
-                          </a>
-                        )}
-                      </div>
-                      {item.factCheckReference.explanation && (
-                        <div style={{ color: '#94A3B8', marginTop: '4px', lineHeight: 1.4 }}>
-                          {item.factCheckReference.explanation}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Sunken Box Penjelasan Fakta / Status Intelijen */}
+                  {/* Tray Penjelasan Fakta / Status Intelijen */}
                   <div 
                     className="steel-sunken-tray"
                     style={{
-                      padding: '10px 12px',
-                      marginBottom: '8px'
+                      padding: '8px 10px',
+                      fontSize: '11px',
+                      lineHeight: 1.45
                     }}
                   >
                     <div style={{
-                      fontSize: '10px',
+                      fontSize: '9.5px',
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 700,
                       color: isFact ? '#10B981' : isHoax ? '#EF4444' : '#F59E0B',
-                      marginBottom: '4px',
+                      marginBottom: '3px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px'
+                      gap: '4px'
                     }}>
-                      {isFact ? <CheckCircle size={12} color="#10B981" /> : isHoax ? <AlertTriangle size={12} color="#EF4444" /> : <Eye size={12} color="#F59E0B" />}
+                      {isFact ? <CheckCircle size={11} color="#10B981" /> : isHoax ? <AlertTriangle size={11} color="#EF4444" /> : <Eye size={11} color="#F59E0B" />}
                       {isFact ? 'FAKTA / KLARIFIKASI RESMI:' : isHoax ? 'BUKTI FABRIKASI / DISINFORMASI:' : 'STATUS PEMANTAUAN INTELIJEN:'}
                     </div>
-                    <div style={{
-                      fontSize: '11px',
-                      color: '#94A3B8',
-                      lineHeight: 1.5
-                    }}>
+                    <div style={{ color: '#94A3B8' }}>
                       {item.clarification}
                     </div>
                   </div>
 
-                  {/* Dual-Source Cyber Audit Plate (Menggantikan Bagian ATENSI Sesuai Arahan Operator) */}
+                  {/* Provenance & Sumber: Asal Pantauan vs Rujukan Otoritas */}
                   <div style={{
-                    background: '#0B111A',
-                    border: '1px solid #1E2734',
-                    borderRadius: '4px',
-                    padding: '8px 10px',
                     display: 'flex',
-                    flexDirection: 'column',
-                    gap: '6px',
-                    fontSize: '9.5px',
-                    fontFamily: 'var(--font-mono)'
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '5px 8px',
+                    background: '#090E16',
+                    border: '1px solid #1E2734',
+                    borderRadius: '3px',
+                    fontSize: '9px',
+                    fontFamily: 'var(--font-mono)',
+                    gap: '8px'
                   }}>
-                    {/* Baris 1: Asal Pantauan */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
-                        <Radio size={11} color="#38BDF8" style={{ flexShrink: 0 }} />
-                        <span style={{ color: '#64748B' }}>Asal Pantauan:</span>
-                        <span style={{ color: '#E2E8F0', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {item.originalPlatform || 'Portal Berita / Media Sosial'}
-                        </span>
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                      <Radio size={10} color="#38BDF8" style={{ flexShrink: 0 }} />
+                      <span style={{ color: '#64748B' }}>Asal:</span>
+                      <span style={{ color: '#E2E8F0', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.originalPlatform || 'Portal Berita'}
+                      </span>
                       {(item.originalSourceUrl || item.sourceUrl) && (
                         <a
                           href={item.originalSourceUrl || item.sourceUrl}
                           target="_blank"
                           rel="noreferrer"
-                          title="Tinjau postingan/berita asal saat pertama kali tertangkap radar"
-                          style={{
-                            color: '#38BDF8',
-                            background: 'rgba(56, 189, 248, 0.12)',
-                            border: '1px solid rgba(56, 189, 248, 0.3)',
-                            padding: '2px 7px',
-                            borderRadius: '3px',
-                            textDecoration: 'none',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            flexShrink: 0,
-                            fontSize: '9px',
-                            transition: 'all 0.15s ease'
-                          }}
+                          style={{ color: '#38BDF8', textDecoration: 'none', marginLeft: '2px' }}
+                          title="Buka publikasi asal"
                         >
                           <ExternalLink size={9} />
-                          <span>Buka Asal ↗</span>
                         </a>
                       )}
                     </div>
 
-                    {/* Baris 2: Rujukan Validasi Otoritas */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '5px', borderTop: '1px solid #141C26' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
-                        <Building size={11} color="#10B981" style={{ flexShrink: 0 }} />
-                        <span style={{ color: '#64748B' }}>Rujukan Validasi:</span>
-                        <span style={{ color: '#F1F5F9', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {item.officialSource}
-                        </span>
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                      <Building size={10} color="#10B981" style={{ flexShrink: 0 }} />
+                      <span style={{ color: '#64748B' }}>Otoritas:</span>
+                      <span style={{ color: '#F1F5F9', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.officialSource}
+                      </span>
                       {item.sourceUrl && (
                         <a
                           href={item.sourceUrl}
                           target="_blank"
                           rel="noreferrer"
-                          title="Buka bukti dokumen rujukan klarifikasi fakta resmi"
-                          style={{
-                            color: '#10B981',
-                            background: 'rgba(16, 185, 129, 0.12)',
-                            border: '1px solid rgba(16, 185, 129, 0.3)',
-                            padding: '2px 7px',
-                            borderRadius: '3px',
-                            textDecoration: 'none',
-                            fontWeight: 700,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '3px',
-                            flexShrink: 0,
-                            fontSize: '9px',
-                            transition: 'all 0.15s ease'
-                          }}
+                          style={{ color: '#10B981', textDecoration: 'none', marginLeft: '2px' }}
+                          title="Buka rujukan otoritas resmi"
                         >
                           <ExternalLink size={9} />
-                          <span>Buka Fakta ↗</span>
                         </a>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Footer Kartu & Tombol Aksi Taktis */}
+                {/* Footer Kartu: Tanggal Terbit & Aksi Taktis */}
                 <div style={{
-                  paddingTop: '8px',
+                  paddingTop: '6px',
                   borderTop: '1px solid #1E2734',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: '8px'
                 }}>
-                  {/* Tanggal & Jam Terbit Presisi */}
-                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Clock size={11} color="#94A3B8" />
-                    <span style={{ color: '#94A3B8' }}>{item.publishedDate || 'Tanggal tidak tersedia'}</span>
+                  {/* Tanggal Terbit */}
+                  <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={10} color="#94A3B8" />
+                    <span>{item.publishedDate || 'Tanggal tidak tersedia'}</span>
                   </div>
 
-                  {/* Tombol Aksi Operator: Hapus Isu & Tri-State Command Button */}
+                  {/* Tombol Aksi Operator */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <button
                       type="button"
@@ -2045,10 +2023,9 @@ export default function LiveRadar() {
                         e.currentTarget.style.borderColor = '#283344'
                       }}
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={11} />
                     </button>
 
-                    {/* Tri-State Action Buttons Sesuai Triage Status */}
                     {isUnverified ? (
                       <button
                         type="button"
@@ -2061,7 +2038,7 @@ export default function LiveRadar() {
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 700,
                           padding: '4px 10px',
-                          borderRadius: '4px',
+                          borderRadius: '3px',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -2093,7 +2070,7 @@ export default function LiveRadar() {
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 700,
                           padding: '4px 10px',
-                          borderRadius: '4px',
+                          borderRadius: '3px',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -2126,7 +2103,7 @@ export default function LiveRadar() {
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 700,
                           padding: '4px 10px',
-                          borderRadius: '4px',
+                          borderRadius: '3px',
                           textDecoration: 'none',
                           display: 'inline-flex',
                           alignItems: 'center',
