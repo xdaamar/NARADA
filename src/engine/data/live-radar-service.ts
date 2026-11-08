@@ -472,13 +472,28 @@ export function clusterToDebunkEntry(cluster: EventCluster): DebunkKnowledgeEntr
     viralityReason += ` • 📊 Tren Google: "${topTrend.query}"${topTrend.searchVolumeBand ? ` (${topTrend.searchVolumeBand})` : ''}`
   }
 
-  // Prioritaskan cuplikan berita otentik terpanjang dari member artikel dalam klaster
+  // Prioritaskan dan gabungkan cuplikan berita otentik terpanjang dari member artikel dalam klaster
   const memberExcerpts = [lead, ...(cluster.memberItems || [])]
     .map(m => m?.excerpt || m?.clarification || '')
     .filter(e => Boolean(e) && !e.startsWith('Warta pers dipublikasikan') && !e.includes('Isu sedang dipantau di ranah publik'))
     .sort((a, b) => b.length - a.length)
 
-  const finalClarification = memberExcerpts[0] || lead.excerpt || lead.clarification || ''
+  // Ambil hingga 2 cuplikan berita terotentik yang saling melengkapi (multi-paragraf)
+  const distinctExcerpts: string[] = []
+  for (const exc of memberExcerpts) {
+    const trimmed = exc.trim()
+    if (!trimmed) continue
+    const isDup = distinctExcerpts.some(prev => 
+      prev.slice(0, 45).toLowerCase() === trimmed.slice(0, 45).toLowerCase() ||
+      prev.includes(trimmed.slice(0, 60))
+    )
+    if (!isDup) {
+      distinctExcerpts.push(trimmed)
+      if (distinctExcerpts.length >= 2) break
+    }
+  }
+
+  const finalClarification = distinctExcerpts.join('\n\n') || lead.excerpt || lead.clarification || ''
 
   return {
     id: cluster.id,

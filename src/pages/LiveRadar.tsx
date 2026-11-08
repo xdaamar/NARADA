@@ -1336,16 +1336,57 @@ export default function LiveRadar() {
             const clusterMeta = CLUSTER_OPTIONS.find(c => c.key === item.cluster) || { label: item.cluster, color: '#94A3B8' }
 
             const isExpanded = isAllExpanded || expandedCardIds.has(item.id)
-            const rawClarification = item.clarification || item.factCheckReference?.explanation || ''
-            const textToDisplay = rawClarification.trim()
-            // Bersihkan trailing ellipsis bawaan RSS / agregator agar teks yang muat tidak tampak terpotong semu
-            const cleanText = textToDisplay.replace(/\s*(\.\.\.|…|\[\.\.\.\]|\[…\])\s*$/, '').trim()
-            // Kapasitas fisik kartu standar (430px) untuk menampung teks tanpa overflow:
-            // - Bila headline panjang (>85 char = 3 baris): sisa ruang tray ~460 karakter (~8 baris teks)
-            // - Bila headline normal (<=85 char = 1-2 baris): sisa ruang tray ~540 karakter (~10 baris teks)
-            const maxCardCapacity = item.claim.length > 85 ? 460 : 540
-            // isLongText HANYA true bila teks benar-benar melebihi kapasitas fisik kartu!
-            const isLongText = cleanText.length > maxCardCapacity
+            
+            // Susun naskah intelijen kaya informasi & berstruktur multi-paragraf untuk analis:
+            // - Paragraf 1: Intisari Peristiwa & Fakta Otoritas Resmi / Cuplikan Warta
+            // - Paragraf 2: Arahan Intelijen Taktis Teritorial / Rujukan Bukti Lanjutan
+            const narrativeParts: string[] = []
+            const rawBase = (item.clarification || item.factCheckReference?.explanation || '').trim()
+            const cleanBase = rawBase.replace(/\s*(\.\.\.|…|\[\.\.\.\]|\[…\])\s*$/, '').trim()
+            if (cleanBase) {
+              narrativeParts.push(cleanBase)
+            }
+
+            if (item.tacticalResponseMilitary) {
+              const cleanMil = item.tacticalResponseMilitary.replace(/\s*(\.\.\.|…|\[\.\.\.\]|\[…\])\s*$/, '').trim()
+              if (cleanMil && !cleanBase.toLowerCase().includes(cleanMil.slice(0, 30).toLowerCase())) {
+                narrativeParts.push(cleanMil)
+              }
+            } else if (item.factCheckReference?.explanation) {
+              const cleanExp = item.factCheckReference.explanation.replace(/\s*(\.\.\.|…|\[\.\.\.\]|\[…\])\s*$/, '').trim()
+              if (cleanExp && !cleanBase.toLowerCase().includes(cleanExp.slice(0, 30).toLowerCase())) {
+                narrativeParts.push(cleanExp)
+              }
+            } else if (item.viralityReason && item.viralityReason.includes('Dilaporkan oleh')) {
+              narrativeParts.push(`📌 Konteks Liputan Pers: ${item.viralityReason}`)
+            }
+
+            const fullNarrative = narrativeParts.join('\n\n') || cleanBase || 'Menunggu verifikasi fakta lanjutan.'
+
+            // Kapasitas fisik kartu standar (440px) untuk menampung teks multi-paragraf tanpa overflow:
+            // - Bila headline panjang (>85 char = 3 baris): sisa ruang tray ~480 karakter (~8-9 baris teks)
+            // - Bila headline normal (<=85 char = 1-2 baris): sisa ruang tray ~560 karakter (~10-11 baris teks)
+            const maxCardCapacity = item.claim.length > 85 ? 480 : 560
+            const isLongText = fullNarrative.length > maxCardCapacity
+
+            const textToShow = isExpanded ? (
+              fullNarrative
+            ) : (
+              isLongText ? (
+                (() => {
+                  const targetChars = maxCardCapacity - 50
+                  const trimmed = fullNarrative.slice(0, targetChars)
+                  const lastSpace = trimmed.lastIndexOf(' ')
+                  const cleanSnippet = lastSpace > targetChars - 40 ? trimmed.slice(0, lastSpace) : trimmed
+                  return `${cleanSnippet.trim()}...`
+                })()
+              ) : (
+                fullNarrative
+              )
+            )
+
+            // Ekstraksi paragraf-paragraf agar dapat dirender rapi dengan spasi baris antar paragraf
+            const paragraphs = textToShow.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
 
             return (
               <div
@@ -1359,8 +1400,8 @@ export default function LiveRadar() {
                   position: 'relative',
                   gap: '12px',
                   borderTop: score >= 75 ? '2px solid #EF4444' : '1px solid #1E2734',
-                  minHeight: '430px',
-                  height: isExpanded ? 'fit-content' : '430px',
+                  minHeight: '440px',
+                  height: isExpanded ? 'fit-content' : '440px',
                   transition: 'all 0.2s ease'
                 }}
               >
@@ -1566,27 +1607,17 @@ export default function LiveRadar() {
                       <div style={{
                         color: '#CBD5E1',
                         fontSize: '11.5px',
-                        lineHeight: 1.6,
-                        wordBreak: 'break-word'
+                        lineHeight: 1.65,
+                        wordBreak: 'break-word',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
                       }}>
-                        {isExpanded ? (
-                          cleanText
-                        ) : (
-                          isLongText ? (
-                            (() => {
-                              // Teks melebihi kapasitas kartu: penuhi kartu sampai batas kapasitas (~8-9 baris),
-                              // potong rapi di batas kata terakhir, dan akhiri dengan (...)
-                              const targetChars = maxCardCapacity - 50
-                              const trimmed = cleanText.slice(0, targetChars)
-                              const lastSpace = trimmed.lastIndexOf(' ')
-                              const cleanSnippet = lastSpace > targetChars - 40 ? trimmed.slice(0, lastSpace) : trimmed
-                              return `${cleanSnippet.trim()}...`
-                            })()
-                          ) : (
-                            // Teks muat penuh di dalam kartu: Tampilkan 100% utuh tanpa akhiran '...' dan tanpa tombol baca selengkapnya
-                            cleanText
-                          )
-                        )}
+                        {paragraphs.map((para, pIdx) => (
+                          <p key={pIdx} style={{ margin: 0, lineHeight: 1.65 }}>
+                            {para}
+                          </p>
+                        ))}
                       </div>
                     </div>
 
