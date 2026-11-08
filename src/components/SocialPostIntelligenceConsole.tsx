@@ -23,8 +23,6 @@ import {
   ShieldCheck,
   AlertTriangle,
   RotateCw,
-  Copy,
-  Check,
   ExternalLink,
   MessageSquare,
   Heart,
@@ -58,7 +56,6 @@ export default function SocialPostIntelligenceConsole() {
   const [analysisProgress, setAnalysisProgress] = useState<string>('')
   const [analysisResult, setAnalysisResult] = useState<SocialPostAnalysisResult | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [copyFeedback, setCopyFeedback] = useState<boolean>(false)
 
   // Status Browser Mandiri (Electron Integration)
   const [isBrowserOpen, setIsBrowserOpen] = useState<boolean>(false)
@@ -157,45 +154,6 @@ export default function SocialPostIntelligenceConsole() {
     }
   }
 
-  // Salin Ringkasan Intelijen ke Clipboard
-  const handleCopySummary = () => {
-    if (!analysisResult) return
-    const post = analysisResult.post
-    const buzzer = analysisResult.buzzerPattern
-
-    const summaryText = `
-══════════════════════════════════════════════════════════════════════════
-PUSSIBERAD TNI AD — LAPORAN INTELIJEN POSTINGAN & KOMENTAR MEDIA SOSIAL
-══════════════════════════════════════════════════════════════════════════
-PLATFORM         : ${post.platform.toUpperCase()}
-TAUTAN SUMBER    : ${post.url}
-JUDUL / KAPSI    : ${post.title || post.caption}
-AKUN KREATOR     : ${post.authorName} (${post.authorHandle})
-PENGIKUT         : ${post.authorFollowersCount?.toLocaleString('id-ID') || 'N/A'} pengikut
-ENGAGEMENT       : Likes: ${post.likeCount?.toLocaleString('id-ID') || 0} | Views: ${post.viewCount?.toLocaleString('id-ID') || 0} | Komentar: ${post.commentCount?.toLocaleString('id-ID') || 0}
-
-─── RINGKASAN KOORDINASI BUZZER / BOT ───
-SKOR KOORDINASI  : ${buzzer.coordinationScore}% [${buzzer.coordinationLevel}]
-KECEPATAN SEBAR  : ${buzzer.burstVelocityCommentPerMinute} komentar/menit
-TEMPLAT TERDETEKSI: ${analysisResult.copypastaClusters.length} kluster
-RINGKASAN NARASI : ${buzzer.narrativeSummary}
-
-AKUN TERINDIKASI :
-${buzzer.sampleAccounts.map(a => `• ${a}`).join('\n')}
-
-TEMPLAT DOMINAN :
-${buzzer.sampleQuotes.map(q => `"${q}"`).join('\n')}
-
-WAKTU ANALISIS   : ${new Date(analysisResult.analyzedAt).toLocaleString('id-ID')}
-INTEGRITAS DATA  : ${post.dataSourceNotice}
-══════════════════════════════════════════════════════════════════════════
-`.trim()
-
-    navigator.clipboard.writeText(summaryText)
-    setCopyFeedback(true)
-    setTimeout(() => setCopyFeedback(false), 2500)
-  }
-
   // Format Angka
   const fmt = (n?: number) => (n !== undefined ? n.toLocaleString('id-ID') : '—')
 
@@ -266,58 +224,6 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               Ekstraksi konten publik, akun kreator, top komentar, templat copypasta, dan pola buzzer terkoordinasi.
             </p>
           </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Status Runtime */}
-          <div style={{
-            padding: '5px 10px',
-            borderRadius: '3px',
-            background: '#101622',
-            border: '1px solid #233144',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <Globe size={12} color={isElectronAvailable ? '#34D399' : '#FBBF24'} />
-            <span style={{
-              fontSize: '9.5px',
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 700,
-              color: isElectronAvailable ? '#34D399' : '#FBBF24',
-              letterSpacing: '0.5px'
-            }}>
-              {isElectronAvailable ? 'DESKTOP CHROMIUM' : 'WEB RUNTIME'}
-            </span>
-          </div>
-
-          {/* Tombol Salin Ringkasan */}
-          {analysisResult && (
-            <button
-              type="button"
-              onClick={handleCopySummary}
-              title="Salin Ringkasan Laporan Intelijen"
-              style={{
-                padding: '6px 12px',
-                borderRadius: '4px',
-                background: 'linear-gradient(180deg, #263445 0%, #151F2C 100%)',
-                border: '1px solid #3B4D64',
-                borderBottom: '2px solid #0D131B',
-                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.5)',
-                color: copyFeedback ? '#34D399' : '#CBD5E1',
-                fontSize: '11px',
-                fontWeight: 700,
-                fontFamily: 'var(--font-mono)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              {copyFeedback ? <Check size={12} color="#34D399" /> : <Copy size={12} />}
-              {copyFeedback ? 'TERSALIN!' : 'SALIN LAPORAN'}
-            </button>
-          )}
         </div>
       </div>
 
