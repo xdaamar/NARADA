@@ -27,7 +27,6 @@ import {
   Activity,
   Plus,
   Compass,
-  ArrowDownRight,
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
@@ -1204,8 +1203,6 @@ export default function LiveRadar() {
               { key: 'UNVERIFIED', label: 'SEDANG DIPANTAU', count: triageCounts.UNVERIFIED, color: '#F59E0B', icon: Eye },
               { key: 'HOAKS', label: 'TERINDIKASI HOAKS', count: triageCounts.HOAKS, color: '#EF4444', icon: AlertTriangle },
               { key: 'RESOLVED', label: 'FAKTA & AMAN', count: triageCounts.FAKTA + triageCounts.NETRAL, color: '#10B981', icon: ShieldCheck },
-              { key: 'SUSTAINED', label: 'LIPUTAN BERLANJUT', count: triageCounts.SUSTAINED, color: '#06B6D4', icon: Activity },
-              { key: 'COOLING', label: 'MELANDAI (COOLING)', count: triageCounts.COOLING, color: '#94A3B8', icon: ArrowDownRight },
             ].map(tab => {
               const isSelected = activeViewMode === tab.key || (activeViewMode === 'ALL' && selectedTriage === tab.key)
               return (
