@@ -1297,7 +1297,7 @@ export default function LiveRadar() {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
         gap: '16px',
-        alignItems: 'start'
+        alignItems: 'stretch'
       }}>
         {filteredItems.length === 0 ? (
           <div 
@@ -1355,8 +1355,8 @@ export default function LiveRadar() {
                   position: 'relative',
                   gap: '12px',
                   borderTop: score >= 75 ? '2px solid #EF4444' : '1px solid #1E2734',
-                  minHeight: '360px',
-                  height: 'fit-content',
+                  minHeight: '430px',
+                  height: isExpanded ? 'fit-content' : '430px',
                   transition: 'all 0.2s ease'
                 }}
               >
@@ -1366,7 +1366,7 @@ export default function LiveRadar() {
                 <span className="bolt-br" />
 
                 {/* Konten Utama Kartu */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
                   {/* Baris 1: Klaster & Status Triage */}
                   <div style={{
                     display: 'flex',
@@ -1427,7 +1427,7 @@ export default function LiveRadar() {
                     fontWeight: 700,
                     color: '#F8FAFC',
                     lineHeight: 1.5,
-                    minHeight: '38px'
+                    minHeight: '40px'
                   }}>
                     {item.claim}
                   </div>
@@ -1536,7 +1536,8 @@ export default function LiveRadar() {
                       padding: '12px 14px',
                       fontSize: '11.5px',
                       lineHeight: 1.6,
-                      minHeight: '120px',
+                      minHeight: '140px',
+                      flex: 1,
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
