@@ -113,6 +113,53 @@ export interface SingleSourceFetchResult {
 const knownPublicationsMap = new Map<string, NormalizedPublication>()
 
 /**
+ * Mengosongkan memori publikasi radar (misal saat operator memilih pembersihan tuntas)
+ */
+export function clearKnownPublications(): void {
+  knownPublicationsMap.clear()
+}
+
+/**
+ * Mengekstrak epoch timestamp valid dari DebunkKnowledgeEntry untuk penentuan urutan kronologis.
+ */
+export function getDebunkEntryTimestamp(item: DebunkKnowledgeEntry): number {
+  if (item.publishedDate && item.publishedDate !== 'Waktu Publikasi Tidak Tersedia' && item.publishedDate !== 'Tanggal tidak tersedia') {
+    const { timestamp, status } = parseSourceDate(item.publishedDate)
+    if (status === 'VALID' && timestamp !== null && timestamp > 0) {
+      return timestamp
+    }
+  }
+  if (item.interceptedAt && item.interceptedAt !== 'Waktu Publikasi Tidak Tersedia') {
+    const { timestamp, status } = parseSourceDate(item.interceptedAt)
+    if (status === 'VALID' && timestamp !== null && timestamp > 0) {
+      return timestamp
+    }
+  }
+  if (item.issueActivity?.latestObservedAt) {
+    return item.issueActivity.latestObservedAt
+  }
+  if (item.issueActivity?.firstObservedAt) {
+    return item.issueActivity.firstObservedAt
+  }
+  return 0
+}
+
+/**
+ * Mengurutkan array entri radar secara deterministik dari waktu publikasi termutakhir (descending).
+ * Menjamin isu breaking dan baru terbit selalu berada di puncak feed pemantauan radar.
+ */
+export function sortRadarEntries(entries: DebunkKnowledgeEntry[]): DebunkKnowledgeEntry[] {
+  return [...entries].sort((a, b) => {
+    const tsA = getDebunkEntryTimestamp(a)
+    const tsB = getDebunkEntryTimestamp(b)
+    if (tsB !== tsA) {
+      return tsB - tsA
+    }
+    return (b.cognitiveScore || 0) - (a.cognitiveScore || 0)
+  })
+}
+
+/**
  * Memulihkan riwayat firstObservedAt dari database IndexedDB agar stabil melintasi restart (Sprint 7 WP6 - Carry-over 8.1)
  */
 export async function hydrateKnownPublicationsFromDB(): Promise<number> {
@@ -1111,7 +1158,6 @@ export async function processRadarIngestion(
     } else {
       pub.firstObservedAt = pub.firstObservedAt || now
       pub.observedAt = now
-      knownPublicationsMap.set(pub.id, pub)
       saveIssueActivitySnapshot({
         id: `pub-${pub.id}`,
         clusterId: pub.id,
@@ -1119,6 +1165,8 @@ export async function processRadarIngestion(
         timestamp: pub.firstObservedAt
       }).catch(() => {})
     }
+    // Pastikan registry memuat objek publikasi terbaru lengkap dengan judul dan tanggal
+    knownPublicationsMap.set(pub.id, pub)
   }
 
   const allPubs = Array.from(knownPublicationsMap.values())
@@ -1176,16 +1224,20 @@ export async function processRadarIngestion(
 
   const triagedEntries = scoreAndTriageRadarEntries(mappedEntries, allKnownDebunks)
 
+  // SPRINT 13: Urutkan secara deterministik berdasarkan tanggal publikasi terbaru (descending)
+  // Menjamin isu teraktual dan breaking hari ini (08 Nov 2026) selalu berada di urutan teratas
+  const sortedEntries = sortRadarEntries(triagedEntries)
+
   // 10. Daftarkan ke in-memory cache dan simpan ke IndexedDB
-  registerLiveDebunks(triagedEntries)
+  registerLiveDebunks(sortedEntries)
   try {
-    await cacheRadarItems(triagedEntries)
+    await cacheRadarItems(sortedEntries)
   } catch (e) {
     console.warn('[LiveRadarService] Gagal menyimpan ke cache IndexedDB:', e)
   }
 
   const result: LiveRadarFetchResult = {
-    entries: triagedEntries,
+    entries: sortedEntries,
     clusters,
     trendSignals: incomingTrends,
     topicCandidates: topicDiscoveryEngine.getAllCandidates(),

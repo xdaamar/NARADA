@@ -44,13 +44,30 @@ export function parseSourceDate(rawDateStr?: string | null): {
 
   const trimmed = rawDateStr.trim()
 
-  // 1. Coba standar Date.parse (RFC 822 / ISO 8601)
+  // 1. Coba deteksi pola tanggal format numerik Indonesia: DD/MM/YYYY atau DD-MM-YYYY (misal "6/11/2026", "21/10/2026")
+  const dmyMatch = trimmed.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})(?:[,\s]+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?$/)
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10)
+    const month = parseInt(dmyMatch[2], 10) - 1
+    const year = parseInt(dmyMatch[3], 10)
+    const hours = dmyMatch[4] ? parseInt(dmyMatch[4], 10) : 12
+    const mins = dmyMatch[5] ? parseInt(dmyMatch[5], 10) : 0
+    const secs = dmyMatch[6] ? parseInt(dmyMatch[6], 10) : 0
+    if (month >= 0 && month < 12 && day >= 1 && day <= 31) {
+      const constructed = new Date(Date.UTC(year, month, day, hours - 7, mins, secs))
+      if (!isNaN(constructed.getTime())) {
+        return { timestamp: constructed.getTime(), status: 'VALID' }
+      }
+    }
+  }
+
+  // 2. Coba standar Date.parse (RFC 822 / ISO 8601)
   const parsedEpoch = Date.parse(trimmed)
   if (!isNaN(parsedEpoch) && parsedEpoch > 0) {
     return { timestamp: parsedEpoch, status: 'VALID' }
   }
 
-  // 2. Coba deteksi pola regex YYYY-MM-DD atau YYYY/MM/DD
+  // 3. Coba deteksi pola regex YYYY-MM-DD atau YYYY/MM/DD
   const ymdMatch = trimmed.match(/\b(202\d)[-/](\d{1,2})[-/](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/)
   if (ymdMatch) {
     const year = parseInt(ymdMatch[1], 10)
@@ -206,4 +223,54 @@ export function formatMilitaryDate(timestamp: number | null): string {
   const mins = String(d.getMinutes()).padStart(2, '0')
 
   return `${day} ${month} ${year}, ${hours}:${mins} WIB`
+}
+
+/**
+ * Mengekstrak epoch timestamp valid dari objek entri radar untuk penentuan urutan kronologis.
+ */
+export function getDebunkEntryTimestamp(item: {
+  publishedDate?: string | null
+  interceptedAt?: string | null
+  issueActivity?: { latestObservedAt?: number; firstObservedAt?: number; [key: string]: any }
+  cognitiveScore?: number
+}): number {
+  if (item.publishedDate && item.publishedDate !== 'Waktu Publikasi Tidak Tersedia' && item.publishedDate !== 'Tanggal tidak tersedia') {
+    const { timestamp, status } = parseSourceDate(item.publishedDate)
+    if (status === 'VALID' && timestamp !== null && timestamp > 0) {
+      return timestamp
+    }
+  }
+  if (item.interceptedAt && item.interceptedAt !== 'Waktu Publikasi Tidak Tersedia') {
+    const { timestamp, status } = parseSourceDate(item.interceptedAt)
+    if (status === 'VALID' && timestamp !== null && timestamp > 0) {
+      return timestamp
+    }
+  }
+  if (item.issueActivity?.latestObservedAt) {
+    return item.issueActivity.latestObservedAt
+  }
+  if (item.issueActivity?.firstObservedAt) {
+    return item.issueActivity.firstObservedAt
+  }
+  return 0
+}
+
+/**
+ * Mengurutkan array entri radar secara deterministik dari waktu publikasi termutakhir (descending).
+ * Menjamin isu breaking dan baru terbit selalu berada di puncak feed pemantauan radar.
+ */
+export function sortRadarEntries<T extends {
+  publishedDate?: string | null
+  interceptedAt?: string | null
+  issueActivity?: { latestObservedAt?: number; firstObservedAt?: number; [key: string]: any }
+  cognitiveScore?: number
+}>(entries: T[]): T[] {
+  return [...entries].sort((a, b) => {
+    const tsA = getDebunkEntryTimestamp(a)
+    const tsB = getDebunkEntryTimestamp(b)
+    if (tsB !== tsA) {
+      return tsB - tsA
+    }
+    return (b.cognitiveScore || 0) - (a.cognitiveScore || 0)
+  })
 }

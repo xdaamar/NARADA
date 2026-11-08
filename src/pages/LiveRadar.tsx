@@ -43,11 +43,11 @@ import {
 } from '../engine/radar/early-warning-scorer.ts'
 import { type CounterNarrativeChannels, generateCounterNarratives } from '../engine/forensic/counter-narrative-generator.ts'
 import { getAllConnectorHealth } from '../engine/radar/source-registry.ts'
-import { parseSourceDate, evaluateFreshness } from '../engine/radar/freshness-engine.ts'
+import { parseSourceDate, evaluateFreshness, sortRadarEntries } from '../engine/radar/freshness-engine.ts'
 import type { ConnectorHealth, TopicCandidate, SearchTrendSignal, RadarTaxonomyDomain } from '../engine/radar/radar-types.ts'
 import { getOrCreateCaseForCluster } from '../engine/investigation'
 import { topicDiscoveryEngine, normalizeCandidatePhrase } from '../engine/radar/topic-discovery-engine.ts'
-import { getLastRadarResult } from '../engine/data/live-radar-service.ts'
+import { getLastRadarResult, clearKnownPublications } from '../engine/data/live-radar-service.ts'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterFilterOption {
@@ -123,20 +123,36 @@ export default function LiveRadar() {
   const [counterChannels, setCounterChannels] = useState<CounterNarrativeChannels | null>(null)
   const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
   const [copiedSuccess, setCopiedSuccess] = useState<boolean>(false)
+  const [syncFeedback, setSyncFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Fungsi sinkronisasi radar via RadarScheduler
-  const triggerSync = async () => {
+  const triggerSync = async (forceClear = false) => {
     setIsSyncing(true)
+    setSyncFeedback(null)
     const net = await checkNetworkStatus()
     setTelemetry(net)
 
     try {
+      if (forceClear) {
+        await clearRadarCacheDB()
+        clearKnownPublications()
+      }
       const entries = await radarScheduler.triggerNow()
       if (entries && entries.length > 0) {
-        // SPRINT 5 (WP6): Konsumsi hasil asesmen kanonikal dari service layer tanpa rescore ulang di UI!
-        setDebunkItems(entries)
-        const summary = getTacticalBriefingSummary(entries)
+        // SPRINT 5 (WP6) & SPRINT 13: Konsumsi hasil kanonikal tersortir dari tanggal teraktual
+        const sorted = sortRadarEntries(entries)
+        setDebunkItems(sorted)
+        const summary = getTacticalBriefingSummary(sorted)
         setBriefingSummary(summary)
+        setSyncFeedback({
+          message: `Sinkronisasi tuntas: ${sorted.length} isu taktis termutakhir aktif dalam radar.`,
+          type: 'success'
+        })
+      } else {
+        setSyncFeedback({
+          message: 'Sinkronisasi selesai: Seluruh feed terverifikasi termutakhir.',
+          type: 'success'
+        })
       }
       const status = radarScheduler.getStatus()
       setSourceChannel(status.lastSyncSource as typeof sourceChannel || 'LOCAL_ARCHIVE')
@@ -153,8 +169,12 @@ export default function LiveRadar() {
       setLastSyncTime(
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
       )
-    } catch (err) {
+    } catch (err: any) {
       console.error('[LiveRadar] Gagal sinkronisasi feed radar:', err)
+      setSyncFeedback({
+        message: `Gangguan sinkronisasi feed: ${err?.message || 'Koneksi terputus'}`,
+        type: 'error'
+      })
     } finally {
       setIsSyncing(false)
     }
@@ -165,9 +185,10 @@ export default function LiveRadar() {
     getCachedRadarItems()
       .then((cached) => {
         if (cached && cached.length > 0) {
-          // SPRINT 5 (WP6): Gunakan entri cache kanonikal langsung tanpa memicu scoring ulang
-          setDebunkItems(cached)
-          const summary = getTacticalBriefingSummary(cached)
+          // SPRINT 5 (WP6) & SPRINT 13: Gunakan entri cache kanonikal tersortir
+          const sorted = sortRadarEntries(cached)
+          setDebunkItems(sorted)
+          const summary = getTacticalBriefingSummary(sorted)
           setBriefingSummary(summary)
 
           // Cek apakah briefing sudah dilihat sesi ini
@@ -241,9 +262,10 @@ export default function LiveRadar() {
     radarScheduler.setIntervalHours(syncIntervalHours)
 
     const unsubscribe = radarScheduler.addListener((newEntries) => {
-      // SPRINT 5 (WP6): Sinkronkan data terasemen tanpa kalkulasi ganda
-      setDebunkItems(newEntries)
-      const summary = getTacticalBriefingSummary(newEntries)
+      // SPRINT 5 (WP6) & SPRINT 13: Sinkronkan data terasemen tersortir dari tanggal teraktual
+      const sorted = sortRadarEntries(newEntries)
+      setDebunkItems(sorted)
+      const summary = getTacticalBriefingSummary(sorted)
       setBriefingSummary(summary)
       const now = new Date()
       setLastSyncTime(
@@ -338,6 +360,7 @@ export default function LiveRadar() {
   const handleClearAllBuffer = async () => {
     if (window.confirm('Bersihkan seluruh buffer isu radar saat ini?')) {
       await clearRadarCacheDB()
+      clearKnownPublications()
       setDebunkItems([])
       setBriefingSummary(null)
     }
@@ -345,7 +368,7 @@ export default function LiveRadar() {
 
   // Filter isu berdasarkan status triage, klaster, view mode, dan query pencarian
   const filteredItems = useMemo(() => {
-    return debunkItems.filter(item => {
+    const list = debunkItems.filter(item => {
       const matchCluster = selectedCluster === 'ALL' || item.cluster === selectedCluster
       const isHoaks = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA'
       const isResolved = item.verdict === 'FAKTA' || item.verdict === 'NETRAL'
@@ -394,6 +417,7 @@ export default function LiveRadar() {
 
       return matchCluster && matchView && matchQuery
     })
+    return sortRadarEntries(list)
   }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery])
 
   // Hitung jumlah item per klaster untuk pill count
@@ -476,7 +500,7 @@ export default function LiveRadar() {
           <button
             type="button"
             className="btn btn-primary"
-            onClick={triggerSync}
+            onClick={() => triggerSync(false)}
             disabled={isSyncing}
             style={{
               fontSize: '11px',
@@ -494,6 +518,24 @@ export default function LiveRadar() {
             <RefreshCw size={13} className={isSyncing ? 'spin-animation' : ''} />
             <span>{isSyncing ? 'Menyinkronkan...' : 'Pindai Isu Terkini'}</span>
           </button>
+
+          {/* Banner Feedback Sinkronisasi Operasional */}
+          {syncFeedback && (
+            <div style={{
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              background: syncFeedback.type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+              border: `1px solid ${syncFeedback.type === 'success' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+              color: syncFeedback.type === 'success' ? '#34D399' : '#F87171',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}>
+              <span>{syncFeedback.message}</span>
+            </div>
+          )}
 
           {/* Tombol Buka Pop-up Notifikasi Intelijen */}
           <button
@@ -738,6 +780,31 @@ export default function LiveRadar() {
                 Reset Buffer
               </button>
             )}
+
+            {/* Tombol Segarkan Penuh & Sinkronkan Ulang */}
+            <button
+              type="button"
+              onClick={() => triggerSync(true)}
+              disabled={isSyncing}
+              title="Kosongkan cache lama dan lakukan pemindaian segar dari seluruh feed"
+              style={{
+                fontSize: '10.5px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 600,
+                padding: '5px 8px',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                color: '#38BDF8',
+                borderRadius: '4px',
+                cursor: isSyncing ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <RefreshCw size={11} className={isSyncing ? 'spin-animation' : ''} />
+              <span>Segarkan Penuh</span>
+            </button>
 
             {/* Selector Interval Pembaruan Otomatis */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>

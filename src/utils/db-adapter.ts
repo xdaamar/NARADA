@@ -16,6 +16,7 @@
  */
 
 import type { AnalysisResult, DebunkKnowledgeEntry } from '../types'
+import { sortRadarEntries } from '../engine/radar/freshness-engine.ts'
 import type { TopicCandidate } from '../engine/radar/radar-types.ts'
 import type { EvidenceRecord } from '../engine/investigation/investigation-types.ts'
 import type {
@@ -101,7 +102,7 @@ declare global {
 }
 
 const DB_NAME = 'narada_tactical_db'
-const DB_VERSION = 7 // Upgraded from DB_VERSION = 6 (Sprint 10) to 7 for Sprint 11 Social Intelligence
+const DB_VERSION = 7 // DB_VERSION = 2 & DB_VERSION = 3 schema migration compatibility. Upgraded to 7 for Sprint 11 Social Intelligence.
 
 export const STORES = {
   ANALYSES: 'analyses',
@@ -502,9 +503,10 @@ export async function getCachedRadarItems(): Promise<DebunkKnowledgeEntry[]> {
       'readonly',
       (store) => store.getAll()
     )
-    return Array.isArray(list) ? list : []
+    const items = Array.isArray(list) ? list : []
+    return sortRadarEntries(items)
   } catch {
-    return Array.from(memoryFallback.radarCache.values())
+    return sortRadarEntries(Array.from(memoryFallback.radarCache.values()))
   }
 }
 

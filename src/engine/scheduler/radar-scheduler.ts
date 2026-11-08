@@ -122,6 +122,7 @@ export class RadarSchedulerEngine {
   private scanDurationMs: number = 0
   private catchupExecuted: boolean = false
   private scanHistory: ScanRunLog[] = []
+  private activeScanPromise: Promise<DebunkKnowledgeEntry[]> | null = null
 
   constructor() {
     this.initSourceStates()
@@ -263,105 +264,121 @@ export class RadarSchedulerEngine {
    */
   public async schedulerTick(now = Date.now(), customFetch?: typeof fetch): Promise<DebunkKnowledgeEntry[]> {
     if (this.isSyncing) {
+      if (this.activeScanPromise) {
+        try {
+          return await this.activeScanPromise
+        } catch {
+          return getCachedRadarItems()
+        }
+      }
       return getCachedRadarItems()
     }
 
-    this.isSyncing = true
-    this.lastScanStartedAt = now
-    const runStart = Date.now()
+    const tickTask = (async () => {
+      this.isSyncing = true
+      this.lastScanStartedAt = now
+      const runStart = Date.now()
 
-    let connectorsAttempted = 0
-    let connectorsSucceeded = 0
-    let connectorsFailed = 0
-    let rateLimitHits = 0
-    const errors: Array<{ connectorId: string; code: string; message: string }> = []
+      let connectorsAttempted = 0
+      let connectorsSucceeded = 0
+      let connectorsFailed = 0
+      let rateLimitHits = 0
+      const errors: Array<{ connectorId: string; code: string; message: string }> = []
 
+      try {
+        const enabledSources = sourceCatalog.sources.filter(s => s.enabled)
+        const dueSources = enabledSources.filter(s => this.isSourceDue(s.id, now))
+
+        const incomingPubs: NormalizedPublication[] = []
+        const incomingTrends: SearchTrendSignal[] = []
+
+        // 1. Eksekusi Feed Sumber yang sedang Due melalui Concurrency Limiter
+        const fetchTasks = dueSources.map(src => {
+          connectorsAttempted++
+          return radarConcurrencyLimiter.run(async () => {
+            const res: SingleSourceFetchResult = await fetchSingleRadarSource(src.id, customFetch)
+            this.recordSourceAttempt(src.id, res.success, res.httpStatus, res.retryAfterSec, Date.now())
+            if (res.success) {
+              connectorsSucceeded++
+              if (res.publications) incomingPubs.push(...res.publications)
+              if (res.trendSignals) incomingTrends.push(...res.trendSignals)
+            } else {
+              connectorsFailed++
+              if (res.httpStatus === 429) rateLimitHits++
+              errors.push({
+                connectorId: src.id,
+                code: res.errorCode || 'FETCH_FAILED',
+                message: res.errorMessage || 'Gagal mengambil data'
+              })
+            }
+            return res
+          })
+        })
+
+        // 2. Eksekusi Pencarian Topik Dinamis melalui Concurrency Limiter yang SAMA (WP2 / S61-09 s.d. S61-14)
+        const maxDynamicPerCycle = sourceCatalog.dynamicSearchPolicy?.maxDynamicQueriesPerCycle || 2
+        const candidateList = topicDiscoveryEngine.selectCandidatesForSearch(maxDynamicPerCycle)
+
+        const searchTasks = candidateList.map(cand => {
+          return radarConcurrencyLimiter.run(async () => {
+            const res: SingleSourceFetchResult = await executeDynamicSearchQuery(cand, customFetch)
+            if (res.success && res.publications) {
+              incomingPubs.push(...res.publications)
+            }
+            return res
+          })
+        })
+
+        await Promise.allSettled([...fetchTasks, ...searchTasks])
+
+        const completionTime = Date.now()
+        this.lastScanCompletedAt = completionTime
+        this.scanDurationMs = completionTime - runStart
+        this.nextScheduledAt = completionTime + (this.intervalMinutes * 60 * 1000)
+
+        // Catat log hasil pemindaian
+        const scanLog: ScanRunLog = {
+          runId: `scan-${now}-${Math.random().toString(36).slice(2, 7)}`,
+          triggerType: 'AUTO',
+          startedAt: runStart,
+          completedAt: completionTime,
+          durationMs: this.scanDurationMs,
+          connectorsAttempted,
+          connectorsSucceeded,
+          connectorsFailed,
+          itemsDiscovered: incomingPubs.length + incomingTrends.length,
+          itemsAccepted: incomingPubs.length + incomingTrends.length,
+          itemsRejected: 0,
+          duplicatesCount: 0,
+          rateLimitHits,
+          errors
+        }
+        this.scanHistory.unshift(scanLog)
+        if (this.scanHistory.length > 50) this.scanHistory.pop()
+        saveScanRunLogToDB(scanLog).catch(() => {})
+
+        // 3. Masukkan hasil ke Ingesti Kanonikal jika ada data baru
+        if (incomingPubs.length > 0 || incomingTrends.length > 0) {
+          const liveResult = await processRadarIngestion(incomingPubs, incomingTrends, now)
+          this.lastSyncTimestamp = now
+          this.lastSuccessfulScanAt = completionTime
+          this.lastNewItemReceivedAt = completionTime
+          this.lastSyncSource = 'SCHEDULER_TICK'
+          this.notifyListeners(liveResult.entries, true)
+          return liveResult.entries
+        }
+
+        return getCachedRadarItems()
+      } finally {
+        this.isSyncing = false
+      }
+    })()
+
+    this.activeScanPromise = tickTask
     try {
-      const enabledSources = sourceCatalog.sources.filter(s => s.enabled)
-      const dueSources = enabledSources.filter(s => this.isSourceDue(s.id, now))
-
-      const incomingPubs: NormalizedPublication[] = []
-      const incomingTrends: SearchTrendSignal[] = []
-
-      // 1. Eksekusi Feed Sumber yang sedang Due melalui Concurrency Limiter
-      const fetchTasks = dueSources.map(src => {
-        connectorsAttempted++
-        return radarConcurrencyLimiter.run(async () => {
-          const res: SingleSourceFetchResult = await fetchSingleRadarSource(src.id, customFetch)
-          this.recordSourceAttempt(src.id, res.success, res.httpStatus, res.retryAfterSec, Date.now())
-          if (res.success) {
-            connectorsSucceeded++
-            if (res.publications) incomingPubs.push(...res.publications)
-            if (res.trendSignals) incomingTrends.push(...res.trendSignals)
-          } else {
-            connectorsFailed++
-            if (res.httpStatus === 429) rateLimitHits++
-            errors.push({
-              connectorId: src.id,
-              code: res.errorCode || 'FETCH_FAILED',
-              message: res.errorMessage || 'Gagal mengambil data'
-            })
-          }
-          return res
-        })
-      })
-
-      // 2. Eksekusi Pencarian Topik Dinamis melalui Concurrency Limiter yang SAMA (WP2 / S61-09 s.d. S61-14)
-      const maxDynamicPerCycle = sourceCatalog.dynamicSearchPolicy?.maxDynamicQueriesPerCycle || 2
-      const candidateList = topicDiscoveryEngine.selectCandidatesForSearch(maxDynamicPerCycle)
-
-      const searchTasks = candidateList.map(cand => {
-        return radarConcurrencyLimiter.run(async () => {
-          const res: SingleSourceFetchResult = await executeDynamicSearchQuery(cand, customFetch)
-          if (res.success && res.publications) {
-            incomingPubs.push(...res.publications)
-          }
-          return res
-        })
-      })
-
-      await Promise.allSettled([...fetchTasks, ...searchTasks])
-
-      const completionTime = Date.now()
-      this.lastScanCompletedAt = completionTime
-      this.scanDurationMs = completionTime - runStart
-      this.nextScheduledAt = completionTime + (this.intervalMinutes * 60 * 1000)
-
-      // Catat log hasil pemindaian
-      const scanLog: ScanRunLog = {
-        runId: `scan-${now}-${Math.random().toString(36).slice(2, 7)}`,
-        triggerType: 'AUTO',
-        startedAt: runStart,
-        completedAt: completionTime,
-        durationMs: this.scanDurationMs,
-        connectorsAttempted,
-        connectorsSucceeded,
-        connectorsFailed,
-        itemsDiscovered: incomingPubs.length + incomingTrends.length,
-        itemsAccepted: incomingPubs.length + incomingTrends.length,
-        itemsRejected: 0,
-        duplicatesCount: 0,
-        rateLimitHits,
-        errors
-      }
-      this.scanHistory.unshift(scanLog)
-      if (this.scanHistory.length > 50) this.scanHistory.pop()
-      saveScanRunLogToDB(scanLog).catch(() => {})
-
-      // 3. Masukkan hasil ke Ingesti Kanonikal jika ada data baru
-      if (incomingPubs.length > 0 || incomingTrends.length > 0) {
-        const liveResult = await processRadarIngestion(incomingPubs, incomingTrends, now)
-        this.lastSyncTimestamp = now
-        this.lastSuccessfulScanAt = completionTime
-        this.lastNewItemReceivedAt = completionTime
-        this.lastSyncSource = 'SCHEDULER_TICK'
-        this.notifyListeners(liveResult.entries, true)
-        return liveResult.entries
-      }
-
-      return getCachedRadarItems()
+      return await tickTask
     } finally {
-      this.isSyncing = false
+      this.activeScanPromise = null
     }
   }
 
@@ -470,111 +487,135 @@ export class RadarSchedulerEngine {
     triggerType: 'MANUAL' | 'STARTUP_CATCHUP' = 'MANUAL'
   ): Promise<DebunkKnowledgeEntry[]> {
     if (this.isSyncing) {
-      return getCachedRadarItems()
+      if (this.activeScanPromise) {
+        try {
+          const inFlightRes = await this.activeScanPromise
+          if (inFlightRes && inFlightRes.length > 0) {
+            return inFlightRes
+          }
+        } catch {
+          // Abaikan kegagalan in-flight dan lanjutkan eksekusi manual segar
+        }
+      } else {
+        const elapsed = Date.now() - (this.lastScanStartedAt || 0)
+        if (elapsed < 25000) {
+          return getCachedRadarItems()
+        }
+      }
+      this.isSyncing = false
     }
 
-    this.isSyncing = true
-    const runStart = Date.now()
-    this.lastScanStartedAt = runStart
+    const manualTask = (async () => {
+      this.isSyncing = true
+      const runStart = Date.now()
+      this.lastScanStartedAt = runStart
 
-    let connectorsAttempted = 0
-    let connectorsSucceeded = 0
-    let connectorsFailed = 0
-    let rateLimitHits = 0
-    const errors: Array<{ connectorId: string; code: string; message: string }> = []
+      let connectorsAttempted = 0
+      let connectorsSucceeded = 0
+      let connectorsFailed = 0
+      let rateLimitHits = 0
+      const errors: Array<{ connectorId: string; code: string; message: string }> = []
 
+      try {
+        const now = Date.now()
+        const enabledSources = sourceCatalog.sources.filter(s => s.enabled)
+        
+        // Pilih sumber yang diizinkan (tidak sedang OPEN dan tidak sedang 429)
+        const eligibleSources = enabledSources.filter(src => {
+          const state = this.sourceStates.get(src.id)
+          if (!state) return true
+          if (state.rateLimitResetAt && now < state.rateLimitResetAt) return false
+          if (state.circuitBreakerStatus === 'OPEN' && state.circuitBreakerOpenUntil && now < state.circuitBreakerOpenUntil) return false
+          return true
+        })
+
+        const incomingPubs: NormalizedPublication[] = []
+        const incomingTrends: SearchTrendSignal[] = []
+
+        const fetchTasks = eligibleSources.map(src => {
+          connectorsAttempted++
+          return radarConcurrencyLimiter.run(async () => {
+            const res = await fetchSingleRadarSource(src.id, customFetch)
+            this.recordSourceAttempt(src.id, res.success, res.httpStatus, res.retryAfterSec, Date.now())
+            if (res.success) {
+              connectorsSucceeded++
+              if (res.publications) incomingPubs.push(...res.publications)
+              if (res.trendSignals) incomingTrends.push(...res.trendSignals)
+            } else {
+              connectorsFailed++
+              if (res.httpStatus === 429) rateLimitHits++
+              errors.push({
+                connectorId: src.id,
+                code: res.errorCode || 'FETCH_FAILED',
+                message: res.errorMessage || 'Gagal mengambil data'
+              })
+            }
+            return res
+          })
+        })
+
+        // Eksekusi juga pencarian dinamis yang eligible
+        const maxDynamicPerCycle = sourceCatalog.dynamicSearchPolicy?.maxDynamicQueriesPerCycle || 2
+        const candidateList = topicDiscoveryEngine.selectCandidatesForSearch(maxDynamicPerCycle)
+
+        const searchTasks = candidateList.map(cand => {
+          return radarConcurrencyLimiter.run(async () => {
+            const res = await executeDynamicSearchQuery(cand, customFetch)
+            if (res.success && res.publications) {
+              incomingPubs.push(...res.publications)
+            }
+            return res
+          })
+        })
+
+        await Promise.allSettled([...fetchTasks, ...searchTasks])
+
+        const completionTime = Date.now()
+        this.lastScanCompletedAt = completionTime
+        this.scanDurationMs = completionTime - runStart
+
+        // Catat log hasil pemindaian
+        const scanLog: ScanRunLog = {
+          runId: `scan-${now}-${Math.random().toString(36).slice(2, 7)}`,
+          triggerType,
+          startedAt: runStart,
+          completedAt: completionTime,
+          durationMs: this.scanDurationMs,
+          connectorsAttempted,
+          connectorsSucceeded,
+          connectorsFailed,
+          itemsDiscovered: incomingPubs.length + incomingTrends.length,
+          itemsAccepted: incomingPubs.length + incomingTrends.length,
+          itemsRejected: 0,
+          duplicatesCount: 0,
+          rateLimitHits,
+          errors
+        }
+        this.scanHistory.unshift(scanLog)
+        if (this.scanHistory.length > 50) this.scanHistory.pop()
+        saveScanRunLogToDB(scanLog).catch(() => {})
+
+        if (incomingPubs.length > 0 || incomingTrends.length > 0) {
+          const liveResult = await processRadarIngestion(incomingPubs, incomingTrends, now)
+          this.lastSyncTimestamp = now
+          this.lastSuccessfulScanAt = completionTime
+          this.lastNewItemReceivedAt = completionTime
+          this.lastSyncSource = triggerType === 'STARTUP_CATCHUP' ? 'STARTUP_CATCHUP' : 'MANUAL_TRIGGER'
+          this.notifyListeners(liveResult.entries, true)
+          return liveResult.entries
+        }
+
+        return getCachedRadarItems()
+      } finally {
+        this.isSyncing = false
+      }
+    })()
+
+    this.activeScanPromise = manualTask
     try {
-      const now = Date.now()
-      const enabledSources = sourceCatalog.sources.filter(s => s.enabled)
-      
-      // Pilih sumber yang diizinkan (tidak sedang OPEN dan tidak sedang 429)
-      const eligibleSources = enabledSources.filter(src => {
-        const state = this.sourceStates.get(src.id)
-        if (!state) return true
-        if (state.rateLimitResetAt && now < state.rateLimitResetAt) return false
-        if (state.circuitBreakerStatus === 'OPEN' && state.circuitBreakerOpenUntil && now < state.circuitBreakerOpenUntil) return false
-        return true
-      })
-
-      const incomingPubs: NormalizedPublication[] = []
-      const incomingTrends: SearchTrendSignal[] = []
-
-      const fetchTasks = eligibleSources.map(src => {
-        connectorsAttempted++
-        return radarConcurrencyLimiter.run(async () => {
-          const res = await fetchSingleRadarSource(src.id, customFetch)
-          this.recordSourceAttempt(src.id, res.success, res.httpStatus, res.retryAfterSec, Date.now())
-          if (res.success) {
-            connectorsSucceeded++
-            if (res.publications) incomingPubs.push(...res.publications)
-            if (res.trendSignals) incomingTrends.push(...res.trendSignals)
-          } else {
-            connectorsFailed++
-            if (res.httpStatus === 429) rateLimitHits++
-            errors.push({
-              connectorId: src.id,
-              code: res.errorCode || 'FETCH_FAILED',
-              message: res.errorMessage || 'Gagal mengambil data'
-            })
-          }
-          return res
-        })
-      })
-
-      // Eksekusi juga pencarian dinamis yang eligible
-      const maxDynamicPerCycle = sourceCatalog.dynamicSearchPolicy?.maxDynamicQueriesPerCycle || 2
-      const candidateList = topicDiscoveryEngine.selectCandidatesForSearch(maxDynamicPerCycle)
-
-      const searchTasks = candidateList.map(cand => {
-        return radarConcurrencyLimiter.run(async () => {
-          const res = await executeDynamicSearchQuery(cand, customFetch)
-          if (res.success && res.publications) {
-            incomingPubs.push(...res.publications)
-          }
-          return res
-        })
-      })
-
-      await Promise.allSettled([...fetchTasks, ...searchTasks])
-
-      const completionTime = Date.now()
-      this.lastScanCompletedAt = completionTime
-      this.scanDurationMs = completionTime - runStart
-
-      // Catat log hasil pemindaian
-      const scanLog: ScanRunLog = {
-        runId: `scan-${now}-${Math.random().toString(36).slice(2, 7)}`,
-        triggerType,
-        startedAt: runStart,
-        completedAt: completionTime,
-        durationMs: this.scanDurationMs,
-        connectorsAttempted,
-        connectorsSucceeded,
-        connectorsFailed,
-        itemsDiscovered: incomingPubs.length + incomingTrends.length,
-        itemsAccepted: incomingPubs.length + incomingTrends.length,
-        itemsRejected: 0,
-        duplicatesCount: 0,
-        rateLimitHits,
-        errors
-      }
-      this.scanHistory.unshift(scanLog)
-      if (this.scanHistory.length > 50) this.scanHistory.pop()
-      saveScanRunLogToDB(scanLog).catch(() => {})
-
-      if (incomingPubs.length > 0 || incomingTrends.length > 0) {
-        const liveResult = await processRadarIngestion(incomingPubs, incomingTrends, now)
-        this.lastSyncTimestamp = now
-        this.lastSuccessfulScanAt = completionTime
-        this.lastNewItemReceivedAt = completionTime
-        this.lastSyncSource = triggerType === 'STARTUP_CATCHUP' ? 'STARTUP_CATCHUP' : 'MANUAL_TRIGGER'
-        this.notifyListeners(liveResult.entries, true)
-        return liveResult.entries
-      }
-
-      return getCachedRadarItems()
+      return await manualTask
     } finally {
-      this.isSyncing = false
+      this.activeScanPromise = null
     }
   }
 

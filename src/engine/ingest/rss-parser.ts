@@ -518,6 +518,65 @@ export function createViralAuditMeta(trafficStr?: string, minutesAgo = 18, _base
  * 1. Parser Live RSS Feed TurnBackHoax (MAFINDO)
  * Menghasilkan entri klarifikasi fakta resmi dengan CANONICAL ARTICLE URL dan stable ID
  */
+/**
+ * Ekstraktor tanggal publikasi verifikasi cek fakta TurnBackHoax (MAFINDO).
+ * Mendukung ekstraksi pola tanggal Indonesia (DD/MM/YYYY, DD NamaBulan YYYY, YYYY-MM-DD)
+ * dari deskripsi artikel apabila pubDate tidak disertakan pada feed.
+ */
+export function extractTurnBackHoaxPublicationTimestamp(rawPubDate?: string | null, rawDesc?: string | null): number | null {
+  if (rawPubDate && rawPubDate.trim()) {
+    const { timestamp, status } = parseSourceDate(rawPubDate)
+    if (status === 'VALID' && timestamp !== null && timestamp > 0) return timestamp
+  }
+  if (!rawDesc || typeof rawDesc !== 'string') return null
+
+  const INDO_MONTHS_LOWER = [
+    'januari', 'februari', 'maret', 'april', 'mei', 'juni',
+    'juli', 'agustus', 'september', 'oktober', 'november', 'desember'
+  ]
+
+  let bestTs: number | null = null
+
+  // 1. Pola DD/MM/YYYY atau DD-MM-YYYY (misal "6/11/2026", "21/10/2026")
+  const dmyMatches = [...rawDesc.matchAll(/\b(\d{1,2})[/-](\d{1,2})[/-](202\d)\b/g)]
+  for (const m of dmyMatches) {
+    const d = parseInt(m[1], 10)
+    const mon = parseInt(m[2], 10) - 1
+    const y = parseInt(m[3], 10)
+    if (mon >= 0 && mon < 12 && d >= 1 && d <= 31) {
+      const ts = Date.UTC(y, mon, d, 12 - 7, 0, 0)
+      if (!bestTs || ts > bestTs) bestTs = ts
+    }
+  }
+
+  // 2. Pola DD [Nama Bulan] YYYY (misal "29 Oktober 2026")
+  const nameMatches = [...rawDesc.matchAll(/\b(\d{1,2})\s+([A-Za-z]{3,9})\s+(202\d)\b/gi)]
+  for (const m of nameMatches) {
+    const d = parseInt(m[1], 10)
+    const monName = m[2].toLowerCase()
+    const y = parseInt(m[3], 10)
+    const monIdx = INDO_MONTHS_LOWER.findIndex(im => monName.startsWith(im.slice(0, 3)))
+    if (monIdx !== -1 && d >= 1 && d <= 31) {
+      const ts = Date.UTC(y, monIdx, d, 12 - 7, 0, 0)
+      if (!bestTs || ts > bestTs) bestTs = ts
+    }
+  }
+
+  // 3. Pola YYYY-MM-DD atau YYYY/MM/DD
+  const ymdMatches = [...rawDesc.matchAll(/\b(202\d)[/-](\d{1,2})[/-](\d{1,2})\b/g)]
+  for (const m of ymdMatches) {
+    const y = parseInt(m[1], 10)
+    const mon = parseInt(m[2], 10) - 1
+    const d = parseInt(m[3], 10)
+    if (mon >= 0 && mon < 12 && d >= 1 && d <= 31) {
+      const ts = Date.UTC(y, mon, d, 12 - 7, 0, 0)
+      if (!bestTs || ts > bestTs) bestTs = ts
+    }
+  }
+
+  return bestTs
+}
+
 export function parseTurnBackHoaxRss(xmlText: string, maxItems = 25): DebunkKnowledgeEntry[] {
   if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
 
@@ -559,9 +618,7 @@ export function parseTurnBackHoaxRss(xmlText: string, maxItems = 25): DebunkKnow
       const cluster = classifyCluster(cleanTitle, rawDesc)
       const keywords = extractKeywords(claim)
 
-      const dateMatch = rawDesc.match(/\b(202\d[-/]\d{2}[-/]\d{2})\b/)
-      const rawDateToParse = rawPubDate || (dateMatch ? dateMatch[1] : undefined)
-      const { timestamp: pubTimestamp } = parseSourceDate(rawDateToParse)
+      const pubTimestamp = extractTurnBackHoaxPublicationTimestamp(rawPubDate, rawDesc)
       const publishedDate = formatMilitaryDate(pubTimestamp)
       const freshness = evaluateFreshness(pubTimestamp)
       const isBreakingRecent = freshness.status === 'BREAKING'
