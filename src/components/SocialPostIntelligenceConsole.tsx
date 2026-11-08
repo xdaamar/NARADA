@@ -48,17 +48,15 @@ import {
 export default function SocialPostIntelligenceConsole() {
   // ─── STATE KONSOL TAKTIS ───
   const [selectedPlatform, setSelectedPlatform] = useState<SocialMediaType>('youtube')
-  const [targetUrl, setTargetUrl] = useState<string>('https://www.youtube.com/watch?v=kYJ892XMN01')
+  const [targetUrl, setTargetUrl] = useState<string>('')
   const [extractionMode, setExtractionMode] = useState<'AUTO' | 'BROWSER' | 'INGEST'>('AUTO')
   const [rawCommentsInput, setRawCommentsInput] = useState<string>('')
   const [isIngestOpen, setIsIngestOpen] = useState<boolean>(false)
 
-  // Status Eksekusi
+  // Status Eksekusi (Halaman Bersih & Kosong saat Pertama Dibuka)
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
   const [analysisProgress, setAnalysisProgress] = useState<string>('')
-  const [analysisResult, setAnalysisResult] = useState<SocialPostAnalysisResult | null>(() => {
-    return PRELOADED_TEST_SCENARIOS[0].mockResult
-  })
+  const [analysisResult, setAnalysisResult] = useState<SocialPostAnalysisResult | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [copyFeedback, setCopyFeedback] = useState<boolean>(false)
 
@@ -801,7 +799,29 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
       )}
 
       {/* ─── 4. TAMPILAN 4 DECK HASIL ANALISIS INTELIJEN (CHASSIS PLAT BAJA) ─── */}
-      {analysisResult && (
+      {!analysisResult ? (
+        <div 
+          className="steel-chassis-card"
+          style={{
+            padding: '50px 20px',
+            textAlign: 'center',
+            position: 'relative'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
+          <Share2 size={36} color="#475569" style={{ margin: '0 auto 10px', opacity: 0.8 }} />
+          <div style={{ fontSize: '13px', fontWeight: 800, color: '#F1F5F9', fontFamily: 'var(--font-mono)' }}>
+            KONSOL INTELIJEN MEDIA SOSIAL SIAP BEROPERASI
+          </div>
+          <div style={{ fontSize: '11.5px', color: '#64748B', marginTop: '5px', maxWidth: '500px', margin: '5px auto 0', lineHeight: 1.5 }}>
+            Masukkan tautan postingan YouTube, TikTok, Instagram, atau Threads pada kolom di atas, lalu klik <strong>"MULAI ANALISIS"</strong> untuk mengekstraksi metrik, top komentar, dan pola buzzer.
+          </div>
+        </div>
+      ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* BARIS ATAS: DECK 1 & DECK 2 */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
