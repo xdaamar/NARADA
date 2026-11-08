@@ -123,8 +123,8 @@ export function detectSocialPlatform(url: string): {
   }
 
   // 3. Instagram
-  if (/instagram\.com/i.test(trimmed)) {
-    const postMatch = trimmed.match(/instagram\.com\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/i)
+  if (/instagram\.com|instagr\.am/i.test(trimmed)) {
+    const postMatch = trimmed.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/i)
     if (postMatch) {
       return { platform: 'instagram', postId: postMatch[1] }
     }
@@ -141,6 +141,103 @@ export function detectSocialPlatform(url: string): {
   }
 
   return { platform: 'UNKNOWN', postId: null }
+}
+
+export interface PlatformMetadataInfo {
+  name: string
+  officialDomain: string
+  exampleUrl: string
+  urlPatternsDescription: string
+}
+
+export const PLATFORM_INFO_MAP: Record<SocialMediaType, PlatformMetadataInfo> = {
+  youtube: {
+    name: 'YouTube',
+    officialDomain: 'youtube.com / youtu.be',
+    exampleUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    urlPatternsDescription: 'youtube.com/watch?v=..., youtu.be/..., youtube.com/shorts/...'
+  },
+  tiktok: {
+    name: 'TikTok',
+    officialDomain: 'tiktok.com / vt.tiktok.com',
+    exampleUrl: 'https://www.tiktok.com/@puspen_tni/video/7345678901234567890',
+    urlPatternsDescription: 'tiktok.com/@user/video/..., vt.tiktok.com/...'
+  },
+  instagram: {
+    name: 'Instagram',
+    officialDomain: 'instagram.com',
+    exampleUrl: 'https://www.instagram.com/p/C4abc123DEF/',
+    urlPatternsDescription: 'instagram.com/p/..., instagram.com/reel/..., instagram.com/tv/...'
+  },
+  threads: {
+    name: 'Threads',
+    officialDomain: 'threads.net',
+    exampleUrl: 'https://www.threads.net/@puspentni/post/C4xyz789ABC',
+    urlPatternsDescription: 'threads.net/@user/post/...'
+  }
+}
+
+export interface SocialLinkValidationResult {
+  isValid: boolean
+  isMismatch: boolean
+  detectedPlatform: SocialMediaType | 'UNKNOWN'
+  targetPlatform: SocialMediaType
+  errorMessage?: string
+}
+
+export function validateSocialPlatformUrl(url: string, targetPlatform: SocialMediaType): SocialLinkValidationResult {
+  if (!url || typeof url !== 'string') {
+    return {
+      isValid: false,
+      isMismatch: false,
+      detectedPlatform: 'UNKNOWN',
+      targetPlatform,
+      errorMessage: 'Tautan URL belum diisi.'
+    }
+  }
+
+  const trimmed = url.trim()
+  if (!trimmed) {
+    return {
+      isValid: false,
+      isMismatch: false,
+      detectedPlatform: 'UNKNOWN',
+      targetPlatform,
+      errorMessage: 'Tautan URL tidak boleh hanya berupa spasi kosong.'
+    }
+  }
+
+  const detected = detectSocialPlatform(trimmed)
+
+  if (detected.platform === targetPlatform) {
+    return {
+      isValid: true,
+      isMismatch: false,
+      detectedPlatform: targetPlatform,
+      targetPlatform
+    }
+  }
+
+  if (detected.platform !== 'UNKNOWN') {
+    const targetName = PLATFORM_INFO_MAP[targetPlatform]?.name || targetPlatform.toUpperCase()
+    const detectedName = PLATFORM_INFO_MAP[detected.platform]?.name || detected.platform.toUpperCase()
+    return {
+      isValid: false,
+      isMismatch: true,
+      detectedPlatform: detected.platform,
+      targetPlatform,
+      errorMessage: `Menu ${targetName.toUpperCase()} hanya menerima tautan resmi dari ${targetName}. Tautan yang Anda masukkan terdeteksi berasal dari platform ${detectedName.toUpperCase()}.`
+    }
+  }
+
+  const targetName = PLATFORM_INFO_MAP[targetPlatform]?.name || targetPlatform.toUpperCase()
+  return {
+    isValid: false,
+    isMismatch: false,
+    detectedPlatform: 'UNKNOWN',
+    targetPlatform,
+    errorMessage: `Format tautan tidak dikenali. Menu ${targetName.toUpperCase()} hanya menerima tautan resmi dari ${targetName} (${PLATFORM_INFO_MAP[targetPlatform]?.urlPatternsDescription || ''}).`
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

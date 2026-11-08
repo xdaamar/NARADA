@@ -35,8 +35,9 @@ import {
   Sliders
 } from 'lucide-react'
 import {
-  detectSocialPlatform,
   executeSocialPostAnalysis,
+  validateSocialPlatformUrl,
+  PLATFORM_INFO_MAP,
   PRELOADED_TEST_SCENARIOS,
   type SocialMediaType,
   type SocialPostAnalysisResult,
@@ -57,6 +58,15 @@ export default function SocialPostIntelligenceConsole() {
   const [analysisResult, setAnalysisResult] = useState<SocialPostAnalysisResult | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // Status Filter Platform & Popup Notifikasi Penolakan Tautan Mismatch
+  const [mismatchNotice, setMismatchNotice] = useState<{
+    isOpen: boolean
+    targetPlatform: SocialMediaType
+    detectedPlatform: SocialMediaType | 'UNKNOWN'
+    enteredUrl: string
+    reason: 'MISMATCH' | 'UNSUPPORTED'
+  } | null>(null)
+
   // Status Browser Mandiri (Electron Integration)
   const [isBrowserOpen, setIsBrowserOpen] = useState<boolean>(false)
   const [isElectronAvailable, setIsElectronAvailable] = useState<boolean>(false)
@@ -69,13 +79,74 @@ export default function SocialPostIntelligenceConsole() {
     setIsElectronAvailable(isElec)
   }, [])
 
-  // Auto-detect platform saat URL berubah
+  // Handler pergantian teks URL
   const handleUrlChange = (val: string) => {
     setTargetUrl(val)
-    const detected = detectSocialPlatform(val)
-    if (detected.platform !== 'UNKNOWN') {
-      setSelectedPlatform(detected.platform)
+    setErrorMessage(null)
+  }
+
+  // Filter & Penolakan Tautan saat Pengguna Menempel Tautan (Paste)
+  const handleUrlPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData('text').trim()
+    if (!pasted) return
+    const validation = validateSocialPlatformUrl(pasted, selectedPlatform)
+    if (validation.isMismatch) {
+      e.preventDefault()
+      setTargetUrl(pasted)
+      setMismatchNotice({
+        isOpen: true,
+        targetPlatform: selectedPlatform,
+        detectedPlatform: validation.detectedPlatform,
+        enteredUrl: pasted,
+        reason: 'MISMATCH'
+      })
+    } else if (!validation.isValid && validation.detectedPlatform === 'UNKNOWN' && (pasted.includes('http') || pasted.includes('.com') || pasted.includes('.'))) {
+      e.preventDefault()
+      setTargetUrl(pasted)
+      setMismatchNotice({
+        isOpen: true,
+        targetPlatform: selectedPlatform,
+        detectedPlatform: 'UNKNOWN',
+        enteredUrl: pasted,
+        reason: 'UNSUPPORTED'
+      })
     }
+  }
+
+  // Validasi saat fokus input ditinggalkan (Blur)
+  const handleUrlBlur = () => {
+    if (!targetUrl.trim()) return
+    const validation = validateSocialPlatformUrl(targetUrl, selectedPlatform)
+    if (validation.isMismatch) {
+      setMismatchNotice({
+        isOpen: true,
+        targetPlatform: selectedPlatform,
+        detectedPlatform: validation.detectedPlatform,
+        enteredUrl: targetUrl.trim(),
+        reason: 'MISMATCH'
+      })
+    } else if (!validation.isValid && validation.detectedPlatform === 'UNKNOWN' && (targetUrl.includes('http') || targetUrl.includes('.com') || targetUrl.includes('.'))) {
+      setMismatchNotice({
+        isOpen: true,
+        targetPlatform: selectedPlatform,
+        detectedPlatform: 'UNKNOWN',
+        enteredUrl: targetUrl.trim(),
+        reason: 'UNSUPPORTED'
+      })
+    }
+  }
+
+  // Handler pemilihan tab Target Platform: Reset total semua input dan hasil analisa saat berpindah platform
+  const handleSelectPlatformTab = (plat: SocialMediaType) => {
+    if (plat === selectedPlatform) return
+    setSelectedPlatform(plat)
+    setTargetUrl('')
+    setRawCommentsInput('')
+    setAnalysisResult(null)
+    setErrorMessage(null)
+    setMismatchNotice(null)
+    setIsAnalyzing(false)
+    setAnalysisProgress('')
   }
 
   // Pilih Skenario Uji Demo
@@ -84,13 +155,29 @@ export default function SocialPostIntelligenceConsole() {
     setTargetUrl(sc.url)
     setAnalysisResult(sc.mockResult)
     setErrorMessage(null)
+    setMismatchNotice(null)
   }
 
-  // Eksekusi Analisis
+  // Eksekusi Analisis dengan Filter Link Ketat Antar Platform
   const handleRunAnalysis = async () => {
     if (!targetUrl.trim() && !rawCommentsInput.trim()) {
       setErrorMessage('Harap masukkan URL postingan media sosial atau teks komentar mentah.')
       return
+    }
+
+    // STRICT GATEKEEPER: Cek filter kesesuaian target platform & link
+    if (targetUrl.trim()) {
+      const validation = validateSocialPlatformUrl(targetUrl, selectedPlatform)
+      if (!validation.isValid) {
+        setMismatchNotice({
+          isOpen: true,
+          targetPlatform: selectedPlatform,
+          detectedPlatform: validation.detectedPlatform,
+          enteredUrl: targetUrl.trim(),
+          reason: validation.isMismatch ? 'MISMATCH' : 'UNSUPPORTED'
+        })
+        return
+      }
     }
 
     setIsAnalyzing(true)
@@ -255,7 +342,7 @@ export default function SocialPostIntelligenceConsole() {
                 <button
                   key={plat}
                   type="button"
-                  onClick={() => setSelectedPlatform(plat)}
+                  onClick={() => handleSelectPlatformTab(plat)}
                   style={{
                     padding: '5px 12px',
                     borderRadius: '3px',
@@ -353,7 +440,9 @@ export default function SocialPostIntelligenceConsole() {
               type="text"
               value={targetUrl}
               onChange={(e) => handleUrlChange(e.target.value)}
-              placeholder={`Tempel tautan postingan ${selectedPlatform.toUpperCase()} (misal: https://${selectedPlatform}.com/...)`}
+              onPaste={handleUrlPaste}
+              onBlur={handleUrlBlur}
+              placeholder={`Tempel tautan postingan ${PLATFORM_INFO_MAP[selectedPlatform]?.name.toUpperCase()} (misal: ${PLATFORM_INFO_MAP[selectedPlatform]?.exampleUrl})`}
               style={{
                 width: '100%',
                 padding: '10px 14px',
@@ -369,11 +458,11 @@ export default function SocialPostIntelligenceConsole() {
             />
           </div>
 
-          {/* Tombol Mulai Analisis Plat Baja Solid */}
-          <button
-            type="button"
-            onClick={handleRunAnalysis}
-            disabled={isAnalyzing}
+            {/* Tombol Mulai Analisis Plat Baja Solid */}
+            <button
+              type="button"
+              onClick={handleRunAnalysis}
+              disabled={isAnalyzing}
             style={{
               padding: '0 22px',
               minHeight: '38px',
@@ -1312,6 +1401,271 @@ export default function SocialPostIntelligenceConsole() {
               <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#475569', borderTop: '1px solid #1E2837', paddingTop: '8px' }}>
                 DASAR PEMBUKTIAN: {analysisResult.buzzerPattern.evidenceRationale}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL POPUP PENOLAKAN TAUTAN MISMATCH (STEEL CHASSIS) ─── */}
+      {mismatchNotice && mismatchNotice.isOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(4, 6, 9, 0.88)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={() => setMismatchNotice(null)}
+        >
+          <div
+            className="steel-chassis-card"
+            style={{
+              width: '100%',
+              maxWidth: '560px',
+              padding: '24px',
+              position: 'relative',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(239, 68, 68, 0.25)',
+              border: '1px solid #7F1D1D',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 4 Baut Hex Taktis Sudut */}
+            <span className="bolt-tl" />
+            <span className="bolt-tr" />
+            <span className="bolt-bl" />
+            <span className="bolt-br" />
+
+            {/* Header Modal */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '4px',
+                  background: 'linear-gradient(180deg, #451515 0%, #260A0A 100%)',
+                  border: '1px solid #991B1B',
+                  borderBottom: '2px solid #000000',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.6)'
+                }}>
+                  <AlertTriangle size={22} color="#EF4444" />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 800,
+                      color: '#EF4444',
+                      letterSpacing: '1px',
+                      textTransform: 'uppercase'
+                    }}>
+                      FILTER TAUTAN TARGET MISI
+                    </span>
+                    <span style={{ fontSize: '10px', color: '#475569' }}>•</span>
+                    <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+                      PUSSIBERAD AD
+                    </span>
+                  </div>
+                  <h3 style={{
+                    margin: '3px 0 0 0',
+                    fontSize: '16px',
+                    fontWeight: 800,
+                    fontFamily: 'var(--font-display)',
+                    color: '#F8FAFC',
+                    letterSpacing: '0.8px',
+                    textTransform: 'uppercase'
+                  }}>
+                    {mismatchNotice.reason === 'UNSUPPORTED' 
+                      ? 'Format Tautan Tidak Dikenali' 
+                      : 'Target Platform Tidak Sesuai'}
+                  </h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMismatchNotice(null)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748B',
+                  cursor: 'pointer',
+                  padding: '4px'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Kotak Perbandingan Platform Taktis */}
+            <div style={{
+              background: '#0D131B',
+              borderRadius: '4px',
+              border: '1px solid #1E293B',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                    MENU AKTIF:
+                  </span>
+                  <span style={{
+                    padding: '2px 8px',
+                    borderRadius: '3px',
+                    background: '#1E293B',
+                    border: '1px solid #334155',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 800,
+                    color: '#F8FAFC'
+                  }}>
+                    {PLATFORM_INFO_MAP[mismatchNotice.targetPlatform]?.name.toUpperCase() || mismatchNotice.targetPlatform.toUpperCase()}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                    PLATFORM TAUTAN:
+                  </span>
+                  <span style={{
+                    padding: '2px 8px',
+                    borderRadius: '3px',
+                    background: mismatchNotice.detectedPlatform !== 'UNKNOWN' ? '#451515' : '#2A1F0D',
+                    border: mismatchNotice.detectedPlatform !== 'UNKNOWN' ? '1px solid #991B1B' : '1px solid #854D0E',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 800,
+                    color: mismatchNotice.detectedPlatform !== 'UNKNOWN' ? '#EF4444' : '#FBBF24'
+                  }}>
+                    {mismatchNotice.detectedPlatform !== 'UNKNOWN' 
+                      ? (PLATFORM_INFO_MAP[mismatchNotice.detectedPlatform as SocialMediaType]?.name.toUpperCase() || mismatchNotice.detectedPlatform.toUpperCase()) 
+                      : 'TIDAK DIKENAL / LAINNYA'}
+                  </span>
+                </div>
+              </div>
+
+              {/* URL Snippet */}
+              <div style={{
+                background: '#070A0F',
+                padding: '8px 10px',
+                borderRadius: '3px',
+                border: '1px solid #192330',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                color: '#EF4444',
+                wordBreak: 'break-all'
+              }}>
+                {mismatchNotice.enteredUrl}
+              </div>
+            </div>
+
+            {/* Narasi Peringatan Resmi Profesional */}
+            <div style={{ fontSize: '12.5px', lineHeight: '1.6', color: '#CBD5E1' }}>
+              {mismatchNotice.detectedPlatform !== 'UNKNOWN' ? (
+                <>
+                  Menu <strong style={{ color: '#F8FAFC' }}>{PLATFORM_INFO_MAP[mismatchNotice.targetPlatform]?.name}</strong> hanya menerima dan memproses tautan dari <strong style={{ color: '#F8FAFC' }}>{PLATFORM_INFO_MAP[mismatchNotice.targetPlatform]?.name}</strong> ({PLATFORM_INFO_MAP[mismatchNotice.targetPlatform]?.officialDomain}).
+                  <br /><br />
+                  Tautan yang Anda masukkan terdeteksi berasal dari platform <strong style={{ color: '#EF4444' }}>{PLATFORM_INFO_MAP[mismatchNotice.detectedPlatform as SocialMediaType]?.name}</strong>. Demi akurasi protokol intelijen dan pencegahan kesalahan ekstraksi data, silakan sesuaikan menu platform atau bersihkan tautan.
+                </>
+              ) : (
+                <>
+                  Format tautan yang dimasukkan tidak cocok dengan protokol resmi <strong style={{ color: '#F8FAFC' }}>{PLATFORM_INFO_MAP[mismatchNotice.targetPlatform]?.name}</strong>.
+                  <br /><br />
+                  Harap masukkan tautan yang valid seperti: <code style={{ color: '#EF4444', background: '#111827', padding: '2px 6px', borderRadius: '3px', fontSize: '11px' }}>{PLATFORM_INFO_MAP[mismatchNotice.targetPlatform]?.exampleUrl}</code>.
+                </>
+              )}
+            </div>
+
+            {/* Action Buttons Plat Besi Baja */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '6px' }}>
+              {mismatchNotice.detectedPlatform !== 'UNKNOWN' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newPlat = mismatchNotice.detectedPlatform as SocialMediaType
+                    setSelectedPlatform(newPlat)
+                    setMismatchNotice(null)
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    background: 'linear-gradient(180deg, #32435A 0%, #1A2534 100%)',
+                    border: '1px solid #546C8C',
+                    borderBottom: '2px solid #0B1017',
+                    boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.6)',
+                    color: '#F8FAFC',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Share2 size={13} color="#EF4444" />
+                  PINDAH KE MENU {PLATFORM_INFO_MAP[mismatchNotice.detectedPlatform as SocialMediaType]?.name.toUpperCase()}
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTargetUrl('')
+                  setMismatchNotice(null)
+                }}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '4px',
+                  background: 'linear-gradient(180deg, #243242 0%, #131B24 100%)',
+                  border: '1px solid #384A61',
+                  borderBottom: '2px solid #0A0F15',
+                  color: '#CBD5E1',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                BERSIHKAN URL
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMismatchNotice(null)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '4px',
+                  background: '#101622',
+                  border: '1px solid #1E293B',
+                  color: '#94A3B8',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                PERBAIKI INPUT
+              </button>
             </div>
           </div>
         </div>
