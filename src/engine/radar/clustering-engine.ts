@@ -299,7 +299,8 @@ export function clusterEventPublications(
   items: NormalizedPublication[],
   existingClusters: EventCluster[] = []
 ): EventCluster[] {
-  const deduped = deduplicatePublications(items)
+  const validItems = items.filter(it => it && typeof it.title === 'string' && it.title.trim().length > 0)
+  const deduped = deduplicatePublications(validItems)
   if (deduped.length === 0) return []
 
   // Siapkan map token dan entitas untuk efisiensi
@@ -550,14 +551,20 @@ export function attachTrendSignalsToClusters(
   if (!trendSignals || trendSignals.length === 0) return clusters
 
   return clusters.map(cluster => {
-    const clusterTokens = extractSubstantiveTokens(cluster.title)
+    const clusterTitle = cluster?.title || cluster?.leadItem?.title || ''
+    if (!clusterTitle) return cluster
+
+    const clusterTokens = extractSubstantiveTokens(clusterTitle)
     const matchedSignals: SearchTrendSignal[] = []
 
     trendSignals.forEach(signal => {
-      const signalTokens = extractSubstantiveTokens(signal.query)
+      const signalQuery = signal?.query || ''
+      if (!signalQuery) return
+
+      const signalTokens = extractSubstantiveTokens(signalQuery)
       const jaccard = calculateJaccardSimilarity(clusterTokens, signalTokens)
-      const queryNorm = signal.query.toLowerCase()
-      const titleNorm = cluster.title.toLowerCase()
+      const queryNorm = signalQuery.toLowerCase()
+      const titleNorm = clusterTitle.toLowerCase()
 
       // Hitung overlap token query ke dalam cluster
       const clusterTokenSet = new Set(clusterTokens)

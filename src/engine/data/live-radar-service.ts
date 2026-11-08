@@ -111,12 +111,14 @@ export interface SingleSourceFetchResult {
 
 // In-memory publication registry to preserve stable firstObservedAt (WP4)
 const knownPublicationsMap = new Map<string, NormalizedPublication>()
+const knownFirstObservedTimes = new Map<string, number>()
 
 /**
  * Mengosongkan memori publikasi radar (misal saat operator memilih pembersihan tuntas)
  */
 export function clearKnownPublications(): void {
   knownPublicationsMap.clear()
+  knownFirstObservedTimes.clear()
 }
 
 /**
@@ -169,14 +171,8 @@ export async function hydrateKnownPublicationsFromDB(): Promise<number> {
     for (const snap of snapshots) {
       if (snap.id && snap.id.startsWith('pub-') && snap.firstObservedAt) {
         const pubId = snap.id.replace(/^pub-/, '')
-        if (!knownPublicationsMap.has(pubId)) {
-          knownPublicationsMap.set(pubId, {
-            id: pubId,
-            firstObservedAt: snap.firstObservedAt,
-            observedAt: snap.timestamp || snap.firstObservedAt
-          } as NormalizedPublication)
-          restored++
-        }
+        knownFirstObservedTimes.set(pubId, snap.firstObservedAt)
+        restored++
       }
     }
     return restored
@@ -1151,8 +1147,13 @@ export async function processRadarIngestion(
 
   // 1. Pertahankan firstObservedAt yang stabil (WP4 / S61-20)
   for (const pub of incomingPubs) {
+    if (!pub || !pub.title || typeof pub.title !== 'string' || !pub.title.trim()) continue
+    const persistedFirstObserved = knownFirstObservedTimes.get(pub.id)
     const existing = knownPublicationsMap.get(pub.id)
-    if (existing) {
+    if (persistedFirstObserved) {
+      pub.firstObservedAt = persistedFirstObserved
+      pub.observedAt = now
+    } else if (existing) {
       pub.firstObservedAt = existing.firstObservedAt || existing.observedAt
       pub.observedAt = now
     } else {
