@@ -1328,20 +1328,21 @@ export default function LiveRadar() {
 
             const isExpanded = isAllExpanded || expandedCardIds.has(item.id)
             const textToDisplay = item.clarification || ''
-            const isLongText = textToDisplay.length > 155
+            const isLongText = textToDisplay.length > 230
 
             return (
               <div
                 key={item.id}
                 className="steel-chassis-card"
                 style={{
-                  padding: '14px 16px',
+                  padding: '16px 18px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   position: 'relative',
-                  gap: '10px',
+                  gap: '12px',
                   borderTop: score >= 75 ? '2px solid #EF4444' : '1px solid #1E2734',
+                  minHeight: '360px',
                   height: 'fit-content',
                   transition: 'all 0.2s ease'
                 }}
@@ -1352,7 +1353,7 @@ export default function LiveRadar() {
                 <span className="bolt-br" />
 
                 {/* Konten Utama Kartu */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {/* Baris 1: Klaster & Status Triage */}
                   <div style={{
                     display: 'flex',
@@ -1412,7 +1413,8 @@ export default function LiveRadar() {
                     fontSize: '13px',
                     fontWeight: 700,
                     color: '#F8FAFC',
-                    lineHeight: 1.45
+                    lineHeight: 1.5,
+                    minHeight: '38px'
                   }}>
                     {item.claim}
                   </div>
@@ -1520,10 +1522,10 @@ export default function LiveRadar() {
                   <div 
                     className="steel-sunken-tray"
                     style={{
-                      padding: '10px 12px',
-                      fontSize: '11px',
-                      lineHeight: 1.55,
-                      minHeight: '84px',
+                      padding: '12px 14px',
+                      fontSize: '11.5px',
+                      lineHeight: 1.6,
+                      minHeight: '120px',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
@@ -1536,7 +1538,7 @@ export default function LiveRadar() {
                         fontFamily: 'var(--font-mono)',
                         fontWeight: 700,
                         color: isFact ? '#10B981' : isHoax ? '#EF4444' : '#F59E0B',
-                        marginBottom: '4px',
+                        marginBottom: '6px',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '5px'
@@ -1547,21 +1549,21 @@ export default function LiveRadar() {
 
                       <div style={{
                         color: '#CBD5E1',
-                        fontSize: '11px',
-                        lineHeight: 1.5,
+                        fontSize: '11.5px',
+                        lineHeight: 1.6,
                         wordBreak: 'break-word'
                       }}>
                         {isExpanded ? (
                           textToDisplay
                         ) : (
-                          isLongText ? `${textToDisplay.slice(0, 150)}...` : textToDisplay
+                          isLongText ? `${textToDisplay.slice(0, 220)}...` : textToDisplay
                         )}
                       </div>
                     </div>
 
                     {/* Tombol Baca Selengkapnya / Tutup Cuplikan */}
                     {isLongText && (
-                      <div style={{ marginTop: '8px', paddingTop: '5px', borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
+                      <div style={{ marginTop: '10px', paddingTop: '6px', borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
                         <button
                           type="button"
                           onClick={() => toggleCardExpand(item.id)}
@@ -1602,11 +1604,11 @@ export default function LiveRadar() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '5px 8px',
+                    padding: '6px 10px',
                     background: '#090E16',
                     border: '1px solid #1E2734',
                     borderRadius: '3px',
-                    fontSize: '9px',
+                    fontSize: '9.5px',
                     fontFamily: 'var(--font-mono)',
                     gap: '8px'
                   }}>
