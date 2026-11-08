@@ -28,7 +28,8 @@ import {
   Plus,
   Compass,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Newspaper
 } from 'lucide-react'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network.ts'
@@ -63,7 +64,15 @@ function sanitizeRadarItems(items: DebunkKnowledgeEntry[]): DebunkKnowledgeEntry
     const key = item.claim.trim().toLowerCase()
     if (!seenClaims.has(key)) {
       seenClaims.add(key)
-      result.push(item)
+      let clarification = item.clarification || ''
+      if (clarification.startsWith('Isu sedang dipantau di ranah publik via') || clarification.startsWith('Pernyataan dan rilis dari')) {
+        const pub = item.originalPlatform || item.officialSource || 'Portal Berita'
+        clarification = `Warta pers dipublikasikan oleh ${pub} mengenai isu: "${item.claim}". Terdaftar dalam pemantauan arus pers nasional.`
+      }
+      result.push({
+        ...item,
+        clarification
+      })
     }
   }
   return sortRadarEntries(result)
@@ -117,6 +126,32 @@ export default function LiveRadar() {
   const [sourceChannel, setSourceChannel] = useState<'API_PROXY' | 'API_DIRECT' | 'API_CORS_PROXY' | 'LOCAL_ARCHIVE'>('LOCAL_ARCHIVE')
   const [connectorHealth, setConnectorHealth] = useState<Record<string, ConnectorHealth>>(() => getAllConnectorHealth())
   const [isConnectorDetailsOpen, setIsConnectorDetailsOpen] = useState<boolean>(false)
+
+  // State ekspansi cuplikan panjang kartu berita (Sprint 13 UX Polish)
+  const [expandedCardIds, setExpandedCardIds] = useState<Set<string>>(new Set())
+  const [isAllExpanded, setIsAllExpanded] = useState<boolean>(false)
+
+  const toggleCardExpand = (id: string) => {
+    setExpandedCardIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const toggleExpandAllCards = () => {
+    if (isAllExpanded) {
+      setExpandedCardIds(new Set())
+      setIsAllExpanded(false)
+    } else {
+      setExpandedCardIds(new Set(filteredItems.map(i => i.id)))
+      setIsAllExpanded(true)
+    }
+  }
 
   const connectorSummary = useMemo(() => {
     const list = Object.values(connectorHealth)
@@ -1138,6 +1173,32 @@ export default function LiveRadar() {
             }}>
               {filteredItems.length} ISU TERFILTER
             </span>
+
+            {/* Tombol Ekspansi Seluruh Cuplikan Berita */}
+            <button
+              type="button"
+              onClick={toggleExpandAllCards}
+              title={isAllExpanded ? "Tutup seluruh cuplikan berita pada semua kartu" : "Bentangkan seluruh cuplikan berita pada semua kartu"}
+              style={{
+                background: isAllExpanded ? 'rgba(56, 189, 248, 0.15)' : '#0B1017',
+                border: '1px solid',
+                borderColor: isAllExpanded ? '#38BDF8' : '#1E2734',
+                color: isAllExpanded ? '#38BDF8' : '#94A3B8',
+                borderRadius: '3px',
+                padding: '2px 8px',
+                fontSize: '9px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {isAllExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              <span>{isAllExpanded ? 'TUTUP SEMUA CUPLIKAN' : 'BUKA SEMUA CUPLIKAN'}</span>
+            </button>
           </div>
 
           {/* Input Pencarian Klaim / Kata Kunci dengan Tombol Clear */}
@@ -1151,7 +1212,7 @@ export default function LiveRadar() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari isu viral, klaim, atau rujukan..."
+              placeholder="Cari isu, cuplikan berita, klaim, atau rujukan..."
               style={{
                 width: '100%',
                 background: '#090D12',
@@ -1794,7 +1855,8 @@ export default function LiveRadar() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
-        gap: '16px'
+        gap: '16px',
+        alignItems: 'start'
       }}>
         {filteredItems.length === 0 ? (
           <div 
@@ -1834,6 +1896,10 @@ export default function LiveRadar() {
 
             const clusterMeta = CLUSTER_OPTIONS.find(c => c.key === item.cluster) || { label: item.cluster, color: '#94A3B8' }
 
+            const isExpanded = isAllExpanded || expandedCardIds.has(item.id)
+            const textToDisplay = item.clarification || ''
+            const isLongText = textToDisplay.length > 155
+
             return (
               <div
                 key={item.id}
@@ -1845,7 +1911,9 @@ export default function LiveRadar() {
                   justifyContent: 'space-between',
                   position: 'relative',
                   gap: '10px',
-                  borderTop: score >= 75 ? '2px solid #EF4444' : '1px solid #1E2734'
+                  borderTop: score >= 75 ? '2px solid #EF4444' : '1px solid #1E2734',
+                  height: 'fit-content',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 <span className="bolt-tl" />
@@ -2018,31 +2086,85 @@ export default function LiveRadar() {
                     )}
                   </div>
 
-                  {/* Tray Penjelasan Fakta / Status Intelijen */}
+                  {/* Tray Cuplikan Berita / Fakta / Bukti Disinformasi */}
                   <div 
                     className="steel-sunken-tray"
                     style={{
-                      padding: '8px 10px',
+                      padding: '10px 12px',
                       fontSize: '11px',
-                      lineHeight: 1.45
+                      lineHeight: 1.55,
+                      minHeight: '84px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      transition: 'all 0.2s ease'
                     }}
                   >
-                    <div style={{
-                      fontSize: '9.5px',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 700,
-                      color: isFact ? '#10B981' : isHoax ? '#EF4444' : '#F59E0B',
-                      marginBottom: '3px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
-                      {isFact ? <CheckCircle size={11} color="#10B981" /> : isHoax ? <AlertTriangle size={11} color="#EF4444" /> : <Eye size={11} color="#F59E0B" />}
-                      {isFact ? 'FAKTA / KLARIFIKASI RESMI:' : isHoax ? 'BUKTI FABRIKASI / DISINFORMASI:' : 'STATUS PEMANTAUAN INTELIJEN:'}
+                    <div>
+                      <div style={{
+                        fontSize: '9.5px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 700,
+                        color: isFact ? '#10B981' : isHoax ? '#EF4444' : '#F59E0B',
+                        marginBottom: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}>
+                        {isFact ? <CheckCircle size={11} color="#10B981" /> : isHoax ? <AlertTriangle size={11} color="#EF4444" /> : <Newspaper size={11} color="#F59E0B" />}
+                        {isFact ? 'FAKTA / KLARIFIKASI RESMI:' : isHoax ? 'BUKTI FABRIKASI & KLARIFIKASI MAFINDO:' : 'CUPLIKAN & RINGKASAN BERITA:'}
+                      </div>
+
+                      <div style={{
+                        color: '#CBD5E1',
+                        fontSize: '11px',
+                        lineHeight: 1.5,
+                        wordBreak: 'break-word'
+                      }}>
+                        {isExpanded ? (
+                          textToDisplay
+                        ) : (
+                          isLongText ? `${textToDisplay.slice(0, 150)}...` : textToDisplay
+                        )}
+                      </div>
                     </div>
-                    <div style={{ color: '#94A3B8' }}>
-                      {item.clarification}
-                    </div>
+
+                    {/* Tombol Baca Selengkapnya / Tutup Cuplikan */}
+                    {isLongText && (
+                      <div style={{ marginTop: '8px', paddingTop: '5px', borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleCardExpand(item.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: '2px 0',
+                            color: isExpanded ? '#94A3B8' : '#38BDF8',
+                            cursor: 'pointer',
+                            fontSize: '9.5px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'color 0.15s ease'
+                          }}
+                          title={isExpanded ? 'Tutup cuplikan rincian' : 'Bentangkan dan baca seluruh cuplikan berita dari sumber'}
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp size={11} />
+                              <span>TUTUP CUPLIKAN</span>
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown size={11} />
+                              <span>BACA SELENGKAPNYA</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Provenance & Sumber: Asal Pantauan vs Rujukan Otoritas */}

@@ -508,6 +508,15 @@ export async function getCachedRadarItems(): Promise<DebunkKnowledgeEntry[]> {
     const items = Array.isArray(list) ? list : []
     const validItems = items.filter(it => it && it.claim && !isPureInstitutionOrPublisherName(it.claim, it.officialSource || it.originalPlatform))
 
+    const sanitizeItem = (it: DebunkKnowledgeEntry): DebunkKnowledgeEntry => {
+      let clarification = it.clarification || ''
+      if (clarification.startsWith('Isu sedang dipantau di ranah publik via') || clarification.startsWith('Pernyataan dan rilis dari')) {
+        const pub = it.originalPlatform || it.officialSource || 'Portal Berita'
+        clarification = `Warta pers dipublikasikan oleh ${pub} mengenai isu: "${it.claim}". Terdaftar dalam pemantauan arus pers nasional.`
+      }
+      return { ...it, clarification }
+    }
+
     // Deduplikasi judul agar entri identik dari scan berbeda tidak menumpuk di cache
     const seen = new Set<string>()
     const unique = validItems.filter(it => {
@@ -515,7 +524,7 @@ export async function getCachedRadarItems(): Promise<DebunkKnowledgeEntry[]> {
       if (seen.has(key)) return false
       seen.add(key)
       return true
-    })
+    }).map(sanitizeItem)
     return sortRadarEntries(unique)
   } catch {
     const items = Array.from(memoryFallback.radarCache.values())
@@ -526,6 +535,13 @@ export async function getCachedRadarItems(): Promise<DebunkKnowledgeEntry[]> {
       if (seen.has(key)) return false
       seen.add(key)
       return true
+    }).map(it => {
+      let clarification = it.clarification || ''
+      if (clarification.startsWith('Isu sedang dipantau di ranah publik via') || clarification.startsWith('Pernyataan dan rilis dari')) {
+        const pub = it.originalPlatform || it.officialSource || 'Portal Berita'
+        clarification = `Warta pers dipublikasikan oleh ${pub} mengenai isu: "${it.claim}". Terdaftar dalam pemantauan arus pers nasional.`
+      }
+      return { ...it, clarification }
     })
     return sortRadarEntries(unique)
   }

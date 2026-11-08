@@ -197,9 +197,27 @@ export function cleanHtmlText(raw: string): string {
 }
 
 /**
+ * Ekstraksi cuplikan langsung paragraf pengantar/lead berita dari deskripsi feed pers
+ */
+export function extractArticleLeadFromDesc(descText: string, maxLength = 800): string {
+  const text = cleanHtmlText(descText)
+  if (!text) return ''
+
+  if (text.length > maxLength) {
+    const cut = text.substring(0, maxLength)
+    const lastPeriod = cut.lastIndexOf('.')
+    if (lastPeriod > maxLength * 0.4) {
+      return cut.substring(0, lastPeriod + 1)
+    }
+    return cut + '...'
+  }
+  return text
+}
+
+/**
  * Ekstraksi intisari penjelasan/fakta sebenarnya dari deskripsi artikel TurnBackHoax
  */
-export function extractClarificationFromDesc(descText: string): string {
+export function extractClarificationFromDesc(descText: string, maxLength = 1000): string {
   const text = cleanHtmlText(descText)
   if (!text) return 'Klarifikasi resmi telah diterbitkan oleh Mafindo; konten dikategorikan manipulatif/hoaks.'
 
@@ -209,14 +227,13 @@ export function extractClarificationFromDesc(descText: string): string {
   if (match && match[1] && match[1].trim().length > 20) {
     snippet = match[1].trim()
   } else {
-    const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.length > 25)
-    snippet = sentences.slice(0, 2).join(' ') || text
+    snippet = text
   }
 
-  if (snippet.length > 280) {
-    const cut = snippet.substring(0, 280)
+  if (snippet.length > maxLength) {
+    const cut = snippet.substring(0, maxLength)
     const lastPeriod = cut.lastIndexOf('.')
-    if (lastPeriod > 100) {
+    if (lastPeriod > maxLength * 0.4) {
       snippet = cut.substring(0, lastPeriod + 1)
     } else {
       snippet = cut + '...'
@@ -779,6 +796,19 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25): DebunkKnowle
       const isBreakingRecent = freshness.status === 'BREAKING'
       const stableId = generateStablePublicationId(cleanLink)
 
+      const rawDesc = extractNodeText(item.description)
+      const cleanDesc = cleanHtmlText(rawDesc)
+      const hasRealDesc = cleanDesc && 
+                          cleanDesc.length > 35 && 
+                          !cleanDesc.includes(cleanClaim) && 
+                          !isPureInstitutionOrPublisherName(cleanDesc, sourceName)
+
+      const clarification = hasRealDesc
+        ? cleanDesc
+        : isOfficial 
+        ? `Rilis resmi ${sourceName} terkait: "${cleanClaim}". Penelusuran narasi dan koordinasi kedinasan.`
+        : `Warta pers dipublikasikan oleh ${sourceName} mengenai isu: "${cleanClaim}". Terdaftar dalam pemantauan arus pers nasional.`
+
       entries.push({
         id: stableId,
         claim: cleanClaim,
@@ -786,9 +816,7 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25): DebunkKnowle
         cluster,
         verdict,
         threatLevel: cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
-        clarification: isOfficial 
-          ? `Pernyataan dan rilis dari ${sourceName}. Isi berita memerlukan penelusuran klaim kedinasan.`
-          : `Isu sedang dipantau di ranah publik via ${sourceName}. Menunggu verifikasi silang dan data pembanding.`,
+        clarification,
         officialSource: sourceName,
         sourceUrl: cleanLink,
         originalPlatform: sourceName,
@@ -854,6 +882,11 @@ export function parseAntaraRss(xmlText: string, maxItems = 25): DebunkKnowledgeE
       const isBreakingRecent = freshness.status === 'BREAKING'
       const stableId = generateStablePublicationId(cleanLink)
 
+      const cleanLead = extractArticleLeadFromDesc(rawDesc, 800)
+      const clarification = cleanLead && cleanLead.length > 20
+        ? cleanLead
+        : `Laporan Kantor Berita Nasional LKBN ANTARA mengenai: "${cleanTitle}".`
+
       entries.push({
         id: stableId,
         claim: cleanTitle,
@@ -861,7 +894,7 @@ export function parseAntaraRss(xmlText: string, maxItems = 25): DebunkKnowledgeE
         cluster,
         verdict: 'UNVERIFIED',
         threatLevel: cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
-        clarification: `Laporan Kantor Berita Nasional ANTARA: ${extractClarificationFromDesc(rawDesc)}`,
+        clarification,
         officialSource: 'LKBN ANTARA',
         sourceUrl: cleanLink,
         originalPlatform: sourceName,
