@@ -242,7 +242,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                 fontSize: '10px',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 800,
-                color: '#38BDF8',
+                color: '#EF4444',
                 letterSpacing: '1px',
                 textTransform: 'uppercase'
               }}>
@@ -494,7 +494,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               gap: '7px'
             }}
           >
-            {isAnalyzing ? <RotateCw size={14} className="spin" color="#38BDF8" /> : <Zap size={14} color="#38BDF8" />}
+            {isAnalyzing ? <RotateCw size={14} className="spin" color="#EF4444" /> : <Zap size={14} color="#EF4444" />}
             {isAnalyzing ? 'MEMPROSES...' : 'MULAI ANALISIS'}
           </button>
 
@@ -609,7 +609,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            color: '#38BDF8',
+            color: '#F87171',
             fontSize: '11.5px',
             fontFamily: 'var(--font-mono)'
           }}>
@@ -784,7 +784,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                     borderRadius: '3px',
                     background: '#16202E',
                     border: '1px solid #2B384E',
-                    color: '#38BDF8',
+                    color: '#F87171',
                     fontSize: '10.5px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 700,
@@ -830,7 +830,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                       borderRadius: '2px',
                       background: '#101622',
                       border: '1px solid #2B384E',
-                      color: '#38BDF8',
+                      color: '#EF4444',
                       fontSize: '9.5px',
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 800
@@ -914,7 +914,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                         {analysisResult.post.authorName}
                         <ShieldCheck size={13} color="#34D399" />
                       </div>
-                      <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8' }}>
+                      <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#EF4444' }}>
                         {analysisResult.post.authorHandle}
                       </div>
                     </div>
@@ -945,7 +945,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
 
                   <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center' }}>
                     <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                      <Eye size={11} color="#38BDF8" /> TAYANGAN
+                      <Eye size={11} color="#EF4444" /> TAYANGAN
                     </div>
                     <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
                       {fmt(analysisResult.post.viewCount)}
@@ -1068,7 +1068,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#F1F5F9' }}>
                             {cmt.authorDisplayName || cmt.authorUsername}
                           </span>
-                          <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8' }}>
+                          <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#EF4444' }}>
                             {cmt.authorUsername}
                           </span>
                         </div>

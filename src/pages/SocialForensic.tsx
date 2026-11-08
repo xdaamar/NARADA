@@ -792,7 +792,7 @@ export default function SocialForensic() {
               transition: 'all 0.15s ease'
             }}
           >
-            <Share2 size={13} color={forensicViewMode === 'POST_ANALYZER' ? '#38BDF8' : '#64748B'} />
+            <Share2 size={13} color={forensicViewMode === 'POST_ANALYZER' ? '#EF4444' : '#64748B'} />
             ANALISIS POSTINGAN MEDSOS &amp; KOMENTAR
           </button>
 
