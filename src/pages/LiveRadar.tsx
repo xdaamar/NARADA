@@ -1194,10 +1194,12 @@ export default function LiveRadar() {
 
         {/* ─── Filter Status Triage & View Mode (Command Center Tabs - Sprint 6 WP9) ─── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* Baris 1: Status Utama Triage */}
+          {/* Baris 1: Filter Status Triage */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', marginRight: '2px' }}>
+              <ShieldAlert size={11} color="#38BDF8" /> FILTER STATUS:
+            </span>
             {[
-              { key: 'ALL', label: 'SEMUA ISU AKTIF', count: triageCounts.ALL, color: '#38BDF8', icon: Radio },
               { key: 'MOMENTUM', label: 'ISU BARU & MENINGKAT', count: triageCounts.MOMENTUM, color: '#F43F5E', icon: TrendingUp },
               { key: 'UNVERIFIED', label: 'SEDANG DIPANTAU', count: triageCounts.UNVERIFIED, color: '#F59E0B', icon: Eye },
               { key: 'HOAKS', label: 'TERINDIKASI HOAKS', count: triageCounts.HOAKS, color: '#EF4444', icon: AlertTriangle },
@@ -1211,9 +1213,16 @@ export default function LiveRadar() {
                   key={tab.key}
                   type="button"
                   onClick={() => {
-                    setActiveViewMode(tab.key as any)
-                    if (tab.key === 'UNVERIFIED' || tab.key === 'HOAKS' || tab.key === 'RESOLVED' || tab.key === 'ALL') {
-                      setSelectedTriage(tab.key as any)
+                    if (isSelected) {
+                      setActiveViewMode('ALL')
+                      setSelectedTriage('ALL')
+                    } else {
+                      setActiveViewMode(tab.key as any)
+                      if (tab.key === 'UNVERIFIED' || tab.key === 'HOAKS' || tab.key === 'RESOLVED') {
+                        setSelectedTriage(tab.key as any)
+                      } else {
+                        setSelectedTriage('ALL')
+                      }
                     }
                   }}
                   style={{
@@ -1251,13 +1260,20 @@ export default function LiveRadar() {
             })}
           </div>
 
+          {/* Garis Pembatas Sasis Antara Filter Status dan Klaster Spektrum */}
+          <div style={{
+            height: '1px',
+            background: 'linear-gradient(90deg, rgba(30, 41, 59, 0.9) 0%, rgba(56, 189, 248, 0.25) 30%, rgba(30, 41, 59, 0.9) 100%)',
+            margin: '3px 0'
+          }} />
+
           {/* Baris 2: Klaster Spektrum Cerdas */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', paddingTop: '2px' }}>
-            <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Filter size={11} /> KLASTER:
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', marginRight: '2px' }}>
+              <Filter size={11} color="#A855F7" /> KLASTER:
             </span>
             {CLUSTER_OPTIONS
-              .filter(opt => opt.key === 'ALL' || (clusterCounts[opt.key] ?? 0) > 0)
+              .filter(opt => opt.key !== 'ALL' && (clusterCounts[opt.key] ?? 0) > 0)
               .map(opt => {
                 const isSelected = selectedCluster === opt.key
                 const count = clusterCounts[opt.key] ?? 0
@@ -1265,7 +1281,7 @@ export default function LiveRadar() {
                   <button
                     key={opt.key}
                     type="button"
-                    onClick={() => setSelectedCluster(opt.key)}
+                    onClick={() => setSelectedCluster(isSelected ? 'ALL' : opt.key)}
                     style={{
                       padding: '3px 8px',
                       borderRadius: '3px',
@@ -1274,12 +1290,14 @@ export default function LiveRadar() {
                       fontWeight: 700,
                       border: '1px solid',
                       borderColor: isSelected ? opt.color : '#1E2734',
-                      background: isSelected ? `${opt.color}20` : '#0B1017',
+                      background: isSelected ? `${opt.color}25` : '#0B1017',
                       color: isSelected ? '#FFFFFF' : '#64748B',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: '4px'
+                      gap: '4px',
+                      boxShadow: isSelected ? `0 0 8px ${opt.color}30` : 'none',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <span>{opt.label}</span>
@@ -1297,7 +1315,7 @@ export default function LiveRadar() {
                 )
               })}
 
-            {/* Tombol Reset Filter jika aktif */}
+            {/* Tombol Reset Filter jika aktif (S12-06.3 / S12-06.4: SEMUA ISU AKTIF) */}
             {(selectedCluster !== 'ALL' || activeViewMode !== 'ALL' || selectedTriage !== 'ALL' || searchQuery) && (
               <button
                 type="button"
@@ -1307,11 +1325,13 @@ export default function LiveRadar() {
                   setSelectedTriage('ALL')
                   setSearchQuery('')
                 }}
+                title="Reset seluruh filter (Tampilkan SEMUA ISU AKTIF)"
                 style={{
-                  padding: '2px 8px',
+                  padding: '3px 9px',
                   borderRadius: '3px',
-                  fontSize: '9px',
+                  fontSize: '9.5px',
                   fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
                   color: '#EF4444',
                   background: 'rgba(239, 68, 68, 0.1)',
                   border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -1319,7 +1339,7 @@ export default function LiveRadar() {
                   marginLeft: 'auto',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '3px'
+                  gap: '4px'
                 }}
               >
                 <X size={10} />
