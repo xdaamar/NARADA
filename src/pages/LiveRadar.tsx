@@ -466,9 +466,10 @@ export default function LiveRadar() {
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 800,
                 border: '1px solid',
-                borderColor: activeViewMode !== 'TRENDS' ? '#38BDF8' : '#253244',
-                background: activeViewMode !== 'TRENDS' ? 'rgba(56, 189, 248, 0.18)' : '#0F1622',
-                color: activeViewMode !== 'TRENDS' ? '#FFFFFF' : '#94A3B8',
+                borderColor: activeViewMode !== 'TRENDS' ? '#475569' : '#222C3A',
+                background: activeViewMode !== 'TRENDS' ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0F1622',
+                boxShadow: activeViewMode !== 'TRENDS' ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.4)' : 'none',
+                color: activeViewMode !== 'TRENDS' ? '#38BDF8' : '#94A3B8',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -480,10 +481,11 @@ export default function LiveRadar() {
               <span>ARUS RADAR (FEED)</span>
               <span style={{
                 fontSize: '9.5px',
-                padding: '1px 5px',
+                padding: '1px 6px',
                 borderRadius: '2px',
-                background: activeViewMode !== 'TRENDS' ? '#38BDF8' : '#1A2330',
-                color: activeViewMode !== 'TRENDS' ? '#000000' : '#94A3B8',
+                background: '#0B0F17',
+                border: '1px solid #253245',
+                color: activeViewMode !== 'TRENDS' ? '#38BDF8' : '#64748B',
                 fontWeight: 900
               }}>
                 {debunkItems.length}
@@ -500,9 +502,10 @@ export default function LiveRadar() {
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 800,
                 border: '1px solid',
-                borderColor: activeViewMode === 'TRENDS' ? '#A855F7' : '#253244',
-                background: activeViewMode === 'TRENDS' ? 'rgba(168, 85, 247, 0.2)' : '#0F1622',
-                color: activeViewMode === 'TRENDS' ? '#FFFFFF' : '#94A3B8',
+                borderColor: activeViewMode === 'TRENDS' ? '#475569' : '#222C3A',
+                background: activeViewMode === 'TRENDS' ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0F1622',
+                boxShadow: activeViewMode === 'TRENDS' ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.4)' : 'none',
+                color: activeViewMode === 'TRENDS' ? '#C084FC' : '#94A3B8',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -514,10 +517,11 @@ export default function LiveRadar() {
               <span>SINYAL PENELUSURAN</span>
               <span style={{
                 fontSize: '9.5px',
-                padding: '1px 5px',
+                padding: '1px 6px',
                 borderRadius: '2px',
-                background: activeViewMode === 'TRENDS' ? '#A855F7' : '#1A2330',
-                color: activeViewMode === 'TRENDS' ? '#000000' : '#94A3B8',
+                background: '#0B0F17',
+                border: '1px solid #253245',
+                color: activeViewMode === 'TRENDS' ? '#C084FC' : '#64748B',
                 fontWeight: 900
               }}>
                 {trendSignals.length}
@@ -540,7 +544,7 @@ export default function LiveRadar() {
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
                 padding: '5px 10px',
-                background: '#141C28',
+                background: 'linear-gradient(180deg, #1C2330 0%, #101622 100%)',
                 border: '1px solid #2B384E',
                 color: '#94A3B8',
                 borderRadius: '4px',
@@ -581,19 +585,21 @@ export default function LiveRadar() {
               style={{
                 fontSize: '10.5px',
                 fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
+                fontWeight: 800,
                 padding: '5px 12px',
-                background: '#C8102E',
-                border: '1px solid #DC2626',
-                color: '#FFFFFF',
+                background: 'linear-gradient(180deg, #243042 0%, #151D28 100%)',
+                border: '1px solid #3E4E68',
+                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.4)',
+                color: '#EF4444',
                 borderRadius: '4px',
                 cursor: isSyncing ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '6px',
+                transition: 'all 0.15s ease'
               }}
             >
-              <RefreshCw size={11} className={isSyncing ? 'spin-animation' : ''} />
+              <RefreshCw size={11} color="#EF4444" className={isSyncing ? 'spin-animation' : ''} />
               <span>{isSyncing ? 'Memindai...' : 'Pindai Isu Terkini'}</span>
             </button>
 
@@ -664,8 +670,8 @@ export default function LiveRadar() {
                   gap: '4px',
                   padding: '2px 7px',
                   borderRadius: '3px',
-                  background: 'rgba(16, 185, 129, 0.12)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  background: '#101722',
+                  border: '1px solid #263345',
                   color: '#10B981',
                   fontSize: '9.5px',
                   fontWeight: 700,
@@ -682,8 +688,8 @@ export default function LiveRadar() {
                     gap: '4px',
                     padding: '2px 7px',
                     borderRadius: '3px',
-                    background: 'rgba(245, 158, 11, 0.12)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    background: '#101722',
+                    border: '1px solid #263345',
                     color: '#F59E0B',
                     fontSize: '9.5px',
                     fontWeight: 700,
@@ -701,8 +707,8 @@ export default function LiveRadar() {
                     gap: '4px',
                     padding: '2px 7px',
                     borderRadius: '3px',
-                    background: 'rgba(239, 68, 68, 0.12)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    background: '#101722',
+                    border: '1px solid #263345',
                     color: '#EF4444',
                     fontSize: '9.5px',
                     fontWeight: 700,
@@ -720,8 +726,8 @@ export default function LiveRadar() {
                     gap: '4px',
                     padding: '2px 7px',
                     borderRadius: '3px',
-                    background: 'rgba(100, 116, 139, 0.12)',
-                    border: '1px solid rgba(100, 116, 139, 0.3)',
+                    background: '#101722',
+                    border: '1px solid #263345',
                     color: '#64748B',
                     fontSize: '9.5px',
                     fontWeight: 600,
@@ -896,8 +902,8 @@ export default function LiveRadar() {
               fontSize: '10px',
               fontFamily: 'var(--font-mono)',
               color: '#38BDF8',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
+              background: '#0B1017',
+              border: '1px solid #263345',
               padding: '1px 6px',
               borderRadius: '3px',
               fontWeight: 700
@@ -911,9 +917,9 @@ export default function LiveRadar() {
               onClick={toggleExpandAllCards}
               title={isAllExpanded ? "Tutup seluruh cuplikan berita pada semua kartu" : "Bentangkan seluruh cuplikan berita pada semua kartu"}
               style={{
-                background: isAllExpanded ? 'rgba(56, 189, 248, 0.15)' : '#0B1017',
+                background: isAllExpanded ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0B1017',
                 border: '1px solid',
-                borderColor: isAllExpanded ? '#38BDF8' : '#1E2734',
+                borderColor: isAllExpanded ? '#475569' : '#1E2734',
                 color: isAllExpanded ? '#38BDF8' : '#94A3B8',
                 borderRadius: '3px',
                 padding: '2px 8px',
@@ -1021,25 +1027,26 @@ export default function LiveRadar() {
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 800,
                     border: '1px solid',
-                    borderColor: isSelected ? tab.color : '#253244',
-                    background: isSelected ? `${tab.color}25` : '#101620',
-                    color: isSelected ? '#FFFFFF' : '#94A3B8',
+                    borderColor: isSelected ? '#475569' : '#222C3A',
+                    background: isSelected ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#101620',
+                    color: isSelected ? tab.color : '#94A3B8',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    boxShadow: isSelected ? `0 0 10px ${tab.color}30` : 'none',
+                    boxShadow: isSelected ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.4)' : 'none',
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <tab.icon size={12} color={isSelected ? tab.color : '#64748B'} />
+                  <tab.icon size={12} color={tab.color} />
                   <span>{tab.label}</span>
                   <span style={{
                     fontSize: '9.5px',
-                    padding: '1px 5px',
+                    padding: '1px 6px',
                     borderRadius: '2px',
-                    background: isSelected ? tab.color : '#1A2330',
-                    color: isSelected ? '#000000' : '#CBD5E1',
+                    background: '#0B0F17',
+                    border: '1px solid #253245',
+                    color: isSelected ? tab.color : '#64748B',
                     fontWeight: 900
                   }}>
                     {tab.count}
@@ -1078,24 +1085,25 @@ export default function LiveRadar() {
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 700,
                       border: '1px solid',
-                      borderColor: isSelected ? opt.color : '#1E2734',
-                      background: isSelected ? `${opt.color}25` : '#0B1017',
-                      color: isSelected ? '#FFFFFF' : '#64748B',
+                      borderColor: isSelected ? '#475569' : '#1E2734',
+                      background: isSelected ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0B1017',
+                      color: isSelected ? opt.color : '#94A3B8',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      boxShadow: isSelected ? `0 0 8px ${opt.color}30` : 'none',
+                      boxShadow: isSelected ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
                     <span>{opt.label}</span>
                     <span style={{
                       fontSize: '8.5px',
-                      padding: '0 4px',
+                      padding: '0 5px',
                       borderRadius: '2px',
-                      background: isSelected ? opt.color : '#16202C',
-                      color: isSelected ? '#000000' : '#94A3B8',
+                      background: '#070C12',
+                      border: '1px solid #202B3A',
+                      color: isSelected ? opt.color : '#64748B',
                       fontWeight: 800
                     }}>
                       {count}
@@ -1122,8 +1130,9 @@ export default function LiveRadar() {
                   fontFamily: 'var(--font-mono)',
                   fontWeight: 700,
                   color: '#EF4444',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                  border: '1px solid #3E4E68',
+                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.12)',
                   cursor: 'pointer',
                   marginLeft: 'auto',
                   display: 'inline-flex',
@@ -1207,9 +1216,9 @@ export default function LiveRadar() {
                         fontWeight: 800,
                         padding: '2px 7px',
                         borderRadius: '3px',
-                        background: 'rgba(168, 85, 247, 0.15)',
+                        background: '#101622',
                         color: '#C084FC',
-                        border: '1px solid rgba(168, 85, 247, 0.4)'
+                        border: '1px solid #253346'
                       }}>
                         SINYAL PENELUSURAN AKTIF
                       </span>
@@ -1220,9 +1229,9 @@ export default function LiveRadar() {
                           fontWeight: 900,
                           padding: '2px 8px',
                           borderRadius: '3px',
-                          background: '#2E1065',
-                          color: '#E9D5FF',
-                          border: '1px solid #7E22CE'
+                          background: '#101622',
+                          color: '#C084FC',
+                          border: '1px solid #253346'
                         }}>
                           {sig.searchVolumeBand} PENCARIAN
                         </span>
@@ -1265,8 +1274,8 @@ export default function LiveRadar() {
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 700,
                       padding: '2px 8px',
-                      background: 'rgba(56, 189, 248, 0.12)',
-                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      background: '#101622',
+                      border: '1px solid #253346',
                       color: '#38BDF8',
                       borderRadius: '3px'
                     }}>
@@ -1318,8 +1327,6 @@ export default function LiveRadar() {
             
             const verdictLabel = isHoax ? 'TERINDIKASI HOAKS' : isFact ? 'FAKTA RESMI' : isUnverified ? 'SEDANG DIPANTAU' : 'NETRAL'
             const verdictColor = isHoax ? '#EF4444' : isFact ? '#10B981' : isUnverified ? '#F59E0B' : '#94A3B8'
-            const verdictBg = isHoax ? 'rgba(239, 68, 68, 0.15)' : isFact ? 'rgba(16, 185, 129, 0.15)' : isUnverified ? 'rgba(245, 158, 11, 0.15)' : 'rgba(148, 163, 184, 0.15)'
-            const verdictBorder = isHoax ? 'rgba(239, 68, 68, 0.45)' : isFact ? 'rgba(16, 185, 129, 0.45)' : isUnverified ? 'rgba(245, 158, 11, 0.45)' : 'rgba(148, 163, 184, 0.45)'
 
             const score = item.cognitiveScore ?? 50
             const scoreColor = score >= 75 ? '#EF4444' : score >= 50 ? '#F59E0B' : '#10B981'
@@ -1369,9 +1376,9 @@ export default function LiveRadar() {
                       fontWeight: 700,
                       padding: '2px 7px',
                       borderRadius: '3px',
-                      background: `${clusterMeta.color}18`,
+                      background: '#101622',
                       color: clusterMeta.color,
-                      border: `1px solid ${clusterMeta.color}35`,
+                      border: '1px solid #253346',
                       letterSpacing: '0.5px'
                     }}>
                       {clusterMeta.label}
@@ -1385,9 +1392,9 @@ export default function LiveRadar() {
                         fontWeight: 800,
                         padding: '2px 7px',
                         borderRadius: '3px',
-                        background: verdictBg,
+                        background: '#101622',
                         color: verdictColor,
-                        border: `1px solid ${verdictBorder}`
+                        border: '1px solid #253346'
                       }}>
                         {verdictLabel}
                       </span>
@@ -1399,9 +1406,9 @@ export default function LiveRadar() {
                         fontWeight: 700,
                         padding: '2px 6px',
                         borderRadius: '2px',
-                        background: `${scoreColor}18`,
+                        background: '#101622',
                         color: scoreColor,
-                        border: `1px solid ${scoreColor}40`
+                        border: '1px solid #253346'
                       }} title="Skor Relevansi Konteks (0 - 100): Indikator heuristik keselarasan topik pantauan, bukan probabilitas kebenaran atau tingkat bahaya.">
                         RELEVANSI {score}/100
                       </span>
@@ -1429,7 +1436,6 @@ export default function LiveRadar() {
                       const isAkt = fresh.status === 'AKTUAL'
                       const isBerk = fresh.status === 'BERKEMBANG'
                       const badgeColor = isBrk ? '#EF4444' : isAkt ? '#F59E0B' : isBerk ? '#38BDF8' : '#64748B'
-                      const badgeBg = isBrk ? 'rgba(239, 68, 68, 0.2)' : isAkt ? 'rgba(245, 158, 11, 0.15)' : isBerk ? 'rgba(56, 189, 248, 0.15)' : 'rgba(100, 116, 139, 0.15)'
 
                       return (
                         <span style={{
@@ -1440,12 +1446,12 @@ export default function LiveRadar() {
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 800,
                           color: badgeColor,
-                          background: badgeBg,
-                          border: `1px solid ${badgeColor}60`,
-                          padding: '2px 5px',
+                          background: '#101622',
+                          border: '1px solid #253346',
+                          padding: '2px 6px',
                           borderRadius: '2px'
                         }}>
-                          {isBrk && <Flame size={9} />}
+                          {isBrk && <Flame size={9} color={badgeColor} />}
                           <span>{fresh.status === 'BREAKING' ? 'BREAKING (<3J)' : fresh.status === 'AKTUAL' ? 'AKTUAL (<12J)' : fresh.status === 'BERKEMBANG' ? 'HARI INI (<24J)' : fresh.status === 'KONTEKS' ? 'KONTEKS (>24J)' : 'WAKTU N/A'}</span>
                         </span>
                       )
@@ -1456,8 +1462,8 @@ export default function LiveRadar() {
                       fontSize: '8.5px',
                       fontFamily: 'var(--font-mono)',
                       color: '#10B981',
-                      background: 'rgba(16, 185, 129, 0.12)',
-                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      background: '#101622',
+                      border: '1px solid #253346',
                       padding: '2px 6px',
                       borderRadius: '2px',
                       fontWeight: 700
@@ -1472,7 +1478,6 @@ export default function LiveRadar() {
                         const isRising = st === 'RISING'
                         const isNew = st === 'NEW'
                         const isSustained = st === 'SUSTAINED'
-                        const bg = isRising ? 'rgba(239, 68, 68, 0.15)' : isNew ? 'rgba(245, 158, 11, 0.15)' : isSustained ? 'rgba(56, 189, 248, 0.15)' : 'rgba(100, 116, 139, 0.15)'
                         const col = isRising ? '#F87171' : isNew ? '#FBBF24' : isSustained ? '#38BDF8' : '#94A3B8'
                         const label = isRising ? 'LIPUTAN MENINGKAT' : isNew ? 'ISU BARU' : isSustained ? 'LIPUTAN BERLANJUT' : 'MELANDAI'
                         return (
@@ -1482,15 +1487,15 @@ export default function LiveRadar() {
                             fontWeight: 700,
                             padding: '2px 6px',
                             borderRadius: '2px',
-                            background: bg,
+                            background: '#101622',
                             color: col,
-                            border: `1px solid ${col}40`,
+                            border: '1px solid #253346',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '3px'
                           }}>
-                            {isRising && <TrendingUp size={9} />}
-                            {isNew && <Flame size={9} />}
+                            {isRising && <TrendingUp size={9} color={col} />}
+                            {isNew && <Flame size={9} color={col} />}
                             {label}
                           </span>
                         )
@@ -1505,14 +1510,14 @@ export default function LiveRadar() {
                         fontWeight: 700,
                         padding: '2px 6px',
                         borderRadius: '2px',
-                        background: 'rgba(56, 189, 248, 0.12)',
+                        background: '#101622',
                         color: '#38BDF8',
-                        border: '1px solid rgba(56, 189, 248, 0.35)',
+                        border: '1px solid #253346',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: '3px'
                       }} title={`Referensi Fact-Check Terkait: ${item.factCheckReference.referenceTitle}`}>
-                        <ShieldCheck size={9} />
+                        <ShieldCheck size={9} color="#38BDF8" />
                         <span>REFERENSI FACT-CHECK TERKAIT</span>
                       </span>
                     )}
@@ -1700,8 +1705,9 @@ export default function LiveRadar() {
                         type="button"
                         onClick={() => handleOpenCounterModal(item)}
                         style={{
-                          background: isHoax ? 'rgba(239, 68, 68, 0.16)' : 'rgba(245, 158, 11, 0.15)',
-                          border: isHoax ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(245, 158, 11, 0.45)',
+                          background: 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                          border: '1px solid #3E4E63',
+                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.4)',
                           color: isHoax ? '#F87171' : '#FBBF24',
                           fontSize: '10px',
                           fontFamily: 'var(--font-mono)',
@@ -1715,16 +1721,16 @@ export default function LiveRadar() {
                           transition: 'all 0.15s ease'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = isHoax ? '#C8102E' : '#D97706'
-                          e.currentTarget.style.color = '#FFFFFF'
+                          e.currentTarget.style.borderColor = '#5B6F8C'
+                          e.currentTarget.style.background = 'linear-gradient(180deg, #2A3648 0%, #17202C 100%)'
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = isHoax ? 'rgba(239, 68, 68, 0.16)' : 'rgba(245, 158, 11, 0.15)'
-                          e.currentTarget.style.color = isHoax ? '#F87171' : '#FBBF24'
+                          e.currentTarget.style.borderColor = '#3E4E63'
+                          e.currentTarget.style.background = 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)'
                         }}
                         title={isHoax ? "Hasilkan draf rilis resmi bantahan Dispenad, panduan Babinsa, WA, dan medsos kilat" : "Siapkan draf klarifikasi resmi & panduan Babinsa untuk isu yang sedang dipantau"}
                       >
-                        <Megaphone size={11} />
+                        <Megaphone size={11} color={isHoax ? '#F87171' : '#FBBF24'} />
                         <span>Draf Kontranarasi Dispenad</span>
                       </button>
                     ) : (
@@ -1733,8 +1739,9 @@ export default function LiveRadar() {
                         target="_blank"
                         rel="noreferrer"
                         style={{
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          border: '1px solid rgba(16, 185, 129, 0.45)',
+                          background: 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                          border: '1px solid #3E4E63',
+                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.12)',
                           color: '#34D399',
                           fontSize: '10px',
                           fontFamily: 'var(--font-mono)',
@@ -1748,16 +1755,16 @@ export default function LiveRadar() {
                           transition: 'all 0.15s ease'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#059669'
-                          e.currentTarget.style.color = '#FFFFFF'
+                          e.currentTarget.style.borderColor = '#5B6F8C'
+                          e.currentTarget.style.background = 'linear-gradient(180deg, #2A3648 0%, #17202C 100%)'
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)'
-                          e.currentTarget.style.color = '#34D399'
+                          e.currentTarget.style.borderColor = '#3E4E63'
+                          e.currentTarget.style.background = 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)'
                         }}
                         title="Buka dokumen verifikasi dan rujukan fakta otoritas resmi"
                       >
-                        <ShieldCheck size={11} />
+                        <ShieldCheck size={11} color="#34D399" />
                         <span>Dokumen Fakta Resmi ↗</span>
                       </a>
                     )}
@@ -1840,9 +1847,9 @@ export default function LiveRadar() {
                     fontWeight: 700,
                     padding: '2px 6px',
                     borderRadius: '2px',
-                    background: 'rgba(239, 68, 68, 0.2)',
+                    background: '#101622',
                     color: '#EF4444',
-                    border: '1px solid rgba(239, 68, 68, 0.4)'
+                    border: '1px solid #253346'
                   }}>
                     STATUS: TERINDIKASI HOAKS
                   </span>
@@ -1903,13 +1910,14 @@ export default function LiveRadar() {
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 700,
                       border: '1px solid',
-                      borderColor: isSelected ? tab.color : '#1E2734',
-                      background: isSelected ? `${tab.color}20` : '#0B1017',
-                      color: isSelected ? '#FFFFFF' : '#64748B',
+                      borderColor: isSelected ? '#475569' : '#1E2734',
+                      background: isSelected ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0B1017',
+                      color: isSelected ? tab.color : '#64748B',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '6px',
+                      boxShadow: isSelected ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12)' : 'none',
                       transition: 'all 0.15s ease'
                     }}
                   >
@@ -1952,9 +1960,9 @@ export default function LiveRadar() {
                     handleCopyCounterText(textToCopy)
                   }}
                   style={{
-                    background: copiedSuccess ? '#10B981' : '#1E293B',
-                    border: `1px solid ${copiedSuccess ? '#10B981' : '#334155'}`,
-                    color: copiedSuccess ? '#000000' : '#E2E8F0',
+                    background: 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                    border: '1px solid #3E4E68',
+                    color: copiedSuccess ? '#10B981' : '#F1F5F9',
                     fontSize: '10.5px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 700,

@@ -819,8 +819,8 @@ export default function SocialForensic() {
 
       {/* ─── BANNER PUSAT ANALISIS FORENSIK OTOMATIS (C2 WAR ROOM) ─── */}
       <div style={{
-        background: 'rgba(0, 243, 255, 0.07)',
-        border: '1px solid rgba(0, 243, 255, 0.28)',
+        background: 'linear-gradient(170deg, rgba(28, 36, 48, 0.95) 0%, rgba(16, 22, 31, 0.98) 100%)',
+        border: '1px solid #2B384E',
         borderRadius: '6px',
         padding: '12px 18px',
         marginBottom: '16px',
@@ -828,7 +828,8 @@ export default function SocialForensic() {
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '12px'
+        gap: '12px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <ShieldCheck size={20} color="#00F3FF" />
@@ -847,9 +848,9 @@ export default function SocialForensic() {
             fontFamily: 'var(--font-mono)',
             padding: '3px 9px',
             borderRadius: '3px',
-            background: 'rgba(16, 185, 129, 0.15)',
+            background: '#101622',
             color: '#34D399',
-            border: '1px solid rgba(16, 185, 129, 0.35)',
+            border: '1px solid #253346',
             fontWeight: 700
           }}>
             ● OTONOM & TERVERIFIKASI
@@ -1240,9 +1241,10 @@ export default function SocialForensic() {
             type="button"
             onClick={() => setIngestTab('BROWSER')}
             style={{
-              background: ingestTab === 'BROWSER' ? 'linear-gradient(135deg, #D4AF37 0%, #AA820A 100%)' : 'rgba(212, 175, 55, 0.15)',
-              border: '1px solid #D4AF37',
-              color: ingestTab === 'BROWSER' ? '#0B0F17' : '#D4AF37',
+              background: ingestTab === 'BROWSER' ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0B1017',
+              border: '1px solid',
+              borderColor: ingestTab === 'BROWSER' ? '#475569' : '#1E2734',
+              color: ingestTab === 'BROWSER' ? '#D4AF37' : '#64748B',
               padding: '6px 14px',
               borderRadius: '4px',
               fontSize: '11px',
@@ -1251,11 +1253,11 @@ export default function SocialForensic() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 2px 8px rgba(212, 175, 55, 0.2)'
+              boxShadow: ingestTab === 'BROWSER' ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 5px rgba(0, 0, 0, 0.5)' : 'none'
             }}
             title="Buka Chromium Evidence Browser terisolasi untuk penelusuran manual & akuisisi bukti digital"
           >
-            <Globe size={13} />
+            <Globe size={13} color={ingestTab === 'BROWSER' ? '#D4AF37' : '#64748B'} />
             <span>EVIDENCE BROWSER</span>
           </button>
 
@@ -1263,9 +1265,10 @@ export default function SocialForensic() {
             type="button"
             onClick={() => setIngestTab('COMMENTS')}
             style={{
-              background: ingestTab === 'COMMENTS' ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid #10B981',
-              color: ingestTab === 'COMMENTS' ? '#0B0F17' : '#34D399',
+              background: ingestTab === 'COMMENTS' ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0B1017',
+              border: '1px solid',
+              borderColor: ingestTab === 'COMMENTS' ? '#475569' : '#1E2734',
+              color: ingestTab === 'COMMENTS' ? '#34D399' : '#64748B',
               padding: '6px 14px',
               borderRadius: '4px',
               fontSize: '11px',
@@ -1274,11 +1277,11 @@ export default function SocialForensic() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.2)'
+              boxShadow: ingestTab === 'COMMENTS' ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 5px rgba(0, 0, 0, 0.5)' : 'none'
             }}
             title="Buka Subsistem Comment Intelligence & Analisis Sentimen Kognitif (Sprint 8)"
           >
-            <MessageSquare size={13} />
+            <MessageSquare size={13} color={ingestTab === 'COMMENTS' ? '#34D399' : '#64748B'} />
             <span>COMMENT INTELLIGENCE</span>
           </button>
 
@@ -1286,9 +1289,10 @@ export default function SocialForensic() {
             type="button"
             onClick={() => setIngestTab('SOCIAL_INTELLIGENCE')}
             style={{
-              background: ingestTab === 'SOCIAL_INTELLIGENCE' ? 'linear-gradient(135deg, #00F3FF 0%, #0088AA 100%)' : 'rgba(0, 243, 255, 0.15)',
-              border: '1px solid #00F3FF',
-              color: ingestTab === 'SOCIAL_INTELLIGENCE' ? '#0B0F17' : '#00F3FF',
+              background: ingestTab === 'SOCIAL_INTELLIGENCE' ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0B1017',
+              border: '1px solid',
+              borderColor: ingestTab === 'SOCIAL_INTELLIGENCE' ? '#475569' : '#1E2734',
+              color: ingestTab === 'SOCIAL_INTELLIGENCE' ? '#00F3FF' : '#64748B',
               padding: '6px 14px',
               borderRadius: '4px',
               fontSize: '11px',
@@ -1297,11 +1301,11 @@ export default function SocialForensic() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 2px 8px rgba(0, 243, 255, 0.2)'
+              boxShadow: ingestTab === 'SOCIAL_INTELLIGENCE' ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 5px rgba(0, 0, 0, 0.5)' : 'none'
             }}
             title="Buka Subsistem Automated Social Intelligence & Platform Acquisition Pipeline (Sprint 11)"
           >
-            <Share2 size={13} />
+            <Share2 size={13} color={ingestTab === 'SOCIAL_INTELLIGENCE' ? '#00F3FF' : '#64748B'} />
             <span>SOCIAL INTELLIGENCE</span>
           </button>
 
@@ -1310,9 +1314,10 @@ export default function SocialForensic() {
             onClick={handleExportUnifiedDossierPdf}
             disabled={isExportingDossier}
             style={{
-              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(180, 140, 20, 0.35) 100%)',
-              border: '1px solid #D4AF37',
-              color: '#F8FAFC',
+              background: 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+              border: '1px solid #3E4E68',
+              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 5px rgba(0, 0, 0, 0.5)',
+              color: '#D4AF37',
               padding: '6px 12px',
               borderRadius: '4px',
               fontSize: '11px',
@@ -1320,8 +1325,7 @@ export default function SocialForensic() {
               cursor: isExportingDossier ? 'wait' : 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 0 10px rgba(212, 175, 55, 0.25)'
+              gap: '6px'
             }}
             title="Ekspor Laporan Dossier Kasus Lengkap Terpadu Doktrinal (A4 PDF)"
           >
