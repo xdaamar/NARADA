@@ -57,7 +57,9 @@ function sanitizeRadarItems(items: DebunkKnowledgeEntry[]): DebunkKnowledgeEntry
     if (!seenClaims.has(key)) {
       seenClaims.add(key)
       let clarification = item.clarification || ''
-      if (clarification.startsWith('Isu sedang dipantau di ranah publik via') || clarification.startsWith('Pernyataan dan rilis dari')) {
+      if (item.factCheckReference?.explanation && (!clarification || clarification.startsWith('Isu sedang dipantau') || clarification.startsWith('Warta pers dipublikasikan'))) {
+        clarification = item.factCheckReference.explanation
+      } else if (clarification.startsWith('Isu sedang dipantau di ranah publik via') || clarification.startsWith('Pernyataan dan rilis dari')) {
         const pub = item.originalPlatform || item.officialSource || 'Portal Berita'
         clarification = `Warta pers dipublikasikan oleh ${pub} mengenai isu: "${item.claim}". Terdaftar dalam pemantauan arus pers nasional.`
       }
@@ -1334,8 +1336,12 @@ export default function LiveRadar() {
             const clusterMeta = CLUSTER_OPTIONS.find(c => c.key === item.cluster) || { label: item.cluster, color: '#94A3B8' }
 
             const isExpanded = isAllExpanded || expandedCardIds.has(item.id)
-            const textToDisplay = item.clarification || ''
-            const isLongText = textToDisplay.length > 230
+            const rawClarification = item.clarification || item.factCheckReference?.explanation || ''
+            const textToDisplay = rawClarification.trim()
+            // Kapasitas teks tray kartu plat baja: 380 karakter (~6-7 baris teks lengkap)
+            // Jika teks <= 380 karakter, ruang kartu cukup longgar sehingga ditampilkan seutuhnya tanpa akhiran (...)
+            const MAX_COLLAPSED_CHARS = 380
+            const isLongText = textToDisplay.length > MAX_COLLAPSED_CHARS
 
             return (
               <div
@@ -1561,12 +1567,22 @@ export default function LiveRadar() {
                         {isExpanded ? (
                           textToDisplay
                         ) : (
-                          isLongText ? `${textToDisplay.slice(0, 220)}...` : textToDisplay
+                          isLongText ? (
+                            (() => {
+                              const trimmed = textToDisplay.slice(0, MAX_COLLAPSED_CHARS)
+                              const lastSpace = trimmed.lastIndexOf(' ')
+                              const cleanSnippet = lastSpace > MAX_COLLAPSED_CHARS - 35 ? trimmed.slice(0, lastSpace) : trimmed
+                              return `${cleanSnippet.trim()}...`
+                            })()
+                          ) : (
+                            // Ruang kartu longgar & muat: Tampilkan teks utuh tanpa akhiran '...' buatan
+                            textToDisplay.replace(/\s*\.\.\.\s*$/, '')
+                          )
                         )}
                       </div>
                     </div>
 
-                    {/* Tombol Baca Selengkapnya / Tutup Cuplikan */}
+                    {/* Tombol Baca Selengkapnya / Tutup Cuplikan (Hanya muncul jika teks melebihi space kartu) */}
                     {isLongText && (
                       <div style={{ marginTop: '10px', paddingTop: '6px', borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
                         <button
@@ -1590,12 +1606,12 @@ export default function LiveRadar() {
                         >
                           {isExpanded ? (
                             <>
-                              <ChevronUp size={11} />
+                              <ChevronUp size={11} color="#94A3B8" />
                               <span>TUTUP CUPLIKAN</span>
                             </>
                           ) : (
                             <>
-                              <ChevronDown size={11} />
+                              <ChevronDown size={11} color="#38BDF8" />
                               <span>BACA SELENGKAPNYA</span>
                             </>
                           )}
