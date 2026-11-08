@@ -343,6 +343,64 @@ export interface PublicationEligibilityResult {
 }
 
 /**
+ * Mendeteksi apakah teks hanya berupa nama institusi/organisasi/publisher mandiri
+ * tanpa klaim, peristiwa, atau predikat berita yang dapat diuji faktanya.
+ * Mencegah masuknya data non-berita/dummy hasil crawling indeks homepage seperti:
+ * "Kementerian Komunikasi dan Digital", "Kementerian Pertahanan RI", dsb.
+ */
+export function isPureInstitutionOrPublisherName(title: string, sourceName = ''): boolean {
+  if (!title || typeof title !== 'string') return true
+  const tNorm = title.trim().toLowerCase()
+  const sNorm = (sourceName || '').trim().toLowerCase()
+
+  // 1. Identik langsung dengan nama sumber / platform penerbit
+  if (sNorm && (tNorm === sNorm || tNorm.replace(/\s+/g, '') === sNorm.replace(/\s+/g, ''))) {
+    return true
+  }
+
+  // 2. Format judul homepage portal redundan: "Nama Institusi - Nama Institusi" atau "X | X"
+  const delimiterParts = title.split(/\s*[-–—|/]\s*/).map(p => p.trim().toLowerCase()).filter(Boolean)
+  if (delimiterParts.length >= 2 && delimiterParts[0] === delimiterParts[1]) {
+    return true
+  }
+
+  // 3. Jika setelah membuang nama sumber tidak tersisa kata berita
+  if (sNorm && tNorm.length > 0) {
+    const escapedSource = sNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const stripped = tNorm.replace(new RegExp(`\\s*[-–—|]?\\s*${escapedSource}\\s*$`, 'i'), '').trim()
+    if (!stripped || stripped === sNorm) {
+      return true
+    }
+  }
+
+  // 4. Deteksi apakah seluruh token substantif hanya terdiri dari kata nama instansi / organisasi
+  const orgNouns = new Set([
+    'kementerian', 'kemen', 'kemhan', 'kemenkes', 'kemensos', 'kominfo', 'komdigi',
+    'pertahanan', 'kesehatan', 'sosial', 'keuangan', 'agama', 'hukum', 'ham', 'komunikasi',
+    'digital', 'perhubungan', 'pertanian', 'kelautan', 'perikanan', 'pupr', 'bumn',
+    'badan', 'lembaga', 'dewan', 'direktorat', 'jenderal', 'dinas', 'pemprov', 'pemkot',
+    'pemkab', 'pemerintah', 'provinsi', 'kabupaten', 'kota', 'ri', 'indonesia', 'republik',
+    'tni', 'polri', 'ad', 'al', 'au', 'mabes', 'kodam', 'korem', 'kodim', 'koramil',
+    'kejaksaan', 'agung', 'mahkamah', 'konstitusi', 'bawaslu', 'kpu', 'bnpb', 'bmkg',
+    'portal', 'berita', 'nasional', 'pers', 'media', 'news', 'harian', 'pusat', 'penerangan',
+    'dan', 'di', 'ke', 'dari', 'untuk', 'pada', 'ikatan', 'konsultan', 'pajak', 'sekretariat',
+    'negara', 'kantor', 'staf', 'presiden', 'ksp'
+  ])
+
+  const clean = tNorm.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
+  const words = clean.split(' ').filter(w => w.length >= 2)
+
+  // Jika panjang kata 1 s.d. 6 dan SEMUA kata adalah kata nama instansi
+  if (words.length >= 1 && words.length <= 6) {
+    if (words.every(w => orgNouns.has(w))) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
  * Penapis Intelijen Kognitif Terbuka (Radar Recall & Cognitive Gatekeeper — Sprint 6)
  * Membuka ruang penemuan topik strategis nasional (kebijakan negara, ekonomi digital, hankam, dll.)
  * tanpa bergantung pada gating viralitas sempit ("viral", "heboh", "polemik", "hoaks").
@@ -352,6 +410,15 @@ export function evaluatePublicationEligibility(
   sourceName = '',
   domainHint?: string
 ): PublicationEligibilityResult {
+  // 0. Penolakan nama institusi / publisher mandiri tanpa klaim berita faktual
+  if (isPureInstitutionOrPublisherName(title, sourceName)) {
+    return {
+      isEligible: false,
+      exclusionReason: 'NO_CHECKABLE_CLAIM',
+      reasonExplanation: 'Judul hanya memuat nama institusi atau penerbit tanpa klaim faktual yang dapat diuji'
+    }
+  }
+
   const norm = (title + ' ' + sourceName).toLowerCase()
 
   // 1. Batas minimum panjang karakter
@@ -688,6 +755,10 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25): DebunkKnowle
       const sourceName = sanitizePlatformName(rawSourceName, 'Google News')
       const cleanClaim = cleanTitle.replace(new RegExp(`\\s*-\\s*${rawSourceName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i'), '').trim()
 
+      if (!cleanClaim || isPureInstitutionOrPublisherName(cleanClaim, sourceName) || isPureInstitutionOrPublisherName(cleanTitle, rawSourceName)) {
+        continue
+      }
+
       if (!isEligibleCognitiveRadarItem(cleanClaim, sourceName)) {
         continue
       }
@@ -771,7 +842,7 @@ export function parseAntaraRss(xmlText: string, maxItems = 25): DebunkKnowledgeE
       if (!cleanTitle || !cleanLink) continue
 
       const sourceName = 'ANTARA News'
-      if (!isEligibleCognitiveRadarItem(cleanTitle, sourceName)) {
+      if (isPureInstitutionOrPublisherName(cleanTitle, sourceName) || !isEligibleCognitiveRadarItem(cleanTitle, sourceName)) {
         continue
       }
 

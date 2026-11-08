@@ -5,7 +5,8 @@ import {
   parseTurnBackHoaxRss, 
   parseGoogleNewsRss, 
   parseAntaraRss,
-  parseGoogleTrendsRssAsSignals
+  parseGoogleTrendsRssAsSignals,
+  isPureInstitutionOrPublisherName
 } from '../ingest/rss-parser.ts'
 import { 
   cacheRadarItems, 
@@ -1148,6 +1149,7 @@ export async function processRadarIngestion(
   // 1. Pertahankan firstObservedAt yang stabil (WP4 / S61-20)
   for (const pub of incomingPubs) {
     if (!pub || !pub.title || typeof pub.title !== 'string' || !pub.title.trim()) continue
+    if (isPureInstitutionOrPublisherName(pub.title, pub.publisher || pub.sourceName)) continue
     const persistedFirstObserved = knownFirstObservedTimes.get(pub.id)
     const existing = knownPublicationsMap.get(pub.id)
     if (persistedFirstObserved) {
@@ -1168,6 +1170,13 @@ export async function processRadarIngestion(
     }
     // Pastikan registry memuat objek publikasi terbaru lengkap dengan judul dan tanggal
     knownPublicationsMap.set(pub.id, pub)
+  }
+
+  // Bersihkan knownPublicationsMap dari entri non-berita / nama institusi statis
+  for (const [id, p] of knownPublicationsMap.entries()) {
+    if (!p || !p.title || isPureInstitutionOrPublisherName(p.title, p.publisher || p.sourceName)) {
+      knownPublicationsMap.delete(id)
+    }
   }
 
   const allPubs = Array.from(knownPublicationsMap.values())
@@ -1207,7 +1216,10 @@ export async function processRadarIngestion(
   }
 
   // 8. Konversi clusters ke DebunkKnowledgeEntry untuk kompatibilitas UI
-  const mappedEntries = clusters.map(cl => clusterToDebunkEntry(cl))
+  // Filter keluar entri yang hanya memuat nama instansi/publisher tanpa klaim berita
+  const mappedEntries = clusters
+    .map(cl => clusterToDebunkEntry(cl))
+    .filter(entry => entry && entry.claim && !isPureInstitutionOrPublisherName(entry.claim, entry.officialSource || entry.originalPlatform))
 
   // 9. Jalankan Scorer & Triage (Evidence-Driven)
   const curatedArchive = getCuratedArchiveDebunks()
@@ -1227,7 +1239,18 @@ export async function processRadarIngestion(
 
   // SPRINT 13: Urutkan secara deterministik berdasarkan tanggal publikasi terbaru (descending)
   // Menjamin isu teraktual dan breaking hari ini (08 Nov 2026) selalu berada di urutan teratas
-  const sortedEntries = sortRadarEntries(triagedEntries)
+  const sortedRaw = sortRadarEntries(triagedEntries)
+
+  // Deduplikasi final berdasarkan judul klaim terstandarisasi untuk mencegah duplikasi kartu di UI
+  const seenClaimsInRadar = new Set<string>()
+  const sortedEntries: DebunkKnowledgeEntry[] = []
+  for (const item of sortedRaw) {
+    const key = item.claim.trim().toLowerCase()
+    if (!seenClaimsInRadar.has(key)) {
+      seenClaimsInRadar.add(key)
+      sortedEntries.push(item)
+    }
+  }
 
   // 10. Daftarkan ke in-memory cache dan simpan ke IndexedDB
   registerLiveDebunks(sortedEntries)

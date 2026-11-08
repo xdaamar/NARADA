@@ -48,6 +48,27 @@ import type { ConnectorHealth, TopicCandidate, SearchTrendSignal, RadarTaxonomyD
 import { getOrCreateCaseForCluster } from '../engine/investigation'
 import { topicDiscoveryEngine, normalizeCandidatePhrase } from '../engine/radar/topic-discovery-engine.ts'
 import { getLastRadarResult, clearKnownPublications } from '../engine/data/live-radar-service.ts'
+import { isPureInstitutionOrPublisherName } from '../engine/ingest/rss-parser.ts'
+
+/**
+ * Filter penjamin integritas: membuang entri non-berita/nama instansi murni
+ * dan mendeduplikasi klaim identik secara kanonikal.
+ */
+function sanitizeRadarItems(items: DebunkKnowledgeEntry[]): DebunkKnowledgeEntry[] {
+  if (!items || !Array.isArray(items)) return []
+  const seenClaims = new Set<string>()
+  const result: DebunkKnowledgeEntry[] = []
+  for (const item of items) {
+    if (!item || !item.claim) continue
+    if (isPureInstitutionOrPublisherName(item.claim, item.officialSource || item.originalPlatform)) continue
+    const key = item.claim.trim().toLowerCase()
+    if (!seenClaims.has(key)) {
+      seenClaims.add(key)
+      result.push(item)
+    }
+  }
+  return sortRadarEntries(result)
+}
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterFilterOption {
@@ -71,8 +92,8 @@ const CLUSTER_OPTIONS: ClusterFilterOption[] = [
 export default function LiveRadar() {
   const navigate = useNavigate()
 
-  // State data dan filter
-  const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => getCuratedArchiveDebunks())
+  // State data dan filter (dibersihkan dari entri non-berita/nama instansi murni)
+  const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => sanitizeRadarItems(getCuratedArchiveDebunks()))
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
   const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('ALL')
   const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS' | 'WATCHLIST'>('ALL')
@@ -139,8 +160,8 @@ export default function LiveRadar() {
       }
       const entries = await radarScheduler.triggerNow()
       if (entries && entries.length > 0) {
-        // SPRINT 5 (WP6) & SPRINT 13: Konsumsi hasil kanonikal tersortir dari tanggal teraktual
-        const sorted = sortRadarEntries(entries)
+        // SPRINT 5 (WP6) & SPRINT 13: Konsumsi hasil kanonikal tersortir dan tervalidasi
+        const sorted = sanitizeRadarItems(entries)
         setDebunkItems(sorted)
         const summary = getTacticalBriefingSummary(sorted)
         setBriefingSummary(summary)
@@ -185,8 +206,8 @@ export default function LiveRadar() {
     getCachedRadarItems()
       .then((cached) => {
         if (cached && cached.length > 0) {
-          // SPRINT 5 (WP6) & SPRINT 13: Gunakan entri cache kanonikal tersortir
-          const sorted = sortRadarEntries(cached)
+          // SPRINT 5 (WP6) & SPRINT 13: Gunakan entri cache kanonikal tersortir dan tervalidasi
+          const sorted = sanitizeRadarItems(cached)
           setDebunkItems(sorted)
           const summary = getTacticalBriefingSummary(sorted)
           setBriefingSummary(summary)
@@ -262,8 +283,8 @@ export default function LiveRadar() {
     radarScheduler.setIntervalHours(syncIntervalHours)
 
     const unsubscribe = radarScheduler.addListener((newEntries) => {
-      // SPRINT 5 (WP6) & SPRINT 13: Sinkronkan data terasemen tersortir dari tanggal teraktual
-      const sorted = sortRadarEntries(newEntries)
+      // SPRINT 5 (WP6) & SPRINT 13: Sinkronkan data terasemen tersortir dan tervalidasi
+      const sorted = sanitizeRadarItems(newEntries)
       setDebunkItems(sorted)
       const summary = getTacticalBriefingSummary(sorted)
       setBriefingSummary(summary)
@@ -368,7 +389,17 @@ export default function LiveRadar() {
 
   // Filter isu berdasarkan status triage, klaster, view mode, dan query pencarian
   const filteredItems = useMemo(() => {
+    const seenClaims = new Set<string>()
     const list = debunkItems.filter(item => {
+      if (!item || !item.claim || isPureInstitutionOrPublisherName(item.claim, item.officialSource || item.originalPlatform)) {
+        return false
+      }
+      const normClaim = item.claim.trim().toLowerCase()
+      if (seenClaims.has(normClaim)) {
+        return false
+      }
+      seenClaims.add(normClaim)
+
       const matchCluster = selectedCluster === 'ALL' || item.cluster === selectedCluster
       const isHoaks = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA'
       const isResolved = item.verdict === 'FAKTA' || item.verdict === 'NETRAL'

@@ -17,6 +17,7 @@
 
 import type { AnalysisResult, DebunkKnowledgeEntry } from '../types'
 import { sortRadarEntries } from '../engine/radar/freshness-engine.ts'
+import { isPureInstitutionOrPublisherName } from '../engine/ingest/rss-parser.ts'
 import type { TopicCandidate } from '../engine/radar/radar-types.ts'
 import type { EvidenceRecord } from '../engine/investigation/investigation-types.ts'
 import type {
@@ -470,9 +471,10 @@ export async function clearAnalysesFromDB(): Promise<void> {
  * Menyimpan kumpulan entri radar klarifikasi hoaks ke cache lokal
  */
 export async function cacheRadarItems(items: DebunkKnowledgeEntry[]): Promise<void> {
+  const filtered = items.filter(it => it && it.claim && !isPureInstitutionOrPublisherName(it.claim, it.officialSource || it.originalPlatform))
   const db = await initDB()
   if (!db || isFallbackMode) {
-    items.forEach((item) => memoryFallback.radarCache.set(item.id, item))
+    filtered.forEach((item) => memoryFallback.radarCache.set(item.id, item))
     return
   }
 
@@ -480,14 +482,14 @@ export async function cacheRadarItems(items: DebunkKnowledgeEntry[]): Promise<vo
     try {
       const tx = db.transaction(STORES.RADAR_CACHE, 'readwrite')
       const store = tx.objectStore(STORES.RADAR_CACHE)
-      items.forEach((item) => store.put(item))
+      filtered.forEach((item) => store.put(item))
       tx.oncomplete = () => resolve()
       tx.onerror = () => {
-        items.forEach((item) => memoryFallback.radarCache.set(item.id, item))
+        filtered.forEach((item) => memoryFallback.radarCache.set(item.id, item))
         resolve()
       }
     } catch {
-      items.forEach((item) => memoryFallback.radarCache.set(item.id, item))
+      filtered.forEach((item) => memoryFallback.radarCache.set(item.id, item))
       resolve()
     }
   })
@@ -504,9 +506,28 @@ export async function getCachedRadarItems(): Promise<DebunkKnowledgeEntry[]> {
       (store) => store.getAll()
     )
     const items = Array.isArray(list) ? list : []
-    return sortRadarEntries(items)
+    const validItems = items.filter(it => it && it.claim && !isPureInstitutionOrPublisherName(it.claim, it.officialSource || it.originalPlatform))
+
+    // Deduplikasi judul agar entri identik dari scan berbeda tidak menumpuk di cache
+    const seen = new Set<string>()
+    const unique = validItems.filter(it => {
+      const key = it.claim.trim().toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    return sortRadarEntries(unique)
   } catch {
-    return sortRadarEntries(Array.from(memoryFallback.radarCache.values()))
+    const items = Array.from(memoryFallback.radarCache.values())
+    const validItems = items.filter(it => it && it.claim && !isPureInstitutionOrPublisherName(it.claim, it.officialSource || it.originalPlatform))
+    const seen = new Set<string>()
+    const unique = validItems.filter(it => {
+      const key = it.claim.trim().toLowerCase()
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+    return sortRadarEntries(unique)
   }
 }
 
