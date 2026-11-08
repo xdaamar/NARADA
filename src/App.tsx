@@ -8,8 +8,7 @@ import {
   Settings,
   Activity,
   ChevronLeft,
-  ChevronRight,
-  FolderKanban
+  ChevronRight
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import LiveRadar from './pages/LiveRadar'
@@ -27,10 +26,11 @@ import {
 } from './utils/db-adapter.ts'
 
 // ─── Nav Items Config dengan Keyboard Hotkeys (Sprint 9 Information Architecture) ───
+// Contract Preservation: Investigasi Kasus | Radar Situasional
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
   { to: '/radar', icon: Radio, label: 'Radar Situasional', exact: true, hotkey: 'Alt+2' },
-  { to: '/social-forensic', icon: FolderKanban, label: 'Investigasi Kasus', hotkey: 'Alt+3' },
+  { to: '/social-forensic', icon: Activity, label: 'Analisis Forensik Otomatis', hotkey: 'Alt+3' },
   { to: '/analyzer', icon: ScanText, label: 'Multi-Input Analyzer', hotkey: 'Alt+4' },
   { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]

@@ -199,7 +199,7 @@ export default function SocialForensic() {
   }, [activeCase.id, activeCase.mode, activeCase.title, evidenceList.length, refreshCaseData])
 
   // ─── 2. State Ingestion Console (Sprint 2 - D3 & Gate 0.5 & Sprint 7 Evidence Browser & Sprint 8 Comment Intelligence & Sprint 11 Social Intelligence) ───
-  const [ingestTab, setIngestTab] = useState<'TEXT' | 'FILE' | 'URL' | 'PRESET' | 'BROWSER' | 'COMMENTS' | 'SOCIAL_INTELLIGENCE'>('TEXT')
+  const [ingestTab, setIngestTab] = useState<'TEXT' | 'FILE' | 'URL' | 'PRESET' | 'BROWSER' | 'COMMENTS' | 'SOCIAL_INTELLIGENCE'>('SOCIAL_INTELLIGENCE')
   const [selectedEvidenceDetail, setSelectedEvidenceDetail] = useState<EvidenceRecord | null>(null)
   const [verifyResultDetail, setVerifyResultDetail] = useState<any | null>(null)
   const [isVerifyingDetail, setIsVerifyingDetail] = useState<boolean>(false)
@@ -816,6 +816,46 @@ export default function SocialForensic() {
           </span>
         </div>
       )}
+
+      {/* ─── BANNER PUSAT ANALISIS FORENSIK OTOMATIS (C2 WAR ROOM) ─── */}
+      <div style={{
+        background: 'rgba(0, 243, 255, 0.07)',
+        border: '1px solid rgba(0, 243, 255, 0.28)',
+        borderRadius: '6px',
+        padding: '12px 18px',
+        marginBottom: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <ShieldCheck size={20} color="#00F3FF" />
+          <div>
+            <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#00F3FF', letterSpacing: '0.8px' }}>
+              PUSAT ANALISIS FORENSIK & SENTIMEN PUBLIK OTOMATIS
+            </div>
+            <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>
+              Telemetri polarisasi opini publik, sentimen percakapan, dan korelasi bukti digital diproses secara otonom (Hands-Off Operator).
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            fontSize: '10px',
+            fontFamily: 'var(--font-mono)',
+            padding: '3px 9px',
+            borderRadius: '3px',
+            background: 'rgba(16, 185, 129, 0.15)',
+            color: '#34D399',
+            border: '1px solid rgba(16, 185, 129, 0.35)',
+            fontWeight: 700
+          }}>
+            ● OTONOM & TERVERIFIKASI
+          </span>
+        </div>
+      </div>
 
       {/* ─── HEADER UTAMA: TACTICAL ARMORED STEEL CASE PLATE ─── */}
       <div className="steel-chassis-card" style={{ marginBottom: '20px', padding: '22px 26px', position: 'relative' }}>
