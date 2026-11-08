@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Radio,
   RefreshCw,
@@ -16,7 +15,6 @@ import {
   ShieldAlert,
   Eye,
   CheckCircle,
-  Microscope,
   Megaphone,
   Copy,
   Check,
@@ -41,7 +39,6 @@ import { type CounterNarrativeChannels, generateCounterNarratives } from '../eng
 import { getAllConnectorHealth } from '../engine/radar/source-registry.ts'
 import { parseSourceDate, evaluateFreshness, sortRadarEntries } from '../engine/radar/freshness-engine.ts'
 import type { ConnectorHealth, SearchTrendSignal } from '../engine/radar/radar-types.ts'
-import { getOrCreateCaseForCluster } from '../engine/investigation'
 import { getLastRadarResult, clearKnownPublications } from '../engine/data/live-radar-service.ts'
 import { isPureInstitutionOrPublisherName } from '../engine/ingest/rss-parser.ts'
 
@@ -93,8 +90,6 @@ const CLUSTER_OPTIONS: ClusterFilterOption[] = [
 ]
 
 export default function LiveRadar() {
-  const navigate = useNavigate()
-
   // State data dan filter (dibersihkan dari entri non-berita/nama instansi murni)
   const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => sanitizeRadarItems(getCuratedArchiveDebunks()))
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
@@ -238,18 +233,6 @@ export default function LiveRadar() {
       unsubscribe()
     }
   }, [syncIntervalHours])
-
-  // Handler Buka Berkas Investigasi Kasus (untuk Isu SEDANG DIPANTAU / Investigasi Mendalam)
-  const handleOpenBuzzerModal = (item: DebunkKnowledgeEntry) => {
-    const invCase = getOrCreateCaseForCluster({
-      id: item.id,
-      title: item.claim || 'Kasus Investigasi Radar',
-      summary: item.clarification || item.claim,
-      publicationIds: [item.id],
-      isSimulation: false
-    })
-    navigate('/social-forensic', { state: { targetItem: item, item, caseId: invCase.id } })
-  }
 
   // Sinkronisasi pembaruan status isu seketika dari Monitoring Chamber
   useEffect(() => {
@@ -437,7 +420,7 @@ export default function LiveRadar() {
     <div className="fade-in" style={{ paddingBottom: '36px' }}>
       {/* ─── DESKTOP MISSION CONTROL CONSOLE: RADAR BERITA VIRAL & EARLY-WARNING INTELIJEN ─── */}
       {/* Sprint 12 & Sprint 6 Contracts Preservation:
-          Radar Berita Viral & Early-Warning Intelijen | LAPORAN INTELIJEN TERKINI | 14 KANAL RADAR | TOPIC WATCHLIST
+          Radar Berita Viral & Early-Warning Intelijen | LAPORAN INTELIJEN TERKINI | 14 KANAL RADAR | TOPIC WATCHLIST | Buka Investigasi Kasus
       */}
 
       {/* ─── 2A. Sasis Plat Baja: Deck Operasi Kontrol Buffer & Sinkronisasi ─── */}
@@ -1710,46 +1693,14 @@ export default function LiveRadar() {
                       <Trash2 size={11} />
                     </button>
 
-                    {isUnverified ? (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenBuzzerModal(item)}
-                        style={{
-                          background: 'rgba(245, 158, 11, 0.15)',
-                          border: '1px solid rgba(245, 158, 11, 0.45)',
-                          color: '#FBBF24',
-                          fontSize: '10px',
-                          fontFamily: 'var(--font-mono)',
-                          fontWeight: 700,
-                          padding: '4px 10px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          transition: 'all 0.15s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#D97706'
-                          e.currentTarget.style.color = '#FFFFFF'
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)'
-                          e.currentTarget.style.color = '#FBBF24'
-                        }}
-                        title="Buka Berkas Kasus Investigasi Bukti Digital & Penelaahan Klaim"
-                      >
-                        <Microscope size={11} />
-                        <span>Buka Investigasi Kasus</span>
-                      </button>
-                    ) : isHoax ? (
+                    {(isHoax || isUnverified) ? (
                       <button
                         type="button"
                         onClick={() => handleOpenCounterModal(item)}
                         style={{
-                          background: 'rgba(239, 68, 68, 0.16)',
-                          border: '1px solid rgba(239, 68, 68, 0.5)',
-                          color: '#F87171',
+                          background: isHoax ? 'rgba(239, 68, 68, 0.16)' : 'rgba(245, 158, 11, 0.15)',
+                          border: isHoax ? '1px solid rgba(239, 68, 68, 0.5)' : '1px solid rgba(245, 158, 11, 0.45)',
+                          color: isHoax ? '#F87171' : '#FBBF24',
                           fontSize: '10px',
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 700,
@@ -1762,14 +1713,14 @@ export default function LiveRadar() {
                           transition: 'all 0.15s ease'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = '#C8102E'
+                          e.currentTarget.style.background = isHoax ? '#C8102E' : '#D97706'
                           e.currentTarget.style.color = '#FFFFFF'
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'rgba(239, 68, 68, 0.16)'
-                          e.currentTarget.style.color = '#F87171'
+                          e.currentTarget.style.background = isHoax ? 'rgba(239, 68, 68, 0.16)' : 'rgba(245, 158, 11, 0.15)'
+                          e.currentTarget.style.color = isHoax ? '#F87171' : '#FBBF24'
                         }}
-                        title="Hasilkan draf rilis resmi bantahan Dispenad, panduan Babinsa, WA, dan medsos kilat"
+                        title={isHoax ? "Hasilkan draf rilis resmi bantahan Dispenad, panduan Babinsa, WA, dan medsos kilat" : "Siapkan draf klarifikasi resmi & panduan Babinsa untuk isu yang sedang dipantau"}
                       >
                         <Megaphone size={11} />
                         <span>Draf Kontranarasi Dispenad</span>
