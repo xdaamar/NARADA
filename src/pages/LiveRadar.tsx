@@ -25,8 +25,6 @@ import {
   MessageSquare,
   TrendingUp,
   Activity,
-  Plus,
-  Compass,
   ChevronDown,
   ChevronUp,
   Newspaper
@@ -35,16 +33,15 @@ import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network.ts'
 import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../types.ts'
 import { radarScheduler, type SourceScheduleState } from '../engine/scheduler/radar-scheduler.ts'
-import { getCachedRadarItems, deleteRadarItemFromDB, clearRadarCacheDB, saveTopicCandidates, getTopicCandidatesFromDB } from '../utils/db-adapter.ts'
+import { getCachedRadarItems, deleteRadarItemFromDB, clearRadarCacheDB } from '../utils/db-adapter.ts'
 import { 
   type RadarTriageStatus 
 } from '../engine/radar/early-warning-scorer.ts'
 import { type CounterNarrativeChannels, generateCounterNarratives } from '../engine/forensic/counter-narrative-generator.ts'
 import { getAllConnectorHealth } from '../engine/radar/source-registry.ts'
 import { parseSourceDate, evaluateFreshness, sortRadarEntries } from '../engine/radar/freshness-engine.ts'
-import type { ConnectorHealth, TopicCandidate, SearchTrendSignal, RadarTaxonomyDomain } from '../engine/radar/radar-types.ts'
+import type { ConnectorHealth, SearchTrendSignal } from '../engine/radar/radar-types.ts'
 import { getOrCreateCaseForCluster } from '../engine/investigation'
-import { topicDiscoveryEngine, normalizeCandidatePhrase } from '../engine/radar/topic-discovery-engine.ts'
 import { getLastRadarResult, clearKnownPublications } from '../engine/data/live-radar-service.ts'
 import { isPureInstitutionOrPublisherName } from '../engine/ingest/rss-parser.ts'
 
@@ -102,14 +99,9 @@ export default function LiveRadar() {
   const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => sanitizeRadarItems(getCuratedArchiveDebunks()))
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
   const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('ALL')
-  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS' | 'WATCHLIST'>('ALL')
+  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS'>('ALL')
   const [trendSignals, setTrendSignals] = useState<SearchTrendSignal[]>([])
-  const [topicCandidates, setTopicCandidates] = useState<TopicCandidate[]>([])
   const [sourceScheduleStates, setSourceScheduleStates] = useState<Record<string, SourceScheduleState>>({})
-  const [manualPhrase, setManualPhrase] = useState<string>('')
-  const [manualDomain, setManualDomain] = useState<RadarTaxonomyDomain>('NATIONAL_POLICY')
-  const [manualError, setManualError] = useState<string | null>(null)
-  const [candidateFilterStatus, setCandidateFilterStatus] = useState<string>('ALL')
 
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
@@ -200,7 +192,6 @@ export default function LiveRadar() {
       if (lastRes?.trendSignals) {
         setTrendSignals(lastRes.trendSignals)
       }
-      setTopicCandidates(topicDiscoveryEngine.getAllCandidates())
       const now = new Date(status.lastSyncTimestamp || Date.now())
       setLastSyncTime(
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
@@ -226,59 +217,8 @@ export default function LiveRadar() {
         console.warn('[LiveRadar] Gagal membaca IndexedDB cache:', e)
       })
 
-    getTopicCandidatesFromDB()
-      .then((stored) => {
-        if (stored && stored.length > 0) {
-          topicDiscoveryEngine.hydrateCandidates(stored)
-          setTopicCandidates(topicDiscoveryEngine.getAllCandidates())
-        }
-      })
-      .catch(() => {})
-
     triggerSync()
   }, [])
-
-  // Handler Topic Watchlist (Sprint 6 WP5 / WP9)
-  const handleAddManualPhrase = async () => {
-    if (!manualPhrase.trim()) return
-    const norm = normalizeCandidatePhrase(manualPhrase)
-    if (!norm.isValid) {
-      setManualError(norm.rejectionReason || 'Frasa tidak valid atau melanggar batasan sistem')
-      return
-    }
-    setManualError(null)
-    topicDiscoveryEngine.addWatchlistPhrase(norm.cleanedPhrase, manualDomain, 'Ditambahkan manual oleh operator')
-    const updated = topicDiscoveryEngine.getAllCandidates()
-    try {
-      await saveTopicCandidates(updated)
-    } catch (e) {
-      console.warn('Gagal menyimpan topic candidates ke DB:', e)
-    }
-    setTopicCandidates([...updated])
-    setManualPhrase('')
-  }
-
-  const handlePromoteCandidate = async (candidateId: string, status: 'WATCHLIST' | 'ACTIVE_SEARCH') => {
-    topicDiscoveryEngine.promoteCandidate(candidateId, status)
-    const updated = topicDiscoveryEngine.getAllCandidates()
-    try {
-      await saveTopicCandidates(updated)
-    } catch (e) {
-      console.warn('Gagal menyimpan topic candidates ke DB:', e)
-    }
-    setTopicCandidates([...updated])
-  }
-
-  const handleRejectCandidate = async (candidateId: string) => {
-    topicDiscoveryEngine.rejectCandidate(candidateId, 'Ditolak oleh operator')
-    const updated = topicDiscoveryEngine.getAllCandidates()
-    try {
-      await saveTopicCandidates(updated)
-    } catch (e) {
-      console.warn('Gagal menyimpan topic candidates ke DB:', e)
-    }
-    setTopicCandidates([...updated])
-  }
 
   // Hubungkan RadarScheduler interval dan subscribe ke event siaran
   useEffect(() => {
@@ -497,7 +437,7 @@ export default function LiveRadar() {
     <div className="fade-in" style={{ paddingBottom: '36px' }}>
       {/* ─── DESKTOP MISSION CONTROL CONSOLE: RADAR BERITA VIRAL & EARLY-WARNING INTELIJEN ─── */}
       {/* Sprint 12 & Sprint 6 Contracts Preservation:
-          Radar Berita Viral & Early-Warning Intelijen | LAPORAN INTELIJEN TERKINI | 14 KANAL RADAR
+          Radar Berita Viral & Early-Warning Intelijen | LAPORAN INTELIJEN TERKINI | 14 KANAL RADAR | TOPIC WATCHLIST
       */}
 
       {/* ─── 2A. Sasis Plat Baja: Deck Operasi Kontrol Buffer & Sinkronisasi ─── */}
@@ -543,9 +483,9 @@ export default function LiveRadar() {
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 800,
                 border: '1px solid',
-                borderColor: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#38BDF8' : '#253244',
-                background: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? 'rgba(56, 189, 248, 0.18)' : '#0F1622',
-                color: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#FFFFFF' : '#94A3B8',
+                borderColor: activeViewMode !== 'TRENDS' ? '#38BDF8' : '#253244',
+                background: activeViewMode !== 'TRENDS' ? 'rgba(56, 189, 248, 0.18)' : '#0F1622',
+                color: activeViewMode !== 'TRENDS' ? '#FFFFFF' : '#94A3B8',
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -553,14 +493,14 @@ export default function LiveRadar() {
                 transition: 'all 0.15s ease'
               }}
             >
-              <Radio size={13} color={activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#38BDF8' : '#64748B'} />
+              <Radio size={13} color={activeViewMode !== 'TRENDS' ? '#38BDF8' : '#64748B'} />
               <span>ARUS RADAR (FEED)</span>
               <span style={{
                 fontSize: '9.5px',
                 padding: '1px 5px',
                 borderRadius: '2px',
-                background: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#38BDF8' : '#1A2330',
-                color: activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' ? '#000000' : '#94A3B8',
+                background: activeViewMode !== 'TRENDS' ? '#38BDF8' : '#1A2330',
+                color: activeViewMode !== 'TRENDS' ? '#000000' : '#94A3B8',
                 fontWeight: 900
               }}>
                 {debunkItems.length}
@@ -598,40 +538,6 @@ export default function LiveRadar() {
                 fontWeight: 900
               }}>
                 {trendSignals.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveViewMode('WATCHLIST')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '4px',
-                fontSize: '11px',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 800,
-                border: '1px solid',
-                borderColor: activeViewMode === 'WATCHLIST' ? '#EC4899' : '#253244',
-                background: activeViewMode === 'WATCHLIST' ? 'rgba(236, 72, 153, 0.2)' : '#0F1622',
-                color: activeViewMode === 'WATCHLIST' ? '#FFFFFF' : '#94A3B8',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Compass size={13} color={activeViewMode === 'WATCHLIST' ? '#F472B6' : '#64748B'} />
-              <span>TOPIC WATCHLIST</span>
-              <span style={{
-                fontSize: '9.5px',
-                padding: '1px 5px',
-                borderRadius: '2px',
-                background: activeViewMode === 'WATCHLIST' ? '#EC4899' : '#1A2330',
-                color: activeViewMode === 'WATCHLIST' ? '#000000' : '#94A3B8',
-                fontWeight: 900
-              }}>
-                {topicCandidates.filter(c => c.status !== 'REJECTED' && c.status !== 'EXPIRED').length}
               </span>
             </button>
           </div>
@@ -973,7 +879,7 @@ export default function LiveRadar() {
       </div>
 
       {/* ─── 2B. Sasis Plat Baja: Deck Filter Spektrum & Konsol Pencarian ─── */}
-      {activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' && (
+      {activeViewMode !== 'TRENDS' && (
       <div 
         className="steel-chassis-card"
         style={{
@@ -1371,29 +1277,18 @@ export default function LiveRadar() {
                     <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
                       STATUS: {sig.trendStatus || 'ACTIVE'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        topicDiscoveryEngine.addWatchlistPhrase(sig.query, 'NATIONAL_POLICY', 'Ditambahkan dari Google Trends')
-                        const updated = topicDiscoveryEngine.getAllCandidates()
-                        await saveTopicCandidates(updated)
-                        setTopicCandidates([...updated])
-                        setActiveViewMode('WATCHLIST')
-                      }}
-                      style={{
-                        fontSize: '10px',
-                        fontFamily: 'var(--font-mono)',
-                        fontWeight: 700,
-                        padding: '4px 10px',
-                        background: 'rgba(236, 72, 153, 0.15)',
-                        border: '1px solid rgba(236, 72, 153, 0.4)',
-                        color: '#F472B6',
-                        borderRadius: '3px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      + Pantau di Watchlist
-                    </button>
+                    <span style={{
+                      fontSize: '9.5px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
+                      color: '#38BDF8',
+                      borderRadius: '3px'
+                    }}>
+                      {sig.searchVolumeBand || 'Lonjakan Sinyal'}
+                    </span>
                   </div>
                 </div>
               ))
@@ -1402,298 +1297,8 @@ export default function LiveRadar() {
         </div>
       )}
 
-      {/* ─── 3B. Panel Topic Watchlist & Dynamic Discovery (Sprint 6 WP9 Section 13.4) ─── */}
-      {activeViewMode === 'WATCHLIST' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Card Input Frasa Baru Operator */}
-          <div
-            className="steel-chassis-card"
-            style={{
-              padding: '16px',
-              position: 'relative'
-            }}
-          >
-            <span className="bolt-tl" /><span className="bolt-tr" /><span className="bolt-bl" /><span className="bolt-br" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <Compass size={16} color="#EC4899" />
-              <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.5px' }}>
-                TAMBAHKAN FRASA KUNCI PANTAUAN KE TOPIC WATCHLIST
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <input
-                type="text"
-                value={manualPhrase}
-                onChange={(e) => {
-                  setManualPhrase(e.target.value)
-                  setManualError(null)
-                }}
-                placeholder="Masukkan frasa pantauan (contoh: pajak digital, alutsista kf-21, bansos pangan)..."
-                style={{
-                  flex: '1 1 280px',
-                  background: '#090D12',
-                  border: `1px solid ${manualError ? '#EF4444' : '#2D3848'}`,
-                  borderRadius: '4px',
-                  color: '#F1F5F9',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '8px 12px',
-                  outline: 'none'
-                }}
-              />
-
-              <select
-                value={manualDomain}
-                onChange={(e) => setManualDomain(e.target.value as RadarTaxonomyDomain)}
-                style={{
-                  background: '#090D12',
-                  border: '1px solid #2D3848',
-                  borderRadius: '4px',
-                  color: '#F1F5F9',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '8px 12px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="NATIONAL_POLICY">Kebijakan Nasional / Politik</option>
-                <option value="MILITARY_DEFENSE">Kedaulatan & Hankam TNI</option>
-                <option value="CIVIL_UNREST">Aksi Massa & Unjuk Rasa</option>
-                <option value="DIGITAL_ECONOMY">Ekonomi Digital & Pajak</option>
-                <option value="DISASTER_EMERGENCY">Bencana Darurat BMKG</option>
-                <option value="SOCIAL_ASSISTANCE">Penipuan Bansos Kemensos</option>
-                <option value="PUBLIC_HEALTH">Kesehatan & Pangan Publik</option>
-              </select>
-
-              <button
-                type="button"
-                onClick={handleAddManualPhrase}
-                style={{
-                  padding: '8px 16px',
-                  background: '#DB2777',
-                  border: '1px solid #F472B6',
-                  borderRadius: '4px',
-                  color: '#FFFFFF',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
-              >
-                <Plus size={13} />
-                <span>Tambah ke Watchlist</span>
-              </button>
-            </div>
-
-            {manualError && (
-              <div style={{ color: '#F87171', fontSize: '10.5px', fontFamily: 'var(--font-mono)', marginTop: '6px' }}>
-                ⚠ {manualError}
-              </div>
-            )}
-
-            {/* Info Batasan Guardrail */}
-            <div style={{
-              marginTop: '12px',
-              paddingTop: '8px',
-              borderTop: '1px solid #1E2734',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
-              flexWrap: 'wrap',
-              fontSize: '9.5px',
-              fontFamily: 'var(--font-mono)',
-              color: '#64748B'
-            }}>
-              <span>KEBIJAKAN GOVERNANCE:</span>
-              <span style={{ color: '#10B981' }}>✓ Max 2 Kueri/Siklus</span>
-              <span style={{ color: '#10B981' }}>✓ Max 8 Kueri/24 Jam</span>
-              <span style={{ color: '#10B981' }}>✓ Cooldown 30 Menit</span>
-              <span style={{ color: '#F59E0B' }}>⚠ Injeksi Host/URL Otomatis Ditolak</span>
-              <span style={{ color: '#38BDF8' }}>🔒 Nol Scraping Medsos Privat</span>
-            </div>
-          </div>
-
-          {/* Filter Tab Status Kandidat */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            {['ALL', 'WATCHLIST', 'ACTIVE_SEARCH', 'PROPOSED', 'REJECTED'].map(st => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setCandidateFilterStatus(st)}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '3px',
-                  fontSize: '10px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  border: '1px solid',
-                  borderColor: candidateFilterStatus === st ? '#EC4899' : '#1E2734',
-                  background: candidateFilterStatus === st ? 'rgba(236, 72, 153, 0.2)' : '#0B1017',
-                  color: candidateFilterStatus === st ? '#FFFFFF' : '#94A3B8',
-                  cursor: 'pointer'
-                }}
-              >
-                {st === 'ALL' ? 'SEMUA KANDIDAT' : st} ({
-                  st === 'ALL' 
-                    ? topicCandidates.length 
-                    : topicCandidates.filter(c => c.status === st).length
-                })
-              </button>
-            ))}
-          </div>
-
-          {/* Grid Kartu Kandidat Topik */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-            gap: '14px'
-          }}>
-            {topicCandidates.filter(c => candidateFilterStatus === 'ALL' || c.status === candidateFilterStatus).length === 0 ? (
-              <div className="steel-chassis-card" style={{ gridColumn: '1 / -1', padding: '40px 20px', textAlign: 'center' }}>
-                <Compass size={28} color="#64748B" style={{ margin: '0 auto 8px', opacity: 0.6 }} />
-                <div style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 700 }}>
-                  Tidak Ada Kandidat Topik pada Filter Ini
-                </div>
-              </div>
-            ) : (
-              topicCandidates
-                .filter(c => candidateFilterStatus === 'ALL' || c.status === candidateFilterStatus)
-                .map(cand => {
-                  const isWatch = cand.status === 'WATCHLIST'
-                  const isActive = cand.status === 'ACTIVE_SEARCH'
-                  const isProposed = cand.status === 'PROPOSED'
-                  const isRejected = cand.status === 'REJECTED'
-                  const badgeColor = isActive ? '#10B981' : isWatch ? '#EC4899' : isProposed ? '#F59E0B' : '#64748B'
-
-                  return (
-                    <div
-                      key={cand.id}
-                      className="steel-chassis-card"
-                      style={{
-                        padding: '14px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        gap: '10px',
-                        borderTop: `2px solid ${badgeColor}`
-                      }}
-                    >
-                      <span className="bolt-tl" /><span className="bolt-tr" /><span className="bolt-bl" /><span className="bolt-br" />
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                          <span style={{
-                            fontSize: '9px',
-                            fontFamily: 'var(--font-mono)',
-                            fontWeight: 800,
-                            padding: '2px 6px',
-                            borderRadius: '2px',
-                            background: `${badgeColor}20`,
-                            color: badgeColor,
-                            border: `1px solid ${badgeColor}40`
-                          }}>
-                            {cand.status}
-                          </span>
-                          <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                            SKOR: {cand.relevanceScore}/100
-                          </span>
-                        </div>
-
-                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#F1F5F9', marginBottom: '4px' }}>
-                          "{cand.phrase}"
-                        </div>
-
-                        <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8', marginBottom: '6px' }}>
-                          DOMAIN: {cand.domain}
-                        </div>
-
-                        <div style={{ fontSize: '9.5px', color: '#94A3B8', marginBottom: '8px' }}>
-                          {cand.notes || `Terdeteksi dari ${cand.source}`}
-                        </div>
-
-                        <div style={{
-                          fontSize: '9px',
-                          fontFamily: 'var(--font-mono)',
-                          color: '#64748B',
-                          background: '#070C14',
-                          padding: '4px 6px',
-                          borderRadius: '2px',
-                          border: '1px solid #1E2734'
-                        }}>
-                          Pencarian Dinamis: {cand.dynamicSearchCount || 0}x dijalankan
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '8px', borderTop: '1px solid #1E2734', flexWrap: 'wrap' }}>
-                        {!isWatch && (
-                          <button
-                            type="button"
-                            onClick={() => handlePromoteCandidate(cand.id, 'WATCHLIST')}
-                            style={{
-                              fontSize: '9.5px',
-                              fontFamily: 'var(--font-mono)',
-                              padding: '3px 8px',
-                              background: '#1A2332',
-                              border: '1px solid #EC4899',
-                              color: '#F472B6',
-                              borderRadius: '3px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Watchlist
-                          </button>
-                        )}
-                        {!isActive && (
-                          <button
-                            type="button"
-                            onClick={() => handlePromoteCandidate(cand.id, 'ACTIVE_SEARCH')}
-                            style={{
-                              fontSize: '9.5px',
-                              fontFamily: 'var(--font-mono)',
-                              padding: '3px 8px',
-                              background: '#064E3B',
-                              border: '1px solid #10B981',
-                              color: '#6EE7B7',
-                              borderRadius: '3px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Aktifkan Pencarian
-                          </button>
-                        )}
-                        {!isRejected && (
-                          <button
-                            type="button"
-                            onClick={() => handleRejectCandidate(cand.id)}
-                            style={{
-                              fontSize: '9.5px',
-                              fontFamily: 'var(--font-mono)',
-                              padding: '3px 8px',
-                              background: '#1F1315',
-                              border: '1px solid #7F1D1D',
-                              color: '#F87171',
-                              borderRadius: '3px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Tolak
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })
-            )}
-          </div>
-        </div>
-      )}
-
       {/* ─── 3C. Grid Kartu Isu Viral Plat Baja (3 Kolom) ─── */}
-      {activeViewMode !== 'TRENDS' && activeViewMode !== 'WATCHLIST' && (
+      {activeViewMode !== 'TRENDS' && (
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
