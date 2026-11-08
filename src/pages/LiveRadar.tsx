@@ -1338,10 +1338,14 @@ export default function LiveRadar() {
             const isExpanded = isAllExpanded || expandedCardIds.has(item.id)
             const rawClarification = item.clarification || item.factCheckReference?.explanation || ''
             const textToDisplay = rawClarification.trim()
-            // Kapasitas teks tray kartu plat baja: 380 karakter (~6-7 baris teks lengkap)
-            // Jika teks <= 380 karakter, ruang kartu cukup longgar sehingga ditampilkan seutuhnya tanpa akhiran (...)
-            const MAX_COLLAPSED_CHARS = 380
-            const isLongText = textToDisplay.length > MAX_COLLAPSED_CHARS
+            // Bersihkan trailing ellipsis bawaan RSS / agregator agar teks yang muat tidak tampak terpotong semu
+            const cleanText = textToDisplay.replace(/\s*(\.\.\.|…|\[\.\.\.\]|\[…\])\s*$/, '').trim()
+            // Kapasitas fisik kartu standar (430px) untuk menampung teks tanpa overflow:
+            // - Bila headline panjang (>85 char = 3 baris): sisa ruang tray ~460 karakter (~8 baris teks)
+            // - Bila headline normal (<=85 char = 1-2 baris): sisa ruang tray ~540 karakter (~10 baris teks)
+            const maxCardCapacity = item.claim.length > 85 ? 460 : 540
+            // isLongText HANYA true bila teks benar-benar melebihi kapasitas fisik kartu!
+            const isLongText = cleanText.length > maxCardCapacity
 
             return (
               <div
@@ -1540,7 +1544,7 @@ export default function LiveRadar() {
                       flex: 1,
                       display: 'flex',
                       flexDirection: 'column',
-                      justifyContent: 'space-between',
+                      justifyContent: 'flex-start',
                       transition: 'all 0.2s ease'
                     }}
                   >
@@ -1566,26 +1570,29 @@ export default function LiveRadar() {
                         wordBreak: 'break-word'
                       }}>
                         {isExpanded ? (
-                          textToDisplay
+                          cleanText
                         ) : (
                           isLongText ? (
                             (() => {
-                              const trimmed = textToDisplay.slice(0, MAX_COLLAPSED_CHARS)
+                              // Teks melebihi kapasitas kartu: penuhi kartu sampai batas kapasitas (~8-9 baris),
+                              // potong rapi di batas kata terakhir, dan akhiri dengan (...)
+                              const targetChars = maxCardCapacity - 50
+                              const trimmed = cleanText.slice(0, targetChars)
                               const lastSpace = trimmed.lastIndexOf(' ')
-                              const cleanSnippet = lastSpace > MAX_COLLAPSED_CHARS - 35 ? trimmed.slice(0, lastSpace) : trimmed
+                              const cleanSnippet = lastSpace > targetChars - 40 ? trimmed.slice(0, lastSpace) : trimmed
                               return `${cleanSnippet.trim()}...`
                             })()
                           ) : (
-                            // Ruang kartu longgar & muat: Tampilkan teks utuh tanpa akhiran '...' buatan
-                            textToDisplay.replace(/\s*\.\.\.\s*$/, '')
+                            // Teks muat penuh di dalam kartu: Tampilkan 100% utuh tanpa akhiran '...' dan tanpa tombol baca selengkapnya
+                            cleanText
                           )
                         )}
                       </div>
                     </div>
 
-                    {/* Tombol Baca Selengkapnya / Tutup Cuplikan (Hanya muncul jika teks melebihi space kartu) */}
+                    {/* Tombol Baca Selengkapnya / Tutup Cuplikan (HANYA muncul jika teks melebihi space kartu) */}
                     {isLongText && (
-                      <div style={{ marginTop: '10px', paddingTop: '6px', borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
+                      <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed rgba(255, 255, 255, 0.08)' }}>
                         <button
                           type="button"
                           onClick={() => toggleCardExpand(item.id)}
