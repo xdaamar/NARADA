@@ -760,61 +760,74 @@ export default function SocialForensic() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        background: '#121820',
-        border: '1px solid #222C38',
+        background: '#0D141F',
+        border: '1px solid #233144',
         borderRadius: '6px',
-        padding: '6px 12px',
-        marginBottom: '20px',
-        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
+        padding: '6px 10px',
+        marginBottom: '20px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
+            type="button"
             onClick={() => setForensicViewMode('POST_ANALYZER')}
             style={{
-              padding: '8px 16px',
+              padding: '7px 14px',
               borderRadius: '4px',
-              background: forensicViewMode === 'POST_ANALYZER' ? 'rgba(0, 243, 255, 0.15)' : 'transparent',
-              border: `1px solid ${forensicViewMode === 'POST_ANALYZER' ? '#00F3FF' : 'transparent'}`,
-              color: forensicViewMode === 'POST_ANALYZER' ? '#00F3FF' : '#94A3B8',
-              fontSize: '12px',
+              background: forensicViewMode === 'POST_ANALYZER'
+                ? 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)'
+                : '#101622',
+              border: forensicViewMode === 'POST_ANALYZER' ? '1px solid #4D627E' : '1px solid #1F2B3B',
+              borderBottom: forensicViewMode === 'POST_ANALYZER' ? '2px solid #0D131B' : '1px solid #1F2B3B',
+              boxShadow: forensicViewMode === 'POST_ANALYZER'
+                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.6)'
+                : 'none',
+              color: forensicViewMode === 'POST_ANALYZER' ? '#F8FAFC' : '#64748B',
+              fontSize: '11.5px',
               fontWeight: 800,
               fontFamily: 'var(--font-mono)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
+              gap: '7px',
+              transition: 'all 0.15s ease'
             }}
           >
-            <Share2 size={14} />
+            <Share2 size={13} color={forensicViewMode === 'POST_ANALYZER' ? '#38BDF8' : '#64748B'} />
             ANALISIS POSTINGAN MEDSOS &amp; KOMENTAR
           </button>
 
           <button
+            type="button"
             onClick={() => setForensicViewMode('CASE_ARCHIVE')}
             style={{
-              padding: '8px 16px',
+              padding: '7px 14px',
               borderRadius: '4px',
-              background: forensicViewMode === 'CASE_ARCHIVE' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
-              border: `1px solid ${forensicViewMode === 'CASE_ARCHIVE' ? '#D4AF37' : 'transparent'}`,
-              color: forensicViewMode === 'CASE_ARCHIVE' ? '#D4AF37' : '#94A3B8',
-              fontSize: '12px',
+              background: forensicViewMode === 'CASE_ARCHIVE'
+                ? 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)'
+                : '#101622',
+              border: forensicViewMode === 'CASE_ARCHIVE' ? '1px solid #4D627E' : '1px solid #1F2B3B',
+              borderBottom: forensicViewMode === 'CASE_ARCHIVE' ? '2px solid #0D131B' : '1px solid #1F2B3B',
+              boxShadow: forensicViewMode === 'CASE_ARCHIVE'
+                ? 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.6)'
+                : 'none',
+              color: forensicViewMode === 'CASE_ARCHIVE' ? '#F8FAFC' : '#64748B',
+              fontSize: '11.5px',
               fontWeight: 800,
               fontFamily: 'var(--font-mono)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s'
+              gap: '7px',
+              transition: 'all 0.15s ease'
             }}
           >
-            <Database size={14} />
+            <Database size={13} color={forensicViewMode === 'CASE_ARCHIVE' ? '#FBBF24' : '#64748B'} />
             ARSIP KASUS &amp; RADAR FORENSIK (SPRINT 11)
           </button>
         </div>
 
-        <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-          PUSSIBERAD KARTIKA HACKATHON
+        <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.5px' }}>
+          CHASSIS PLAT BAJA PUSSIBERAD
         </div>
       </div>
 

@@ -4,16 +4,15 @@
  * PUSSIBERAD TNI AD × CODEPOLITAN (Kartika Cyber Hackathon 2026)
  * ══════════════════════════════════════════════════════════════════════════
  * 
- * Antarmuka Taktis Plat Besi Baja (4-Deck Layout):
- * Deck 1: Profil Konten & Metrik Kreator (Kapsi, Akun, Followers, Likes, Views, Komentar)
- * Deck 2: Top Komentar Terpopuler (Likes Asli + Usernames Terverifikasi)
- * Deck 3: Kluster Komentar Template / Copypasta (Jaccard Similarity >= 0.70)
- * Deck 4: Indikator Pola Buzzer & Bot (Ringkasan Narasi, Burst Velocity, Sampel Bukti)
- * 
- * Dilengkapi:
- * - Tri-Engine Pipeline: Official API, Browser Mandiri (CAPTCHA Solver), & Direct Ingest
- * - Skenario Uji Siap Pakai (Preloaded Test Cases) untuk YouTube, TikTok, IG, Threads
- * - Doktrin PUSSIBERAD: 100% Real Data, Zero Fake Simulation
+ * TEMA PLAT BESI BAJA INDUSTRIAL MILITER:
+ * - Menggunakan chassis plat besi baja (.steel-chassis-card) dengan 4 baut hex sudut.
+ * - Tanpa glow warna-warni yang mencolok. Warna hanya pada teks informasi data.
+ * - Tombol kokoh bertekstur bevel metalik baja.
+ * - 4-Deck Intelligence Layout:
+ *   Deck 1: Profil Konten & Metrik Kreator
+ *   Deck 2: Top Komentar Terpopuler (Likes Asli + Username)
+ *   Deck 3: Kluster Komentar Templat / Copypasta (Jaccard >= 0.70)
+ *   Deck 4: Indikator Pola Buzzer & Bot Terkoordinasi
  * ══════════════════════════════════════════════════════════════════════════
  */
 
@@ -58,7 +57,6 @@ export default function SocialPostIntelligenceConsole() {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
   const [analysisProgress, setAnalysisProgress] = useState<string>('')
   const [analysisResult, setAnalysisResult] = useState<SocialPostAnalysisResult | null>(() => {
-    // Inisialisasi dengan demo pertama agar UI langsung terisi data kaya
     return PRELOADED_TEST_SCENARIOS[0].mockResult
   })
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -204,34 +202,39 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
   const fmt = (n?: number) => (n !== undefined ? n.toLocaleString('id-ID') : '—')
 
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* ─── 1. HEADER TAKTIS MISI ─── */}
-      <div style={{
-        background: 'linear-gradient(180deg, #161D26 0%, #0F141C 100%)',
-        border: '1px solid #2A3644',
-        borderLeft: '4px solid #00F3FF',
-        borderRadius: '6px',
-        padding: '16px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.4)'
-      }}>
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      {/* ─── 1. HEADER TAKTIS MISI (CHASSIS PLAT BESI BAJA) ─── */}
+      <div 
+        className="steel-chassis-card"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+          padding: '16px 20px',
+          position: 'relative'
+        }}
+      >
+        <span className="bolt-tl" />
+        <span className="bolt-tr" />
+        <span className="bolt-bl" />
+        <span className="bolt-br" />
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '6px',
-            background: 'rgba(0, 243, 255, 0.1)',
-            border: '1px solid rgba(0, 243, 255, 0.3)',
+            width: '38px',
+            height: '38px',
+            borderRadius: '4px',
+            background: 'linear-gradient(180deg, #253346 0%, #151F2C 100%)',
+            border: '1px solid #3A4A5E',
+            borderBottom: '2px solid #0D131B',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#00F3FF'
+            color: '#94A3B8'
           }}>
-            <Share2 size={22} />
+            <Share2 size={20} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -239,20 +242,20 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                 fontSize: '10px',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 800,
-                color: '#00F3FF',
-                letterSpacing: '1.5px',
+                color: '#38BDF8',
+                letterSpacing: '1px',
                 textTransform: 'uppercase'
               }}>
-                TACTICAL OSINT INTELLIGENCE
+                INTELIJEN MEDIA SOSIAL
               </span>
-              <span style={{ fontSize: '10px', color: '#64748B' }}>•</span>
-              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+              <span style={{ fontSize: '10px', color: '#475569' }}>•</span>
+              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
                 PUSSIBERAD TNI AD
               </span>
             </div>
             <h1 style={{
               margin: '2px 0 0 0',
-              fontSize: '18px',
+              fontSize: '17px',
               fontWeight: 800,
               fontFamily: 'var(--font-display)',
               letterSpacing: '1px',
@@ -261,8 +264,8 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
             }}>
               Analisis Postingan &amp; Komentar Media Sosial
             </h1>
-            <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#94A3B8' }}>
-              Ekstraksi konten publik, metrik kreator, top komentar, kluster templat copypasta, dan pola buzzer terkoordinasi.
+            <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#94A3B8' }}>
+              Ekstraksi konten publik, akun kreator, top komentar, templat copypasta, dan pola buzzer terkoordinasi.
             </p>
           </div>
         </div>
@@ -270,96 +273,98 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* Status Runtime */}
           <div style={{
-            padding: '6px 12px',
-            borderRadius: '4px',
-            background: isElectronAvailable ? 'rgba(16, 185, 129, 0.1)' : 'rgba(212, 175, 55, 0.1)',
-            border: `1px solid ${isElectronAvailable ? '#10B981' : '#D4AF37'}`,
+            padding: '5px 10px',
+            borderRadius: '3px',
+            background: '#101622',
+            border: '1px solid #233144',
             display: 'flex',
             alignItems: 'center',
             gap: '6px'
           }}>
-            <Globe size={13} color={isElectronAvailable ? '#10B981' : '#D4AF37'} />
+            <Globe size={12} color={isElectronAvailable ? '#34D399' : '#FBBF24'} />
             <span style={{
-              fontSize: '10px',
+              fontSize: '9.5px',
               fontFamily: 'var(--font-mono)',
               fontWeight: 700,
-              color: isElectronAvailable ? '#10B981' : '#D4AF37',
+              color: isElectronAvailable ? '#34D399' : '#FBBF24',
               letterSpacing: '0.5px'
             }}>
-              {isElectronAvailable ? 'ELECTRON CHROMIUM READY' : 'WEB RUNTIME READY'}
+              {isElectronAvailable ? 'DESKTOP CHROMIUM' : 'WEB RUNTIME'}
             </span>
           </div>
 
           {/* Tombol Salin Ringkasan */}
           {analysisResult && (
             <button
+              type="button"
               onClick={handleCopySummary}
               title="Salin Ringkasan Laporan Intelijen"
               style={{
-                padding: '6px 14px',
+                padding: '6px 12px',
                 borderRadius: '4px',
-                background: '#1F2937',
-                border: '1px solid #374151',
-                color: copyFeedback ? '#10B981' : '#E2E8F0',
+                background: 'linear-gradient(180deg, #263445 0%, #151F2C 100%)',
+                border: '1px solid #3B4D64',
+                borderBottom: '2px solid #0D131B',
+                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.5)',
+                color: copyFeedback ? '#34D399' : '#CBD5E1',
                 fontSize: '11px',
                 fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s'
+                gap: '6px'
               }}
             >
-              {copyFeedback ? <Check size={13} color="#10B981" /> : <Copy size={13} />}
+              {copyFeedback ? <Check size={12} color="#34D399" /> : <Copy size={12} />}
               {copyFeedback ? 'TERSALIN!' : 'SALIN LAPORAN'}
             </button>
           )}
         </div>
       </div>
 
-      {/* ─── 2. KONSOL KONTROL TAKTIS (INPUT BAR) ─── */}
-      <div style={{
-        background: '#121820',
-        border: '1px solid #222C38',
-        borderRadius: '6px',
-        padding: '18px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
-      }}>
+      {/* ─── 2. KONSOL KONTROL TAKTIS (CHASSIS PLAT BESI BAJA) ─── */}
+      <div 
+        className="steel-chassis-card"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+          padding: '16px 20px',
+          position: 'relative'
+        }}
+      >
+        <span className="bolt-tl" />
+        <span className="bolt-tr" />
+        <span className="bolt-bl" />
+        <span className="bolt-br" />
+
         {/* Baris 1: Platform Selector */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#94A3B8' }}>
+            <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#64748B' }}>
               TARGET PLATFORM:
             </span>
             {(['youtube', 'tiktok', 'instagram', 'threads'] as SocialMediaType[]).map(plat => {
               const isSelected = selectedPlatform === plat
-              const colorMap: Record<SocialMediaType, string> = {
-                youtube: '#FF0000',
-                tiktok: '#00F3FF',
-                instagram: '#E1306C',
-                threads: '#FFFFFF'
-              }
-              const activeColor = colorMap[plat]
-
               return (
                 <button
                   key={plat}
+                  type="button"
                   onClick={() => setSelectedPlatform(plat)}
                   style={{
-                    padding: '6px 14px',
-                    borderRadius: '4px',
+                    padding: '5px 12px',
+                    borderRadius: '3px',
                     fontSize: '11px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 800,
                     textTransform: 'uppercase',
                     cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    background: isSelected ? `${activeColor}22` : '#1A232F',
-                    border: `1px solid ${isSelected ? activeColor : '#2A3644'}`,
-                    color: isSelected ? activeColor : '#94A3B8'
+                    background: isSelected ? 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)' : '#101622',
+                    border: isSelected ? '1px solid #4D627E' : '1px solid #1F2B3B',
+                    borderBottom: isSelected ? '2px solid #0D131B' : '1px solid #1F2B3B',
+                    boxShadow: isSelected ? 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.6)' : 'none',
+                    color: isSelected ? '#F8FAFC' : '#94A3B8'
                   }}
                 >
                   {plat}
@@ -370,21 +375,23 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
 
           {/* Quick Preloaded Demo Scenarios */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-              DEMO KASUS UJI:
+            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#475569' }}>
+              SKENARIO UJI:
             </span>
             {PRELOADED_TEST_SCENARIOS.map(sc => (
               <button
                 key={sc.id}
+                type="button"
                 onClick={() => handleSelectScenario(sc)}
                 title={sc.description}
                 style={{
-                  padding: '4px 8px',
+                  padding: '3px 8px',
                   borderRadius: '3px',
-                  background: targetUrl === sc.url ? 'rgba(0, 243, 255, 0.15)' : '#1A232F',
-                  border: `1px solid ${targetUrl === sc.url ? '#00F3FF' : '#2A3644'}`,
-                  color: targetUrl === sc.url ? '#00F3FF' : '#CBD5E1',
-                  fontSize: '10px',
+                  background: targetUrl === sc.url ? 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)' : '#101622',
+                  border: targetUrl === sc.url ? '1px solid #4D627E' : '1px solid #1F2B3B',
+                  borderBottom: targetUrl === sc.url ? '2px solid #0D131B' : '1px solid #1F2B3B',
+                  color: targetUrl === sc.url ? '#F8FAFC' : '#64748B',
+                  fontSize: '9.5px',
                   fontFamily: 'var(--font-mono)',
                   fontWeight: 700,
                   cursor: 'pointer'
@@ -396,9 +403,9 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
           </div>
         </div>
 
-        {/* Baris 1B: Mode Ekstraksi (Auto API, Browser WAF, Ingest) */}
+        {/* Baris 1B: Mode Ekstraksi (Pills Baja) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#64748B' }}>
+          <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#64748B' }}>
             METODE:
           </span>
           {[
@@ -410,6 +417,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
             return (
               <button
                 key={m.id}
+                type="button"
                 onClick={() => {
                   setExtractionMode(m.id)
                   if (m.id === 'BROWSER') setIsBrowserOpen(true)
@@ -418,9 +426,10 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                 style={{
                   padding: '3px 10px',
                   borderRadius: '3px',
-                  background: isSel ? 'rgba(0, 243, 255, 0.15)' : '#161D26',
-                  border: `1px solid ${isSel ? '#00F3FF' : '#2A3644'}`,
-                  color: isSel ? '#00F3FF' : '#94A3B8',
+                  background: isSel ? 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)' : '#101622',
+                  border: isSel ? '1px solid #4D627E' : '1px solid #1F2B3B',
+                  borderBottom: isSel ? '2px solid #0D131B' : '1px solid #1F2B3B',
+                  color: isSel ? '#F8FAFC' : '#64748B',
                   fontSize: '10px',
                   fontFamily: 'var(--font-mono)',
                   fontWeight: 700,
@@ -443,12 +452,12 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               placeholder={`Tempel tautan postingan ${selectedPlatform.toUpperCase()} (misal: https://${selectedPlatform}.com/...)`}
               style={{
                 width: '100%',
-                padding: '12px 14px',
+                padding: '10px 14px',
                 borderRadius: '4px',
-                background: '#0B0F15',
-                border: '1px solid #2A3644',
+                background: '#0B1017',
+                border: '1px solid #253346',
                 color: '#F8FAFC',
-                fontSize: '13px',
+                fontSize: '12.5px',
                 fontFamily: 'var(--font-mono)',
                 outline: 'none',
                 boxSizing: 'border-box'
@@ -456,18 +465,25 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
             />
           </div>
 
-          {/* Tombol Mulai Analisis */}
+          {/* Tombol Mulai Analisis Plat Baja Solid */}
           <button
+            type="button"
             onClick={handleRunAnalysis}
             disabled={isAnalyzing}
             style={{
-              padding: '0 24px',
-              minHeight: '42px',
+              padding: '0 22px',
+              minHeight: '38px',
               borderRadius: '4px',
-              background: isAnalyzing ? '#334155' : 'linear-gradient(180deg, #00F3FF 0%, #00B4D8 100%)',
-              border: 'none',
-              color: '#0A0E14',
-              fontSize: '12px',
+              background: isAnalyzing 
+                ? '#1A232F' 
+                : 'linear-gradient(180deg, #32435A 0%, #1A2534 100%)',
+              border: isAnalyzing ? '1px solid #233144' : '1px solid #546C8C',
+              borderBottom: isAnalyzing ? '1px solid #233144' : '2px solid #0B1017',
+              boxShadow: isAnalyzing 
+                ? 'none' 
+                : 'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 3px 6px rgba(0, 0, 0, 0.7)',
+              color: '#F8FAFC',
+              fontSize: '11.5px',
               fontFamily: 'var(--font-display)',
               fontWeight: 800,
               letterSpacing: '1px',
@@ -475,49 +491,29 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               cursor: isAnalyzing ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              boxShadow: isAnalyzing ? 'none' : '0 2px 10px rgba(0, 243, 255, 0.3)'
+              gap: '7px'
             }}
           >
-            {isAnalyzing ? <RotateCw size={15} className="spin" /> : <Zap size={15} />}
+            {isAnalyzing ? <RotateCw size={14} className="spin" color="#38BDF8" /> : <Zap size={14} color="#38BDF8" />}
             {isAnalyzing ? 'MEMPROSES...' : 'MULAI ANALISIS'}
           </button>
 
-          {/* Tombol Buka Browser Mandiri */}
+          {/* Tombol Buka Browser Mandiri Plat Baja */}
           <button
+            type="button"
             onClick={handleToggleBrowser}
             title="Buka Peramban Mandiri Chromium untuk Menyelesaikan CAPTCHA atau Verifikasi WAF"
             style={{
-              padding: '0 16px',
-              minHeight: '42px',
+              padding: '0 14px',
+              minHeight: '38px',
               borderRadius: '4px',
-              background: isBrowserOpen ? 'rgba(0, 243, 255, 0.15)' : '#1A232F',
-              border: `1px solid ${isBrowserOpen ? '#00F3FF' : '#2A3644'}`,
-              color: isBrowserOpen ? '#00F3FF' : '#CBD5E1',
-              fontSize: '11px',
-              fontWeight: 700,
-              fontFamily: 'var(--font-mono)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <Globe size={14} />
-            {isBrowserOpen ? 'TUTUP BROWSER' : 'BROWSER MANDIRI'}
-          </button>
-
-          {/* Tombol Toggle Ingest Komentar */}
-          <button
-            onClick={() => setIsIngestOpen(prev => !prev)}
-            title="Buka Konsol Ingest untuk Salin-Tempel Komentar Mentah"
-            style={{
-              padding: '0 16px',
-              minHeight: '42px',
-              borderRadius: '4px',
-              background: isIngestOpen ? 'rgba(212, 175, 55, 0.15)' : '#1A232F',
-              border: `1px solid ${isIngestOpen ? '#D4AF37' : '#2A3644'}`,
-              color: isIngestOpen ? '#D4AF37' : '#CBD5E1',
+              background: isBrowserOpen 
+                ? 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)' 
+                : 'linear-gradient(180deg, #243242 0%, #131B24 100%)',
+              border: isBrowserOpen ? '1px solid #4D627E' : '1px solid #384A61',
+              borderBottom: '2px solid #0A0F15',
+              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.5)',
+              color: isBrowserOpen ? '#F8FAFC' : '#CBD5E1',
               fontSize: '11px',
               fontWeight: 700,
               fontFamily: 'var(--font-mono)',
@@ -527,29 +523,58 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               gap: '6px'
             }}
           >
-            <Sliders size={14} />
-            INGEST KOMENTAR
-            {isIngestOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <Globe size={13} color="#94A3B8" />
+            {isBrowserOpen ? 'TUTUP BROWSER' : 'BROWSER MANDIRI'}
+          </button>
+
+          {/* Tombol Toggle Ingest Komentar Plat Baja */}
+          <button
+            type="button"
+            onClick={() => setIsIngestOpen(prev => !prev)}
+            title="Buka Konsol Ingest untuk Salin-Tempel Komentar Mentah"
+            style={{
+              padding: '0 14px',
+              minHeight: '38px',
+              borderRadius: '4px',
+              background: isIngestOpen 
+                ? 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)' 
+                : 'linear-gradient(180deg, #243242 0%, #131B24 100%)',
+              border: isIngestOpen ? '1px solid #4D627E' : '1px solid #384A61',
+              borderBottom: '2px solid #0A0F15',
+              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.5)',
+              color: isIngestOpen ? '#F8FAFC' : '#CBD5E1',
+              fontSize: '11px',
+              fontWeight: 700,
+              fontFamily: 'var(--font-mono)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            <Sliders size={13} color="#94A3B8" />
+            INGEST
+            {isIngestOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
         </div>
 
         {/* Drawer Ingest Komentar Mentah */}
         {isIngestOpen && (
           <div style={{
-            background: '#0B0F15',
-            border: '1px solid #2A3644',
+            background: '#0B1017',
+            border: '1px solid #233144',
             borderRadius: '4px',
-            padding: '14px',
+            padding: '12px',
             display: 'flex',
             flexDirection: 'column',
             gap: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#D4AF37' }}>
-                KONSOL INGEST KOMENTAR MENTAH (ANTI-WAF FAIL-SAFE)
+              <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#FBBF24' }}>
+                KONSOL INGEST KOMENTAR MENTAH (FAIL-SAFE)
               </span>
-              <span style={{ fontSize: '10px', color: '#64748B' }}>
-                Format: @username: komentar ATAU baris demi baris ATAU format JSON array
+              <span style={{ fontSize: '9.5px', color: '#64748B' }}>
+                Format: @username: komentar ATAU baris demi baris ATAU JSON array
               </span>
             </div>
             <textarea
@@ -560,11 +585,11 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               style={{
                 width: '100%',
                 padding: '10px',
-                borderRadius: '4px',
-                background: '#121820',
-                border: '1px solid #222C38',
+                borderRadius: '3px',
+                background: '#0F151E',
+                border: '1px solid #1E2B3B',
                 color: '#E2E8F0',
-                fontSize: '12px',
+                fontSize: '11.5px',
                 fontFamily: 'var(--font-mono)',
                 outline: 'none',
                 boxSizing: 'border-box',
@@ -577,18 +602,18 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
         {/* Notifikasi Progres Analisis */}
         {isAnalyzing && (
           <div style={{
-            padding: '10px 14px',
-            borderRadius: '4px',
-            background: 'rgba(0, 243, 255, 0.08)',
-            border: '1px solid rgba(0, 243, 255, 0.2)',
+            padding: '8px 12px',
+            borderRadius: '3px',
+            background: '#0D141F',
+            border: '1px solid #233144',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            color: '#00F3FF',
-            fontSize: '12px',
+            gap: '8px',
+            color: '#38BDF8',
+            fontSize: '11.5px',
             fontFamily: 'var(--font-mono)'
           }}>
-            <RotateCw size={14} className="spin" />
+            <RotateCw size={13} className="spin" />
             <span>{analysisProgress}</span>
           </div>
         )}
@@ -596,17 +621,17 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
         {/* Notifikasi Error */}
         {errorMessage && (
           <div style={{
-            padding: '10px 14px',
-            borderRadius: '4px',
-            background: 'rgba(255, 42, 95, 0.1)',
-            border: '1px solid #FF2A5F',
-            color: '#FF6B8B',
-            fontSize: '12px',
+            padding: '8px 12px',
+            borderRadius: '3px',
+            background: '#1A1215',
+            border: '1px solid #4C1D24',
+            color: '#F87171',
+            fontSize: '11.5px',
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
           }}>
-            <AlertTriangle size={15} color="#FF2A5F" />
+            <AlertTriangle size={14} color="#F87171" />
             <span>{errorMessage}</span>
           </div>
         )}
@@ -614,30 +639,36 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
 
       {/* ─── 3. BROWSER MANDIRI / CAPTCHA SOLVER CONTAINER (SAAT AKTIF) ─── */}
       {isBrowserOpen && (
-        <div style={{
-          background: '#0B0F15',
-          border: '2px solid #00F3FF',
-          borderRadius: '6px',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 8px 32px rgba(0, 243, 255, 0.2)'
-        }}>
+        <div 
+          className="steel-chassis-card"
+          style={{
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '0',
+            position: 'relative'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
           {/* Top Bar Browser */}
           <div style={{
-            background: '#161D26',
-            padding: '10px 16px',
-            borderBottom: '1px solid #2A3644',
+            background: '#141C26',
+            padding: '8px 14px',
+            borderBottom: '1px solid #233144',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '12px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FF5F56' }} />
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FFBD2E' }} />
-              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27C93F' }} />
-              <span style={{ marginLeft: '8px', fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#00F3FF' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }} />
+              <span style={{ marginLeft: '6px', fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#94A3B8' }}>
                 CHROMIUM SANDBOX SIDECAR
               </span>
             </div>
@@ -645,11 +676,11 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
             <div style={{
               flex: 1,
               maxWidth: '600px',
-              padding: '4px 12px',
-              borderRadius: '4px',
-              background: '#0B0F15',
-              border: '1px solid #222C38',
-              fontSize: '11px',
+              padding: '4px 10px',
+              borderRadius: '3px',
+              background: '#0B1017',
+              border: '1px solid #1F2B3B',
+              fontSize: '10.5px',
               fontFamily: 'var(--font-mono)',
               color: '#94A3B8',
               overflow: 'hidden',
@@ -660,50 +691,53 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
             </div>
 
             <button
+              type="button"
               onClick={() => setIsBrowserOpen(false)}
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#94A3B8',
+                color: '#64748B',
                 cursor: 'pointer',
                 padding: '4px'
               }}
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
 
           {/* Banner Peringatan CAPTCHA Interaktif */}
           <div style={{
-            padding: '8px 16px',
-            background: 'rgba(212, 175, 55, 0.12)',
-            borderBottom: '1px solid rgba(212, 175, 55, 0.3)',
+            padding: '7px 14px',
+            background: '#0D141F',
+            borderBottom: '1px solid #233144',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            fontSize: '11px',
-            color: '#FDE047'
+            fontSize: '10.5px',
+            color: '#CBD5E1'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={14} color="#FDE047" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <AlertTriangle size={13} color="#FBBF24" />
               <span>
                 <strong>TUNTUNAN OPERATOR:</strong> Jika muncul tantangan verifikasi (puzzle slider TikTok atau Cloudflare), selesaikan langsung pada layar peramban.
               </span>
             </div>
             <button
+              type="button"
               onClick={handleRunAnalysis}
               style={{
-                padding: '4px 10px',
-                borderRadius: '3px',
-                background: '#00F3FF',
-                border: 'none',
-                color: '#0A0E14',
-                fontSize: '10px',
+                padding: '3px 8px',
+                borderRadius: '2px',
+                background: 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)',
+                border: '1px solid #4D627E',
+                color: '#F8FAFC',
+                fontSize: '9.5px',
+                fontFamily: 'var(--font-mono)',
                 fontWeight: 800,
                 cursor: 'pointer'
               }}
             >
-              EKSTRAK DARI HALAMAN INI
+              EKSTRAK DATA
             </button>
           </div>
 
@@ -711,8 +745,8 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
           <div
             ref={browserContainerRef}
             style={{
-              height: '420px',
-              background: '#0F141C',
+              height: '400px',
+              background: '#090D13',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -721,22 +755,22 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
           >
             {isElectronAvailable ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
-                <Globe size={40} color="#00F3FF" style={{ marginBottom: '12px' }} />
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F9' }}>
+                <Globe size={36} color="#64748B" style={{ marginBottom: '10px' }} />
+                <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#F1F5F9' }}>
                   {browserLoading ? 'Memuat Halaman Target Melalui Chromium Sandbox...' : 'WebContentsView Chromium Sedang Beroperasi'}
                 </div>
-                <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
+                <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '3px' }}>
                   Jendela peramban terisolasi aktif. Konten terisolasi dari lingkungan utama sistem.
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '30px', maxWidth: '520px' }}>
-                <Globe size={40} color="#D4AF37" style={{ marginBottom: '12px' }} />
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#FDE047' }}>
+              <div style={{ textAlign: 'center', padding: '24px', maxWidth: '500px' }}>
+                <Globe size={36} color="#FBBF24" style={{ marginBottom: '10px' }} />
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F9' }}>
                   Simulasi Browser Mandiri (Mode Web)
                 </div>
-                <p style={{ fontSize: '12px', color: '#94A3B8', lineHeight: 1.5, marginTop: '6px' }}>
-                  Pada lingkungan peramban Web, peramban Chromium terisolasi berjalan di jendela terpisah. Anda dapat membuka tautan target di tab baru, lalu salin komentarnya ke kotak <strong>Ingest Komentar</strong>.
+                <p style={{ fontSize: '11px', color: '#94A3B8', lineHeight: 1.5, marginTop: '5px' }}>
+                  Pada peramban Web, peramban Chromium terisolasi berjalan di jendela terpisah. Anda dapat membuka tautan target di tab baru, lalu salin komentarnya ke kotak <strong>Ingest Komentar</strong>.
                 </p>
                 <a
                   href={targetUrl}
@@ -745,19 +779,20 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
-                    borderRadius: '4px',
-                    background: '#1E293B',
-                    border: '1px solid #334155',
-                    color: '#00F3FF',
-                    fontSize: '11px',
+                    gap: '5px',
+                    padding: '6px 12px',
+                    borderRadius: '3px',
+                    background: '#16202E',
+                    border: '1px solid #2B384E',
+                    color: '#38BDF8',
+                    fontSize: '10.5px',
+                    fontFamily: 'var(--font-mono)',
                     fontWeight: 700,
                     textDecoration: 'none',
                     marginTop: '8px'
                   }}
                 >
-                  Buka Tautan di Tab Baru <ExternalLink size={12} />
+                  Buka Tautan di Tab Baru <ExternalLink size={11} />
                 </a>
               </div>
             )}
@@ -765,50 +800,55 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
         </div>
       )}
 
-      {/* ─── 4. TAMPILAN 4 DECK HASIL ANALISIS INTELIJEN ─── */}
+      {/* ─── 4. TAMPILAN 4 DECK HASIL ANALISIS INTELIJEN (CHASSIS PLAT BAJA) ─── */}
       {analysisResult && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* BARIS ATAS: DECK 1 & DECK 2 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
             {/* ─── DECK 1: PROFIL KONTEN & METRIK KREATOR ─── */}
-            <div style={{
-              background: '#121820',
-              border: '1px solid #222C38',
-              borderRadius: '6px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
-            }}>
+            <div 
+              className="steel-chassis-card"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '18px 20px',
+                position: 'relative'
+              }}
+            >
+              <span className="bolt-tl" />
+              <span className="bolt-tr" />
+              <span className="bolt-bl" />
+              <span className="bolt-br" />
+
               <div>
                 {/* Header Deck 1 */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{
-                      padding: '3px 8px',
-                      borderRadius: '3px',
-                      background: 'rgba(0, 243, 255, 0.1)',
-                      border: '1px solid rgba(0, 243, 255, 0.3)',
-                      color: '#00F3FF',
-                      fontSize: '10px',
+                      padding: '2px 7px',
+                      borderRadius: '2px',
+                      background: '#101622',
+                      border: '1px solid #2B384E',
+                      color: '#38BDF8',
+                      fontSize: '9.5px',
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 800
                     }}>
                       DECK 1
                     </span>
-                    <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '1px' }}>
+                    <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                       PROFIL KONTEN &amp; METRIK KREATOR
                     </h3>
                   </div>
 
                   <span style={{
-                    padding: '3px 8px',
-                    borderRadius: '3px',
-                    background: '#1F2937',
-                    border: '1px solid #374151',
-                    color: '#94A3B8',
-                    fontSize: '10px',
+                    padding: '2px 6px',
+                    borderRadius: '2px',
+                    background: '#0B1017',
+                    border: '1px solid #1E2B3B',
+                    color: '#64748B',
+                    fontSize: '9.5px',
                     fontFamily: 'var(--font-mono)'
                   }}>
                     METODE: {analysisResult.post.acquisitionMethod}
@@ -816,26 +856,27 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                 </div>
 
                 {/* Judul & Kapsi Konten */}
-                <div style={{ marginBottom: '16px' }}>
+                <div style={{ marginBottom: '14px' }}>
                   <div style={{
-                    fontSize: '14px',
+                    fontSize: '13.5px',
                     fontWeight: 800,
                     color: '#F8FAFC',
                     lineHeight: 1.4,
-                    marginBottom: '8px'
+                    marginBottom: '6px'
                   }}>
                     {analysisResult.post.title || 'Postingan Tanpa Judul'}
                   </div>
                   <div style={{
-                    fontSize: '12px',
+                    fontSize: '11.5px',
                     color: '#94A3B8',
                     lineHeight: 1.6,
-                    maxHeight: '80px',
+                    maxHeight: '75px',
                     overflowY: 'auto',
                     padding: '8px 10px',
-                    background: '#0B0F15',
-                    borderRadius: '4px',
-                    border: '1px solid #1E293B'
+                    background: '#0B1017',
+                    borderRadius: '3px',
+                    border: '1px solid #1E2837',
+                    boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.6)'
                   }}>
                     {analysisResult.post.caption || 'Tidak ada deskripsi/kapsi tambahan.'}
                   </div>
@@ -843,47 +884,47 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
 
                 {/* Profil Akun Kreator */}
                 <div style={{
-                  padding: '12px',
-                  borderRadius: '4px',
-                  background: '#161D26',
-                  border: '1px solid #2A3644',
+                  padding: '10px 12px',
+                  borderRadius: '3px',
+                  background: '#0B1017',
+                  border: '1px solid #1E2837',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '16px'
+                  marginBottom: '14px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
                     <div style={{
-                      width: '36px',
-                      height: '36px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
-                      background: '#1F2937',
-                      border: '1px solid #00F3FF',
+                      background: '#16202E',
+                      border: '1px solid #2B384E',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 800,
-                      color: '#00F3FF',
-                      fontSize: '13px'
+                      color: '#F1F5F9',
+                      fontSize: '12px'
                     }}>
                       {analysisResult.post.authorName.charAt(0)}
                     </div>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 800, color: '#F1F5F9', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: '#F1F5F9', display: 'flex', alignItems: 'center', gap: '5px' }}>
                         {analysisResult.post.authorName}
-                        <ShieldCheck size={14} color="#00F3FF" />
+                        <ShieldCheck size={13} color="#34D399" />
                       </div>
-                      <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#00F3FF' }}>
+                      <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8' }}>
                         {analysisResult.post.authorHandle}
                       </div>
                     </div>
                   </div>
 
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                    <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
                       PENGIKUT / SUBS
                     </div>
-                    <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9' }}>
+                    <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9' }}>
                       {analysisResult.post.authorFollowersCount !== undefined
                         ? `${fmt(analysisResult.post.authorFollowersCount)} akun`
                         : 'Tidak Tersedia Publik'}
@@ -892,30 +933,30 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                 </div>
 
                 {/* Grid Metrik Interaksi */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
-                  <div style={{ padding: '10px', background: '#0B0F15', borderRadius: '4px', border: '1px solid #1E293B', textAlign: 'center' }}>
-                    <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                      <Heart size={12} color="#FF2A5F" /> LIKES
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                      <Heart size={11} color="#F87171" /> LIKES
                     </div>
-                    <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '4px' }}>
+                    <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
                       {fmt(analysisResult.post.likeCount)}
                     </div>
                   </div>
 
-                  <div style={{ padding: '10px', background: '#0B0F15', borderRadius: '4px', border: '1px solid #1E293B', textAlign: 'center' }}>
-                    <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                      <Eye size={12} color="#00F3FF" /> TAYANGAN
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                      <Eye size={11} color="#38BDF8" /> TAYANGAN
                     </div>
-                    <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '4px' }}>
+                    <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
                       {fmt(analysisResult.post.viewCount)}
                     </div>
                   </div>
 
-                  <div style={{ padding: '10px', background: '#0B0F15', borderRadius: '4px', border: '1px solid #1E293B', textAlign: 'center' }}>
-                    <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                      <MessageSquare size={12} color="#D4AF37" /> TOTAL KOMENTAR
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                      <MessageSquare size={11} color="#FBBF24" /> KOMENTAR
                     </div>
-                    <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '4px' }}>
+                    <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
                       {analysisResult.post.commentsDisabled ? 'DINONAKTIFKAN' : fmt(analysisResult.post.commentCount)}
                     </div>
                   </div>
@@ -923,48 +964,53 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               </div>
 
               {/* Provenance Notice */}
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', borderTop: '1px solid #1E293B', paddingTop: '10px' }}>
+              <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#475569', borderTop: '1px solid #1E2837', paddingTop: '8px' }}>
                 INTEGRITAS SUMBER: {analysisResult.post.dataSourceNotice}
               </div>
             </div>
 
             {/* ─── DECK 2: TOP KOMENTAR TERPOPULER ─── */}
-            <div style={{
-              background: '#121820',
-              border: '1px solid #222C38',
-              borderRadius: '6px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
-            }}>
+            <div 
+              className="steel-chassis-card"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '18px 20px',
+                position: 'relative'
+              }}
+            >
+              <span className="bolt-tl" />
+              <span className="bolt-tr" />
+              <span className="bolt-bl" />
+              <span className="bolt-br" />
+
               {/* Header Deck 2 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{
-                    padding: '3px 8px',
-                    borderRadius: '3px',
-                    background: 'rgba(212, 175, 55, 0.1)',
-                    border: '1px solid rgba(212, 175, 55, 0.3)',
-                    color: '#D4AF37',
-                    fontSize: '10px',
+                    padding: '2px 7px',
+                    borderRadius: '2px',
+                    background: '#101622',
+                    border: '1px solid #2B384E',
+                    color: '#FBBF24',
+                    fontSize: '9.5px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 800
                   }}>
                     DECK 2
                   </span>
-                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '1px' }}>
+                  <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                     TOP KOMENTAR TERPOPULER
                   </h3>
                 </div>
 
                 <span style={{
-                  padding: '3px 8px',
-                  borderRadius: '3px',
-                  background: '#1F2937',
-                  border: '1px solid #374151',
-                  color: '#94A3B8',
-                  fontSize: '10px',
+                  padding: '2px 6px',
+                  borderRadius: '2px',
+                  background: '#0B1017',
+                  border: '1px solid #1E2B3B',
+                  color: '#64748B',
+                  fontSize: '9.5px',
                   fontFamily: 'var(--font-mono)'
                 }}>
                   {analysisResult.topComments.length} KOMENTAR TERSELEKSI
@@ -972,16 +1018,16 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               </div>
 
               {/* Daftar Top Komentar */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: '360px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', overflowY: 'auto', maxHeight: '340px' }}>
                 {analysisResult.topComments.length === 0 ? (
                   <div style={{
-                    padding: '30px',
+                    padding: '24px',
                     textAlign: 'center',
-                    background: '#0B0F15',
-                    borderRadius: '4px',
-                    border: '1px dashed #2A3644',
+                    background: '#0B1017',
+                    borderRadius: '3px',
+                    border: '1px dashed #233144',
                     color: '#64748B',
-                    fontSize: '12px'
+                    fontSize: '11.5px'
                   }}>
                     {analysisResult.post.commentsDisabled
                       ? 'Komentar pada postingan ini dinonaktifkan oleh pembuat konten.'
@@ -992,36 +1038,37 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                     <div
                       key={cmt.id}
                       style={{
-                        padding: '12px',
-                        borderRadius: '4px',
-                        background: '#0B0F15',
-                        border: '1px solid #1E293B',
+                        padding: '10px 12px',
+                        borderRadius: '3px',
+                        background: '#0B1017',
+                        border: '1px solid #1E2837',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '6px'
+                        gap: '5px'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                           <span style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '3px',
-                            background: idx === 0 ? '#D4AF37' : idx === 1 ? '#94A3B8' : '#334155',
-                            color: '#0F172A',
-                            fontSize: '10px',
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '2px',
+                            background: idx === 0 ? '#334155' : '#1E293B',
+                            color: '#F8FAFC',
+                            fontSize: '9.5px',
                             fontFamily: 'var(--font-mono)',
                             fontWeight: 800,
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            border: '1px solid #475569'
                           }}>
                             #{idx + 1}
                           </span>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>
+                          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#F1F5F9' }}>
                             {cmt.authorDisplayName || cmt.authorUsername}
                           </span>
-                          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#00F3FF' }}>
+                          <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8' }}>
                             {cmt.authorUsername}
                           </span>
                         </div>
@@ -1029,26 +1076,26 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                         <div style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          padding: '2px 8px',
-                          borderRadius: '3px',
-                          background: 'rgba(255, 42, 95, 0.1)',
-                          border: '1px solid rgba(255, 42, 95, 0.3)',
-                          color: '#FF2A5F',
-                          fontSize: '11px',
+                          gap: '3px',
+                          padding: '1px 6px',
+                          borderRadius: '2px',
+                          background: '#16202E',
+                          border: '1px solid #2B384E',
+                          color: '#F87171',
+                          fontSize: '10px',
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 700
                         }}>
-                          <Heart size={11} /> {fmt(cmt.likeCount)}
+                          <Heart size={10} /> {fmt(cmt.likeCount)}
                         </div>
                       </div>
 
-                      <div style={{ fontSize: '12px', color: '#CBD5E1', lineHeight: 1.5 }}>
+                      <div style={{ fontSize: '11.5px', color: '#CBD5E1', lineHeight: 1.5 }}>
                         {cmt.text}
                       </div>
 
                       {cmt.publishedAt && (
-                        <div style={{ fontSize: '10px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>
+                        <div style={{ fontSize: '9.5px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>
                           {new Date(cmt.publishedAt).toLocaleString('id-ID')}
                         </div>
                       )}
@@ -1060,44 +1107,49 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
           </div>
 
           {/* BARIS BAWAH: DECK 3 & DECK 4 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
             {/* ─── DECK 3: KLUSTER KOMENTAR TEMPLATE (COPYPASTA) ─── */}
-            <div style={{
-              background: '#121820',
-              border: '1px solid #222C38',
-              borderRadius: '6px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
-            }}>
+            <div 
+              className="steel-chassis-card"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '18px 20px',
+                position: 'relative'
+              }}
+            >
+              <span className="bolt-tl" />
+              <span className="bolt-tr" />
+              <span className="bolt-bl" />
+              <span className="bolt-br" />
+
               {/* Header Deck 3 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{
-                    padding: '3px 8px',
-                    borderRadius: '3px',
-                    background: 'rgba(245, 158, 11, 0.1)',
-                    border: '1px solid rgba(245, 158, 11, 0.3)',
+                    padding: '2px 7px',
+                    borderRadius: '2px',
+                    background: '#101622',
+                    border: '1px solid #2B384E',
                     color: '#F59E0B',
-                    fontSize: '10px',
+                    fontSize: '9.5px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 800
                   }}>
                     DECK 3
                   </span>
-                  <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '1px' }}>
+                  <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                     KLUSTER KOMENTAR TEMPLAT (COPYPASTA)
                   </h3>
                 </div>
 
                 <span style={{
-                  padding: '3px 8px',
-                  borderRadius: '3px',
-                  background: analysisResult.copypastaClusters.length > 0 ? 'rgba(245, 158, 11, 0.2)' : '#1F2937',
-                  border: `1px solid ${analysisResult.copypastaClusters.length > 0 ? '#F59E0B' : '#374151'}`,
-                  color: analysisResult.copypastaClusters.length > 0 ? '#F59E0B' : '#94A3B8',
-                  fontSize: '10px',
+                  padding: '2px 6px',
+                  borderRadius: '2px',
+                  background: '#0B1017',
+                  border: '1px solid #1E2B3B',
+                  color: analysisResult.copypastaClusters.length > 0 ? '#FBBF24' : '#64748B',
+                  fontSize: '9.5px',
                   fontFamily: 'var(--font-mono)',
                   fontWeight: 700
                 }}>
@@ -1106,16 +1158,16 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               </div>
 
               {/* Daftar Kluster Copypasta */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: '360px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: '340px' }}>
                 {analysisResult.copypastaClusters.length === 0 ? (
                   <div style={{
-                    padding: '30px',
+                    padding: '24px',
                     textAlign: 'center',
-                    background: '#0B0F15',
-                    borderRadius: '4px',
-                    border: '1px dashed #2A3644',
+                    background: '#0B1017',
+                    borderRadius: '3px',
+                    border: '1px dashed #233144',
                     color: '#64748B',
-                    fontSize: '12px'
+                    fontSize: '11.5px'
                   }}>
                     Tidak terdeteksi duplikasi templat yang signifikan (Variasi leksikal tinggi, Jaccard &lt; 0.70).
                   </div>
@@ -1124,28 +1176,28 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
                     <div
                       key={cl.clusterId}
                       style={{
-                        padding: '14px',
-                        borderRadius: '4px',
-                        background: '#0B0F15',
-                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                        padding: '12px',
+                        borderRadius: '3px',
+                        background: '#0B1017',
+                        border: '1px solid #233144',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '8px'
+                        gap: '7px'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{
-                          fontSize: '11px',
+                          fontSize: '10.5px',
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 800,
-                          color: '#F59E0B'
+                          color: '#FBBF24'
                         }}>
                           KLUSTER #{cl.clusterId.replace('cluster-', '')}: {cl.commentCount} KOMENTAR ({cl.percentageOfTotal}% DARI TOTAL)
                         </span>
 
                         {cl.temporalSpanSeconds !== undefined && (
-                          <span style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>
-                            <Clock size={11} style={{ display: 'inline', marginRight: '3px' }} />
+                          <span style={{ fontSize: '9.5px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>
+                            <Clock size={10} style={{ display: 'inline', marginRight: '3px' }} />
                             Rentang: {cl.temporalSpanSeconds} detik
                           </span>
                         )}
@@ -1153,12 +1205,12 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
 
                       {/* Teks Templat */}
                       <div style={{
-                        padding: '8px 10px',
-                        borderRadius: '4px',
-                        background: '#161D26',
-                        borderLeft: '3px solid #F59E0B',
-                        fontSize: '12px',
-                        color: '#FDE047',
+                        padding: '7px 9px',
+                        borderRadius: '3px',
+                        background: '#121A24',
+                        borderLeft: '3px solid #D4AF37',
+                        fontSize: '11.5px',
+                        color: '#F1F5F9',
                         fontStyle: 'italic',
                         lineHeight: 1.5
                       }}>
@@ -1167,19 +1219,20 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
 
                       {/* Akun yang Terlibat */}
                       <div>
-                        <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', marginBottom: '4px' }}>
+                        <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', marginBottom: '3px' }}>
                           AKUN TERLIBAT DALAM TEMPLAT INI ({cl.accountsInvolved.length} AKUN):
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
                           {cl.accountsInvolved.map(acc => (
                             <span
                               key={acc}
                               style={{
-                                padding: '2px 6px',
-                                borderRadius: '3px',
-                                background: '#1E293B',
+                                padding: '1px 5px',
+                                borderRadius: '2px',
+                                background: '#16202C',
+                                border: '1px solid #233144',
                                 color: '#94A3B8',
-                                fontSize: '10px',
+                                fontSize: '9.5px',
                                 fontFamily: 'var(--font-mono)'
                               }}
                             >
@@ -1195,58 +1248,53 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
             </div>
 
             {/* ─── DECK 4: INDIKATOR POLA BUZZER & BOT ─── */}
-            <div style={{
-              background: '#121820',
-              border: '1px solid #222C38',
-              borderRadius: '6px',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)'
-            }}>
+            <div 
+              className="steel-chassis-card"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                padding: '18px 20px',
+                position: 'relative'
+              }}
+            >
+              <span className="bolt-tl" />
+              <span className="bolt-tr" />
+              <span className="bolt-bl" />
+              <span className="bolt-br" />
+
               <div>
                 {/* Header Deck 4 */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{
-                      padding: '3px 8px',
-                      borderRadius: '3px',
-                      background: 'rgba(255, 42, 95, 0.1)',
-                      border: '1px solid rgba(255, 42, 95, 0.3)',
-                      color: '#FF2A5F',
-                      fontSize: '10px',
+                      padding: '2px 7px',
+                      borderRadius: '2px',
+                      background: '#101622',
+                      border: '1px solid #2B384E',
+                      color: '#F87171',
+                      fontSize: '9.5px',
                       fontFamily: 'var(--font-mono)',
                       fontWeight: 800
                     }}>
                       DECK 4
                     </span>
-                    <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '1px' }}>
+                    <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                       INDIKATOR POLA BUZZER &amp; BOT
                     </h3>
                   </div>
 
                   <span style={{
-                    padding: '3px 8px',
-                    borderRadius: '3px',
-                    background: analysisResult.buzzerPattern.coordinationLevel === 'TINGGI'
-                      ? 'rgba(255, 42, 95, 0.2)'
-                      : analysisResult.buzzerPattern.coordinationLevel === 'SEDANG'
-                      ? 'rgba(245, 158, 11, 0.2)'
-                      : 'rgba(16, 185, 129, 0.2)',
-                    border: `1px solid ${
-                      analysisResult.buzzerPattern.coordinationLevel === 'TINGGI'
-                        ? '#FF2A5F'
-                        : analysisResult.buzzerPattern.coordinationLevel === 'SEDANG'
-                        ? '#F59E0B'
-                        : '#10B981'
-                    }`,
+                    padding: '2px 6px',
+                    borderRadius: '2px',
+                    background: '#0B1017',
+                    border: '1px solid #1E2B3B',
                     color: analysisResult.buzzerPattern.coordinationLevel === 'TINGGI'
-                      ? '#FF2A5F'
+                      ? '#F87171'
                       : analysisResult.buzzerPattern.coordinationLevel === 'SEDANG'
-                      ? '#F59E0B'
-                      : '#10B981',
-                    fontSize: '10px',
+                      ? '#FBBF24'
+                      : '#34D399',
+                    fontSize: '9.5px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 800
                   }}>
@@ -1256,45 +1304,46 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
 
                 {/* Ringkasan Narasi Buzzer */}
                 <div style={{
-                  padding: '12px',
-                  borderRadius: '4px',
-                  background: '#0B0F15',
-                  border: '1px solid #1E293B',
-                  marginBottom: '16px'
+                  padding: '10px 12px',
+                  borderRadius: '3px',
+                  background: '#0B1017',
+                  border: '1px solid #1E2837',
+                  marginBottom: '14px'
                 }}>
-                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#FF2A5F', fontWeight: 700, marginBottom: '6px' }}>
-                    RINGKASAN NARASI YANG DIPAKSAKAN (FRAMING ANALYSIS):
+                  <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#F87171', fontWeight: 700, marginBottom: '5px' }}>
+                    RINGKASAN NARASI YANG DIPAKSAKAN:
                   </div>
-                  <div style={{ fontSize: '12px', color: '#F1F5F9', lineHeight: 1.6 }}>
+                  <div style={{ fontSize: '11.5px', color: '#F1F5F9', lineHeight: 1.6 }}>
                     {analysisResult.buzzerPattern.narrativeSummary}
                   </div>
                 </div>
 
                 {/* Metrik Burst Velocity & Keywords */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-                  <div style={{ padding: '10px', background: '#0B0F15', borderRadius: '4px', border: '1px solid #1E293B' }}>
-                    <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837' }}>
+                    <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
                       KECEPATAN SEBARAN (BURST)
                     </div>
-                    <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '4px' }}>
+                    <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
                       {analysisResult.buzzerPattern.burstVelocityCommentPerMinute} cmt/menit
                     </div>
                   </div>
 
-                  <div style={{ padding: '10px', background: '#0B0F15', borderRadius: '4px', border: '1px solid #1E293B' }}>
-                    <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837' }}>
+                    <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
                       KATA KUNCI DOMINAN
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '3px' }}>
                       {analysisResult.buzzerPattern.dominantKeywords.map(kw => (
                         <span
                           key={kw}
                           style={{
                             padding: '1px 5px',
                             borderRadius: '2px',
-                            background: '#1F2937',
-                            color: '#00F3FF',
-                            fontSize: '10px',
+                            background: '#16202C',
+                            border: '1px solid #233144',
+                            color: '#94A3B8',
+                            fontSize: '9.5px',
                             fontFamily: 'var(--font-mono)'
                           }}
                         >
@@ -1307,21 +1356,21 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
 
                 {/* Bukti Akun & Teks Nyata */}
                 {analysisResult.buzzerPattern.sampleAccounts.length > 0 && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', marginBottom: '6px' }}>
+                  <div style={{ marginBottom: '14px' }}>
+                    <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', marginBottom: '4px' }}>
                       SAMPEL AKUN TERINDIKASI BUZZER ({analysisResult.buzzerPattern.sampleAccounts.length} AKUN):
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
                       {analysisResult.buzzerPattern.sampleAccounts.map(acc => (
                         <span
                           key={acc}
                           style={{
-                            padding: '2px 6px',
-                            borderRadius: '3px',
-                            background: 'rgba(255, 42, 95, 0.1)',
-                            border: '1px solid rgba(255, 42, 95, 0.3)',
-                            color: '#FF2A5F',
-                            fontSize: '10px',
+                            padding: '1px 6px',
+                            borderRadius: '2px',
+                            background: '#16202C',
+                            border: '1px solid #233144',
+                            color: '#F87171',
+                            fontSize: '9.5px',
                             fontFamily: 'var(--font-mono)'
                           }}
                         >
@@ -1334,7 +1383,7 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
               </div>
 
               {/* Doktrin PUSSIBERAD */}
-              <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', borderTop: '1px solid #1E293B', paddingTop: '10px' }}>
+              <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#475569', borderTop: '1px solid #1E2837', paddingTop: '8px' }}>
                 DASAR PEMBUKTIAN: {analysisResult.buzzerPattern.evidenceRationale}
               </div>
             </div>
@@ -1344,4 +1393,3 @@ INTEGRITAS DATA  : ${post.dataSourceNotice}
     </div>
   )
 }
-
