@@ -25,7 +25,8 @@ import {
   Activity,
   ChevronDown,
   ChevronUp,
-  Newspaper
+  Newspaper,
+  Pin
 } from 'lucide-react'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network.ts'
@@ -161,6 +162,49 @@ export default function LiveRadar() {
   const [counterChannels, setCounterChannels] = useState<CounterNarrativeChannels | null>(null)
   const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
   const [copiedSuccess, setCopiedSuccess] = useState<boolean>(false)
+
+  // State Isu Terpin (Khusus untuk Berita Sedang Dipantau agar tidak tenggelam)
+  const [pinnedIssueIds, setPinnedIssueIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('narada_pinned_issues')
+      return raw ? new Set(JSON.parse(raw)) : new Set()
+    } catch {
+      return new Set()
+    }
+  })
+
+  // State Klasifikasi Dinamis untuk Isu Terpin ('HOAKS' | 'FAKTA')
+  const [pinnedClassifications, setPinnedClassifications] = useState<Record<string, 'HOAKS' | 'FAKTA'>>(() => {
+    try {
+      const raw = localStorage.getItem('narada_pinned_classifications')
+      return raw ? JSON.parse(raw) : {}
+    } catch {
+      return {}
+    }
+  })
+
+  // Handler Toggle Pin / Unpin Isu
+  const togglePin = (id: string) => {
+    setPinnedIssueIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      localStorage.setItem('narada_pinned_issues', JSON.stringify([...next]))
+      return next
+    })
+  }
+
+  // Handler Set Klasifikasi untuk Isu Terpin
+  const handleSetPinnedVerdict = (id: string, verdict: 'HOAKS' | 'FAKTA') => {
+    setPinnedClassifications(prev => {
+      const next = { ...prev, [id]: verdict }
+      localStorage.setItem('narada_pinned_classifications', JSON.stringify(next))
+      return next
+    })
+  }
 
   // Fungsi sinkronisasi radar via RadarScheduler
   const triggerSync = async (forceClear = false) => {
@@ -370,8 +414,14 @@ export default function LiveRadar() {
 
       return matchCluster && matchView && matchQuery
     })
-    return sortRadarEntries(list)
-  }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery])
+    const sorted = sortRadarEntries(list)
+    // Isu yang dipin melayang ke urutan paling atas agar tidak pernah tenggelam
+    return [...sorted].sort((a, b) => {
+      const aPinned = pinnedIssueIds.has(a.id) ? 1 : 0
+      const bPinned = pinnedIssueIds.has(b.id) ? 1 : 0
+      return bPinned - aPinned
+    })
+  }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery, pinnedIssueIds])
 
   // Hitung jumlah item per klaster untuk pill count
   const clusterCounts = useMemo(() => {
@@ -1326,6 +1376,14 @@ export default function LiveRadar() {
             const isHoax = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA'
             const isFact = item.verdict === 'FAKTA'
             const isUnverified = item.verdict === 'UNVERIFIED'
+            const isPinned = isUnverified && pinnedIssueIds.has(item.id)
+
+            // Vonis klasifikasi efektif untuk isu terpin (khusus Sedang Dipantau):
+            // 1. Override manual analis jika pernah diset
+            // 2. Evaluasi otomatis heuristik (skor kognitif >= 65 -> HOAKS, skor <= 40 -> FAKTA, default HOAKS bila belum diset)
+            const effectivePinnedVerdict: 'HOAKS' | 'FAKTA' = isPinned
+              ? (pinnedClassifications[item.id] || ((item.cognitiveScore ?? 50) >= 65 ? 'HOAKS' : (item.cognitiveScore ?? 50) <= 40 ? 'FAKTA' : 'HOAKS'))
+              : (isHoax ? 'HOAKS' : isFact ? 'FAKTA' : 'HOAKS')
             
             const verdictLabel = isHoax ? 'TERINDIKASI HOAKS' : isFact ? 'FAKTA RESMI' : isUnverified ? 'SEDANG DIPANTAU' : 'NETRAL'
             const verdictColor = isHoax ? '#EF4444' : isFact ? '#10B981' : isUnverified ? '#F59E0B' : '#94A3B8'
@@ -1399,7 +1457,12 @@ export default function LiveRadar() {
                   justifyContent: 'space-between',
                   position: 'relative',
                   gap: '12px',
-                  borderTop: score >= 75 ? '2px solid #EF4444' : '1px solid #1E2734',
+                  borderTop: isPinned 
+                    ? '2px solid #F59E0B' 
+                    : score >= 75 
+                    ? '2px solid #EF4444' 
+                    : '1px solid #1E2734',
+                  boxShadow: isPinned ? '0 0 16px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(245, 158, 11, 0.2)' : 'none',
                   minHeight: '440px',
                   height: isExpanded ? 'fit-content' : '440px',
                   transition: 'all 0.2s ease'
@@ -1435,20 +1498,43 @@ export default function LiveRadar() {
                       {clusterMeta.label}
                     </span>
 
-                    {/* Lencana Vonis & Indeks Relevansi Heuristik */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{
-                        fontSize: '9px',
-                        fontFamily: 'var(--font-mono)',
-                        fontWeight: 800,
-                        padding: '2px 7px',
-                        borderRadius: '3px',
-                        background: '#101622',
-                        color: verdictColor,
-                        border: '1px solid #253346'
-                      }}>
-                        {verdictLabel}
-                      </span>
+                    {/* Lencana Vonis, Status Pin, & Indeks Relevansi Heuristik */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      {isUnverified && isPinned ? (
+                        <span 
+                          title="Isu Terpin Prioritas: Posisi dikunci di radar teratas agar tidak tenggelam. Status otomatis terkonversi (HOAKS/FAKTA) begitu bukti forensik dan rujukan otoritas tervalidasi tuntas."
+                          style={{
+                            fontSize: '9px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: '3px',
+                            background: effectivePinnedVerdict === 'HOAKS' ? 'rgba(239, 68, 68, 0.14)' : 'rgba(16, 185, 129, 0.14)',
+                            color: effectivePinnedVerdict === 'HOAKS' ? '#F87171' : '#34D399',
+                            border: effectivePinnedVerdict === 'HOAKS' ? '1px solid #7F1D1D' : '1px solid #064E3B',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'help'
+                          }}
+                        >
+                          <Pin size={9} color={effectivePinnedVerdict === 'HOAKS' ? '#F87171' : '#34D399'} style={{ transform: 'rotate(-45deg)' }} />
+                          <span>SEDANG DIPANTAU • {effectivePinnedVerdict === 'HOAKS' ? 'TERINDIKASI HOAKS' : 'TERVERIFIKASI FAKTA'}</span>
+                        </span>
+                      ) : (
+                        <span style={{
+                          fontSize: '9px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 800,
+                          padding: '2px 7px',
+                          borderRadius: '3px',
+                          background: '#101622',
+                          color: verdictColor,
+                          border: '1px solid #253346'
+                        }}>
+                          {verdictLabel}
+                        </span>
+                      )}
 
                       {/* Skor Relevansi Konteks (Indikator Heuristik, BUKAN Probabilitas Ancaman) */}
                       <span style={{
@@ -1463,6 +1549,37 @@ export default function LiveRadar() {
                       }} title="Skor Relevansi Konteks (0 - 100): Indikator heuristik keselarasan topik pantauan, bukan probabilitas kebenaran atau tingkat bahaya.">
                         RELEVANSI {score}/100
                       </span>
+
+                      {/* Tombol PIN / UNPIN: Eksklusif untuk berita Sedang Dipantau (UNVERIFIED) */}
+                      {isUnverified && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            togglePin(item.id)
+                          }}
+                          style={{
+                            background: isPinned ? 'linear-gradient(180deg, #2D2312 0%, #1A150B 100%)' : 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                            border: isPinned ? '1px solid #D97706' : '1px solid #3E4E63',
+                            boxShadow: isPinned ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'inset 0 1px 0 rgba(255, 255, 255, 0.12)',
+                            color: isPinned ? '#F59E0B' : '#94A3B8',
+                            fontSize: '9px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 800,
+                            padding: '2px 7px',
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            transition: 'all 0.15s ease'
+                          }}
+                          title={isPinned ? 'Lepas Pin (Unpin): Hapus dari daftar prioritas atas' : 'Pin Berita: Kunci isu di posisi teratas radar agar tidak tenggelam & aktifkan klasifikasi'}
+                        >
+                          <Pin size={10} color={isPinned ? '#F59E0B' : '#94A3B8'} style={{ transform: isPinned ? 'rotate(-45deg)' : 'none' }} />
+                          <span>{isPinned ? 'UNPIN' : 'PIN'}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1573,6 +1690,73 @@ export default function LiveRadar() {
                       </span>
                     )}
                   </div>
+
+                  {/* Strip Indikasi Klasifikasi Khusus Isu Terpin (Sedang Dipantau) */}
+                  {isUnverified && isPinned && (
+                    <div style={{
+                      background: '#0D141F',
+                      border: '1px solid #233144',
+                      borderLeft: `3px solid ${effectivePinnedVerdict === 'HOAKS' ? '#EF4444' : '#10B981'}`,
+                      padding: '5px 10px',
+                      borderRadius: '3px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9.5px', fontFamily: 'var(--font-mono)' }}>
+                        <ShieldAlert size={12} color={effectivePinnedVerdict === 'HOAKS' ? '#EF4444' : '#10B981'} />
+                        <span style={{ color: '#94A3B8' }}>STATUS KLASIFIKASI PIN:</span>
+                        <span style={{ 
+                          fontWeight: 800, 
+                          color: effectivePinnedVerdict === 'HOAKS' ? '#F87171' : '#34D399' 
+                        }}>
+                          {effectivePinnedVerdict === 'HOAKS' ? 'TERINDIKASI HOAKS / DISINFORMASI' : 'TERVERIFIKASI FAKTA RESMI'}
+                        </span>
+                      </div>
+
+                      {/* Tombol Klasifikasi Cepat untuk Analis */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleSetPinnedVerdict(item.id, 'HOAKS')}
+                          title="Tandai dan konfirmasi isu pantauan ini sebagai Terindikasi Hoaks"
+                          style={{
+                            background: effectivePinnedVerdict === 'HOAKS' ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+                            color: effectivePinnedVerdict === 'HOAKS' ? '#F87171' : '#EF4444',
+                            border: '1px solid #EF4444',
+                            borderRadius: '2px',
+                            padding: '1px 6px',
+                            fontSize: '8.5px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Set Hoaks
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSetPinnedVerdict(item.id, 'FAKTA')}
+                          title="Tandai dan konfirmasi isu pantauan ini sebagai Fakta Resmi"
+                          style={{
+                            background: effectivePinnedVerdict === 'FAKTA' ? 'rgba(16, 185, 129, 0.2)' : 'transparent',
+                            color: effectivePinnedVerdict === 'FAKTA' ? '#34D399' : '#10B981',
+                            border: '1px solid #10B981',
+                            borderRadius: '2px',
+                            padding: '1px 6px',
+                            fontSize: '8.5px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Set Fakta
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Tray Cuplikan Berita / Fakta / Bukti Disinformasi */}
                   <div 
