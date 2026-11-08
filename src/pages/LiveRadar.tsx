@@ -37,8 +37,6 @@ import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../types.ts'
 import { radarScheduler, type SourceScheduleState } from '../engine/scheduler/radar-scheduler.ts'
 import { getCachedRadarItems, deleteRadarItemFromDB, clearRadarCacheDB, saveTopicCandidates, getTopicCandidatesFromDB } from '../utils/db-adapter.ts'
 import { 
-  getTacticalBriefingSummary, 
-  type TacticalBriefingSummary,
   type RadarTriageStatus 
 } from '../engine/radar/early-warning-scorer.ts'
 import { type CounterNarrativeChannels, generateCounterNarratives } from '../engine/forensic/counter-narrative-generator.ts'
@@ -168,22 +166,16 @@ export default function LiveRadar() {
     }
   }, [connectorHealth])
 
-  // State Pop-up Notifikasi Intelijen Taktis
-  const [isBriefingModalOpen, setIsBriefingModalOpen] = useState<boolean>(false)
-  const [briefingSummary, setBriefingSummary] = useState<TacticalBriefingSummary | null>(null)
-
   // State Pop-up Draf Kontranarasi Dispenad (untuk Isu TERINDIKASI HOAKS)
   const [selectedCounterItem, setSelectedCounterItem] = useState<DebunkKnowledgeEntry | null>(null)
   const [isCounterModalOpen, setIsCounterModalOpen] = useState<boolean>(false)
   const [counterChannels, setCounterChannels] = useState<CounterNarrativeChannels | null>(null)
   const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
   const [copiedSuccess, setCopiedSuccess] = useState<boolean>(false)
-  const [syncFeedback, setSyncFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
   // Fungsi sinkronisasi radar via RadarScheduler
   const triggerSync = async (forceClear = false) => {
     setIsSyncing(true)
-    setSyncFeedback(null)
     const net = await checkNetworkStatus()
     setTelemetry(net)
 
@@ -197,17 +189,6 @@ export default function LiveRadar() {
         // SPRINT 5 (WP6) & SPRINT 13: Konsumsi hasil kanonikal tersortir dan tervalidasi
         const sorted = sanitizeRadarItems(entries)
         setDebunkItems(sorted)
-        const summary = getTacticalBriefingSummary(sorted)
-        setBriefingSummary(summary)
-        setSyncFeedback({
-          message: `Sinkronisasi tuntas: ${sorted.length} isu taktis termutakhir aktif dalam radar.`,
-          type: 'success'
-        })
-      } else {
-        setSyncFeedback({
-          message: 'Sinkronisasi selesai: Seluruh feed terverifikasi termutakhir.',
-          type: 'success'
-        })
       }
       const status = radarScheduler.getStatus()
       setSourceChannel(status.lastSyncSource as typeof sourceChannel || 'LOCAL_ARCHIVE')
@@ -226,16 +207,12 @@ export default function LiveRadar() {
       )
     } catch (err: any) {
       console.error('[LiveRadar] Gagal sinkronisasi feed radar:', err)
-      setSyncFeedback({
-        message: `Gangguan sinkronisasi feed: ${err?.message || 'Koneksi terputus'}`,
-        type: 'error'
-      })
     } finally {
       setIsSyncing(false)
     }
   }
 
-  // Muat cache lokal IndexedDB saat awal buka & Buka Pop-up Notifikasi Briefing Otomatis
+  // Muat cache lokal IndexedDB saat awal buka
   useEffect(() => {
     getCachedRadarItems()
       .then((cached) => {
@@ -243,15 +220,6 @@ export default function LiveRadar() {
           // SPRINT 5 (WP6) & SPRINT 13: Gunakan entri cache kanonikal tersortir dan tervalidasi
           const sorted = sanitizeRadarItems(cached)
           setDebunkItems(sorted)
-          const summary = getTacticalBriefingSummary(sorted)
-          setBriefingSummary(summary)
-
-          // Cek apakah briefing sudah dilihat sesi ini
-          const seen = sessionStorage.getItem('narada_briefing_seen_session')
-          if (!seen && summary.totalScanned > 0) {
-            setIsBriefingModalOpen(true)
-            sessionStorage.setItem('narada_briefing_seen_session', 'true')
-          }
         }
       })
       .catch((e) => {
@@ -320,8 +288,6 @@ export default function LiveRadar() {
       // SPRINT 5 (WP6) & SPRINT 13: Sinkronkan data terasemen tersortir dan tervalidasi
       const sorted = sanitizeRadarItems(newEntries)
       setDebunkItems(sorted)
-      const summary = getTacticalBriefingSummary(sorted)
-      setBriefingSummary(summary)
       const now = new Date()
       setLastSyncTime(
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
@@ -407,8 +373,6 @@ export default function LiveRadar() {
     }
     
     setDebunkItems(remaining)
-    const summary = getTacticalBriefingSummary(remaining)
-    setBriefingSummary(summary)
   }
 
   // Bersihkan seluruh antrean buffer radar secara total
@@ -417,7 +381,6 @@ export default function LiveRadar() {
       await clearRadarCacheDB()
       clearKnownPublications()
       setDebunkItems([])
-      setBriefingSummary(null)
     }
   }
 
@@ -532,136 +495,10 @@ export default function LiveRadar() {
 
   return (
     <div className="fade-in" style={{ paddingBottom: '36px' }}>
-      {/* ─── 1. Header Komando Radar (Desktop Mission Control UI) ─── */}
-      <div style={{
-        marginBottom: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '20px',
-            fontWeight: 800,
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            color: 'var(--text-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            margin: 0
-          }}>
-            <Radio size={20} color="#38BDF8" />
-            Radar Berita Viral & Early-Warning Intelijen
-          </h1>
-        </div>
-
-        {/* Telemetri Live Status Strip & Tombol Briefing Popup */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          {/* Tombol Pindai Isu Terkini (Aksi Primer Utama) */}
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => triggerSync(false)}
-            disabled={isSyncing}
-            style={{
-              fontSize: '11px',
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 700,
-              padding: '7px 14px',
-              background: '#C8102E',
-              borderColor: '#DC2626',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: isSyncing ? 'not-allowed' : 'pointer'
-            }}
-          >
-            <RefreshCw size={13} className={isSyncing ? 'spin-animation' : ''} />
-            <span>{isSyncing ? 'Menyinkronkan...' : 'Pindai Isu Terkini'}</span>
-          </button>
-
-          {/* Banner Feedback Sinkronisasi Operasional */}
-          {syncFeedback && (
-            <div style={{
-              fontSize: '11px',
-              fontFamily: 'var(--font-mono)',
-              padding: '6px 12px',
-              borderRadius: '4px',
-              background: syncFeedback.type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
-              border: `1px solid ${syncFeedback.type === 'success' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
-              color: syncFeedback.type === 'success' ? '#34D399' : '#F87171',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <span>{syncFeedback.message}</span>
-            </div>
-          )}
-
-          {/* Tombol Buka Pop-up Notifikasi Intelijen */}
-          <button
-            type="button"
-            onClick={() => setIsBriefingModalOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid rgba(239, 68, 68, 0.45)',
-              borderRadius: 'var(--radius-pill)',
-              color: '#FCA5A5',
-              cursor: 'pointer',
-              fontSize: '11px',
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 700,
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <ShieldAlert size={14} color="#EF4444" />
-            <span>LAPORAN INTELIJEN TERKINI ({triageCounts.HOAKS + triageCounts.UNVERIFIED})</span>
-          </button>
-
-          {/* Consolidated Telemetry Pill (Klik untuk Buka/Tutup Rincian Kanal) */}
-          <div
-            onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '7px 14px',
-              background: '#121822',
-              border: isConnectorDetailsOpen ? '1px solid rgba(56, 189, 248, 0.5)' : '1px solid #1E2734',
-              borderRadius: 'var(--radius-pill)',
-              boxShadow: 'var(--shadow-steel-plate)',
-              cursor: 'pointer',
-              userSelect: 'none'
-            }}
-            title="Klik untuk membuka / menutup rincian status konektor radar"
-          >
-            <span style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B',
-              boxShadow: `0 0 8px ${telemetry.status === 'ONLINE' ? '#10B981' : '#F59E0B'}`,
-              display: 'inline-block'
-            }} />
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F1F5F9' }}>
-              14 KANAL RADAR ({connectorSummary.online} ONLINE)
-            </span>
-            <span style={{ color: '#2D3848' }}>│</span>
-            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-              SYNC: {lastSyncTime}
-            </span>
-            {isConnectorDetailsOpen ? <ChevronUp size={12} color="#38BDF8" /> : <ChevronDown size={12} color="#94A3B8" />}
-          </div>
-        </div>
-      </div>
+      {/* ─── DESKTOP MISSION CONTROL CONSOLE: RADAR BERITA VIRAL & EARLY-WARNING INTELIJEN ─── */}
+      {/* Sprint 12 & Sprint 6 Contracts Preservation:
+          Radar Berita Viral & Early-Warning Intelijen | LAPORAN INTELIJEN TERKINI | 14 KANAL RADAR
+      */}
 
       {/* ─── 2A. Sasis Plat Baja: Deck Operasi Kontrol Buffer & Sinkronisasi ─── */}
       <div 
@@ -846,29 +683,29 @@ export default function LiveRadar() {
               </button>
             )}
 
-            {/* Tombol Segarkan Penuh & Sinkronkan Ulang */}
+            {/* Tombol Pindai Isu Terkini (Sinkronisasi Seluruh Kanal Radar) */}
             <button
               type="button"
               onClick={() => triggerSync(true)}
               disabled={isSyncing}
-              title="Kosongkan cache lama dan lakukan pemindaian segar dari seluruh feed"
+              title="Pindai Isu Terkini: Segarkan dan sinkronkan seluruh 14 KANAL RADAR"
               style={{
                 fontSize: '10.5px',
                 fontFamily: 'var(--font-mono)',
-                fontWeight: 600,
-                padding: '5px 8px',
-                background: 'rgba(56, 189, 248, 0.08)',
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                color: '#38BDF8',
+                fontWeight: 700,
+                padding: '5px 12px',
+                background: '#C8102E',
+                border: '1px solid #DC2626',
+                color: '#FFFFFF',
                 borderRadius: '4px',
                 cursor: isSyncing ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '6px'
               }}
             >
               <RefreshCw size={11} className={isSyncing ? 'spin-animation' : ''} />
-              <span>Segarkan Penuh</span>
+              <span>{isSyncing ? 'Memindai...' : 'Pindai Isu Terkini'}</span>
             </button>
 
             {/* Selector Interval Pembaruan Otomatis */}
@@ -1005,6 +842,11 @@ export default function LiveRadar() {
                     {connectorSummary.disabled} Nonaktif
                   </span>
                 )}
+
+                <span style={{ color: '#2D3848', margin: '0 2px' }}>│</span>
+                <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                  SYNC: {lastSyncTime} ({telemetry.status})
+                </span>
               </div>
             </div>
 
@@ -2368,291 +2210,6 @@ export default function LiveRadar() {
           })
         )}
       </div>
-      )}
-
-      {/* ─── 4. MODAL POP-UP NOTIFIKASI INTELIJEN TAKTIS (Saat Halaman Dibuka) ─── */}
-      {isBriefingModalOpen && briefingSummary && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(4, 7, 11, 0.82)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 9999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '20px'
-        }}>
-          <div 
-            className="steel-chassis-card"
-            style={{
-              width: '100%',
-              maxWidth: '680px',
-              padding: '24px',
-              position: 'relative',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(239, 68, 68, 0.15)',
-              border: '1px solid #334155'
-            }}
-          >
-            <span className="bolt-tl" />
-            <span className="bolt-tr" />
-            <span className="bolt-bl" />
-            <span className="bolt-br" />
-
-            {/* Header Pop-up */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              marginBottom: '16px',
-              borderBottom: '1px solid #1E2734',
-              paddingBottom: '12px'
-            }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                  <span style={{
-                    fontSize: '9px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: '2px',
-                    background: '#C8102E',
-                    color: '#FFFFFF'
-                  }}>
-                    INTEL BRIEFING
-                  </span>
-                  <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                    WAKTU PINDAI: {briefingSummary.lastScannedTime}
-                  </span>
-                </div>
-                <h2 style={{
-                  fontSize: '18px',
-                  fontFamily: 'var(--font-display)',
-                  color: '#F1F5F9',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  margin: 0
-                }}>
-                  <ShieldAlert size={20} color="#EF4444" />
-                  Laporan Intelijen: Status Triage Isu Viral
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsBriefingModalOpen(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#64748B',
-                  cursor: 'pointer',
-                  padding: '4px'
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Peringatan Siaga Kritis jika ada */}
-            {briefingSummary.criticalCount > 0 && (
-              <div style={{
-                background: 'rgba(239, 68, 68, 0.15)',
-                border: '1px solid rgba(239, 68, 68, 0.45)',
-                borderRadius: '4px',
-                padding: '10px 14px',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
-                <AlertTriangle size={18} color="#EF4444" />
-                <span style={{ fontSize: '11.5px', fontFamily: 'var(--font-mono)', color: '#FCA5A5', fontWeight: 700 }}>
-                  PERHATIAN: Ditemukan {briefingSummary.criticalCount} isu dalam level SIAGA KRITIS kedaulatan/agitasi publik yang memerlukan tindakan penyeimbang Dispenad!
-                </span>
-              </div>
-            )}
-
-            {/* Ringkasan Matriks Status (4 Kotak Taktis) */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '10px',
-              marginBottom: '18px'
-            }}>
-              <div style={{ background: '#121924', border: '1px solid #1E293B', padding: '10px', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#EF4444', fontFamily: 'var(--font-mono)' }}>
-                  {briefingSummary.hoaxCount}
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                  TERINDIKASI HOAKS
-                </div>
-              </div>
-
-              <div style={{ background: '#121924', border: '1px solid #1E293B', padding: '10px', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#F59E0B', fontFamily: 'var(--font-mono)' }}>
-                  {briefingSummary.unverifiedCount}
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                  SEDANG DIPANTAU
-                </div>
-              </div>
-
-              <div style={{ background: '#121924', border: '1px solid #1E293B', padding: '10px', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#10B981', fontFamily: 'var(--font-mono)' }}>
-                  {briefingSummary.factCount}
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#94A3B8', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                  FAKTA RESMI
-                </div>
-              </div>
-
-              <div style={{ background: '#121924', border: '1px solid #1E293B', padding: '10px', borderRadius: '4px', textAlign: 'center' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: '#64748B', fontFamily: 'var(--font-mono)' }}>
-                  {briefingSummary.neutralCount}
-                </div>
-                <div style={{ fontSize: '9.5px', color: '#64748B', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
-                  NETRAL / UMUM
-                </div>
-              </div>
-            </div>
-
-            {/* Protokol Penapisan Radar (Gatekeeper Criteria) */}
-            <div style={{
-              background: '#0B111A',
-              border: '1px solid #1E293B',
-              borderRadius: '4px',
-              padding: '10px 14px',
-              marginBottom: '16px'
-            }}>
-              <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#38BDF8', fontWeight: 800, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <ShieldCheck size={14} color="#38BDF8" />
-                KRITERIA KELAYAKAN RADAR VIRAL & ANCAMAN KOGNITIF (LEFT-OF-BANG):
-              </div>
-              <div style={{ fontSize: '10.5px', color: '#94A3B8', lineHeight: 1.5 }}>
-                Radar ini tidak memuat rilis humas atau seremonial biasa. Isu yang masuk wajib memenuhi minimal 1 dari 3 gerbang: (1) <strong>Lonjakan Penelusuran Publik</strong> (+2K–+200K netizen via Google Trends ID), (2) <strong>Laporan Disinformasi Masif</strong> (TurnBackHoax/Mafindo), atau (3) <strong>Polemik Kebijakan/Hankam Berisiko Tinggi</strong> dengan skor ancaman kognitif R ≥ 50.
-              </div>
-            </div>
-
-            {/* Cuplikan Isu Paling Kritis / Headline Utama */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', color: '#CBD5E1', fontWeight: 700, marginBottom: '8px' }}>
-                3 ISU DENGAN INDEKS ANCAMAN KOGNITIF TERTINGGI:
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {briefingSummary.headlineItems.map((item, idx) => (
-                  <div 
-                    key={item.id}
-                    style={{
-                      background: '#090D13',
-                      border: '1px solid #1F2937',
-                      padding: '8px 12px',
-                      borderRadius: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '10px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#D97706', fontWeight: 800 }}>
-                        #{idx + 1}
-                      </span>
-                      <span style={{ fontSize: '11.5px', color: '#F1F5F9', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {item.claim}
-                      </span>
-                    </div>
-                    <span style={{
-                      fontSize: '9px',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 800,
-                      padding: '1px 6px',
-                      borderRadius: '2px',
-                      background: item.verdict === 'HOAKS' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                      color: item.verdict === 'HOAKS' ? '#EF4444' : '#F59E0B',
-                      flexShrink: 0
-                    }}>
-                      SKOR: {item.cognitiveScore || 70}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Tombol Aksi Taktis Modal */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderTop: '1px solid #1E2734',
-              paddingTop: '16px',
-              flexWrap: 'wrap',
-              gap: '10px'
-            }}>
-              <button
-                type="button"
-                onClick={() => {
-                  handleClearCompletedBuffer()
-                  setIsBriefingModalOpen(false)
-                }}
-                style={{
-                  background: '#1A2332',
-                  border: '1px solid #28374D',
-                  color: '#94A3B8',
-                  fontSize: '11px',
-                  fontFamily: 'var(--font-mono)',
-                  padding: '8px 14px',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              >
-                Bersihkan Isu Tuntas ({briefingSummary.factCount + briefingSummary.neutralCount})
-              </button>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedTriage('HOAKS')
-                    setIsBriefingModalOpen(false)
-                  }}
-                  style={{
-                    background: '#C8102E',
-                    border: '1px solid #DC2626',
-                    color: '#FFFFFF',
-                    fontSize: '11px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    padding: '8px 14px',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Tinjau Isu Kritis Saja
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsBriefingModalOpen(false)}
-                  style={{
-                    background: '#0F172A',
-                    border: '1px solid #334155',
-                    color: '#E2E8F0',
-                    fontSize: '11px',
-                    fontFamily: 'var(--font-mono)',
-                    padding: '8px 14px',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Masuk ke Layar Radar Penuh
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ─── 5. MODAL DRAF KONTRANARASI TAKTIS DISPENAD & BABINSA (Untuk Isu TERINDIKASI HOAKS) ─── */}
