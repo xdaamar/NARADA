@@ -115,6 +115,18 @@ export interface YouTubeVideoMetadata {
   observationTimestamp: number
 }
 
+export interface YouTubeChannelMetadata {
+  channelId: string
+  channelTitle: string
+  description?: string
+  customUrl?: string
+  subscriberCount?: number
+  videoCount?: number
+  viewCount?: number
+  thumbnailUrl?: string
+  observationTimestamp: number
+}
+
 export interface YouTubeCommentItem {
   id: string
   videoId: string
@@ -646,6 +658,67 @@ export class YouTubeConnector implements SourceConnector {
         likeCount: stats.likeCount ? parseInt(stats.likeCount, 10) : undefined,
         commentCount: stats.commentCount ? parseInt(stats.commentCount, 10) : undefined,
         commentsDisabled: stats.commentCount === undefined,
+        observationTimestamp: Date.now()
+      }
+
+      return { success: true, metadata: meta }
+    } catch (err: any) {
+      this.quotaManager.rollbackUsage(reservation.reservationId)
+      return { success: false, errorCode: 'NETWORK_ERROR', errorMessage: err?.message || 'Gagal menghubungi YouTube API' }
+    }
+  }
+
+  /**
+   * Mengambil Detail Profil Kanal YouTube (Mengonsumsi 1 unit kuota channels.list)
+   */
+  public async getChannelDetails(
+    channelId: string,
+    options?: { customFetch?: typeof fetch; isPriority?: boolean }
+  ): Promise<{ success: boolean; metadata?: YouTubeChannelMetadata; errorCode?: string; errorMessage?: string }> {
+    if (!this.apiKey) {
+      return { success: false, errorCode: 'YOUTUBE_API_KEY_REQUIRED', errorMessage: 'API key belum disetel' }
+    }
+
+    const reservation = this.quotaManager.reserveQuota('channels.list', { isPriority: options?.isPriority })
+    if (!reservation.allowed) {
+      return { success: false, errorCode: 'QUOTA_EXHAUSTED', errorMessage: 'Batas kuota harian habis' }
+    }
+
+    const fetchFn = options?.customFetch || (typeof fetch !== 'undefined' ? fetch : null)
+    if (!fetchFn) {
+      this.quotaManager.rollbackUsage(reservation.reservationId)
+      return { success: false, errorCode: 'NO_FETCH_AVAILABLE', errorMessage: 'Fetch API tidak tersedia' }
+    }
+
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${this.apiKey}`
+    this.quotaManager.markDispatched(reservation.reservationId)
+
+    try {
+      const res = await (fetchFn as any)(url)
+      this.quotaManager.commitUsage(reservation.reservationId)
+
+      if (!res.ok) {
+        return { success: false, errorCode: `HTTP_${res.status}`, errorMessage: 'Gagal mengambil rincian channel YouTube' }
+      }
+
+      const data = await res.json()
+      const item = data.items?.[0]
+      if (!item) {
+        return { success: false, errorCode: 'CHANNEL_NOT_FOUND', errorMessage: 'Channel tidak ditemukan di YouTube' }
+      }
+
+      const snippet = item.snippet || {}
+      const stats = item.statistics || {}
+
+      const meta: YouTubeChannelMetadata = {
+        channelId,
+        channelTitle: snippet.title || '',
+        description: snippet.description || '',
+        customUrl: snippet.customUrl,
+        subscriberCount: stats.subscriberCount ? parseInt(stats.subscriberCount, 10) : undefined,
+        videoCount: stats.videoCount ? parseInt(stats.videoCount, 10) : undefined,
+        viewCount: stats.viewCount ? parseInt(stats.viewCount, 10) : undefined,
+        thumbnailUrl: snippet.thumbnails?.default?.url || snippet.thumbnails?.medium?.url,
         observationTimestamp: Date.now()
       }
 

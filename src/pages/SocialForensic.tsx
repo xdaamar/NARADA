@@ -33,6 +33,7 @@ import {
 import EvidenceBrowserWorkspace from '../components/EvidenceBrowserWorkspace.tsx'
 import CommentIntelligenceWorkspace from '../components/CommentIntelligenceWorkspace.tsx'
 import SocialIntelligenceWorkspace from '../components/SocialIntelligenceWorkspace.tsx'
+import SocialPostIntelligenceConsole from '../components/SocialPostIntelligenceConsole.tsx'
 import { generateCaseDossierPdf } from '../engine/export/case-dossier-pdf.ts'
 import {
   getCommentBatchesFromDB,
@@ -109,6 +110,12 @@ export default function SocialForensic() {
     item?: DebunkKnowledgeEntry
     caseId?: string
   }
+
+  // View Mode: Default ke Analisis Postingan Medsos jika diakses langsung dari menu
+  const [forensicViewMode, setForensicViewMode] = useState<'POST_ANALYZER' | 'CASE_ARCHIVE'>(() => {
+    if (navState.caseId || navState.targetItem || navState.item) return 'CASE_ARCHIVE'
+    return 'POST_ANALYZER'
+  })
 
   const [activeCase, setActiveCase] = useState<InvestigationCase>(() => {
     if (navState.caseId) {
@@ -748,7 +755,74 @@ export default function SocialForensic() {
 
   return (
     <div className="fade-in" style={{ paddingBottom: '48px' }}>
-      {/* ─── BANNER OFFLINE MISSION ROOM (SPRINT 3 - P4) ─── */}
+      {/* ─── PUSAT NAVIGASI MODUL FORENSIK (POST ANALYZER VS ARSIP KASUS) ─── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        background: '#121820',
+        border: '1px solid #222C38',
+        borderRadius: '6px',
+        padding: '6px 12px',
+        marginBottom: '20px',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.3)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={() => setForensicViewMode('POST_ANALYZER')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              background: forensicViewMode === 'POST_ANALYZER' ? 'rgba(0, 243, 255, 0.15)' : 'transparent',
+              border: `1px solid ${forensicViewMode === 'POST_ANALYZER' ? '#00F3FF' : 'transparent'}`,
+              color: forensicViewMode === 'POST_ANALYZER' ? '#00F3FF' : '#94A3B8',
+              fontSize: '12px',
+              fontWeight: 800,
+              fontFamily: 'var(--font-mono)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Share2 size={14} />
+            ANALISIS POSTINGAN MEDSOS &amp; KOMENTAR
+          </button>
+
+          <button
+            onClick={() => setForensicViewMode('CASE_ARCHIVE')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '4px',
+              background: forensicViewMode === 'CASE_ARCHIVE' ? 'rgba(212, 175, 55, 0.15)' : 'transparent',
+              border: `1px solid ${forensicViewMode === 'CASE_ARCHIVE' ? '#D4AF37' : 'transparent'}`,
+              color: forensicViewMode === 'CASE_ARCHIVE' ? '#D4AF37' : '#94A3B8',
+              fontSize: '12px',
+              fontWeight: 800,
+              fontFamily: 'var(--font-mono)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Database size={14} />
+            ARSIP KASUS &amp; RADAR FORENSIK (SPRINT 11)
+          </button>
+        </div>
+
+        <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+          PUSSIBERAD KARTIKA HACKATHON
+        </div>
+      </div>
+
+      {forensicViewMode === 'POST_ANALYZER' ? (
+        <SocialPostIntelligenceConsole />
+      ) : (
+        <>
+          {/* ─── BANNER OFFLINE MISSION ROOM (SPRINT 3 - P4) ─── */}
       {!isOnline && (
         <div style={{
           marginBottom: '16px',
@@ -3414,6 +3488,8 @@ export default function SocialForensic() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )
