@@ -1674,3 +1674,116 @@ textarea.form-control {
   }
 }
 
+/* ─── CYBER SWEEP BUBBLE CHAT HUD (ZERO-DELAY & SWEEP ANIMATION) ─── */
+@keyframes cyberSweepRight {
+  0% {
+    opacity: 0;
+    transform: translateX(-18px) scale(0.96);
+    filter: drop-shadow(-6px 0 10px rgba(0, 240, 255, 0.45));
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.9));
+  }
+}
+
+@keyframes cyberLaserScan {
+  0% {
+    left: -40%;
+    opacity: 0.85;
+  }
+  100% {
+    left: 130%;
+    opacity: 0;
+  }
+}
+
+@keyframes cyberPulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+
+.cyber-bubble-chat {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  min-width: 290px;
+  max-width: 350px;
+  z-index: 120;
+  pointer-events: none;
+  border-radius: 4px;
+  background: linear-gradient(170deg, #131A24 0%, #0A0F16 100%);
+  animation: cyberSweepRight 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  padding: 10px 12px;
+  overflow: hidden;
+  text-align: left;
+}
+
+.cyber-bubble-chat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 45px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-20deg);
+  animation: cyberLaserScan 0.35s ease-out forwards;
+  pointer-events: none;
+}
+
+.cyber-bubble-chat.hoax {
+  border: 1px solid #DC2626;
+  border-left: 3px solid #EF4444;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), 0 0 16px rgba(239, 68, 68, 0.28), inset 0 1px 0 rgba(248, 113, 113, 0.25);
+}
+
+.cyber-bubble-chat.fact {
+  border: 1px solid #059669;
+  border-left: 3px solid #10B981;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), 0 0 16px rgba(16, 185, 129, 0.28), inset 0 1px 0 rgba(52, 211, 153, 0.25);
+}
+
+.cyber-bubble-chat.unverified {
+  border: 1px solid #D97706;
+  border-left: 3px solid #F59E0B;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), 0 0 16px rgba(245, 158, 11, 0.28), inset 0 1px 0 rgba(251, 191, 36, 0.25);
+}
+
+.cyber-bubble-notch-top {
+  position: absolute;
+  top: -5px;
+  left: 14px;
+  width: 8px;
+  height: 8px;
+  transform: rotate(45deg);
+  background: #131A24;
+}
+
+.cyber-bubble-chat.hoax .cyber-bubble-notch-top {
+  border-top: 1px solid #DC2626;
+  border-left: 1px solid #DC2626;
+}
+
+.cyber-bubble-chat.fact .cyber-bubble-notch-top {
+  border-top: 1px solid #059669;
+  border-left: 1px solid #059669;
+}
+
+.cyber-bubble-chat.unverified .cyber-bubble-notch-top {
+  border-top: 1px solid #D97706;
+  border-left: 1px solid #D97706;
+}
+
+
