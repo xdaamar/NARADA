@@ -37,12 +37,70 @@ import {
 import {
   executeSocialPostAnalysis,
   validateSocialPlatformUrl,
+  detectSocialPlatform,
   PLATFORM_INFO_MAP,
   PRELOADED_TEST_SCENARIOS,
   type SocialMediaType,
   type SocialPostAnalysisResult,
   type PreloadedTestScenario
 } from '../engine/social/social-post-analyzer.ts'
+
+/**
+ * Resolves an embeddable in-app player URL for the given social URL & platform.
+ * Supports YouTube (watch, shorts, live, embed, youtu.be), TikTok, Instagram, Threads.
+ */
+function resolveInAppEmbedTarget(url: string, defaultPlatform: SocialMediaType) {
+  if (!url || !url.trim()) {
+    return { embedUrl: null, platform: defaultPlatform, postId: null }
+  }
+
+  const detected = detectSocialPlatform(url)
+  const effectivePlatform = detected.platform !== 'UNKNOWN' ? detected.platform : defaultPlatform
+  const postId = detected.postId
+
+  if (effectivePlatform === 'youtube' && postId) {
+    return {
+      embedUrl: `https://www.youtube.com/embed/${postId}?autoplay=1&enablejsapi=1&rel=0`,
+      platform: 'youtube',
+      postId
+    }
+  }
+
+  if (effectivePlatform === 'tiktok' && postId) {
+    return {
+      embedUrl: `https://www.tiktok.com/embed/v2/${postId}`,
+      platform: 'tiktok',
+      postId
+    }
+  }
+
+  if (effectivePlatform === 'instagram' && postId) {
+    return {
+      embedUrl: `https://www.instagram.com/p/${postId}/embed/captioned/`,
+      platform: 'instagram',
+      postId
+    }
+  }
+
+  if (effectivePlatform === 'threads' && postId) {
+    return {
+      embedUrl: `https://www.threads.net/embed/post/${postId}`,
+      platform: 'threads',
+      postId
+    }
+  }
+
+  // Fallback jika URL valid tapi tidak ada skema embed spesifik
+  if (/^https?:\/\//i.test(url.trim())) {
+    return {
+      embedUrl: url.trim(),
+      platform: effectivePlatform,
+      postId: null
+    }
+  }
+
+  return { embedUrl: null, platform: effectivePlatform, postId: null }
+}
 
 export default function SocialPostIntelligenceConsole() {
   // ─── STATE KONSOL TAKTIS ───
@@ -72,6 +130,9 @@ export default function SocialPostIntelligenceConsole() {
   const [isElectronAvailable, setIsElectronAvailable] = useState<boolean>(false)
   const [browserLoading, setBrowserLoading] = useState<boolean>(false)
   const browserContainerRef = useRef<HTMLDivElement>(null)
+
+  // Target Embed In-App Player Terkini
+  const inAppEmbed = resolveInAppEmbedTarget(targetUrl, selectedPlatform)
 
   // Cek ketersediaan Electron IPC
   useEffect(() => {
@@ -647,7 +708,7 @@ export default function SocialPostIntelligenceConsole() {
           <span className="bolt-bl" />
           <span className="bolt-br" />
 
-          {/* Top Bar Browser */}
+          {/* Top Bar Browser Mandiri */}
           <div style={{
             background: '#141C26',
             padding: '8px 14px',
@@ -658,47 +719,81 @@ export default function SocialPostIntelligenceConsole() {
             gap: '12px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }} />
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }} />
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#64748B' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F59E0B' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }} />
               <span style={{ marginLeft: '6px', fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#94A3B8' }}>
-                CHROMIUM SANDBOX SIDECAR
+                IN-APP BROWSER MANDIRI [LIVE SANDBOX VIEWPORT]
               </span>
+              {browserLoading && <RotateCw size={11} className="spin" color="#38BDF8" />}
             </div>
 
             <div style={{
               flex: 1,
-              maxWidth: '600px',
+              maxWidth: '540px',
               padding: '4px 10px',
               borderRadius: '3px',
               background: '#0B1017',
               border: '1px solid #1F2B3B',
               fontSize: '10.5px',
               fontFamily: 'var(--font-mono)',
-              color: '#94A3B8',
+              color: '#38BDF8',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}>
-              {targetUrl}
+              <Globe size={11} color="#64748B" />
+              <span>{targetUrl || 'about:blank (Standby)'}</span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsBrowserOpen(false)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#64748B',
-                cursor: 'pointer',
-                padding: '4px'
-              }}
-            >
-              <X size={15} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {targetUrl && (
+                <a
+                  href={targetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Buka Tautan di Tab Baru Eksternal"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 8px',
+                    borderRadius: '2px',
+                    background: '#162232',
+                    border: '1px solid #24354A',
+                    color: '#94A3B8',
+                    fontSize: '9.5px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    textDecoration: 'none'
+                  }}
+                >
+                  <ExternalLink size={10} /> TAB BARU
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setIsBrowserOpen(false)}
+                title="Tutup Browser Mandiri"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748B',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                <X size={15} />
+              </button>
+            </div>
           </div>
 
-          {/* Banner Peringatan CAPTCHA Interaktif */}
+          {/* Banner Status & Panduan Operasional */}
           <div style={{
             padding: '7px 14px',
             background: '#0D141F',
@@ -707,86 +802,297 @@ export default function SocialPostIntelligenceConsole() {
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: '10.5px',
-            color: '#CBD5E1'
+            color: '#CBD5E1',
+            flexWrap: 'wrap',
+            gap: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <AlertTriangle size={13} color="#FBBF24" />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: inAppEmbed.embedUrl ? '#10B981' : '#F59E0B', boxShadow: inAppEmbed.embedUrl ? '0 0 6px #10B981' : 'none' }} />
               <span>
-                <strong>TUNTUNAN OPERATOR:</strong> Jika muncul tantangan verifikasi (puzzle slider TikTok atau Cloudflare), selesaikan langsung pada layar peramban.
+                <strong>LIVE IN-APP VIEWPORT:</strong> {inAppEmbed.embedUrl 
+                  ? `Konten ${inAppEmbed.platform.toUpperCase()} aktif diputar langsung di konsol aplikasi Narada tanpa keluar sistem.` 
+                  : 'Siap memuat tayangan media. Masukkan tautan target atau klik skenario uji.'}
               </span>
             </div>
-            <button
-              type="button"
-              onClick={handleRunAnalysis}
-              style={{
-                padding: '3px 8px',
-                borderRadius: '2px',
-                background: 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)',
-                border: '1px solid #4D627E',
-                color: '#F8FAFC',
-                fontSize: '9.5px',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 800,
-                cursor: 'pointer'
-              }}
-            >
-              EKSTRAK DATA
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleRunAnalysis}
+                disabled={isAnalyzing || (!targetUrl.trim() && !rawCommentsInput.trim())}
+                style={{
+                  padding: '4px 12px',
+                  borderRadius: '3px',
+                  background: isAnalyzing ? '#1C2430' : 'linear-gradient(180deg, #3B1A1E 0%, #220F12 100%)',
+                  border: isAnalyzing ? '1px solid #2B384A' : '1px solid #7F1D1D',
+                  color: isAnalyzing ? '#64748B' : '#FCA5A5',
+                  fontSize: '10px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 800,
+                  cursor: isAnalyzing ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                {isAnalyzing ? <RotateCw size={11} className="spin" /> : <Zap size={11} />}
+                {isAnalyzing ? 'MENGANALISIS...' : '⚡ JALANKAN ANALISIS 4-DECK'}
+              </button>
+            </div>
           </div>
 
-          {/* Viewport Browser */}
+          {/* Viewport Browser Mandiri */}
           <div
             ref={browserContainerRef}
             style={{
-              height: '400px',
+              minHeight: '440px',
               background: '#090D13',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
               position: 'relative'
             }}
           >
-            {isElectronAvailable ? (
-              <div style={{ textAlign: 'center', padding: '20px' }}>
-                <Globe size={36} color="#64748B" style={{ marginBottom: '10px' }} />
-                <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#F1F5F9' }}>
-                  {browserLoading ? 'Memuat Halaman Target Melalui Chromium Sandbox...' : 'WebContentsView Chromium Sedang Beroperasi'}
+            {inAppEmbed.embedUrl ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1.6fr) minmax(320px, 1fr)',
+                gap: '12px',
+                padding: '12px'
+              }}>
+                {/* Kolom Kiri: Live Media Player (Iframe Nyata) */}
+                <div style={{
+                  position: 'relative',
+                  width: '100%',
+                  minHeight: '440px',
+                  background: '#000000',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  border: '1px solid #1F2B3B',
+                  boxShadow: 'inset 0 0 10px rgba(0,0,0,0.8)',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <iframe
+                    src={inAppEmbed.embedUrl}
+                    title="In-App Browser Mandiri Viewport"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      minHeight: '440px',
+                      border: 'none',
+                      background: '#000000',
+                      display: 'block',
+                      flex: 1
+                    }}
+                  />
                 </div>
-                <div style={{ fontSize: '10.5px', color: '#64748B', marginTop: '3px' }}>
-                  Jendela peramban terisolasi aktif. Konten terisolasi dari lingkungan utama sistem.
+
+                {/* Kolom Kanan: Baki Telemetri Intelijen & Panel Aksi */}
+                <div style={{
+                  background: '#0D141F',
+                  border: '1px solid #1F2B3B',
+                  borderRadius: '4px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}>
+                  {/* Status Target Telemetri */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid #1E2B3C',
+                    paddingBottom: '8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#10B981' }} />
+                      <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#E2E8F0' }}>
+                        TAKTIKAL TELEMETRI KONTEN
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: '9.5px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '2px',
+                      background: '#1A2433',
+                      border: '1px solid #2B3D54',
+                      color: '#38BDF8'
+                    }}>
+                      ID: {inAppEmbed.postId || 'LIVE-STREAM'}
+                    </span>
+                  </div>
+
+                  {/* Profil Kreator & Metrik atau Prompt Eksekusi */}
+                  {analysisResult ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div style={{
+                        background: '#080C12',
+                        border: '1px solid #1E293B',
+                        borderRadius: '3px',
+                        padding: '10px'
+                      }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px', lineHeight: 1.3 }}>
+                          {analysisResult.post.title}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10.5px', color: '#94A3B8' }}>
+                          <span style={{ color: '#F87171', fontWeight: 700 }}>{analysisResult.post.authorName}</span>
+                          <span>•</span>
+                          <span>{analysisResult.post.authorFollowersCount ? `${analysisResult.post.authorFollowersCount.toLocaleString('id-ID')} Pengikut` : 'Publik'}</span>
+                        </div>
+                      </div>
+
+                      {/* Stat Metrik Mini */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+                        <div style={{ background: '#090E16', border: '1px solid #1A2534', padding: '6px 8px', borderRadius: '3px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '9px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>TAYANGAN</div>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#F8FAFC', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                            {analysisResult.post.viewCount !== undefined ? analysisResult.post.viewCount.toLocaleString('id-ID') : '—'}
+                          </div>
+                        </div>
+                        <div style={{ background: '#090E16', border: '1px solid #1A2534', padding: '6px 8px', borderRadius: '3px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '9px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>SUKA</div>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#F8FAFC', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                            {analysisResult.post.likeCount !== undefined ? analysisResult.post.likeCount.toLocaleString('id-ID') : '—'}
+                          </div>
+                        </div>
+                        <div style={{ background: '#090E16', border: '1px solid #1A2534', padding: '6px 8px', borderRadius: '3px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '9px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>KOMENTAR</div>
+                          <div style={{ fontSize: '11px', fontWeight: 700, color: '#F8FAFC', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                            {analysisResult.topComments.length.toLocaleString('id-ID')}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cuplikan Komentar Live Teratas */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700 }}>
+                          CUPLIKAN KOMENTAR AUDIENS ({analysisResult.topComments.length} TERDETEKSI):
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '150px', overflowY: 'auto' }}>
+                          {analysisResult.topComments.slice(0, 3).map((c, idx) => (
+                            <div key={idx} style={{
+                              background: '#080C12',
+                              border: '1px solid #17212F',
+                              borderRadius: '3px',
+                              padding: '6px 8px',
+                              fontSize: '10px'
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#38BDF8', fontWeight: 700, marginBottom: '2px' }}>
+                                <span>{c.authorDisplayName || c.authorUsername}</span>
+                                <span style={{ color: '#64748B', fontFamily: 'var(--font-mono)' }}>♥ {c.likeCount}</span>
+                              </div>
+                              <div style={{ color: '#CBD5E1', lineHeight: 1.3 }}>
+                                {c.text}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flex: 1,
+                      textAlign: 'center',
+                      padding: '16px',
+                      background: '#090E16',
+                      border: '1px dashed #24354A',
+                      borderRadius: '4px',
+                      gap: '10px'
+                    }}>
+                      <Globe size={28} color="#64748B" />
+                      <div style={{ fontSize: '11.5px', fontWeight: 700, color: '#F1F5F9' }}>
+                        Konten Siap Dianalisis
+                      </div>
+                      <p style={{ fontSize: '10.5px', color: '#94A3B8', lineHeight: 1.4, margin: 0 }}>
+                        Tayangan video sedang berputar langsung di viewport kiri. Jalankan ekstraksi untuk mengisi 4-Deck intelijen (metrik kreator, komentar, copypasta, dan buzzer).
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleRunAnalysis}
+                        disabled={isAnalyzing}
+                        style={{
+                          marginTop: '4px',
+                          padding: '6px 14px',
+                          borderRadius: '3px',
+                          background: 'linear-gradient(180deg, #3B1A1E 0%, #220F12 100%)',
+                          border: '1px solid #7F1D1D',
+                          color: '#FCA5A5',
+                          fontSize: '10.5px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 800,
+                          cursor: isAnalyzing ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        ⚡ JALANKAN EKSTRAKSI 4-DECK
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Catatan Sandboxing PUSSIBERAD */}
+                  <div style={{
+                    marginTop: 'auto',
+                    padding: '6px 8px',
+                    borderRadius: '2px',
+                    background: '#070A0F',
+                    border: '1px solid #141D29',
+                    fontSize: '9px',
+                    color: '#64748B',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}>
+                    <ShieldCheck size={11} color="#10B981" />
+                    <span>Peramban mandiri terisolasi via Sandboxed Iframe Policy.</span>
+                  </div>
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: '24px', maxWidth: '500px' }}>
-                <Globe size={36} color="#FBBF24" style={{ marginBottom: '10px' }} />
+              /* Tampilan Standby saat targetUrl belum terisi */
+              <div style={{
+                textAlign: 'center',
+                padding: '40px 20px',
+                maxWidth: '520px',
+                margin: '0 auto',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <Globe size={40} color="#64748B" />
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#F1F5F9' }}>
-                  Simulasi Browser Mandiri (Mode Web)
+                  PERAMBAN MANDIRI STANDBY: MENUNGGU TARGET TAUTAN
                 </div>
-                <p style={{ fontSize: '11px', color: '#94A3B8', lineHeight: 1.5, marginTop: '5px' }}>
-                  Pada peramban Web, peramban Chromium terisolasi berjalan di jendela terpisah. Anda dapat membuka tautan target di tab baru, lalu salin komentarnya ke kotak <strong>Ingest Komentar</strong>.
+                <p style={{ fontSize: '11px', color: '#94A3B8', lineHeight: 1.5, margin: 0 }}>
+                  Bilah target belum terisi URL. Masukkan tautan postingan (YouTube, TikTok, Instagram, Threads) pada input di atas, atau klik salah satu skenario demo di bawah untuk memuat konten langsung di konsol Narada:
                 </p>
-                <a
-                  href={targetUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '6px 12px',
-                    borderRadius: '3px',
-                    background: '#16202E',
-                    border: '1px solid #2B384E',
-                    color: '#F87171',
-                    fontSize: '10.5px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    marginTop: '8px'
-                  }}
-                >
-                  Buka Tautan di Tab Baru <ExternalLink size={11} />
-                </a>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '6px' }}>
+                  {PRELOADED_TEST_SCENARIOS.map(sc => (
+                    <button
+                      key={sc.id}
+                      type="button"
+                      onClick={() => handleSelectScenario(sc)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: '3px',
+                        background: '#162232',
+                        border: '1px solid #283C54',
+                        color: '#38BDF8',
+                        fontSize: '10px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      UJI {sc.platform.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
