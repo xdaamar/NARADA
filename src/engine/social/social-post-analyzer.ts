@@ -95,7 +95,7 @@ export function detectSocialPlatform(url: string): {
   if (!url || typeof url !== 'string') return { platform: 'UNKNOWN', postId: null }
   const trimmed = url.trim()
 
-  // 1. YouTube
+  // 1. YouTube (Mendukung /watch?v=, youtu.be/, /shorts/, /live/, /embed/, dan parameter si/t)
   if (/youtube\.com|youtu\.be/i.test(trimmed)) {
     const watchMatch = trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/i)
     if (watchMatch) return { platform: 'youtube', postId: watchMatch[1] }
@@ -103,39 +103,46 @@ export function detectSocialPlatform(url: string): {
     const shortMatch = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i)
     if (shortMatch) return { platform: 'youtube', postId: shortMatch[1] }
 
-    const shortsMatch = trimmed.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/i)
-    if (shortsMatch) return { platform: 'youtube', postId: shortsMatch[1] }
+    const pathMatch = trimmed.match(/youtube\.com\/(?:shorts|live|embed|v)\/([a-zA-Z0-9_-]{11})/i)
+    if (pathMatch) return { platform: 'youtube', postId: pathMatch[1] }
+
+    const fallbackMatch = trimmed.match(/\/([a-zA-Z0-9_-]{11})(?:[?&#]|$)/i)
+    if (fallbackMatch) return { platform: 'youtube', postId: fallbackMatch[1] }
 
     return { platform: 'youtube', postId: null }
   }
 
-  // 2. TikTok
+  // 2. TikTok (Mendukung /video/, /photo/, vt.tiktok.com, vm.tiktok.com, tiktok.com/t/)
   if (/tiktok\.com/i.test(trimmed)) {
-    const videoMatch = trimmed.match(/@([a-zA-Z0-9_.-]+)\/video\/(\d+)/i)
+    const videoMatch = trimmed.match(/@([a-zA-Z0-9_.-]+)\/(?:video|photo)\/(\d+)/i)
     if (videoMatch) {
       return { platform: 'tiktok', authorHandle: videoMatch[1], postId: videoMatch[2] }
     }
-    const shortMatch = trimmed.match(/vt\.tiktok\.com\/([a-zA-Z0-9_-]+)/i)
+    const shortMatch = trimmed.match(/(?:vt|vm)\.tiktok\.com\/([a-zA-Z0-9_-]+)/i) || trimmed.match(/tiktok\.com\/t\/([a-zA-Z0-9_-]+)/i)
     if (shortMatch) {
       return { platform: 'tiktok', postId: shortMatch[1] }
+    }
+    const userMatch = trimmed.match(/@([a-zA-Z0-9_.-]+)/i)
+    if (userMatch) {
+      return { platform: 'tiktok', authorHandle: userMatch[1], postId: null }
     }
     return { platform: 'tiktok', postId: null }
   }
 
-  // 3. Instagram
+  // 3. Instagram (Mendukung /p/, /reel/, /reels/, /tv/, /share/p/)
   if (/instagram\.com|instagr\.am/i.test(trimmed)) {
-    const postMatch = trimmed.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/i)
+    const postMatch = trimmed.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|reels|tv|share\/p)\/([a-zA-Z0-9_-]+)/i)
     if (postMatch) {
       return { platform: 'instagram', postId: postMatch[1] }
     }
     return { platform: 'instagram', postId: null }
   }
 
-  // 4. Threads
+  // 4. Threads (Mendukung /@user/post/, /post/, /t/)
   if (/threads\.net/i.test(trimmed)) {
-    const threadsMatch = trimmed.match(/threads\.net\/@([a-zA-Z0-9_.-]+)\/post\/([a-zA-Z0-9_-]+)/i)
+    const threadsMatch = trimmed.match(/threads\.net\/(?:@([a-zA-Z0-9_.-]+)\/post|t|post)\/([a-zA-Z0-9_-]+)/i)
     if (threadsMatch) {
-      return { platform: 'threads', authorHandle: threadsMatch[1], postId: threadsMatch[2] }
+      return { platform: 'threads', authorHandle: threadsMatch[1] || undefined, postId: threadsMatch[2] }
     }
     return { platform: 'threads', postId: null }
   }
@@ -627,8 +634,37 @@ export async function executeSocialPostAnalysis(params: {
     postProfile.dataSourceNotice = 'Data komentar bersumber dari Ingest Langsung (Salin-Tempel Analis).'
   }
 
-  // ─── Jalur 1: YouTube Official API jika platform = youtube ───
-  if (platform === 'youtube' && parsed.postId) {
+  // ─── Jalur Prioritas: Gateway Ekstraksi Media Sosial Narada (Server-Side InnerTube & oEmbed) ───
+  try {
+    const gProcess = (globalThis as any).process
+    const baseUrl = typeof window !== 'undefined' ? '' : (gProcess?.env?.VITE_DEV_SERVER_URL || 'http://localhost:5175')
+    const gatewayRes = await fetch(`${baseUrl}/api/social/extract?url=${encodeURIComponent(url)}&platform=${encodeURIComponent(platform)}`)
+    if (gatewayRes.ok) {
+      const ext = await gatewayRes.json()
+      if (ext.success && ext.post) {
+        postProfile = {
+          ...postProfile,
+          ...ext.post
+        }
+        if (rawComments.length === 0 && ext.comments && Array.isArray(ext.comments) && ext.comments.length > 0) {
+          rawComments = ext.comments.map((c: any) => ({
+            id: c.id,
+            authorUsername: c.authorUsername,
+            authorDisplayName: c.authorDisplayName || c.authorUsername,
+            authorAvatarUrl: c.authorAvatarUrl,
+            text: c.text,
+            likeCount: c.likeCount || 0,
+            publishedAt: c.publishedAt
+          }))
+        }
+      }
+    }
+  } catch {
+    // Gateway offline/unreachable, lanjut ke fallback client-side
+  }
+
+  // ─── Jalur 2: YouTube Official API jika platform = youtube dan data belum lengkap ───
+  if (platform === 'youtube' && parsed.postId && rawComments.length === 0) {
     try {
       const ytVideoRes = await youtubeConnector.getVideoDetails(parsed.postId)
       if (ytVideoRes.success && ytVideoRes.metadata) {
@@ -668,7 +704,7 @@ export async function executeSocialPostAnalysis(params: {
             }))
           }
         }
-      } else {
+      } else if (postProfile.title === `Postingan ${platform.toUpperCase()}`) {
         // Fallback ke oEmbed
         const oembed = await fetchPublicOembedMetadata(url, 'youtube')
         if (oembed) {
@@ -678,7 +714,7 @@ export async function executeSocialPostAnalysis(params: {
     } catch {
       // Fallback
     }
-  } else if (platform === 'tiktok') {
+  } else if (platform === 'tiktok' && postProfile.title === `Postingan ${platform.toUpperCase()}`) {
     // Ambil metadata oEmbed TikTok
     const oembed = await fetchPublicOembedMetadata(url, 'tiktok')
     if (oembed) {

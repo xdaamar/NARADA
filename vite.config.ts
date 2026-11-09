@@ -5,6 +5,7 @@ import {
   handleRadarSearchRequest, 
   getGatewayHealthStatus 
 } from './src/engine/transport/rss-gateway-handler.ts'
+import { handleSocialExtractionRequest } from './src/engine/transport/social-gateway-handler.ts'
 
 function radarGatewayPlugin(): Plugin {
   const middleware = (req: any, res: any, next: any) => {
@@ -15,6 +16,26 @@ function radarGatewayPlugin(): Plugin {
       const health = getGatewayHealthStatus()
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify(health))
+      return
+    }
+
+    if (parsed.pathname === '/api/social/extract') {
+      const queryParams: Record<string, string> = {}
+      parsed.searchParams.forEach((v, k) => { queryParams[k] = v })
+
+      handleSocialExtractionRequest(queryParams)
+        .then(result => {
+          for (const [k, v] of Object.entries(result.headers)) {
+            res.setHeader(k, v)
+          }
+          res.statusCode = result.statusCode
+          res.end(result.body)
+        })
+        .catch(err => {
+          res.statusCode = 500
+          res.setHeader('Content-Type', 'application/json')
+          res.end(JSON.stringify({ success: false, errorMessage: err?.message || 'Social extraction gateway error' }))
+        })
       return
     }
 

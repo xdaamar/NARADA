@@ -870,6 +870,31 @@ export default function SocialPostIntelligenceConsole() {
                   </span>
                 </div>
 
+                {/* Thumbnail Preview Konten Asli */}
+                {analysisResult.post.thumbnailUrl && (
+                  <div style={{
+                    marginBottom: '12px',
+                    borderRadius: '4px',
+                    overflow: 'hidden',
+                    border: '1px solid #1E2837',
+                    maxHeight: '140px',
+                    background: '#090D13',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <img
+                      src={analysisResult.post.thumbnailUrl}
+                      alt={analysisResult.post.title}
+                      style={{ width: '100%', height: '140px', objectFit: 'cover' }}
+                      onError={(e) => {
+                        const p = (e.currentTarget as HTMLElement).parentElement
+                        if (p) p.style.display = 'none'
+                      }}
+                    />
+                  </div>
+                )}
+
                 {/* Judul & Kapsi Konten */}
                 <div style={{ marginBottom: '14px' }}>
                   <div style={{
@@ -920,9 +945,18 @@ export default function SocialPostIntelligenceConsole() {
                       justifyContent: 'center',
                       fontWeight: 800,
                       color: '#F1F5F9',
-                      fontSize: '12px'
+                      fontSize: '12px',
+                      overflow: 'hidden'
                     }}>
-                      {analysisResult.post.authorName.charAt(0)}
+                      {analysisResult.post.authorAvatarUrl ? (
+                        <img 
+                          src={analysisResult.post.authorAvatarUrl} 
+                          alt={analysisResult.post.authorName} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        analysisResult.post.authorName.charAt(0)
+                      )}
                     </div>
                     <div>
                       <div style={{ fontSize: '12px', fontWeight: 800, color: '#F1F5F9', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1080,6 +1114,14 @@ export default function SocialPostIntelligenceConsole() {
                           }}>
                             #{idx + 1}
                           </span>
+                          {cmt.authorAvatarUrl && (
+                            <img 
+                              src={cmt.authorAvatarUrl} 
+                              alt={cmt.authorDisplayName || cmt.authorUsername}
+                              style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
+                              onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none' }}
+                            />
+                          )}
                           <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#F1F5F9' }}>
                             {cmt.authorDisplayName || cmt.authorUsername}
                           </span>
