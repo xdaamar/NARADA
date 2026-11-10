@@ -89,7 +89,7 @@ interface ClusterFilterOption {
 
 const CLUSTER_OPTIONS: ClusterFilterOption[] = [
   { key: 'ALL', label: 'Semua Isu', color: '#94A3B8' },
-  { key: 'POLITIK_NEGARA', label: 'Politik & Kebijakan', color: '#F87171' },
+  { key: 'POLITIK_NEGARA', label: 'Politik', color: '#F87171' },
   { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan & Hankam', color: '#EF4444' },
   { key: 'AKSI_MASSA', label: 'Aksi Massa & Unjuk Rasa', color: '#FB923C' },
   { key: 'EKONOMI_DIGITAL', label: 'Ekonomi Digital & Pajak', color: '#34D399' },
