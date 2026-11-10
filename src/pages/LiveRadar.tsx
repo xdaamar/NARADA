@@ -96,7 +96,6 @@ const CLUSTER_OPTIONS: ClusterFilterOption[] = [
   { key: 'EKONOMI_DIGITAL', label: 'Ekonomi Digital', color: '#34D399' },
   { key: 'BENCANA_DARURAT', label: 'Bencana BMKG', color: '#38BDF8' },
   { key: 'PENIPUAN_BANSOS', label: 'Penipuan Bansos', color: '#FBBF24' },
-  { key: 'KESEHATAN_PANGAN', label: 'Kesehatan & Pangan', color: '#A78BFA' },
   { key: 'UMUM_NETRAL', label: 'Umum & Kedinasan', color: '#64748B' },
 ]
 

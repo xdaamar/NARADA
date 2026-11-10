@@ -369,7 +369,7 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     norm.includes('bpom') ||
     norm.includes('kemenkes')
   ) {
-    return 'KESEHATAN_PANGAN'
+    return 'UMUM_NETRAL'
   }
 
   return 'POLITIK_NEGARA'

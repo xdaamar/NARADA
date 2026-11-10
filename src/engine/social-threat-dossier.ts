@@ -143,10 +143,10 @@ const CLUSTER_CONFIG: Record<ThreatSpectrumCluster, { label: string; color: stri
   POLITIK_NEGARA: { label: 'Politik', color: '#F87171' },
   BENCANA_DARURAT: { label: 'Bencana BMKG', color: '#38BDF8' },
   PENIPUAN_BANSOS: { label: 'Penipuan Bansos', color: '#FBBF24' },
-  KESEHATAN_PANGAN: { label: 'Kesehatan & Pangan', color: '#A78BFA' },
   AKSI_MASSA: { label: 'Aksi Massa', color: '#FB923C' },
   EKONOMI_DIGITAL: { label: 'Ekonomi Digital', color: '#34D399' },
-  UMUM_NETRAL: { label: 'Umum & Kedinasan', color: '#94A3B8' }
+  UMUM_NETRAL: { label: 'Umum & Kedinasan', color: '#94A3B8' },
+  KESEHATAN_PANGAN: { label: 'Umum & Kedinasan', color: '#94A3B8' }
 }
 
 // ─── 3 PRESET BENCHMARK SINTETIS (PACKAGE A - SIMULATION FIREWALL) ───
@@ -229,7 +229,7 @@ export const SYNTHETIC_BENCHMARKS: SyntheticBenchmarkPreset[] = [
     id: 'preset-synthetic-diverse-baseline',
     name: 'Synthetic Diverse-Text Baseline Benchmark',
     shortLabel: 'SIMULASI: Diverse-Text Baseline',
-    category: 'KESEHATAN_PANGAN',
+    category: 'UMUM_NETRAL',
     claimTitle: '[SIMULASI] Uji Diskursus Beragam Ketahanan Pangan Nasional',
     sourceContext: 'Dataset uji sintetis untuk memverifikasi bahwa diskursus wajar tidak menghasilkan alarm koordinasi palsu',
     description: '6 record sintetis dengan leksikon beragam (Jaccard < 30%) dan interval waktu terdistribusi wajar.',

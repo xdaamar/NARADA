@@ -176,20 +176,22 @@ runTest('CYB-04.2', 'debunk-database.json terintegrasi dengan entri NAR-CYB sibe
 // ─── GATE 5: UI INTEGRATION IN RADAR & ARCHIVE ───
 console.log('\n─── Gate 5: Integrasi UI di Radar Situasional & Berita Tersemat ───')
 
-runTest('CYB-05.1', 'LiveRadar.tsx menyediakan filter klaster Siber & Peretasan (#06B6D4)', () => {
+runTest('CYB-05.1', 'LiveRadar.tsx menyediakan filter klaster Siber & Peretasan (#06B6D4) dan klaster Kesehatan & Pangan telah dihapus', () => {
   const radarSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'LiveRadar.tsx'), 'utf-8')
   assert.ok(radarSrc.includes("key: 'SIBER_PERETASAN'"), 'LiveRadar harus memuat key SIBER_PERETASAN')
   assert.ok(radarSrc.includes('Siber & Peretasan'), 'LiveRadar harus menampilkan label Siber & Peretasan')
   assert.ok(radarSrc.includes('#06B6D4'), 'Warna lencana harus konsisten #06B6D4')
   assert.ok(radarSrc.includes("item.cluster === 'SIBER_PERETASAN'"), 'LiveRadar harus memuat penanganan forensik siber')
+  assert.ok(!radarSrc.includes("key: 'KESEHATAN_PANGAN'"), 'Klaster Kesehatan & Pangan harus sudah dihapus dari LiveRadar')
 })
 
-runTest('CYB-05.2', 'Archive.tsx menyediakan filter klaster Siber & Peretasan (#06B6D4)', () => {
+runTest('CYB-05.2', 'Archive.tsx menyediakan filter klaster Siber & Peretasan (#06B6D4) dan klaster Kesehatan & Pangan telah dihapus', () => {
   const archiveSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Archive.tsx'), 'utf-8')
   assert.ok(archiveSrc.includes("key: 'SIBER_PERETASAN'"), 'Archive.tsx harus memuat key SIBER_PERETASAN')
   assert.ok(archiveSrc.includes('Siber & Peretasan'), 'Archive.tsx harus menampilkan label Siber & Peretasan')
   assert.ok(archiveSrc.includes('#06B6D4'), 'Warna lencana harus konsisten #06B6D4')
   assert.ok(archiveSrc.includes("item.cluster === 'SIBER_PERETASAN'"), 'Archive.tsx harus memuat penanganan forensik siber')
+  assert.ok(!archiveSrc.includes("key: 'KESEHATAN_PANGAN'"), 'Klaster Kesehatan & Pangan harus sudah dihapus dari Archive')
 })
 
 runTest('CYB-05.3', 'social-threat-dossier.ts memetakan konfigurasi klaster SIBER_PERETASAN', () => {

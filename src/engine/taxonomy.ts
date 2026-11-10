@@ -90,13 +90,13 @@ export const FULL_SPECTRUM_TAXONOMY: TaxonomyEntry[] = [
   { keyword: 'undangan pernikahan apk', weight: 10, category: 'HOAKS', spectrumCluster: 'PENIPUAN_BANSOS', categoryDetail: 'PENIPUAN_BANSOS', explanationTemplate: 'Modus kejahatan malware perbankan melalui kiriman file APK di pesan WhatsApp.' },
   { keyword: 'loker pertamina gaji', weight: 8, category: 'HOAKS', spectrumCluster: 'PENIPUAN_BANSOS', categoryDetail: 'PENIPUAN_BANSOS', explanationTemplate: 'Sindikat penipuan rekrutmen kerja fiktif dengan pungutan biaya seragam/tiket.' },
 
-  // ─── 4. KLASTER KESEHATAN & PANGAN SINTETIS ───
-  { keyword: 'beras plastik', weight: 9, category: 'HOAKS', spectrumCluster: 'KESEHATAN_PANGAN', categoryDetail: 'KESEHATAN_PANGAN', explanationTemplate: 'Mitos beras sintetis yang dibantah hasil uji laboratorium pangan BPOM dan Kementan.' },
-  { keyword: 'penculikan anak organ', weight: 10, category: 'HOAKS', spectrumCluster: 'KESEHATAN_PANGAN', categoryDetail: 'KESEHATAN_PANGAN', explanationTemplate: 'Hoaks teror berantai penculikan anak mobil putih pemicu keresahan sosial dan persekusi.' },
-  { keyword: 'vaksin mikrocip', weight: 9, category: 'HOAKS', spectrumCluster: 'KESEHATAN_PANGAN', categoryDetail: 'KESEHATAN_PANGAN', explanationTemplate: 'Teori konspirasi medis global yang merusak program imunisasi kesehatan publik.' },
-  { keyword: 'sirup maut anak', weight: 8, category: 'DISINFORMASI', spectrumCluster: 'KESEHATAN_PANGAN', categoryDetail: 'KESEHATAN_PANGAN', explanationTemplate: 'Penyebaran kembali daftar obat sirup cemaran tahun 2022 tanpa konteks regulasi terkini.' },
-  { keyword: 'telur palsu buatan china', weight: 8, category: 'HOAKS', spectrumCluster: 'KESEHATAN_PANGAN', categoryDetail: 'KESEHATAN_PANGAN', explanationTemplate: 'Rumor telur lilin sintetis yang merugikan peternak ayam petelur lokal.' },
-  { keyword: 'nyamuk wolbachia bahaya', weight: 8, category: 'HOAKS', spectrumCluster: 'KESEHATAN_PANGAN', categoryDetail: 'KESEHATAN_PANGAN', explanationTemplate: 'Disinformasi rekayasa genetik yang membantah riset resmi pencegahan DBD UGM & Kemenkes.' },
+  // ─── 4. KLASTER UMUM & KEDINASAN (PANGAN / KESEHATAN) ───
+  { keyword: 'beras plastik', weight: 9, category: 'HOAKS', spectrumCluster: 'UMUM_NETRAL', categoryDetail: 'HOAKS_FABRIKASI', explanationTemplate: 'Mitos beras sintetis yang dibantah hasil uji laboratorium pangan BPOM dan Kementan.' },
+  { keyword: 'penculikan anak organ', weight: 10, category: 'HOAKS', spectrumCluster: 'UMUM_NETRAL', categoryDetail: 'HOAKS_FABRIKASI', explanationTemplate: 'Hoaks teror berantai penculikan anak mobil putih pemicu keresahan sosial dan persekusi.' },
+  { keyword: 'vaksin mikrocip', weight: 9, category: 'HOAKS', spectrumCluster: 'UMUM_NETRAL', categoryDetail: 'HOAKS_FABRIKASI', explanationTemplate: 'Teori konspirasi medis global yang merusak program imunisasi kesehatan publik.' },
+  { keyword: 'sirup maut anak', weight: 8, category: 'DISINFORMASI', spectrumCluster: 'UMUM_NETRAL', categoryDetail: 'HOAKS_FABRIKASI', explanationTemplate: 'Penyebaran kembali daftar obat sirup cemaran tahun 2022 tanpa konteks regulasi terkini.' },
+  { keyword: 'telur palsu buatan china', weight: 8, category: 'HOAKS', spectrumCluster: 'UMUM_NETRAL', categoryDetail: 'HOAKS_FABRIKASI', explanationTemplate: 'Rumor telur lilin sintetis yang merugikan peternak ayam petelur lokal.' },
+  { keyword: 'nyamuk wolbachia bahaya', weight: 8, category: 'HOAKS', spectrumCluster: 'UMUM_NETRAL', categoryDetail: 'HOAKS_FABRIKASI', explanationTemplate: 'Disinformasi rekayasa genetik yang membantah riset resmi pencegahan DBD UGM & Kemenkes.' },
 
   // ─── 5. KLASTER KEDAULATAN & PERTAHANAN MILITER ───
   { keyword: 'alutsista 24 triliun', weight: 10, category: 'HOAKS', spectrumCluster: 'KEDAULATAN_MILITER', categoryDetail: 'FITNAH_MILITER', explanationTemplate: 'Fitnah pengadaan alutsista tank fiktif 24T Kemhan yang memanipulasi dokumen rahasia.' },
