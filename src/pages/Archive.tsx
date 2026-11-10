@@ -48,9 +48,9 @@ interface ClusterFilterOption {
 const CLUSTER_OPTIONS: ClusterFilterOption[] = [
   { key: 'ALL', label: 'Semua Klaster', color: '#94A3B8' },
   { key: 'POLITIK_NEGARA', label: 'Politik', color: '#F87171' },
-  { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan & Hankam', color: '#EF4444' },
-  { key: 'AKSI_MASSA', label: 'Aksi Massa & Unjuk Rasa', color: '#FB923C' },
-  { key: 'EKONOMI_DIGITAL', label: 'Ekonomi Digital & Pajak', color: '#34D399' },
+  { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan Hankam', color: '#EF4444' },
+  { key: 'AKSI_MASSA', label: 'Aksi Massa', color: '#FB923C' },
+  { key: 'EKONOMI_DIGITAL', label: 'Ekonomi Digital', color: '#34D399' },
   { key: 'BENCANA_DARURAT', label: 'Bencana BMKG', color: '#38BDF8' },
   { key: 'PENIPUAN_BANSOS', label: 'Penipuan Bansos', color: '#FBBF24' },
   { key: 'KESEHATAN_PANGAN', label: 'Kesehatan & Pangan', color: '#A78BFA' },
@@ -575,10 +575,10 @@ export default function ArchivePage() {
                           letterSpacing: '0.5px'
                         }}>
                           {isHoax 
-                            ? 'TERINDIKASI HOAKS / DISINFORMASI' 
+                            ? 'TERINDIKASI HOAKS' 
                             : isFact 
                             ? 'TERVERIFIKASI FAKTA RESMI' 
-                            : 'SEDANG DALAM PEMANTAUAN KHUSUS'}
+                            : 'SEDANG DALAM PEMANTAUAN'}
                         </div>
                         <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '1px' }}>
                           {isHoax
@@ -763,7 +763,7 @@ export default function ArchivePage() {
                         gap: '4px'
                       }}
                     >
-                      <RotateCcw size={10} /> LEPAS PANTAUAN (KEMBALIKAN KE RADAR)
+                      <RotateCcw size={10} /> KEMBALIKAN KE RADAR
                     </button>
 
                     <button

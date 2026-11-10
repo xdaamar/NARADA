@@ -138,14 +138,14 @@ export interface SocialThreatDossier {
 }
 
 const CLUSTER_CONFIG: Record<ThreatSpectrumCluster, { label: string; color: string }> = {
-  KEDAULATAN_MILITER: { label: 'Kedaulatan & Alutsista Militer', color: '#EF4444' },
-  POLITIK_NEGARA: { label: 'Politik & Stabilitas Negara', color: '#F87171' },
-  BENCANA_DARURAT: { label: 'Bencana Alam & Krisis BMKG', color: '#38BDF8' },
-  PENIPUAN_BANSOS: { label: 'Penipuan Bansos & Finansial', color: '#FBBF24' },
-  KESEHATAN_PANGAN: { label: 'Kesehatan Publik & Pangan', color: '#A78BFA' },
-  AKSI_MASSA: { label: 'Aksi Massa & Unjuk Rasa', color: '#FB923C' },
-  EKONOMI_DIGITAL: { label: 'Ekonomi Digital & Pajak', color: '#34D399' },
-  UMUM_NETRAL: { label: 'Isu Umum & Kebijakan', color: '#94A3B8' }
+  KEDAULATAN_MILITER: { label: 'Kedaulatan Hankam', color: '#EF4444' },
+  POLITIK_NEGARA: { label: 'Politik', color: '#F87171' },
+  BENCANA_DARURAT: { label: 'Bencana BMKG', color: '#38BDF8' },
+  PENIPUAN_BANSOS: { label: 'Penipuan Bansos', color: '#FBBF24' },
+  KESEHATAN_PANGAN: { label: 'Kesehatan & Pangan', color: '#A78BFA' },
+  AKSI_MASSA: { label: 'Aksi Massa', color: '#FB923C' },
+  EKONOMI_DIGITAL: { label: 'Ekonomi Digital', color: '#34D399' },
+  UMUM_NETRAL: { label: 'Umum & Kedinasan', color: '#94A3B8' }
 }
 
 // ─── 3 PRESET BENCHMARK SINTETIS (PACKAGE A - SIMULATION FIREWALL) ───

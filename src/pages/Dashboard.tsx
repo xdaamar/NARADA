@@ -1230,7 +1230,7 @@ export default function Dashboard() {
                   </div>
                   <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px', display: 'flex', gap: '4px' }}>
                     <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[AUTO SYNC]</span>
-                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[5 KLASTER NASIONAL]</span>
+                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[KLASTER NASIONAL]</span>
                   </div>
                 </div>
               </div>
@@ -1274,7 +1274,7 @@ export default function Dashboard() {
                   </div>
                   <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px', display: 'flex', gap: '4px' }}>
                     <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[PDF A4]</span>
-                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[SHA-256 STEMPEL]</span>
+                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[STEMPEL SHA-256]</span>
                   </div>
                 </div>
               </div>

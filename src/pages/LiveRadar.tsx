@@ -90,9 +90,9 @@ interface ClusterFilterOption {
 const CLUSTER_OPTIONS: ClusterFilterOption[] = [
   { key: 'ALL', label: 'Semua Isu', color: '#94A3B8' },
   { key: 'POLITIK_NEGARA', label: 'Politik', color: '#F87171' },
-  { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan & Hankam', color: '#EF4444' },
-  { key: 'AKSI_MASSA', label: 'Aksi Massa & Unjuk Rasa', color: '#FB923C' },
-  { key: 'EKONOMI_DIGITAL', label: 'Ekonomi Digital & Pajak', color: '#34D399' },
+  { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan Hankam', color: '#EF4444' },
+  { key: 'AKSI_MASSA', label: 'Aksi Massa', color: '#FB923C' },
+  { key: 'EKONOMI_DIGITAL', label: 'Ekonomi Digital', color: '#34D399' },
   { key: 'BENCANA_DARURAT', label: 'Bencana BMKG', color: '#38BDF8' },
   { key: 'PENIPUAN_BANSOS', label: 'Penipuan Bansos', color: '#FBBF24' },
   { key: 'KESEHATAN_PANGAN', label: 'Kesehatan & Pangan', color: '#A78BFA' },
@@ -1603,13 +1603,7 @@ export default function LiveRadar() {
                               size={9} 
                               color={isEffectiveHoax ? '#F87171' : isEffectiveFact ? '#34D399' : '#38BDF8'} 
                             />
-                            <span>
-                              {isEffectiveHoax 
-                                ? 'PANTAUAN • TERINDIKASI HOAKS' 
-                                : isEffectiveFact 
-                                ? 'PANTAUAN • TERVERIFIKASI FAKTA' 
-                                : 'PANTAUAN • SEDANG DIPANTAU'}
-                            </span>
+                            <span>{verdictLabel}</span>
                           </span>
                         ) : (
                           <span style={{
@@ -1671,10 +1665,10 @@ export default function LiveRadar() {
                             }}>
                               {isArchived
                                 ? (isEffectiveHoax 
-                                    ? 'TERINDIKASI HOAKS / DISINFORMASI (DALAM PANTAUAN)' 
+                                    ? 'TERINDIKASI HOAKS (DALAM PANTAUAN)' 
                                     : isEffectiveFact 
-                                    ? 'TERVERIFIKASI FAKTA RESMI (DALAM PANTAUAN)' 
-                                    : 'SEDANG DALAM PROSES KLASIFIKASI (DALAM PANTAUAN)')
+                                    ? 'TERVERIFIKASI FAKTA (DALAM PANTAUAN)' 
+                                    : 'SEDANG DIPANTAU (DALAM PANTAUAN)')
                                 : (isEffectiveHoax 
                                     ? 'TERINDIKASI HOAKS / DISINFORMASI' 
                                     : isEffectiveFact 
@@ -1892,16 +1886,16 @@ export default function LiveRadar() {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', fontFamily: 'var(--font-mono)' }}>
                         <Bookmark size={12} color="#38BDF8" />
-                        <span style={{ color: '#94A3B8' }}>STATUS DAFTAR PANTAU:</span>
+                        <span style={{ color: '#94A3B8' }}>STATUS PANTAUAN:</span>
                         <span style={{ 
                           fontWeight: 800, 
                           color: isEffectiveHoax ? '#F87171' : isEffectiveFact ? '#34D399' : '#38BDF8' 
                         }}>
                           {isEffectiveHoax 
-                            ? 'TERINDIKASI HOAKS / DISINFORMASI' 
+                            ? 'TERINDIKASI HOAKS' 
                             : isEffectiveFact 
-                            ? 'TERVERIFIKASI FAKTA RESMI' 
-                            : 'SEDANG DALAM PROSES KLASIFIKASI'}
+                            ? 'FAKTA RESMI' 
+                            : 'SEDANG DIPANTAU'}
                         </span>
                       </div>
 
@@ -2012,7 +2006,7 @@ export default function LiveRadar() {
                         gap: '5px'
                       }}>
                         {isFact ? <CheckCircle size={11} color="#10B981" /> : isHoax ? <AlertTriangle size={11} color="#EF4444" /> : <Newspaper size={11} color="#F59E0B" />}
-                        {isFact ? 'FAKTA / KLARIFIKASI RESMI:' : isHoax ? 'BUKTI FABRIKASI & KLARIFIKASI MAFINDO:' : 'CUPLIKAN & RINGKASAN BERITA:'}
+                        {isFact ? 'FAKTA & KLARIFIKASI RESMI:' : isHoax ? 'BUKTI FABRIKASI & KLARIFIKASI:' : 'RINGKASAN & CUPLIKAN BERITA:'}
                       </div>
 
                       <div style={{
