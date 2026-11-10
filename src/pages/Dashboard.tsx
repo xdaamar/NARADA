@@ -28,6 +28,7 @@ import {
   Globe,
   PieChart as PieChartIcon,
   Radio,
+  Archive,
   X
 } from 'lucide-react'
 import type { AnalysisResult, ContentCategory } from '../types'
@@ -463,14 +464,14 @@ export default function Dashboard() {
         {/* Quick Triage CTA */}
         <button
           type="button"
-          onClick={() => navigate('/analyzer')}
+          onClick={() => navigate('/archive')}
           style={{
-            background: 'rgba(239, 68, 68, 0.15)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
+            background: 'rgba(56, 189, 248, 0.15)',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
             fontSize: '10px',
             fontFamily: 'var(--font-mono)',
             fontWeight: 700,
-            color: '#F87171',
+            color: '#38BDF8',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -480,15 +481,15 @@ export default function Dashboard() {
             transition: 'all 0.15s ease'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)'
-            e.currentTarget.style.borderColor = '#EF4444'
+            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.3)'
+            e.currentTarget.style.borderColor = '#38BDF8'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'
-            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.4)'
+            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)'
+            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)'
           }}
         >
-          [ANALISIS CEPAT →]
+          <Archive size={11} /> ARSIP PEMANTAUAN
         </button>
       </div>
 
@@ -668,7 +669,7 @@ export default function Dashboard() {
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation()
-                              navigate('/analyzer', { state: { prefill: item.input || item.rawContent || '' } })
+                              navigate('/archive')
                             }}
                             style={{
                               background: 'transparent',
@@ -1151,7 +1152,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {/* Card 1 */}
             <div
-              onClick={() => navigate('/analyzer')}
+              onClick={() => navigate('/archive')}
               style={{
                 padding: '12px 14px',
                 background: 'linear-gradient(160deg, #1A232E 0%, #111720 100%)',
@@ -1165,7 +1166,7 @@ export default function Dashboard() {
                 boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#EF4444'
+                e.currentTarget.style.borderColor = '#38BDF8'
                 e.currentTarget.style.transform = 'translateY(-1px)'
               }}
               onMouseLeave={(e) => {
@@ -1174,20 +1175,20 @@ export default function Dashboard() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: 34, height: 34, borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Zap size={16} color="#EF4444" />
+                <div style={{ width: 34, height: 34, borderRadius: '6px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Archive size={16} color="#38BDF8" />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>1. Multi-Input Analyzer</span>
-                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', padding: '1px 4px', borderRadius: '2px', fontWeight: 700 }}>
-                      LSTM READY
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>1. Arsip Pemantauan</span>
+                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: 'rgba(56, 189, 248, 0.2)', color: '#38BDF8', padding: '1px 4px', borderRadius: '2px', fontWeight: 700 }}>
+                      C2 REPOSITORI
                     </span>
                   </div>
                   <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px', display: 'flex', gap: '4px' }}>
-                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[TEKS]</span>
-                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[OCR]</span>
-                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[URL]</span>
+                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[ARSIP]</span>
+                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[MONITORING]</span>
+                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[VERIFIKASI]</span>
                   </div>
                 </div>
               </div>
@@ -1304,10 +1305,10 @@ export default function Dashboard() {
             <button
               type="button"
               className="btn btn-ghost btn-sm"
-              onClick={() => navigate('/analyzer')}
-              style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}
+              onClick={() => navigate('/archive')}
+              style={{ fontSize: '10px', color: '#38BDF8', fontFamily: 'var(--font-mono)' }}
             >
-              Semua Riwayat <ChevronRight size={12} />
+              Arsip Pemantauan <ChevronRight size={12} />
             </button>
           </div>
 

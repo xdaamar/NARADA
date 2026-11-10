@@ -260,17 +260,19 @@ runTest('ARC-07', 'unarchiveIssue dan toggleArchive menghapus item dari reposito
 // ─── GATE 5: INTEGRITAS HALAMAN & KONTRAK UI ───
 console.log('\n─── Gate 5: Integritas Halaman Arsip Pemantauan, Radar & Navigasi ───')
 
-runTest('ARC-08', 'File src/pages/Analyzer.tsx mengimplementasikan Konsol Arsip Pemantauan secara lengkap', () => {
+runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Arsip Pemantauan secara lengkap', () => {
+  const archiveSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Archive.tsx'), 'utf-8')
   const analyzerSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Analyzer.tsx'), 'utf-8')
 
-  assert.ok(analyzerSrc.includes('KONSOL ARSIP INTELIJEN PEMANTAUAN'), 'Judul konsol harus ada')
-  assert.ok(analyzerSrc.includes('TOTAL BERITA TERARSIP'), 'Kotak metrik total harus ada')
-  assert.ok(analyzerSrc.includes('SEDANG DALAM PEMANTAUAN'), 'Kotak metrik sedang dipantau harus ada')
-  assert.ok(analyzerSrc.includes('TERVERIFIKASI FAKTA RESMI'), 'Kotak metrik fakta harus ada')
-  assert.ok(analyzerSrc.includes('TERINDIKASI HOAKS'), 'Kotak metrik hoaks harus ada')
-  assert.ok(analyzerSrc.includes('steel-chassis-card'), 'Harus konsisten menggunakan tema steel-chassis-card')
-  assert.ok(analyzerSrc.includes('setArchivedVerdict'), 'Harus menyediakan tombol aksi penetapan status analis')
-  assert.ok(analyzerSrc.includes('unarchiveIssue'), 'Harus menyediakan tombol Batal Arsip')
+  assert.ok(archiveSrc.includes('KONSOL ARSIP INTELIJEN PEMANTAUAN'), 'Judul konsol harus ada')
+  assert.ok(archiveSrc.includes('TOTAL BERITA TERARSIP'), 'Kotak metrik total harus ada')
+  assert.ok(archiveSrc.includes('SEDANG DALAM PEMANTAUAN'), 'Kotak metrik sedang dipantau harus ada')
+  assert.ok(archiveSrc.includes('TERVERIFIKASI FAKTA RESMI'), 'Kotak metrik fakta harus ada')
+  assert.ok(archiveSrc.includes('TERINDIKASI HOAKS'), 'Kotak metrik hoaks harus ada')
+  assert.ok(archiveSrc.includes('steel-chassis-card'), 'Harus konsisten menggunakan tema steel-chassis-card')
+  assert.ok(archiveSrc.includes('setArchivedVerdict'), 'Harus menyediakan tombol aksi penetapan status analis')
+  assert.ok(archiveSrc.includes('unarchiveIssue'), 'Harus menyediakan tombol Batal Arsip')
+  assert.ok(analyzerSrc.includes('ArchivePage'), 'Analyzer.tsx harus menjadi alias re-ekspor ke ArchivePage')
 })
 
 runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol ARSIPKAN dan kontrol penyembunyian arsip agar radar clean', () => {
@@ -283,14 +285,17 @@ runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol ARSIPKAN dan kontrol penyemb
   assert.ok(radarSrc.includes('syncArchivedItemsWithRadar'), 'LiveRadar harus memanggil syncArchivedItemsWithRadar saat data masuk')
 })
 
-runTest('ARC-10', 'App.tsx dan TacticalTopBar.tsx telah menggantikan Multi-Input Analyzer dengan Arsip Pemantauan', () => {
+runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah menggantikan Multi-Input Analyzer dengan Arsip Pemantauan', () => {
   const appSrc = fs.readFileSync(path.join(rootDir, 'src', 'App.tsx'), 'utf-8')
   const topBarSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'TacticalTopBar.tsx'), 'utf-8')
+  const dashSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Dashboard.tsx'), 'utf-8')
 
   assert.ok(appSrc.includes("label: 'Arsip Pemantauan'"), 'Menu ke-4 di sidebar harus berlabel Arsip Pemantauan')
-  assert.ok(appSrc.includes("to: '/analyzer'"), 'Rute harus tetap konsisten /analyzer')
+  assert.ok(appSrc.includes("to: '/archive'"), 'Rute harus mengarah ke /archive')
   assert.ok(!appSrc.includes("Multi Input anlyzer"), 'Label lama Multi Input analyzer harus sudah dihapus')
   assert.ok(topBarSrc.includes('ARSIP INTELIJEN PEMANTAUAN'), 'TacticalTopBar harus menampilkan judul Arsip Intelijen Pemantauan')
+  assert.ok(dashSrc.includes('1. Arsip Pemantauan'), 'Dashboard Tactical Quick Launchpad harus berlabel 1. Arsip Pemantauan')
+  assert.ok(!dashSrc.includes('Multi-Input Analyzer'), 'Multi-Input Analyzer harus bersih dari Dashboard')
 })
 
 console.log('\n══════════════════════════════════════════════════════════════════════')

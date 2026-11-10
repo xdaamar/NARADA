@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import LiveRadar from './pages/LiveRadar'
-import Analyzer from './pages/Analyzer'
+import ArchivePage from './pages/Archive'
 import SocialForensic from './pages/SocialForensic'
 import Reports from './pages/Reports'
 import SettingsPage from './pages/SettingsPage'
@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
   { to: '/radar', icon: Radio, label: 'Radar Situasional', exact: true, hotkey: 'Alt+2' },
   { to: '/social-forensic', icon: Share2, label: 'Analisa Postingan Medsos', hotkey: 'Alt+3' },
-  { to: '/analyzer', icon: Archive, label: 'Arsip Pemantauan', hotkey: 'Alt+4' },
+  { to: '/archive', icon: Archive, label: 'Arsip Pemantauan', hotkey: 'Alt+4' },
   { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]
 
@@ -242,7 +242,7 @@ function AppShell() {
           navigate('/social-forensic')
         } else if (e.key === '4') {
           e.preventDefault()
-          navigate('/analyzer')
+          navigate('/archive')
         } else if (e.key === '5') {
           e.preventDefault()
           navigate('/reports')
@@ -298,8 +298,9 @@ function AppShell() {
             <Route path="/radar" element={<LiveRadar />} />
             <Route path="/radar/monitor/:id" element={<SocialForensic />} />
             <Route path="/radar/monitor" element={<SocialForensic />} />
-            <Route path="/analyzer" element={<Analyzer />} />
-            <Route path="/classifier" element={<Analyzer />} />
+            <Route path="/archive" element={<ArchivePage />} />
+            <Route path="/analyzer" element={<ArchivePage />} />
+            <Route path="/classifier" element={<ArchivePage />} />
             <Route path="/social-forensic" element={<SocialForensic />} />
             <Route path="/profiler" element={<SocialForensic />} />
             <Route path="/nexus" element={<LiveRadar />} />
