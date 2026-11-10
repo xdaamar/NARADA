@@ -378,89 +378,7 @@ export default function Dashboard() {
 
   return (
     <div style={{ paddingBottom: '32px' }}>
-      {/* ─── 1. Header Situational Awareness Command (Tactical Armored Steel) ─── */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: '16px',
-        flexWrap: 'wrap',
-        gap: '12px'
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <span style={{
-              fontSize: '10px',
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 700,
-              padding: '3px 10px',
-              borderRadius: 'var(--radius-pill)',
-              background: 'rgba(239, 68, 68, 0.18)',
-              color: '#F87171',
-              border: '1px solid rgba(239, 68, 68, 0.45)',
-              letterSpacing: '1px',
-              textTransform: 'uppercase'
-            }}>
-              SITUATIONAL AWARENESS COMMAND
-            </span>
-            <span style={{
-              fontSize: '10px',
-              fontFamily: 'var(--font-mono)',
-              fontWeight: 600,
-              padding: '2px 8px',
-              borderRadius: 'var(--radius-pill)',
-              background: '#141B24',
-              color: '#94A3B8',
-              border: '1px solid #2D3848',
-              letterSpacing: '0.8px'
-            }}>
-              PUSSIBERAD TNI AD
-            </span>
-          </div>
-
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '28px',
-            fontWeight: 800,
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            color: '#F1F5F9',
-            lineHeight: 1.15
-          }}>
-            Cognitive Threat Situational Awareness
-          </h1>
-          <p style={{ fontSize: '13px', color: '#94A3B8', marginTop: '4px' }}>
-            Pusat komando pemantauan ancaman kognitif, disinformasi, dan kampanye manipulasi siber waktu nyata.
-          </p>
-        </div>
-
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'linear-gradient(160deg, #1C2430 0%, #121822 100%)',
-          padding: '8px 14px',
-          borderRadius: 'var(--radius-pill)',
-          borderTop: '1px solid var(--border-steel-light)',
-          borderLeft: '1px solid var(--border-steel-light)',
-          borderRight: '1px solid var(--border-steel-dark)',
-          borderBottom: '1px solid var(--border-steel-dark)',
-          boxShadow: 'var(--shadow-steel-plate)'
-        }}>
-          <Globe size={14} color="#3B82F6" />
-          <span style={{
-            fontSize: '12px',
-            fontFamily: 'var(--font-mono)',
-            color: '#F1F5F9',
-            fontWeight: 600,
-            letterSpacing: '0.5px'
-          }}>
-            {currentTimeStr ? `${currentTimeStr} WIB` : 'SIAGA OPERASIONAL'}
-          </span>
-        </div>
-      </div>
-
-      {/* ─── 2. DYNAMIC TELEMETRY RIBBON PLAT BAJA (High-Density Stream) ─── */}
+      {/* ─── DYNAMIC TELEMETRY RIBBON PLAT BAJA (High-Density Stream) ─── */}
       <div 
         className="steel-chassis-card"
         style={{
@@ -522,36 +440,53 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Quick Triage CTA */}
-        <button
-          type="button"
-          onClick={() => navigate('/archive')}
-          style={{
-            background: 'rgba(56, 189, 248, 0.15)',
-            border: '1px solid rgba(56, 189, 248, 0.4)',
-            fontSize: '10px',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 700,
-            color: '#38BDF8',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '4px 10px',
-            borderRadius: '4px',
-            transition: 'all 0.15s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.3)'
-            e.currentTarget.style.borderColor = '#38BDF8'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)'
-            e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)'
-          }}
-        >
-          <Pin size={11} style={{ transform: 'rotate(45deg)' }} /> BERITA TERSEMAT [{archivedIds.size}]
-        </button>
+        {/* Quick Triage CTA & Jam Militer */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {currentTimeStr && (
+            <span style={{
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              color: '#94A3B8',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <Globe size={12} color="#3B82F6" />
+              {currentTimeStr} WIB
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={() => navigate('/archive')}
+            style={{
+              background: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              fontSize: '10px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 700,
+              color: '#38BDF8',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              padding: '4px 10px',
+              borderRadius: '4px',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(56, 189, 248, 0.3)'
+              e.currentTarget.style.borderColor = '#38BDF8'
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)'
+              e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)'
+            }}
+          >
+            <Pin size={11} style={{ transform: 'rotate(45deg)' }} /> BERITA TERSEMAT [{archivedIds.size}]
+          </button>
+        </div>
       </div>
 
       {/* ─── 3. DUAL SECTOR: ACTIVE INCIDENT & COGNITIVE TRIAGE LEDGER (65%) & CEW INDEX + DONUT (35%) ─── */}
