@@ -83,7 +83,7 @@ function cleanHtml(html: string): string {
 export function extractClaimQuery(text: string): string {
   if (!text) return ''
 
-  // Hapus karakter prefix seperti [SALAH], [HOAKS] jika ada pada teks OCR
+  // Hapus karakter prefix seperti [SALAH], [HOAKS] jika ada pada teks input
   const cleanPrefix = text.replace(/^\[(salah|hoaks|disinformasi|klarifikasi)\]/i, '').trim()
   const firstSentence = cleanPrefix.split(/[.\n!?]/)[0] || cleanPrefix
 

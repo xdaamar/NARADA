@@ -250,36 +250,9 @@ function AppShell() {
       }
     }
 
-    const handlePaste = (e: ClipboardEvent) => {
-      const target = e.target as HTMLElement | null
-      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-
-      // Jika user paste gambar di luar textarea atau di jendela mana saja
-      const items = e.clipboardData?.items
-      if (items) {
-        for (let i = 0; i < items.length; i++) {
-          if (items[i].type.startsWith('image/')) {
-            const file = items[i].getAsFile()
-            if (file) {
-              if (!isInput) {
-                e.preventDefault()
-              }
-              navigate('/analyzer', { state: { hasClipboardImage: true } })
-              setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('narada:clipboard-image-pasted', { detail: { file } }))
-              }, 120)
-              break
-            }
-          }
-        }
-      }
-    }
-
     window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('paste', handlePaste)
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('paste', handlePaste)
     }
   }, [navigate])
 

@@ -260,9 +260,8 @@ runTest('ARC-07', 'unarchiveIssue dan toggleArchive menghapus item dari reposito
 // ─── GATE 5: INTEGRITAS HALAMAN & KONTRAK UI ───
 console.log('\n─── Gate 5: Integritas Halaman Arsip Pemantauan, Radar & Navigasi ───')
 
-runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Arsip Pemantauan secara lengkap', () => {
+runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Arsip Pemantauan secara lengkap & Analyzer.tsx terhapus total', () => {
   const archiveSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Archive.tsx'), 'utf-8')
-  const analyzerSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Analyzer.tsx'), 'utf-8')
 
   assert.ok(archiveSrc.includes('KONSOL ARSIP INTELIJEN PEMANTAUAN'), 'Judul konsol harus ada')
   assert.ok(archiveSrc.includes('TOTAL BERITA TERARSIP'), 'Kotak metrik total harus ada')
@@ -272,7 +271,8 @@ runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Arsip P
   assert.ok(archiveSrc.includes('steel-chassis-card'), 'Harus konsisten menggunakan tema steel-chassis-card')
   assert.ok(archiveSrc.includes('setArchivedVerdict'), 'Harus menyediakan tombol aksi penetapan status analis')
   assert.ok(archiveSrc.includes('unarchiveIssue'), 'Harus menyediakan tombol Batal Arsip')
-  assert.ok(analyzerSrc.includes('ArchivePage'), 'Analyzer.tsx harus menjadi alias re-ekspor ke ArchivePage')
+  assert.ok(!fs.existsSync(path.join(rootDir, 'src', 'pages', 'Analyzer.tsx')), 'Analyzer.tsx harus sudah dihapus total')
+  assert.ok(!fs.existsSync(path.join(rootDir, 'src', 'components', 'OCRUploader.tsx')), 'OCRUploader.tsx harus sudah dihapus total')
 })
 
 runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol ARSIPKAN dan kontrol penyembunyian arsip agar radar clean', () => {

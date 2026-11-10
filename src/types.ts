@@ -3,7 +3,7 @@
 
 export type ThreatLevel = 'low' | 'medium' | 'high' | 'critical'
 export type ContentCategory = 'HOAKS' | 'PROPAGANDA' | 'BUZZER' | 'DISINFORMASI' | 'NETRAL'
-export type InputSourceType = 'url' | 'ocr' | 'text' | 'file'
+export type InputSourceType = 'url' | 'text' | 'file'
 
 // ─── Input Types ───
 export interface URLAnalysisInput {
@@ -14,15 +14,6 @@ export interface URLAnalysisInput {
   siteName?: string
   excerpt?: string
   fetchedAt: number
-}
-
-export interface OCRAnalysisInput {
-  imageName?: string
-  imagePreview?: string
-  extractedText: string
-  confidence: number // 0-100
-  editedText?: string
-  language: string
 }
 
 export interface TextAnalysisInput {

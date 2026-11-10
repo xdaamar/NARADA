@@ -224,8 +224,8 @@ export function seedDemoAnalyses(): AnalysisResult[] {
     {
       id: `NRD-${now}-102`,
       timestamp: now - 1000 * 60 * 42, // 42 menit lalu
-      inputSource: 'ocr',
-      title: 'OCR: Screenshot Post Medsos Separatis',
+      inputSource: 'text',
+      title: 'Teks: Post Medsos Separatis',
       rawContent: 'Panggilan perjuangan untuk seluruh kawan di Papua Barat! Rezim militer NKRI terus menindas dan merampas kekayaan adat. Saatnya kita boikot seluruh komando militer Kodam XVII/Cenderawasih dan menuntut hak penentuan nasib sendiri. Hancurkan penjajah!',
       input: 'Panggilan perjuangan untuk seluruh kawan di Papua Barat! Rezim militer NKRI terus menindas dan merampas kekayaan adat. Saatnya kita boikot seluruh komando militer Kodam XVII/Cenderawasih dan menuntut hak penentuan nasib sendiri. Hancurkan penjajah!',
       category: 'PROPAGANDA',

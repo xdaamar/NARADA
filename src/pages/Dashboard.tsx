@@ -589,9 +589,7 @@ export default function Dashboard() {
                     const dateObj = new Date(item.timestamp)
                     const timeStr = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}:${String(dateObj.getSeconds()).padStart(2, '0')} WIB`
                     
-                    const vectorBadge = item.inputSource === 'ocr'
-                      ? { label: 'OCR SCREENSHOT', bg: 'rgba(59, 130, 246, 0.15)', color: '#60A5FA', border: 'rgba(59, 130, 246, 0.4)' }
-                      : item.inputSource === 'url'
+                    const vectorBadge = item.inputSource === 'url'
                       ? { label: 'BERITA DARING', bg: 'rgba(212, 160, 23, 0.15)', color: '#FBBF24', border: 'rgba(212, 160, 23, 0.4)' }
                       : idx % 2 === 0
                       ? { label: 'URL MEDSOS', bg: 'rgba(168, 85, 247, 0.15)', color: '#C084FC', border: 'rgba(168, 85, 247, 0.4)' }
@@ -1322,9 +1320,7 @@ export default function Dashboard() {
                 const catBadge = getCategoryBadge(a.category)
                 const threatBadge = getThreatBadge(a.threatLevel)
 
-                const originPlatform = a.inputSource === 'ocr' 
-                  ? 'TIKTOK OCR' 
-                  : a.inputSource === 'url' 
+                const originPlatform = a.inputSource === 'url' 
                   ? 'BERITA DARING' 
                   : idx % 2 === 0 
                   ? 'X/TWITTER' 
@@ -1433,7 +1429,7 @@ export default function Dashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {[
               { label: 'AI Hybrid Classifier (ML 60% + Rules 40%)', latency: '12ms', status: 'ONLINE', ok: true },
-              { label: 'Neural OCR Engine (Tesseract.js LSTM)', latency: '180ms', status: 'READY', ok: true },
+              { label: 'Archive Intelligence Engine (C2 Durable)', latency: '0ms', status: 'READY', ok: true },
               { label: 'Google Fact Check & Mafindo Client', latency: '320ms', status: 'SYNCED', ok: true },
               { label: 'Mozilla Readability URL Extractor', latency: '45ms', status: 'READY', ok: true },
               { label: 'Social Buzzer Forensic & Sentiment Engine', latency: '16ms', status: 'AKTIF', ok: true },

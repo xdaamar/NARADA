@@ -298,7 +298,7 @@ export default function InteractiveDoctrineModal({ isOpen, onClose }: Interactiv
                 </div>
                 <p style={{ fontSize: '12px', margin: 0, color: '#94A3B8' }}>
                   NARADA dirancang khusus untuk operasi tempur intelijen terisolasi (Air-Gapped Field Deployment).
-                  Seluruh inferensi AI, OCR Tesseract, pencocokan leksikon, dan pembentukan laporan A4 berlangsung 100%
+                  Seluruh inferensi AI, analisis konten medsos, pencocokan leksikon, dan pembentukan laporan A4 berlangsung 100%
                   di memori lokal perangkat analis tanpa mengirim 1 byte pun data ke server luar.
                 </p>
               </div>
@@ -320,7 +320,7 @@ export default function InteractiveDoctrineModal({ isOpen, onClose }: Interactiv
                   }}
                 >
                   <div style={{ color: '#38BDF8' }}>[1. MULTI-MODAL INGESTION]</div>
-                  <div>└── Teks Mentah (WA/Broadcast) │ Screenshot Berita (OCR Neural Binarize) │ URL Portal Web</div>
+                  <div>└── Live OSINT Radar Feeds │ Tautan Media Sosial Publik │ Rujukan Fakta Otoritatif</div>
                   <div style={{ color: '#F59E0B', marginTop: '6px' }}>[2. TOKENIZATION & NORMALIZATION]</div>
                   <div>└── Lowercase, Regex Punctuation Sanitization, Stopword Filtering, N-Gram Extract (1-3 words)</div>
                   <div style={{ color: '#EF4444', marginTop: '6px' }}>[3. DUAL-ENGINE CLASSIFICATION (HYBRID)]</div>
@@ -499,8 +499,8 @@ export default function InteractiveDoctrineModal({ isOpen, onClose }: Interactiv
                       <td style={{ padding: '8px', textAlign: 'center' }}>❌ SNA Grafis Saja</td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #161D27' }}>
-                      <td style={{ padding: '8px', color: '#F1F5F9' }}>Ekstraksi OCR Tangkapan Layar WA</td>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#10B981', fontWeight: 700 }}>✅ Neural Binarize</td>
+                      <td style={{ padding: '8px', color: '#F1F5F9' }}>Ekstraksi Konten & Komentar Medsos</td>
+                      <td style={{ padding: '8px', textAlign: 'center', color: '#10B981', fontWeight: 700 }}>✅ Tri-Engine Analisis</td>
                       <td style={{ padding: '8px', textAlign: 'center', color: '#EF4444' }}>❌ Tidak Ada</td>
                       <td style={{ padding: '8px', textAlign: 'center', color: '#EF4444' }}>❌ Tidak Ada</td>
                       <td style={{ padding: '8px', textAlign: 'center', color: '#EF4444' }}>❌ Tidak Ada</td>
