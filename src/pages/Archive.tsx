@@ -19,7 +19,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Bookmark,
+  Pin,
   Radio,
   ShieldCheck,
   ShieldAlert,
@@ -152,12 +152,12 @@ export default function ArchivePage() {
             justifyContent: 'center',
             boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)'
           }}>
-            <Bookmark size={22} color="#38BDF8" />
+            <Pin size={22} color="#38BDF8" style={{ transform: 'rotate(45deg)' }} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '15px', fontWeight: 800, color: '#F8FAFC', letterSpacing: '0.8px', fontFamily: 'var(--font-mono)' }}>
-                KONSOL DAFTAR PANTAU KHUSUS
+                KONSOL BERITA TERSEMAT
               </span>
               <span style={{
                 fontSize: '9px',
@@ -169,7 +169,7 @@ export default function ArchivePage() {
                 color: '#38BDF8',
                 border: '1px solid rgba(56, 189, 248, 0.3)'
               }}>
-                C2-HOLDING PEMANTAUAN
+                C2-BERITA TERSEMAT
               </span>
               {lastSyncTime && (
                 <span style={{
@@ -182,7 +182,7 @@ export default function ArchivePage() {
               )}
             </div>
             <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '3px' }}>
-              Penyimpanan berita aktif agar tidak tenggelam di radar • Dipantau hingga terklasifikasi sebagai Fakta atau Hoaks
+              Penyimpanan berita yang disematkan agar tidak tenggelam di radar • Dipantau hingga terklasifikasi sebagai Fakta atau Hoaks
             </div>
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function ArchivePage() {
                 `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
               )
             }}
-            title="Segarkan data daftar pantau"
+            title="Segarkan data berita tersemat"
             style={{
               padding: '6px 10px',
               borderRadius: '4px',
@@ -274,13 +274,13 @@ export default function ArchivePage() {
           }}>
             <div>
               <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700 }}>
-                TOTAL DALAM DAFTAR PANTAU
+                TOTAL BERITA TERSEMAT
               </div>
               <div style={{ fontSize: '20px', fontWeight: 800, color: '#F8FAFC', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
                 {counts.total}
               </div>
             </div>
-            <Bookmark size={24} color="#64748B" />
+            <Pin size={24} color="#64748B" style={{ transform: 'rotate(45deg)' }} />
           </div>
 
           {/* Sedang Dipantau */}
@@ -363,7 +363,7 @@ export default function ArchivePage() {
               FILTER STATUS:
             </span>
             {[
-              { id: 'ALL' as const, label: 'SEMUA DAFTAR PANTAU', count: counts.total, color: '#94A3B8' },
+              { id: 'ALL' as const, label: 'SEMUA BERITA TERSEMAT', count: counts.total, color: '#94A3B8' },
               { id: 'DIPANTAU' as const, label: 'SEDANG DIPANTAU', count: counts.dipantau, color: '#F59E0B' },
               { id: 'FAKTA' as const, label: 'FAKTA RESMI', count: counts.fakta, color: '#10B981' },
               { id: 'HOAKS' as const, label: 'TERINDIKASI HOAKS', count: counts.hoaks, color: '#EF4444' }
@@ -475,16 +475,16 @@ export default function ArchivePage() {
           <span className="bolt-bl" />
           <span className="bolt-br" />
 
-          <Bookmark size={42} color="#64748B" />
+          <Pin size={42} color="#64748B" style={{ transform: 'rotate(45deg)' }} />
           <div style={{ fontSize: '14px', fontWeight: 700, color: '#F1F5F9' }}>
             {archivedItems.length === 0
-              ? 'BELUM ADA BERITA DALAM DAFTAR PANTAU'
-              : 'TIDAK ADA BERITA PANTAUAN SESUAI FILTER INI'}
+              ? 'BELUM ADA BERITA TERSEMAT'
+              : 'TIDAK ADA BERITA TERSEMAT SESUAI FILTER INI'}
           </div>
           <p style={{ fontSize: '11px', color: '#94A3B8', maxWidth: '480px', lineHeight: 1.5, margin: 0 }}>
             {archivedItems.length === 0
-              ? 'Halaman ini digunakan untuk menyimpan berita yang sedang dipantau agar tidak tenggelam oleh derasnya arus berita baru di Radar Situasional hingga berhasil diklasifikasikan sebagai Fakta atau Hoaks. Buka Radar Situasional dan klik tombol "+ DAFTAR PANTAU" pada berita yang ingin Anda ikuti perkembangannya.'
-              : 'Tidak ditemukan berita di daftar pantau yang cocok dengan kriteria pencarian atau status yang dipilih. Coba reset filter status.'}
+              ? 'Halaman ini digunakan untuk menyimpan berita yang disematkan agar tidak tenggelam oleh derasnya arus berita baru di Radar Situasional hingga berhasil diklasifikasikan sebagai Fakta atau Hoaks. Buka Radar Situasional dan klik tombol "SEMATKAN" pada berita yang ingin Anda ikuti perkembangannya.'
+              : 'Tidak ditemukan berita tersemat yang cocok dengan kriteria pencarian atau status yang dipilih. Coba reset filter status.'}
           </p>
           {archivedItems.length === 0 && (
             <button
@@ -585,7 +585,7 @@ export default function ArchivePage() {
                             ? 'Data resmi mengonfirmasi materi manipulasi / bertentangan dengan fakta.'
                             : isFact
                             ? 'Telah diverifikasi sesuai konfirmasi resmi instansi/kementerian terkait.'
-                            : 'Disimpan di daftar pantau agar tidak tenggelam. Menunggu perkembangan data asli lapangan.'}
+                            : 'Disematkan agar tidak tenggelam. Menunggu perkembangan data asli lapangan.'}
                         </div>
                       </div>
                     </div>
@@ -620,7 +620,7 @@ export default function ArchivePage() {
                     </span>
 
                     <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                      Masuk Pantauan: <span style={{ color: '#94A3B8' }}>{item.archivedAt}</span>
+                      Disematkan: <span style={{ color: '#94A3B8' }}>{item.archivedAt}</span>
                     </span>
                   </div>
 
@@ -650,7 +650,7 @@ export default function ArchivePage() {
                     <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#64748B', marginBottom: '4px' }}>
                       INTISARI FAKTA & DATA LAPANGAN YANG DITUNGGU:
                     </div>
-                    {item.clarification || item.tacticalResponseMilitary || 'Belum ada klarifikasi tambahan. Isu disimpan dalam daftar pantau menunggu pembaharuan berkala dari dinas terkait atau arus berita resmi.'}
+                    {item.clarification || item.tacticalResponseMilitary || 'Belum ada klarifikasi tambahan. Isu disimpan dalam Berita Tersemat menunggu pembaharuan berkala dari dinas terkait atau arus berita resmi.'}
                   </div>
 
                   {/* Info Sumber Rujukan */}
@@ -742,12 +742,12 @@ export default function ArchivePage() {
                     </div>
                   </div>
 
-                  {/* Tombol Kontrol: Kembalikan ke Radar / Hapus dari Pantauan */}
+                  {/* Tombol Kontrol: Kembalikan ke Radar / Hapus dari Berita Tersemat */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
                     <button
                       type="button"
                       onClick={() => unarchiveIssue(item.id)}
-                      title="Keluarkan dari daftar pantau dan kembalikan berita ini ke halaman Radar Situasional"
+                      title="Keluarkan dari berita tersemat dan kembalikan berita ini ke halaman Radar Situasional"
                       style={{
                         padding: '4px 8px',
                         borderRadius: '3px',
@@ -763,13 +763,13 @@ export default function ArchivePage() {
                         gap: '4px'
                       }}
                     >
-                      <RotateCcw size={10} /> KEMBALIKAN KE RADAR
+                      <RotateCcw size={10} /> LEPAS SEMATAN (KE RADAR)
                     </button>
 
                     <button
                       type="button"
                       onClick={() => unarchiveIssue(item.id)}
-                      title="Hapus dari daftar pantau"
+                      title="Hapus dari berita tersemat"
                       style={{
                         padding: '4px 6px',
                         borderRadius: '3px',
