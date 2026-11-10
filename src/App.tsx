@@ -3,7 +3,7 @@ import { HashRouter, Routes, Route, NavLink, useNavigate } from 'react-router-do
 import { 
   LayoutDashboard, 
   Radio,
-  Archive, 
+  Bookmark, 
   FileText, 
   Settings,
   Activity,
@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
   { to: '/radar', icon: Radio, label: 'Radar Situasional', exact: true, hotkey: 'Alt+2' },
   { to: '/social-forensic', icon: Share2, label: 'Analisa Postingan Medsos', hotkey: 'Alt+3' },
-  { to: '/archive', icon: Archive, label: 'Arsip Pemantauan', hotkey: 'Alt+4' },
+  { to: '/archive', icon: Bookmark, label: 'Daftar Pantau', hotkey: 'Alt+4' },
   { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]
 
@@ -272,6 +272,8 @@ function AppShell() {
             <Route path="/radar/monitor/:id" element={<SocialForensic />} />
             <Route path="/radar/monitor" element={<SocialForensic />} />
             <Route path="/archive" element={<ArchivePage />} />
+            <Route path="/watchlist" element={<ArchivePage />} />
+            <Route path="/daftar-pantau" element={<ArchivePage />} />
             <Route path="/analyzer" element={<ArchivePage />} />
             <Route path="/classifier" element={<ArchivePage />} />
             <Route path="/social-forensic" element={<SocialForensic />} />

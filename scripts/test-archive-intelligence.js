@@ -258,43 +258,43 @@ runTest('ARC-07', 'unarchiveIssue dan toggleArchive menghapus item dari reposito
 })
 
 // ─── GATE 5: INTEGRITAS HALAMAN & KONTRAK UI ───
-console.log('\n─── Gate 5: Integritas Halaman Arsip Pemantauan, Radar & Navigasi ───')
+console.log('\n─── Gate 5: Integritas Halaman Daftar Pantau Khusus, Radar & Navigasi ───')
 
-runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Arsip Pemantauan secara lengkap & Analyzer.tsx terhapus total', () => {
+runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Daftar Pantau secara lengkap & Analyzer.tsx terhapus total', () => {
   const archiveSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Archive.tsx'), 'utf-8')
 
-  assert.ok(archiveSrc.includes('KONSOL ARSIP INTELIJEN PEMANTAUAN'), 'Judul konsol harus ada')
-  assert.ok(archiveSrc.includes('TOTAL BERITA TERARSIP'), 'Kotak metrik total harus ada')
-  assert.ok(archiveSrc.includes('SEDANG DALAM PEMANTAUAN'), 'Kotak metrik sedang dipantau harus ada')
+  assert.ok(archiveSrc.includes('KONSOL DAFTAR PANTAU KHUSUS'), 'Judul konsol daftar pantau harus ada')
+  assert.ok(archiveSrc.includes('TOTAL DALAM DAFTAR PANTAU'), 'Kotak metrik total harus ada')
+  assert.ok(archiveSrc.includes('MENUNGGU VERIFIKASI (DIPANTAU)'), 'Kotak metrik sedang dipantau harus ada')
   assert.ok(archiveSrc.includes('TERVERIFIKASI FAKTA RESMI'), 'Kotak metrik fakta harus ada')
   assert.ok(archiveSrc.includes('TERINDIKASI HOAKS'), 'Kotak metrik hoaks harus ada')
   assert.ok(archiveSrc.includes('steel-chassis-card'), 'Harus konsisten menggunakan tema steel-chassis-card')
   assert.ok(archiveSrc.includes('setArchivedVerdict'), 'Harus menyediakan tombol aksi penetapan status analis')
-  assert.ok(archiveSrc.includes('unarchiveIssue'), 'Harus menyediakan tombol Batal Arsip')
+  assert.ok(archiveSrc.includes('unarchiveIssue'), 'Harus menyediakan tombol Lepas Pantauan')
   assert.ok(!fs.existsSync(path.join(rootDir, 'src', 'pages', 'Analyzer.tsx')), 'Analyzer.tsx harus sudah dihapus total')
   assert.ok(!fs.existsSync(path.join(rootDir, 'src', 'components', 'OCRUploader.tsx')), 'OCRUploader.tsx harus sudah dihapus total')
 })
 
-runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol ARSIPKAN dan kontrol penyembunyian arsip agar radar clean', () => {
+runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol DAFTAR PANTAU dan kontrol penyembunyian daftar pantau agar radar clean', () => {
   const radarSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'LiveRadar.tsx'), 'utf-8')
 
-  assert.ok(radarSrc.includes('ARSIPKAN'), 'Tombol ARSIPKAN harus ada di kartu radar')
-  assert.ok(radarSrc.includes('TERARSIP'), 'Label status TERARSIP harus ada')
-  assert.ok(radarSrc.includes('hideArchivedInRadar'), 'Mekanisme penyaringan isu terarsip harus ada')
-  assert.ok(radarSrc.includes('TERARSIP DISEMBUNYIKAN'), 'Tombol toolbar kontrol visibilitas arsip harus ada')
+  assert.ok(radarSrc.includes('+ DAFTAR PANTAU'), 'Tombol + DAFTAR PANTAU harus ada di kartu radar')
+  assert.ok(radarSrc.includes('DALAM PANTAUAN'), 'Label status DALAM PANTAUAN harus ada')
+  assert.ok(radarSrc.includes('hideArchivedInRadar'), 'Mekanisme penyaringan isu pantauan harus ada')
+  assert.ok(radarSrc.includes('DAFTAR PANTAU DISEMBUNYIKAN'), 'Tombol toolbar kontrol visibilitas daftar pantau harus ada')
   assert.ok(radarSrc.includes('syncArchivedItemsWithRadar'), 'LiveRadar harus memanggil syncArchivedItemsWithRadar saat data masuk')
 })
 
-runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah menggantikan Multi-Input Analyzer dengan Arsip Pemantauan', () => {
+runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah mengadopsi Daftar Pantau Khusus', () => {
   const appSrc = fs.readFileSync(path.join(rootDir, 'src', 'App.tsx'), 'utf-8')
   const topBarSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'TacticalTopBar.tsx'), 'utf-8')
   const dashSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Dashboard.tsx'), 'utf-8')
 
-  assert.ok(appSrc.includes("label: 'Arsip Pemantauan'"), 'Menu ke-4 di sidebar harus berlabel Arsip Pemantauan')
+  assert.ok(appSrc.includes("label: 'Daftar Pantau'"), 'Menu ke-4 di sidebar harus berlabel Daftar Pantau')
   assert.ok(appSrc.includes("to: '/archive'"), 'Rute harus mengarah ke /archive')
   assert.ok(!appSrc.includes("Multi Input anlyzer"), 'Label lama Multi Input analyzer harus sudah dihapus')
-  assert.ok(topBarSrc.includes('ARSIP INTELIJEN PEMANTAUAN'), 'TacticalTopBar harus menampilkan judul Arsip Intelijen Pemantauan')
-  assert.ok(dashSrc.includes('1. Arsip Pemantauan'), 'Dashboard Tactical Quick Launchpad harus berlabel 1. Arsip Pemantauan')
+  assert.ok(topBarSrc.includes('KONSOL DAFTAR PANTAU'), 'TacticalTopBar harus menampilkan judul Konsol Daftar Pantau')
+  assert.ok(dashSrc.includes('1. Daftar Pantau'), 'Dashboard Tactical Quick Launchpad harus berlabel 1. Daftar Pantau')
   assert.ok(!dashSrc.includes('Multi-Input Analyzer'), 'Multi-Input Analyzer harus bersih dari Dashboard')
 })
 

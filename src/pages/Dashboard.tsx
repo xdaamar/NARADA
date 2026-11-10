@@ -28,7 +28,7 @@ import {
   Globe,
   PieChart as PieChartIcon,
   Radio,
-  Archive,
+  Bookmark,
   X
 } from 'lucide-react'
 import type { AnalysisResult, ContentCategory } from '../types'
@@ -489,7 +489,7 @@ export default function Dashboard() {
             e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)'
           }}
         >
-          <Archive size={11} /> ARSIP PEMANTAUAN
+          <Bookmark size={11} /> DAFTAR PANTAU
         </button>
       </div>
 
@@ -1174,17 +1174,17 @@ export default function Dashboard() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: 34, height: 34, borderRadius: '6px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Archive size={16} color="#38BDF8" />
+                  <Bookmark size={16} color="#38BDF8" />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>1. Arsip Pemantauan</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#F1F5F9' }}>1. Daftar Pantau</span>
                     <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: 'rgba(56, 189, 248, 0.2)', color: '#38BDF8', padding: '1px 4px', borderRadius: '2px', fontWeight: 700 }}>
-                      C2 REPOSITORI
+                      C2 WATCHLIST
                     </span>
                   </div>
                   <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px', display: 'flex', gap: '4px' }}>
-                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[ARSIP]</span>
+                    <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[PANTAU]</span>
                     <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[MONITORING]</span>
                     <span style={{ background: '#0C1016', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1E2734' }}>[VERIFIKASI]</span>
                   </div>
@@ -1306,7 +1306,7 @@ export default function Dashboard() {
               onClick={() => navigate('/archive')}
               style={{ fontSize: '10px', color: '#38BDF8', fontFamily: 'var(--font-mono)' }}
             >
-              Arsip Pemantauan <ChevronRight size={12} />
+              Daftar Pantau <ChevronRight size={12} />
             </button>
           </div>
 

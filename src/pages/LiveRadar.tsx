@@ -26,7 +26,7 @@ import {
   ChevronDown,
   ChevronUp,
   Newspaper,
-  Archive
+  Bookmark
 } from 'lucide-react'
 import {
   getArchivedIssueIds,
@@ -630,12 +630,12 @@ export default function LiveRadar() {
               </button>
             )}
 
-            {/* Tombol Kontrol Visibilitas Berita Terarsip */}
+            {/* Tombol Kontrol Visibilitas Berita di Daftar Pantau */}
             {archivedIssueIds.size > 0 && (
               <button
                 type="button"
                 onClick={() => setHideArchivedInRadar(prev => !prev)}
-                title={hideArchivedInRadar ? "Tampilkan berita terarsip di radar" : "Sembunyikan berita terarsip agar radar tetap bersih dan selalu terupdate"}
+                title={hideArchivedInRadar ? "Tampilkan berita di daftar pantau pada radar" : "Sembunyikan berita di daftar pantau agar radar tetap bersih dan selalu fokus pada isu baru"}
                 style={{
                   fontSize: '10.5px',
                   fontFamily: 'var(--font-mono)',
@@ -653,8 +653,8 @@ export default function LiveRadar() {
                   transition: 'all 0.15s ease'
                 }}
               >
-                <Archive size={11} color={hideArchivedInRadar ? '#38BDF8' : '#94A3B8'} />
-                <span>{hideArchivedInRadar ? `TERARSIP DISEMBUNYIKAN (${archivedIssueIds.size})` : `TAMPILKAN SEMUA (${archivedIssueIds.size} ARSIP)`}</span>
+                <Bookmark size={11} color={hideArchivedInRadar ? '#38BDF8' : '#94A3B8'} />
+                <span>{hideArchivedInRadar ? `DAFTAR PANTAU DISEMBUNYIKAN (${archivedIssueIds.size})` : `TAMPILKAN SEMUA (${archivedIssueIds.size} TERPANTAU)`}</span>
               </button>
             )}
 
@@ -1599,16 +1599,16 @@ export default function LiveRadar() {
                               cursor: 'pointer'
                             }}
                           >
-                            <Archive 
+                            <Bookmark 
                               size={9} 
                               color={isEffectiveHoax ? '#F87171' : isEffectiveFact ? '#34D399' : '#38BDF8'} 
                             />
                             <span>
                               {isEffectiveHoax 
-                                ? 'TERARSIP • TERINDIKASI HOAKS' 
+                                ? 'PANTAUAN • TERINDIKASI HOAKS' 
                                 : isEffectiveFact 
-                                ? 'TERARSIP • TERVERIFIKASI FAKTA' 
-                                : 'TERARSIP • SEDANG DIPANTAU'}
+                                ? 'PANTAUAN • TERVERIFIKASI FAKTA' 
+                                : 'PANTAUAN • SEDANG DIPANTAU'}
                             </span>
                           </span>
                         ) : (
@@ -1652,7 +1652,7 @@ export default function LiveRadar() {
                                   animation: 'cyberPulseDot 1.4s infinite'
                                 }} />
                                 <span style={{ fontSize: '8.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.8px' }}>
-                                  {isArchived ? '// C2-ARSIP-PEMANTAUAN' : '// C2-RADAR-VERIFY'}
+                                  {isArchived ? '// C2-DAFTAR-PANTAU' : '// C2-RADAR-VERIFY'}
                                 </span>
                               </div>
                               <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '1px 4px', borderRadius: '2px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
@@ -1671,10 +1671,10 @@ export default function LiveRadar() {
                             }}>
                               {isArchived
                                 ? (isEffectiveHoax 
-                                    ? 'TERINDIKASI HOAKS / DISINFORMASI (TERARSIP)' 
+                                    ? 'TERINDIKASI HOAKS / DISINFORMASI (DALAM PANTAUAN)' 
                                     : isEffectiveFact 
-                                    ? 'TERVERIFIKASI FAKTA RESMI (TERARSIP)' 
-                                    : 'SEDANG DALAM PEMANTAUAN (TERARSIP)')
+                                    ? 'TERVERIFIKASI FAKTA RESMI (DALAM PANTAUAN)' 
+                                    : 'SEDANG DALAM PROSES KLASIFIKASI (DALAM PANTAUAN)')
                                 : (isEffectiveHoax 
                                     ? 'TERINDIKASI HOAKS / DISINFORMASI' 
                                     : isEffectiveFact 
@@ -1692,10 +1692,10 @@ export default function LiveRadar() {
                             }}>
                               {isArchived ? (
                                 isEffectiveHoax
-                                  ? 'Isu tersimpan dalam Konsol Arsip Pemantauan. Deteksi intelijen mengidentifikasi anomali narasi manipulatif atau provokatif yang memerlukan penangkalan opini segera.'
+                                  ? 'Isu tersimpan dalam Konsol Daftar Pantau. Deteksi intelijen mengidentifikasi anomali narasi manipulatif atau provokatif yang memerlukan penangkalan opini segera.'
                                   : isEffectiveFact
-                                  ? 'Isu tersimpan dalam Konsol Arsip Pemantauan. Analisis intelijen mengonfirmasi keselarasan data lapangan dengan posko/instansi resmi terkait.'
-                                  : 'Isu tersimpan dalam Konsol Arsip Pemantauan. Tim analis terus aktif memantau dinamika perkembangan berita sebelum menetapkan kesimpulan final.'
+                                  ? 'Isu tersimpan dalam Konsol Daftar Pantau. Analisis intelijen mengonfirmasi keselarasan data lapangan dengan posko/instansi resmi terkait.'
+                                  : 'Isu tersimpan dalam Konsol Daftar Pantau agar tidak tenggelam oleh arus data lain. Tim analis terus aktif memantau dinamika perkembangan berita sebelum menetapkan kesimpulan final.'
                               ) : isEffectiveUnverified ? (
                                 'Laporan baru diserap radar dan sedang dalam pemantauan teritorial Babinsa/Siber. Bukti forensik pendukung terus dihimpun.'
                               ) : isEffectiveHoax ? (
@@ -1717,7 +1717,7 @@ export default function LiveRadar() {
                               gap: '4px'
                             }}>
                               <span style={{ color: '#F59E0B' }}>▶</span>
-                              <span>{isArchived ? 'Gunakan tombol Set Fakta / Set Hoaks / Reset Pantau di baki kartu untuk override analis' : 'Klik ARSIPKAN untuk menyimpan berita ke Konsol Arsip Pemantauan'}</span>
+                              <span>{isArchived ? 'Gunakan tombol Set Fakta / Set Hoaks / Reset Pantau di baki kartu untuk override analis' : 'Klik + DAFTAR PANTAU untuk menyimpan berita ke Konsol Daftar Pantau agar tidak tenggelam'}</span>
                             </div>
                           </div>
                         )}
@@ -1737,7 +1737,7 @@ export default function LiveRadar() {
                         RELEVANSI {score}/100
                       </span>
 
-                      {/* Tombol ARSIPKAN / TERARSIP: Tersedia untuk semua isu di radar */}
+                      {/* Tombol Simpan ke Daftar Pantau / Dalam Pantauan */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1760,10 +1760,10 @@ export default function LiveRadar() {
                           gap: '4px',
                           transition: 'all 0.15s ease'
                         }}
-                        title={isArchived ? 'Batalkan Arsip: Kembalikan berita ke radar aktif' : 'Arsipkan Berita: Pindahkan ke Konsol Arsip Pemantauan agar radar tetap bersih'}
+                        title={isArchived ? 'Lepas dari Daftar Pantau: Kembalikan berita ke radar biasa' : 'Simpan ke Daftar Pantau agar tidak tenggelam di radar hingga terverifikasi'}
                       >
-                        <Archive size={10} color={isArchived ? '#38BDF8' : '#94A3B8'} />
-                        <span>{isArchived ? 'TERARSIP' : 'ARSIPKAN'}</span>
+                        <Bookmark size={10} color={isArchived ? '#38BDF8' : '#94A3B8'} />
+                        <span>{isArchived ? 'DALAM PANTAUAN' : '+ DAFTAR PANTAU'}</span>
                       </button>
                     </div>
                   </div>
@@ -1891,8 +1891,8 @@ export default function LiveRadar() {
                       flexWrap: 'wrap'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', fontFamily: 'var(--font-mono)' }}>
-                        <Archive size={12} color="#38BDF8" />
-                        <span style={{ color: '#94A3B8' }}>STATUS ARSIP PEMANTAUAN:</span>
+                        <Bookmark size={12} color="#38BDF8" />
+                        <span style={{ color: '#94A3B8' }}>STATUS DAFTAR PANTAU:</span>
                         <span style={{ 
                           fontWeight: 800, 
                           color: isEffectiveHoax ? '#F87171' : isEffectiveFact ? '#34D399' : '#38BDF8' 
@@ -1901,7 +1901,7 @@ export default function LiveRadar() {
                             ? 'TERINDIKASI HOAKS / DISINFORMASI' 
                             : isEffectiveFact 
                             ? 'TERVERIFIKASI FAKTA RESMI' 
-                            : 'SEDANG DIPANTAU (DALAM MONITORING)'}
+                            : 'SEDANG DALAM PROSES KLASIFIKASI'}
                         </span>
                       </div>
 
@@ -1966,7 +1966,7 @@ export default function LiveRadar() {
                         <button
                           type="button"
                           onClick={() => handleToggleArchive(item)}
-                          title="Keluarkan berita ini dari repositori arsip"
+                          title="Keluarkan berita ini dari daftar pantau"
                           style={{
                             background: 'transparent',
                             color: '#94A3B8',
@@ -1979,7 +1979,7 @@ export default function LiveRadar() {
                             cursor: 'pointer'
                           }}
                         >
-                          Batal Arsip
+                          Lepas Pantauan
                         </button>
                       </div>
                     </div>

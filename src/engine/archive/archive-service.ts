@@ -306,3 +306,14 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
   }
 }
 
+// ─── Alias Watchlist / Daftar Pantau Khusus ───
+export const addToWatchlist = archiveIssue
+export const removeFromWatchlist = unarchiveIssue
+export const toggleWatchlist = toggleArchive
+export const isIssueInWatchlist = isIssueArchived
+export const getWatchlistEntries = getArchivedEntries
+export const getWatchlistIssueIds = getArchivedIssueIds
+export const setWatchlistVerdict = setArchivedVerdict
+export const syncWatchlistWithRadar = syncArchivedItemsWithRadar
+
+
