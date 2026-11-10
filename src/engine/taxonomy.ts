@@ -16,6 +16,9 @@ export interface TaxonomyEntry {
     | 'SARA_POLARISASI'
     | 'BUZZER_AGITASI'
     | 'HOAKS_FABRIKASI'
+    | 'SERANGAN_SIBER'
+    | 'KEBOCORAN_DATA'
+    | 'RANSOMWARE'
   explanationTemplate: string
 }
 
@@ -51,6 +54,14 @@ export const STRATEGIC_ENTITIES: StrategicEntity[] = [
 
 // ─── Taksonomi Spektrum Ganda (Pertahanan Militer + Perlindungan Sosial/Bencana) ───
 export const FULL_SPECTRUM_TAXONOMY: TaxonomyEntry[] = [
+  // ─── 0. KLASTER KEAMANAN SIBER & PERETASAN NASIONAL ───
+  { keyword: 'ransomware pdns', weight: 10, category: 'HOAKS', spectrumCluster: 'SIBER_PERETASAN', categoryDetail: 'RANSOMWARE', explanationTemplate: 'Klaim sepihak ransomware tanpa bukti enkripsi yang memicu kepanikan lumpuhnya layanan publik.' },
+  { keyword: 'kebocoran data pemilih kpu', weight: 10, category: 'HOAKS', spectrumCluster: 'SIBER_PERETASAN', categoryDetail: 'KEBOCORAN_DATA', explanationTemplate: 'Manipulasi isu pencurian data DPT untuk mendelegitimasi integritas sistem pemilu.' },
+  { keyword: 'bjorka bobol dokumen rahasia', weight: 10, category: 'HOAKS', spectrumCluster: 'SIBER_PERETASAN', categoryDetail: 'SERANGAN_SIBER', explanationTemplate: 'Publikasi ulang dokumen terbuka yang dilabeli palsu sebagai rahasia negara.' },
+  { keyword: 'satelit militer diretas', weight: 10, category: 'HOAKS', spectrumCluster: 'SIBER_PERETASAN', categoryDetail: 'SERANGAN_SIBER', explanationTemplate: 'Disinformasi peretasan sistem pertahanan satelit komando militer air-gapped.' },
+  { keyword: 'saldo bank lenyap dibobol', weight: 10, category: 'HOAKS', spectrumCluster: 'SIBER_PERETASAN', categoryDetail: 'SERANGAN_SIBER', explanationTemplate: 'Hoaks pembobolan core banking yang merekayasa rekaman antrean pemeliharaan sistem.' },
+  { keyword: 'apk surat tilang etle', weight: 10, category: 'HOAKS', spectrumCluster: 'SIBER_PERETASAN', categoryDetail: 'SERANGAN_SIBER', explanationTemplate: 'Modus malware trojan APK sniffing pencuri SMS OTP perbankan.' },
+
   // ─── 1. KLASTER POLITIK & SUKSESI NEGARA ───
   { keyword: 'gibran dicopot', weight: 10, category: 'HOAKS', spectrumCluster: 'POLITIK_NEGARA', categoryDetail: 'POLITIK_NEGARA', explanationTemplate: 'Klaim pemecatan Wakil Presiden bertentangan dengan mekanisme konstitusi Pasal 7A/7B UUD 1945.' },
   { keyword: 'wapres dicopot', weight: 10, category: 'HOAKS', spectrumCluster: 'POLITIK_NEGARA', categoryDetail: 'POLITIK_NEGARA', explanationTemplate: 'Disinformasi pemakzulan Wakil Presiden RI tanpa dasar hukum sah.' },

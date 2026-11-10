@@ -182,10 +182,10 @@ export function evaluateContextRelevance(
     reasonCodes.push('SOCIAL_SAFETY_CONTEXT')
   }
 
-  // Domain 7: Keamanan Siber & Dampak Publik
-  if (fullText.includes('kebocoran data') || fullText.includes('serangan siber') || fullText.includes('ransomware') || fullText.includes('pdns')) {
-    score = Math.max(score, 80)
-    matchedTopics.push('Keamanan Siber Layanan Publik')
+  // Domain 7: Keamanan Siber & Dampak Publik (Prioritas Hackathon Pertahanan Siber)
+  if (category === 'SIBER_PERETASAN' || fullText.includes('kebocoran data') || fullText.includes('serangan siber') || fullText.includes('ransomware') || fullText.includes('pdns') || fullText.includes('peretasan') || fullText.includes('hacker') || fullText.includes('pussiberad')) {
+    score = Math.max(score, 90)
+    matchedTopics.push('Keamanan Siber & Pertahanan Digital')
     reasonCodes.push('CYBER_SECURITY_CONTEXT')
   }
 

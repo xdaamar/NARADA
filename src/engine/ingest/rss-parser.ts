@@ -273,6 +273,41 @@ export function extractOfficialSourceFromText(text: string): string {
 export function classifyCluster(title: string, body: string): ThreatSpectrumCluster {
   const norm = (title + ' ' + body).toLowerCase()
 
+  // 1. SIBER & PERETASAN (Prioritas Utama Pertahanan Siber & Hackathon)
+  if (
+    norm.includes('siber') ||
+    norm.includes('cyber') ||
+    norm.includes('peretasan') ||
+    norm.includes('diretas') ||
+    norm.includes('meretas') ||
+    norm.includes('hacker') ||
+    norm.includes('kebocoran data') ||
+    norm.includes('data breach') ||
+    norm.includes('ransomware') ||
+    norm.includes('brain cipher') ||
+    norm.includes('lockbit') ||
+    norm.includes('defacement') ||
+    norm.includes('slot judol') ||
+    norm.includes('judi online di web') ||
+    norm.includes('malware') ||
+    norm.includes('dark web') ||
+    norm.includes('breachforums') ||
+    norm.includes('bjorka') ||
+    norm.includes('phishing perbankan') ||
+    norm.includes('sniffing') ||
+    norm.includes('pdns') ||
+    norm.includes('pusat data nasional') ||
+    norm.includes('csirt') ||
+    norm.includes('bssn') ||
+    norm.includes('pussiberad') ||
+    norm.includes('ddos') ||
+    norm.includes('trojan') ||
+    norm.includes('apk pencuri') ||
+    norm.includes('surat tilang apk')
+  ) {
+    return 'SIBER_PERETASAN'
+  }
+
   if (
     norm.includes('tni') ||
     norm.includes('militer') ||

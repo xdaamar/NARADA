@@ -138,6 +138,7 @@ export interface SocialThreatDossier {
 }
 
 const CLUSTER_CONFIG: Record<ThreatSpectrumCluster, { label: string; color: string }> = {
+  SIBER_PERETASAN: { label: 'Siber & Peretasan', color: '#06B6D4' },
   KEDAULATAN_MILITER: { label: 'Kedaulatan Hankam', color: '#EF4444' },
   POLITIK_NEGARA: { label: 'Politik', color: '#F87171' },
   BENCANA_DARURAT: { label: 'Bencana BMKG', color: '#38BDF8' },

@@ -52,6 +52,7 @@ export interface FactCheckResult {
 
 // ─── Dual-Spectrum & Fact-Checking Knowledge Types ───
 export type ThreatSpectrumCluster =
+  | 'SIBER_PERETASAN'      // Serangan siber, kebocoran data, ransomware, defacement, dark web, BSSN, malware
   | 'POLITIK_NEGARA'       // Suksesi presiden, kudeta, pilpres, suap pejabat
   | 'BENCANA_DARURAT'      // Gempa megathrust, bendungan jebol, tsunami, letusan
   | 'PENIPUAN_BANSOS'      // Bansos kemensos 5jt, link kuota, apk tilang

@@ -83,6 +83,15 @@
       "locale": "id",
       "gl": "ID",
       "ceid": "ID:id"
+    },
+    "gnews-cyber-security": {
+      "id": "gnews-cyber-security",
+      "domain": "CYBER_PUBLIC_IMPACT",
+      "displayName": "Google News — Siber & Peretasan",
+      "query": "(\"serangan siber\" OR peretasan OR hacker OR \"kebocoran data\" OR ransomware OR BSSN OR Pussiberad OR CSIRT OR \"data breach\") when:3d",
+      "locale": "id",
+      "gl": "ID",
+      "ceid": "ID:id"
     }
   },
   "gdeltProfiles": {
@@ -133,6 +142,14 @@
       "query": "(hoaks OR disinformasi OR misinformasi OR \"cek fakta\" OR klarifikasi OR manipulasi) sourcecountry:ID",
       "timespan": "7d",
       "maxrecords": 50
+    },
+    "gdelt-cyber-security": {
+      "id": "gdelt-cyber-security",
+      "domain": "CYBER_PUBLIC_IMPACT",
+      "displayName": "GDELT — Siber & Peretasan",
+      "query": "(\"cyber attack\" OR \"data breach\" OR ransomware OR hacker OR \"serangan siber\" OR peretasan) sourcecountry:ID",
+      "timespan": "7d",
+      "maxrecords": 50
     }
   },
   "sources": [
@@ -153,6 +170,26 @@
       "parserAdapter": "turnbackhoax",
       "category": "PENIPUAN_BANSOS",
       "domain": "INFORMATION_INTEGRITY",
+      "enabled": true
+    },
+    {
+      "id": "src-gnews-cyber",
+      "displayName": "Google News — Siber & Peretasan",
+      "shortLabel": "G-News · Siber/Peretasan",
+      "sourceType": "rss",
+      "outputType": "PUBLICATION",
+      "profileId": "gnews-cyber-security",
+      "upstreamUrl": "https://news.google.com/rss/search?q=(%22serangan+siber%22+OR+peretasan+OR+hacker+OR+%22kebocoran+data%22+OR+ransomware+OR+BSSN+OR+Pussiberad+OR+CSIRT+OR+%22data+breach%22)+when:3d&hl=id&gl=ID&ceid=ID:id",
+      "allowedHost": "news.google.com",
+      "pollIntervalMs": 900000,
+      "ttlMs": 120000,
+      "timeoutMs": 6000,
+      "maxItems": 30,
+      "attributionLabel": "Google News RSS Aggregator (Intelejen Siber, Insiden Peretasan & Serangan Siber)",
+      "attributionUrl": "https://news.google.com",
+      "parserAdapter": "google_news",
+      "category": "SIBER_PERETASAN",
+      "domain": "CYBER_PUBLIC_IMPACT",
       "enabled": true
     },
     {

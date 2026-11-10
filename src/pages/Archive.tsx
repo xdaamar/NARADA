@@ -47,6 +47,7 @@ interface ClusterFilterOption {
 
 const CLUSTER_OPTIONS: ClusterFilterOption[] = [
   { key: 'ALL', label: 'Semua Klaster', color: '#94A3B8' },
+  { key: 'SIBER_PERETASAN', label: 'Siber & Peretasan', color: '#06B6D4' },
   { key: 'POLITIK_NEGARA', label: 'Politik', color: '#F87171' },
   { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan Hankam', color: '#EF4444' },
   { key: 'AKSI_MASSA', label: 'Aksi Massa', color: '#FB923C' },
@@ -581,11 +582,19 @@ export default function ArchivePage() {
                             : 'SEDANG DALAM PEMANTAUAN'}
                         </div>
                         <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '1px' }}>
-                          {isHoax
-                            ? 'Data resmi mengonfirmasi materi manipulasi / bertentangan dengan fakta.'
-                            : isFact
-                            ? 'Telah diverifikasi sesuai konfirmasi resmi instansi/kementerian terkait.'
-                            : 'Disematkan agar tidak tenggelam. Menunggu perkembangan data asli lapangan.'}
+                          {item.cluster === 'SIBER_PERETASAN' ? (
+                            isHoax
+                              ? 'Forensik siber PUSSIBERAD/BSSN mengonfirmasi klaim peretasan sebagai hoaks/gertakan sepihak.'
+                              : isFact
+                              ? 'Insiden siber terkonfirmasi faktual oleh BSSN / PUSSIBERAD / CSIRT instansi terkait.'
+                              : 'Disematkan dalam pemantauan siber. Tim forensik sedang menguji validitas sampel dan advisory CSIRT.'
+                          ) : isHoax ? (
+                            'Data resmi mengonfirmasi materi manipulasi / bertentangan dengan fakta.'
+                          ) : isFact ? (
+                            'Telah diverifikasi sesuai konfirmasi resmi instansi/kementerian terkait.'
+                          ) : (
+                            'Disematkan agar tidak tenggelam. Menunggu perkembangan data asli lapangan.'
+                          )}
                         </div>
                       </div>
                     </div>

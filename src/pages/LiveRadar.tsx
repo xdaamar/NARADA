@@ -89,6 +89,7 @@ interface ClusterFilterOption {
 
 const CLUSTER_OPTIONS: ClusterFilterOption[] = [
   { key: 'ALL', label: 'Semua Isu', color: '#94A3B8' },
+  { key: 'SIBER_PERETASAN', label: 'Siber & Peretasan', color: '#06B6D4' },
   { key: 'POLITIK_NEGARA', label: 'Politik', color: '#F87171' },
   { key: 'KEDAULATAN_MILITER', label: 'Kedaulatan Hankam', color: '#EF4444' },
   { key: 'AKSI_MASSA', label: 'Aksi Massa', color: '#FB923C' },
@@ -1685,7 +1686,13 @@ export default function LiveRadar() {
                               fontFamily: 'var(--font-sans)',
                               marginBottom: '6px'
                             }}>
-                              {isArchived ? (
+                              {item.cluster === 'SIBER_PERETASAN' ? (
+                                isEffectiveHoax
+                                  ? 'Forensik Siber PUSSIBERAD/BSSN mengonfirmasi klaim ini sebagai HOAKS atau gertakan sepihak (extortion bluff/inspect element). Sistem target terverifikasi aman.'
+                                  : isEffectiveFact
+                                  ? 'Insiden siber TERVERIFIKASI FAKTA oleh BSSN / PUSSIBERAD / CSIRT instansi terkait. Bukti IOC, enkripsi, atau sampel data valid terkonfirmasi.'
+                                  : 'Klaim insiden siber SEDANG DIPANTAU. Tim analis forensik siber sedang menguji validitas sampel dump, telemetri server, dan menunggu advisory resmi CSIRT.'
+                              ) : isArchived ? (
                                 isEffectiveHoax
                                   ? 'Isu disimpan dalam halaman Berita Tersemat. Deteksi intelijen mengidentifikasi anomali narasi manipulatif atau provokatif yang memerlukan penangkalan opini segera.'
                                   : isEffectiveFact
