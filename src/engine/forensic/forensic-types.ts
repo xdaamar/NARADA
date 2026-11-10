@@ -80,3 +80,4 @@ export interface SocialPostForensicResult {
   }
   commentsSample: SocialCommentItem[]
 }
+

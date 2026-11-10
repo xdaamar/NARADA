@@ -51,3 +51,4 @@ export function findEngineForUrl(url: string): PlatformEngine | null {
 export function getAllPlatformEngines(): PlatformEngine[] {
   return Object.values(ENGINES_MAP)
 }
+

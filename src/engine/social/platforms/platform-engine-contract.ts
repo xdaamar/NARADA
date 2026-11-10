@@ -37,3 +37,4 @@ export interface PlatformEngine {
    */
   extract(url: string, options?: SocialExtractionOptions): Promise<PlatformExtractionResult>
 }
+

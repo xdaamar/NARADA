@@ -490,11 +490,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ─── 3. DUAL SECTOR: ACTIVE INCIDENT & COGNITIVE TRIAGE LEDGER (65%) & CEW INDEX + DONUT (35%) ─── */}
-      <div className="grid-2 mb-4" style={{ gridTemplateColumns: '1.72fr 1fr', gap: '16px', marginBottom: '20px' }}>
+      {/* ─── 3. DUAL SECTOR: ACTIVE INCIDENT & COGNITIVE TRIAGE LEDGER (60%) & CEW INDEX + DONUT (40%) ─── */}
+      <div className="grid-2 mb-4" style={{ gridTemplateColumns: '1.52fr 1fr', gap: '16px', marginBottom: '20px' }}>
         
         {/* MODUL UTAMA 1: ACTIVE INCIDENT & COGNITIVE TRIAGE LEDGER (Real Operational Telemetry Data) */}
-        <div className="steel-chassis-card" style={{ padding: '16px 24px 14px 24px' }}>
+        <div className="steel-chassis-card" style={{ padding: '16px 24px 14px 24px', minWidth: 0 }}>
           <span className="bolt-tl" />
           <span className="bolt-tr" />
           <span className="bolt-bl" />
@@ -903,7 +903,7 @@ export default function Dashboard() {
         </div>
 
         {/* MODUL UTAMA 2: COGNITIVE WARFARE INDEX & MACHINED DIAL DONUT (35%) */}
-        <div className="steel-chassis-card" style={{ padding: '16px 24px 16px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="steel-chassis-card" style={{ padding: '16px 24px 16px 24px', display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
           <span className="bolt-tl" />
           <span className="bolt-tr" />
           <span className="bolt-bl" />
@@ -994,57 +994,57 @@ export default function Dashboard() {
 
           {/* B. Machined Dial Ring Donut Chart dengan Logo Resmi Konsentris */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'nowrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <PieChartIcon size={14} color="#D4A017" />
-                <span style={{ fontSize: '12px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
+                <span style={{ fontSize: '11px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.6px', whiteSpace: 'nowrap' }}>
                   DISTRIBUSI KELOMPOK VONIS
                 </span>
               </div>
-              <span className="milspec-stamp" style={{ color: '#94A3B8' }}>
+              <span className="milspec-stamp" style={{ color: '#94A3B8', whiteSpace: 'nowrap' }}>
                 {totalDebunks} ISU
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* Machined Dial Bezel Ring Logam Lingkaran Konsentris V2 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* Machined Dial Bezel Ring Logam Lingkaran Konsentris V2 (Calibrated 120px) */}
               <div className="machined-dial-bezel-v2">
-                {/* Layer 1: Outer Rotating Dashed Reticle (Presisi cx=80, cy=80, r=72) */}
+                {/* Layer 1: Outer Rotating Dashed Reticle (Presisi cx=60, cy=60, r=54) */}
                 <svg
-                  width="160"
-                  height="160"
-                  viewBox="0 0 160 160"
-                  style={{ position: 'absolute', top: 0, left: 0, width: 160, height: 160, pointerEvents: 'none', zIndex: 1 }}
+                  width="120"
+                  height="120"
+                  viewBox="0 0 120 120"
+                  style={{ position: 'absolute', top: 0, left: 0, width: 120, height: 120, pointerEvents: 'none', zIndex: 1 }}
                 >
-                  <g className="tactical-spin-slow" style={{ transformOrigin: '80px 80px' }}>
-                    <circle cx="80" cy="80" r="72" fill="none" stroke="#D4A017" strokeWidth="1.2" strokeDasharray="5 5" opacity="0.85" />
-                    <circle cx="80" cy="80" r="75" fill="none" stroke="#475569" strokeWidth="0.75" opacity="0.4" />
+                  <g className="tactical-spin-slow" style={{ transformOrigin: '60px 60px' }}>
+                    <circle cx="60" cy="60" r="54" fill="none" stroke="#D4A017" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.85" />
+                    <circle cx="60" cy="60" r="56.5" fill="none" stroke="#475569" strokeWidth="0.75" opacity="0.4" />
                   </g>
                 </svg>
 
-                {/* Layer 2: Inner Rotating Degree Reticle (Presisi cx=80, cy=80, r=38) */}
+                {/* Layer 2: Inner Rotating Degree Reticle (Presisi cx=60, cy=60, r=28) */}
                 <svg
-                  width="160"
-                  height="160"
-                  viewBox="0 0 160 160"
-                  style={{ position: 'absolute', top: 0, left: 0, width: 160, height: 160, pointerEvents: 'none', zIndex: 1 }}
+                  width="120"
+                  height="120"
+                  viewBox="0 0 120 120"
+                  style={{ position: 'absolute', top: 0, left: 0, width: 120, height: 120, pointerEvents: 'none', zIndex: 1 }}
                 >
-                  <g className="tactical-spin-reverse" style={{ transformOrigin: '80px 80px' }}>
-                    <circle cx="80" cy="80" r="38" fill="none" stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 4" opacity="0.6" />
-                    <line x1="80" y1="33" x2="80" y2="43" stroke="#D4A017" strokeWidth="1.5" />
-                    <line x1="80" y1="117" x2="80" y2="127" stroke="#D4A017" strokeWidth="1.5" />
-                    <line x1="33" y1="80" x2="43" y2="80" stroke="#D4A017" strokeWidth="1.5" />
-                    <line x1="117" y1="80" x2="127" y2="80" stroke="#D4A017" strokeWidth="1.5" />
+                  <g className="tactical-spin-reverse" style={{ transformOrigin: '60px 60px' }}>
+                    <circle cx="60" cy="60" r="28" fill="none" stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                    <line x1="60" y1="24" x2="60" y2="32" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="60" y1="88" x2="60" y2="96" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="24" y1="60" x2="32" y2="60" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="88" y1="60" x2="96" y2="60" stroke="#D4A017" strokeWidth="1.5" />
                   </g>
                 </svg>
 
-                {/* Layer 3: Flowing Light Sweep Beam (Presisi cx=80, cy=80) */}
+                {/* Layer 3: Flowing Light Sweep Beam (Presisi cx=60, cy=60) */}
                 <div style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
-                  width: '160px',
-                  height: '160px',
+                  width: '120px',
+                  height: '120px',
                   borderRadius: '50%',
                   background: 'conic-gradient(from 0deg, transparent 0deg, rgba(212, 160, 23, 0.16) 60deg, transparent 90deg)',
                   pointerEvents: 'none',
@@ -1052,15 +1052,15 @@ export default function Dashboard() {
                   animation: 'tactical-radar-sweep 8s linear infinite'
                 }} />
 
-                {/* Layer 4: Recharts Pie Chart (Presisi cx=80, cy=80, innerRadius=46, outerRadius=66) */}
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '160px', height: '160px', zIndex: 3 }}>
-                  <PieChart width={160} height={160} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                {/* Layer 4: Recharts Pie Chart (Presisi cx=60, cy=60, innerRadius=33, outerRadius=49) */}
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '120px', height: '120px', zIndex: 3 }}>
+                  <PieChart width={120} height={120} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <Pie
                       data={verdictChartData}
-                      cx={80}
-                      cy={80}
-                      innerRadius={46}
-                      outerRadius={66}
+                      cx={60}
+                      cy={60}
+                      innerRadius={33}
+                      outerRadius={49}
                       paddingAngle={3}
                       dataKey="value"
                       style={{ cursor: 'pointer' }}
@@ -1093,17 +1093,17 @@ export default function Dashboard() {
                   </PieChart>
                 </div>
 
-                {/* Layer 5: Logo Resmi Proyek di Pusat (Presisi cx=80, cy=80, diameter=42px) */}
+                {/* Layer 5: Logo Resmi Proyek di Pusat (Presisi cx=60, cy=60, diameter=30px) */}
                 <div style={{
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: '42px',
-                  height: '42px',
+                  width: '30px',
+                  height: '30px',
                   borderRadius: '50%',
                   background: 'radial-gradient(circle, #1A232E 50%, #0D1218 100%)',
-                  boxShadow: '0 0 10px rgba(0,0,0,0.8), inset 0 0 6px rgba(212, 160, 23, 0.25)',
+                  boxShadow: '0 0 8px rgba(0,0,0,0.8), inset 0 0 5px rgba(212, 160, 23, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1113,13 +1113,13 @@ export default function Dashboard() {
                   <img
                     src="/image/Electrified%20Golden%20Globe%20Crest.png"
                     alt="Official Project Crest"
-                    style={{ width: '30px', height: '30px', objectFit: 'contain' }}
+                    style={{ width: '20px', height: '20px', objectFit: 'contain' }}
                   />
                 </div>
               </div>
 
-              {/* Legend List Sisi Kanan dengan Click-to-Filter */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {/* Legend List Sisi Kanan dengan Click-to-Filter (Geser ke Kiri & Anti-Overlap) */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, paddingLeft: '4px' }}>
                 {verdictChartData.map(d => {
                   const isSelected = selectedVerdictFilter === d.rawVerdict
                   return (
@@ -1133,26 +1133,35 @@ export default function Dashboard() {
                         padding: '3px 6px',
                         borderRadius: '3px',
                         cursor: 'pointer',
-                        background: isSelected ? '#151D29' : 'transparent',
-                        border: isSelected ? '1px solid #3B4E66' : '1px solid transparent',
+                        background: isSelected ? '#151D29' : 'rgba(255, 255, 255, 0.02)',
+                        border: isSelected ? '1px solid #3B4E66' : '1px solid #141B24',
                         transition: 'background 0.15s ease'
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) e.currentTarget.style.background = '#111722'
                       }}
                       onMouseLeave={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = 'transparent'
+                        if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'
                       }}
                       title="Klik untuk menyaring riwayat berdasarkan vonis ini"
                     >
                       <div style={{ width: 7, height: 7, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: isSelected ? '#F1F5F9' : '#94A3B8', flex: 1, fontWeight: isSelected ? 700 : 500 }}>
+                      <span style={{
+                        fontSize: '10px',
+                        fontFamily: 'var(--font-mono)',
+                        color: isSelected ? '#F1F5F9' : '#94A3B8',
+                        flex: 1,
+                        fontWeight: isSelected ? 700 : 500,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
                         {d.name}
                       </span>
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: d.color }}>
+                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: d.color, flexShrink: 0, textAlign: 'right', minWidth: '22px' }}>
                         {d.value}
                       </span>
-                      <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', width: '28px', textAlign: 'right' }}>
+                      <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', width: '26px', textAlign: 'right', flexShrink: 0 }}>
                         {d.pct}%
                       </span>
                     </div>

@@ -111,3 +111,4 @@ export interface PreloadedTestScenario {
   description: string
   mockResult: SocialPostAnalysisResult
 }
+

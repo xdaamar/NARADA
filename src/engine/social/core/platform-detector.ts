@@ -166,3 +166,4 @@ export function validateSocialPlatformUrl(url: string, targetPlatform: SocialMed
     errorMessage: `Format tautan tidak dikenali. Menu ${targetName.toUpperCase()} hanya menerima tautan resmi dari ${targetName} (${PLATFORM_INFO_MAP[targetPlatform]?.urlPatternsDescription || ''}).`
   }
 }
+

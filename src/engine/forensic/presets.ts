@@ -506,3 +506,4 @@ export const SOCIAL_PRESET_SCENARIOS: SocialPostForensicResult[] = [
     ]
   }
 ]
+
