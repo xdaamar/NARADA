@@ -731,7 +731,7 @@ body, #root, .app-layout {
 }
 
 .card-header {
-  padding: 16px 20px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
@@ -1420,8 +1420,8 @@ textarea.form-control {
 /* 4 Baut Hex Socket (Allen Bolts) di Keempat Sudut */
 .bolt-tl, .bolt-tr, .bolt-bl, .bolt-br {
   position: absolute;
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: radial-gradient(circle, #2A3646 30%, #151C25 100%);
   border: 1px solid #4B596E;
@@ -1434,15 +1434,15 @@ textarea.form-control {
 }
 .bolt-tl::after, .bolt-tr::after, .bolt-bl::after, .bolt-br::after {
   content: "";
-  width: 3px;
-  height: 3px;
+  width: 2px;
+  height: 2px;
   background: #090C10;
-  border-radius: 1px;
+  border-radius: 0.5px;
 }
-.bolt-tl { top: 8px; left: 8px; }
-.bolt-tr { top: 8px; right: 8px; }
-.bolt-bl { bottom: 8px; left: 8px; }
-.bolt-br { bottom: 8px; right: 8px; }
+.bolt-tl { top: 6px; left: 6px; }
+.bolt-tr { top: 6px; right: 6px; }
+.bolt-bl { bottom: 6px; left: 6px; }
+.bolt-br { bottom: 6px; right: 6px; }
 
 /* Baut Otomatis via CSS untuk .steel-card-rivets */
 .steel-card-rivets {
@@ -1453,8 +1453,8 @@ textarea.form-control {
   position: absolute;
   top: 6px;
   left: 6px;
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: radial-gradient(circle, #2A3646 30%, #151C25 100%);
   border: 1px solid #4B596E;
@@ -1467,8 +1467,8 @@ textarea.form-control {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: radial-gradient(circle, #2A3646 30%, #151C25 100%);
   border: 1px solid #4B596E;

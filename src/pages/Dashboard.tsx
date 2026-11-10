@@ -115,9 +115,9 @@ function StatCard({
 }: StatCardProps) {
   return (
     <div
-      className="steel-chassis-card card-crosshairs"
+      className="steel-chassis-card"
       style={{
-        padding: '16px 18px',
+        padding: '16px 22px 14px 22px',
         position: 'relative',
         boxShadow: 'var(--shadow-steel-plate)'
       }}
@@ -144,7 +144,7 @@ function StatCard({
           }}>
             <Icon size={17} color="#CBD5E1" />
           </div>
-          <div className="stat-label" style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.6px' }}>
+          <div className="stat-label" style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.6px', maxWidth: '140px', lineHeight: '1.25' }}>
             {label}
           </div>
         </div>
@@ -381,7 +381,7 @@ export default function Dashboard() {
       <div 
         className="steel-chassis-card"
         style={{
-          padding: '8px 18px',
+          padding: '10px 24px',
           marginBottom: '18px',
           display: 'flex',
           alignItems: 'center',
@@ -494,7 +494,7 @@ export default function Dashboard() {
       <div className="grid-2 mb-4" style={{ gridTemplateColumns: '1.72fr 1fr', gap: '16px', marginBottom: '20px' }}>
         
         {/* MODUL UTAMA 1: ACTIVE INCIDENT & COGNITIVE TRIAGE LEDGER (Real Operational Telemetry Data) */}
-        <div className="steel-chassis-card" style={{ padding: '16px 20px' }}>
+        <div className="steel-chassis-card" style={{ padding: '16px 24px 14px 24px' }}>
           <span className="bolt-tl" />
           <span className="bolt-tr" />
           <span className="bolt-bl" />
@@ -903,7 +903,7 @@ export default function Dashboard() {
         </div>
 
         {/* MODUL UTAMA 2: COGNITIVE WARFARE INDEX & MACHINED DIAL DONUT (35%) */}
-        <div className="steel-chassis-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="steel-chassis-card" style={{ padding: '16px 24px 16px 24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <span className="bolt-tl" />
           <span className="bolt-tr" />
           <span className="bolt-bl" />
@@ -1205,7 +1205,7 @@ export default function Dashboard() {
       {/* ─── 5. BARIS: TIMELINE ESKALASI ANCAMAN & TACTICAL QUICK LAUNCHPAD ─── */}
       <div className="grid-2 mb-4" style={{ gridTemplateColumns: '1.6fr 1.4fr', gap: '16px', marginBottom: '20px' }}>
         {/* Timeline Chart Gunmetal */}
-        <div className="steel-chassis-card" style={{ padding: '16px 20px', position: 'relative' }}>
+        <div className="steel-chassis-card" style={{ padding: '16px 24px 14px 24px', position: 'relative' }}>
           <span className="bolt-tl" />
           <span className="bolt-tr" />
           <span className="bolt-bl" />
@@ -1325,7 +1325,7 @@ export default function Dashboard() {
         </div>
 
         {/* Tactical Quick Launchpad (4 Kartu Aksi Ber-Baut Plat Baja) */}
-        <div className="steel-chassis-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
+        <div className="steel-chassis-card" style={{ padding: '16px 24px 16px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', position: 'relative' }}>
           <span className="bolt-tl" />
           <span className="bolt-tr" />
           <span className="bolt-bl" />
@@ -1348,7 +1348,6 @@ export default function Dashboard() {
             {/* Card 1: Berita Tersemat */}
             <div
               onClick={() => navigate('/archive')}
-              className="card-crosshairs"
               style={{
                 padding: '9px 12px',
                 background: 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)',
@@ -1413,7 +1412,6 @@ export default function Dashboard() {
             {/* Card 2: Radar Situasional */}
             <div
               onClick={() => navigate('/radar')}
-              className="card-crosshairs"
               style={{
                 padding: '9px 12px',
                 background: 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)',
@@ -1478,7 +1476,6 @@ export default function Dashboard() {
             {/* Card 3: Analisa Postingan Medsos */}
             <div
               onClick={() => navigate('/social-forensic')}
-              className="card-crosshairs"
               style={{
                 padding: '9px 12px',
                 background: 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)',
@@ -1543,7 +1540,6 @@ export default function Dashboard() {
             {/* Card 4: Produk Intelijen A4 */}
             <div
               onClick={() => navigate('/reports')}
-              className="card-crosshairs"
               style={{
                 padding: '9px 12px',
                 background: 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)',
