@@ -1300,12 +1300,12 @@ textarea.form-control {
 
 .tactical-spin-slow {
   animation: tactical-spin 20s linear infinite;
-  transform-origin: center center;
+  transform-origin: 80px 80px;
 }
 
 .tactical-spin-reverse {
   animation: tactical-reverse-spin 15s linear infinite;
-  transform-origin: center center;
+  transform-origin: 80px 80px;
 }
 
 /* Reticle Corner Brackets [ ┌ ┐ └ ┘ ] */
@@ -1499,15 +1499,17 @@ textarea.form-control {
   flex-shrink: 0;
   border-radius: 50%;
   background: radial-gradient(circle, #0B0E13 55%, #18212D 85%, #2D3949 100%);
-  border: 4px solid #364457;
+  border: none !important;
   box-shadow: 
+    0 0 0 4px #364457,
     0 6px 16px rgba(0, 0, 0, 0.85),
     inset 0 3px 6px rgba(0, 0, 0, 0.9),
     inset 0 -1px 2px rgba(255, 255, 255, 0.2),
-    0 0 0 2px #121822;
+    0 0 0 6px #121822;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 /* Chunky Mechanical LED Indicators */

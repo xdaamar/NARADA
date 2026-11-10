@@ -1058,98 +1058,98 @@ export default function Dashboard() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               {/* Machined Dial Bezel Ring Logam Lingkaran Konsentris V2 */}
               <div className="machined-dial-bezel-v2">
-                {/* Layer 1: Outer Rotating Dashed Reticle */}
+                {/* Layer 1: Outer Rotating Dashed Reticle (Presisi cx=80, cy=80, r=72) */}
                 <svg
                   width="160"
                   height="160"
                   viewBox="0 0 160 160"
-                  style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 1 }}
-                  className="tactical-spin-slow"
+                  style={{ position: 'absolute', top: 0, left: 0, width: 160, height: 160, pointerEvents: 'none', zIndex: 1 }}
                 >
-                  <circle cx="80" cy="80" r="72" fill="none" stroke="#D4A017" strokeWidth="1.2" strokeDasharray="5 6" opacity="0.75" />
-                  <circle cx="80" cy="80" r="74" fill="none" stroke="#475569" strokeWidth="0.5" opacity="0.4" />
+                  <g className="tactical-spin-slow" style={{ transformOrigin: '80px 80px' }}>
+                    <circle cx="80" cy="80" r="72" fill="none" stroke="#D4A017" strokeWidth="1.2" strokeDasharray="5 5" opacity="0.85" />
+                    <circle cx="80" cy="80" r="75" fill="none" stroke="#475569" strokeWidth="0.75" opacity="0.4" />
+                  </g>
                 </svg>
 
-                {/* Layer 2: Inner Rotating Degree Reticle */}
+                {/* Layer 2: Inner Rotating Degree Reticle (Presisi cx=80, cy=80, r=38) */}
                 <svg
                   width="160"
                   height="160"
                   viewBox="0 0 160 160"
-                  style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 1 }}
-                  className="tactical-spin-reverse"
+                  style={{ position: 'absolute', top: 0, left: 0, width: 160, height: 160, pointerEvents: 'none', zIndex: 1 }}
                 >
-                  <circle cx="80" cy="80" r="46" fill="none" stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 4" opacity="0.6" />
-                  <line x1="80" y1="30" x2="80" y2="36" stroke="#D4A017" strokeWidth="1.5" />
-                  <line x1="80" y1="124" x2="80" y2="130" stroke="#D4A017" strokeWidth="1.5" />
-                  <line x1="30" y1="80" x2="36" y2="80" stroke="#D4A017" strokeWidth="1.5" />
-                  <line x1="124" y1="80" x2="130" y2="80" stroke="#D4A017" strokeWidth="1.5" />
+                  <g className="tactical-spin-reverse" style={{ transformOrigin: '80px 80px' }}>
+                    <circle cx="80" cy="80" r="38" fill="none" stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 4" opacity="0.6" />
+                    <line x1="80" y1="33" x2="80" y2="43" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="80" y1="117" x2="80" y2="127" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="33" y1="80" x2="43" y2="80" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="117" y1="80" x2="127" y2="80" stroke="#D4A017" strokeWidth="1.5" />
+                  </g>
                 </svg>
 
-                {/* Layer 3: Flowing Light Sweep Beam */}
+                {/* Layer 3: Flowing Light Sweep Beam (Presisi cx=80, cy=80) */}
                 <div style={{
                   position: 'absolute',
-                  top: '4px',
-                  left: '4px',
-                  width: '152px',
-                  height: '152px',
+                  top: 0,
+                  left: 0,
+                  width: '160px',
+                  height: '160px',
                   borderRadius: '50%',
-                  background: 'conic-gradient(from 0deg, transparent 0deg, rgba(212, 160, 23, 0.18) 60deg, transparent 90deg)',
+                  background: 'conic-gradient(from 0deg, transparent 0deg, rgba(212, 160, 23, 0.16) 60deg, transparent 90deg)',
                   pointerEvents: 'none',
                   zIndex: 2,
                   animation: 'tactical-radar-sweep 8s linear infinite'
                 }} />
 
-                {/* Layer 4: Recharts Pie Chart */}
-                <div style={{ width: '160px', height: '160px', position: 'relative', zIndex: 3 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={verdictChartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={70}
-                        paddingAngle={3}
-                        dataKey="value"
-                        style={{ cursor: 'pointer' }}
-                        onClick={(data) => {
-                          const item = data as unknown as { rawVerdict?: string }
-                          if (item && item.rawVerdict) {
-                            setSelectedVerdictFilter(selectedVerdictFilter === item.rawVerdict ? null : item.rawVerdict)
-                          }
-                        }}
-                      >
-                        {verdictChartData.map((entry, i) => (
-                          <Cell 
-                            key={i} 
-                            fill={entry.color} 
-                            stroke={selectedVerdictFilter === entry.rawVerdict ? '#F1F5F9' : '#090C10'}
-                            strokeWidth={selectedVerdictFilter === entry.rawVerdict ? 2 : 1}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          background: '#141B24',
-                          border: '1px solid #2D3848',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          fontFamily: 'var(--font-mono)',
-                          color: '#F1F5F9'
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                {/* Layer 4: Recharts Pie Chart (Presisi cx=80, cy=80, innerRadius=46, outerRadius=66) */}
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '160px', height: '160px', zIndex: 3 }}>
+                  <PieChart width={160} height={160} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                    <Pie
+                      data={verdictChartData}
+                      cx={80}
+                      cy={80}
+                      innerRadius={46}
+                      outerRadius={66}
+                      paddingAngle={3}
+                      dataKey="value"
+                      style={{ cursor: 'pointer' }}
+                      onClick={(data) => {
+                        const item = data as unknown as { rawVerdict?: string }
+                        if (item && item.rawVerdict) {
+                          setSelectedVerdictFilter(selectedVerdictFilter === item.rawVerdict ? null : item.rawVerdict)
+                        }
+                      }}
+                    >
+                      {verdictChartData.map((entry, i) => (
+                        <Cell 
+                          key={i} 
+                          fill={entry.color} 
+                          stroke={selectedVerdictFilter === entry.rawVerdict ? '#F1F5F9' : '#090C10'}
+                          strokeWidth={selectedVerdictFilter === entry.rawVerdict ? 2 : 1}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: '#141B24',
+                        border: '1px solid #2D3848',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-mono)',
+                        color: '#F1F5F9'
+                      }}
+                    />
+                  </PieChart>
                 </div>
 
-                {/* Layer 5: Logo Resmi Proyek di Pusat */}
+                {/* Layer 5: Logo Resmi Proyek di Pusat (Presisi cx=80, cy=80, diameter=42px) */}
                 <div style={{
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: '46px',
-                  height: '46px',
+                  width: '42px',
+                  height: '42px',
                   borderRadius: '50%',
                   background: 'radial-gradient(circle, #1A232E 50%, #0D1218 100%)',
                   boxShadow: '0 0 10px rgba(0,0,0,0.8), inset 0 0 6px rgba(212, 160, 23, 0.25)',
@@ -1162,7 +1162,7 @@ export default function Dashboard() {
                   <img
                     src="/image/Electrified%20Golden%20Globe%20Crest.png"
                     alt="Official Project Crest"
-                    style={{ width: '34px', height: '34px', objectFit: 'contain' }}
+                    style={{ width: '30px', height: '30px', objectFit: 'contain' }}
                   />
                 </div>
               </div>
