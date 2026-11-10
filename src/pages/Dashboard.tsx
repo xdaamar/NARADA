@@ -79,15 +79,15 @@ const THREAT_CONFIG: Record<ThreatLevel, { label: string; color: string; bg: str
   low: { label: 'RENDAH', color: '#10B981', bg: 'rgba(16, 185, 129, 0.2)' },
 }
 
-// ─── Mini Bar Indicator Komponen ───
+// ─── Mini Bar Indicator Komponen Taktis ───
 function MiniBarIndicator({ color }: { color: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '20px', flexShrink: 0 }}>
-      <div style={{ width: '4px', height: '40%', background: color, borderRadius: '1px', opacity: 0.35 }} />
-      <div style={{ width: '4px', height: '70%', background: color, borderRadius: '1px', opacity: 0.55 }} />
-      <div style={{ width: '4px', height: '50%', background: color, borderRadius: '1px', opacity: 0.75 }} />
-      <div style={{ width: '4px', height: '95%', background: color, borderRadius: '1px', opacity: 1 }} />
-      <div style={{ width: '4px', height: '65%', background: color, borderRadius: '1px', opacity: 0.65 }} />
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '18px', flexShrink: 0 }}>
+      <div style={{ width: '3px', height: '35%', background: '#334155', borderRadius: '1px' }} />
+      <div style={{ width: '3px', height: '65%', background: '#475569', borderRadius: '1px' }} />
+      <div style={{ width: '3px', height: '50%', background: '#475569', borderRadius: '1px' }} />
+      <div style={{ width: '3px', height: '95%', background: color || '#D4A017', borderRadius: '1px' }} />
+      <div style={{ width: '3px', height: '60%', background: '#334155', borderRadius: '1px' }} />
     </div>
   )
 }
@@ -99,7 +99,7 @@ interface StatCardProps {
   value: string | number
   sub?: string
   accentColor: string
-  iconBg: string
+  iconBg?: string
   milspecCode?: string
   pulse?: boolean
 }
@@ -110,7 +110,6 @@ function StatCard({
   value, 
   sub, 
   accentColor, 
-  iconBg,
   milspecCode,
   pulse = false 
 }: StatCardProps) {
@@ -118,9 +117,9 @@ function StatCard({
     <div
       className="steel-chassis-card card-crosshairs"
       style={{
-        padding: '18px 20px',
+        padding: '16px 18px',
         position: 'relative',
-        boxShadow: pulse ? '0 10px 25px rgba(0, 0, 0, 0.75), 0 0 14px rgba(239, 68, 68, 0.25)' : '0 10px 25px rgba(0, 0, 0, 0.75)',
+        boxShadow: 'var(--shadow-steel-plate)'
       }}
     >
       <span className="bolt-tl" />
@@ -129,21 +128,23 @@ function StatCard({
       <span className="bolt-br" />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Recessed Machined Gunmetal Socket */}
           <div style={{
-            width: 36,
-            height: 36,
-            borderRadius: '6px',
-            background: iconBg,
+            width: 34,
+            height: 34,
+            borderRadius: '5px',
+            background: '#090D14',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0,
-            border: `1px solid ${accentColor}40`,
-            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.5)'
+            border: '1px solid #233042',
+            borderBottom: '1px solid #33445C',
+            boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.85), 0 1px 0 rgba(255,255,255,0.06)'
           }}>
-            <Icon size={18} color={accentColor} />
+            <Icon size={17} color="#CBD5E1" />
           </div>
-          <div className="stat-label" style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.5px' }}>
+          <div className="stat-label" style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', letterSpacing: '0.6px' }}>
             {label}
           </div>
         </div>
@@ -153,13 +154,11 @@ function StatCard({
             <span className="milspec-stamp" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#64748B' }}>
               {pulse && (
                 <span style={{ 
-                  width: 6, 
-                  height: 6, 
+                  width: 5, 
+                  height: 5, 
                   borderRadius: '50%', 
                   background: '#EF4444', 
-                  display: 'inline-block', 
-                  boxShadow: '0 0 6px #EF4444',
-                  animation: 'pulse-critical 1.5s infinite' 
+                  display: 'inline-block'
                 }} />
               )}
               {milspecCode}
@@ -169,12 +168,12 @@ function StatCard({
         </div>
       </div>
 
-      <div className="stat-number" style={{ color: 'var(--text-primary)', fontSize: '32px', lineHeight: '1', fontWeight: 800 }}>
+      <div className="stat-number" style={{ color: '#F8FAFC', fontSize: '30px', lineHeight: '1', fontWeight: 800 }}>
         {value}
       </div>
 
       {sub && (
-        <div style={{ marginTop: '8px', fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
+        <div style={{ marginTop: '8px', fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', letterSpacing: '0.2px' }}>
           {sub}
         </div>
       )}
@@ -396,47 +395,47 @@ export default function Dashboard() {
         <span className="bolt-bl" />
         <span className="bolt-br" />
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          {/* DEFCON Dynamic Badge */}
+          {/* DEFCON Solid Steel Plate Badge */}
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
             padding: '3px 8px',
             borderRadius: '4px',
-            background: defconStatus.bg,
-            border: `1px solid ${defconStatus.border}`,
-            color: defconStatus.color,
+            background: '#101722',
+            border: `1px solid ${defconStatus.level <= 2 ? '#4A1D24' : '#223040'}`,
+            color: defconStatus.level <= 2 ? '#F87171' : '#CBD5E1',
             fontSize: '10px',
             fontFamily: 'var(--font-mono)',
-            fontWeight: 700
+            fontWeight: 700,
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
           }}>
             <span style={{
               width: 6,
               height: 6,
               borderRadius: '50%',
               background: defconStatus.color,
-              boxShadow: `0 0 6px ${defconStatus.color}`,
-              animation: defconStatus.level <= 2 ? 'pulse-critical 1.5s infinite' : undefined
+              display: 'inline-block'
             }} />
             {defconStatus.label}
           </div>
 
           {/* Node Sensor */}
-          <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <Radio size={12} color="#3B82F6" />
+          <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Radio size={12} color="#94A3B8" />
             <span>KORPUS: <strong style={{ color: '#F1F5F9' }}>{totalDebunks} ISU AKTIF</strong></span>
-            <span style={{ color: '#2D3848' }}>│</span>
-            <span>SIBER: <strong style={{ color: '#06B6D4' }}>{cyberItems.length} PERETASAN</strong></span>
+            <span style={{ color: '#2A3648' }}>│</span>
+            <span>SIBER: <strong style={{ color: '#E2E8F0' }}>{cyberItems.length} PERETASAN</strong></span>
           </div>
 
           {/* Latensi Pipeline */}
-          <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-            LATENSI: <span style={{ color: '#10B981', fontWeight: 700 }}>18ms</span> (HYBRID NLP + OSINT)
+          <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+            LATENSI: <span style={{ color: '#E2E8F0', fontWeight: 700 }}>18ms</span> (HYBRID NLP + OSINT)
           </div>
 
           {/* Integritas Data */}
-          <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-            INTEGRITAS: <span style={{ color: '#3B82F6', fontWeight: 700 }}>98.6%</span> [TERVERIFIKASI]
+          <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+            INTEGRITAS: <span style={{ color: '#E2E8F0', fontWeight: 700 }}>98.6%</span> [TERVERIFIKASI]
           </div>
         </div>
 
@@ -452,7 +451,7 @@ export default function Dashboard() {
               alignItems: 'center',
               gap: '5px'
             }}>
-              <Globe size={12} color="#3B82F6" />
+              <Globe size={12} color="#94A3B8" />
               {currentTimeStr} WIB
             </span>
           )}
@@ -461,27 +460,29 @@ export default function Dashboard() {
             type="button"
             onClick={() => navigate('/archive')}
             style={{
-              background: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
+              background: 'linear-gradient(180deg, #1C2634 0%, #111722 100%)',
+              border: '1px solid #2B3B50',
+              borderTop: '1px solid #435977',
               fontSize: '10px',
               fontFamily: 'var(--font-mono)',
               fontWeight: 700,
-              color: '#38BDF8',
+              color: '#CBD5E1',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
               padding: '4px 10px',
               borderRadius: '4px',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.5)',
               transition: 'all 0.15s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(56, 189, 248, 0.3)'
-              e.currentTarget.style.borderColor = '#38BDF8'
+              e.currentTarget.style.borderColor = '#4D6487'
+              e.currentTarget.style.color = '#F8FAFC'
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(56, 189, 248, 0.15)'
-              e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.4)'
+              e.currentTarget.style.borderColor = '#2B3B50'
+              e.currentTarget.style.color = '#CBD5E1'
             }}
           >
             <Pin size={11} style={{ transform: 'rotate(45deg)' }} /> BERITA TERSEMAT [{archivedIds.size}]
@@ -508,7 +509,7 @@ export default function Dashboard() {
             gap: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <ShieldAlert size={16} color="#EF4444" />
+              <ShieldAlert size={16} color="#D4A017" />
               <span style={{ fontSize: '13px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                 ACTIVE INCIDENT & COGNITIVE TRIAGE LEDGER
               </span>
@@ -520,8 +521,8 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => setSelectedVerdictFilter(null)}
                   style={{
-                    background: 'rgba(239, 68, 68, 0.20)',
-                    border: '1px solid #EF4444',
+                    background: '#1A1416',
+                    border: '1px solid #4A2228',
                     color: '#FCA5A5',
                     fontSize: '9px',
                     fontFamily: 'var(--font-mono)',
@@ -543,8 +544,8 @@ export default function Dashboard() {
                   type="button"
                   onClick={() => setSelectedCluster('ALL')}
                   style={{
-                    background: 'rgba(6, 182, 212, 0.20)',
-                    border: '1px solid #06B6D4',
+                    background: '#101A22',
+                    border: '1px solid #1E3A4D',
                     color: '#67E8F9',
                     fontSize: '9px',
                     fontFamily: 'var(--font-mono)',
@@ -589,13 +590,15 @@ export default function Dashboard() {
                 style={{
                   width: '100%',
                   padding: '5px 8px 5px 26px',
-                  background: '#0F151D',
-                  border: '1px solid #2D3848',
+                  background: '#080C12',
+                  border: '1px solid #1F2B3A',
+                  borderBottom: '1px solid #2B3B50',
                   borderRadius: '4px',
                   color: '#F1F5F9',
                   fontSize: '11px',
                   fontFamily: 'var(--font-mono)',
-                  outline: 'none'
+                  outline: 'none',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.85)'
                 }}
               />
               {searchQuery && (
@@ -626,15 +629,17 @@ export default function Dashboard() {
               onChange={(e) => setSelectedCluster(e.target.value as ThreatSpectrumCluster | 'ALL')}
               style={{
                 padding: '5px 8px',
-                background: '#0F151D',
-                border: '1px solid #2D3848',
+                background: '#080C12',
+                border: '1px solid #1F2B3A',
+                borderBottom: '1px solid #2B3B50',
                 borderRadius: '4px',
                 color: '#CBD5E1',
                 fontSize: '10px',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 600,
                 outline: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.7)'
               }}
             >
               {CLUSTERS.map(c => (
@@ -649,7 +654,7 @@ export default function Dashboard() {
           <div className="steel-sunken-tray" style={{ padding: '4px', overflowX: 'auto', minHeight: '330px' }}>
             {paginatedRows.length === 0 ? (
               <div style={{ padding: '48px 20px', textAlign: 'center' }}>
-                <Shield size={34} color="#10B981" style={{ margin: '0 auto 10px', display: 'block', opacity: 0.8 }} />
+                <Shield size={34} color="#64748B" style={{ margin: '0 auto 10px', display: 'block', opacity: 0.8 }} />
                 <div style={{ fontWeight: 700, fontSize: '14px', color: '#F1F5F9' }}>Tidak Ada Isu yang Sesuai Saringan</div>
                 <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', maxWidth: '440px', margin: '4px auto 14px' }}>
                   Seluruh {totalDebunks} isu operasional tetap aktif terpantau di radar intelijen.
@@ -664,9 +669,9 @@ export default function Dashboard() {
                   style={{
                     padding: '6px 14px',
                     borderRadius: '4px',
-                    background: 'rgba(56, 189, 248, 0.15)',
-                    color: '#38BDF8',
-                    border: '1px solid rgba(56, 189, 248, 0.4)',
+                    background: '#121A24',
+                    color: '#CBD5E1',
+                    border: '1px solid #2B3B50',
                     fontSize: '11px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 700,
@@ -679,7 +684,7 @@ export default function Dashboard() {
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #1E2734', color: '#94A3B8', textAlign: 'left', fontFamily: 'var(--font-mono)' }}>
+                  <tr style={{ borderBottom: '1px solid #222E3F', background: '#090D13', color: '#64748B', textAlign: 'left', fontFamily: 'var(--font-mono)' }}>
                     <th style={{ padding: '8px 10px', fontWeight: 600 }}>ID / TANGGAL</th>
                     <th style={{ padding: '8px 10px', fontWeight: 600 }}>KLASTER</th>
                     <th style={{ padding: '8px 10px', fontWeight: 600 }}>ISU / KLAIM KOGNITIF</th>
@@ -704,11 +709,11 @@ export default function Dashboard() {
                           cursor: 'pointer'
                         }}
                         onClick={() => navigate('/radar')}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = '#141C26')}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#121822')}
                         onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                       >
                         <td style={{ padding: '8px 10px', fontFamily: 'var(--font-mono)', color: '#94A3B8', whiteSpace: 'nowrap' }}>
-                          <div style={{ color: '#F1F5F9', fontWeight: 700, fontSize: '10px' }}>{item.id}</div>
+                          <div style={{ color: '#CBD5E1', fontWeight: 700, fontSize: '10px' }}>{item.id}</div>
                           <div style={{ fontSize: '9px', color: '#64748B' }}>{item.publishedDate || item.interceptedAt || 'Terbaru'}</div>
                         </td>
 
@@ -717,17 +722,21 @@ export default function Dashboard() {
                             fontSize: '9px',
                             fontFamily: 'var(--font-mono)',
                             fontWeight: 700,
-                            padding: '2px 5px',
+                            padding: '2px 6px',
                             borderRadius: '3px',
-                            background: `${clusterMeta.color}15`,
-                            color: clusterMeta.color,
-                            border: `1px solid ${clusterMeta.color}40`
+                            background: '#0E141D',
+                            color: '#CBD5E1',
+                            border: '1px solid #222E3F',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}>
+                            <span style={{ width: 4, height: 4, borderRadius: '50%', background: clusterMeta.color }} />
                             {clusterMeta.label}
                           </span>
                         </td>
 
-                        <td style={{ padding: '8px 10px', color: '#F1F5F9', fontWeight: 600, maxWidth: '230px' }}>
+                        <td style={{ padding: '8px 10px', color: '#E2E8F0', fontWeight: 600, maxWidth: '230px' }}>
                           <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.claim}>
                             {truncateText(item.claim, 48)}
                           </div>
@@ -745,12 +754,16 @@ export default function Dashboard() {
                               fontSize: '9px',
                               fontFamily: 'var(--font-mono)',
                               fontWeight: 700,
-                              padding: '2px 5px',
+                              padding: '2px 6px',
                               borderRadius: '3px',
-                              background: verdictMeta.bg,
-                              color: verdictMeta.color,
-                              border: `1px solid ${verdictMeta.border}`
+                              background: item.verdict === 'HOAKS' ? '#1B1113' : item.verdict === 'FAKTA' ? '#0F1814' : '#141820',
+                              color: item.verdict === 'HOAKS' ? '#FCA5A5' : item.verdict === 'FAKTA' ? '#86EFAC' : '#CBD5E1',
+                              border: item.verdict === 'HOAKS' ? '1px solid #451D22' : item.verdict === 'FAKTA' ? '1px solid #1C3B2D' : '1px solid #263345',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
                             }}>
+                              <span style={{ width: 4, height: 4, borderRadius: '50%', background: verdictMeta.color }} />
                               {verdictMeta.label}
                             </span>
                             <span style={{
@@ -759,8 +772,9 @@ export default function Dashboard() {
                               fontWeight: 700,
                               padding: '1px 4px',
                               borderRadius: '2px',
-                              background: threatMeta.bg,
-                              color: threatMeta.color
+                              background: '#0A0F16',
+                              color: '#94A3B8',
+                              border: '1px solid #1C2735'
                             }}>
                               {threatMeta.label}
                             </span>
@@ -775,9 +789,9 @@ export default function Dashboard() {
                               onClick={(e) => handleTogglePin(item, e)}
                               title={isPinned ? 'Lepas sematan' : 'Sematkan ke Berita Tersemat'}
                               style={{
-                                background: isPinned ? 'rgba(56, 189, 248, 0.25)' : 'rgba(255, 255, 255, 0.05)',
-                                border: isPinned ? '1px solid #38BDF8' : '1px solid #2D3848',
-                                color: isPinned ? '#38BDF8' : '#94A3B8',
+                                background: isPinned ? '#162232' : '#090E15',
+                                border: isPinned ? '1px solid #38BDF8' : '1px solid #202C3D',
+                                color: isPinned ? '#7DD3FC' : '#94A3B8',
                                 fontSize: '9px',
                                 fontFamily: 'var(--font-mono)',
                                 fontWeight: 700,
@@ -801,27 +815,29 @@ export default function Dashboard() {
                                 navigate('/radar')
                               }}
                               style={{
-                                background: 'transparent',
-                                border: '1px solid #2D3848',
-                                color: '#EF4444',
+                                background: '#090E15',
+                                border: '1px solid #202C3D',
+                                color: '#CBD5E1',
                                 fontSize: '9px',
                                 fontFamily: 'var(--font-mono)',
                                 fontWeight: 700,
-                                padding: '2px 5px',
+                                padding: '2px 6px',
                                 borderRadius: '3px',
                                 cursor: 'pointer',
                                 transition: 'all 0.15s ease'
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = '#EF4444'
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+                                e.currentTarget.style.borderColor = '#4A607D'
+                                e.currentTarget.style.color = '#FFFFFF'
+                                e.currentTarget.style.background = '#151D28'
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = '#2D3848'
-                                e.currentTarget.style.background = 'transparent'
+                                e.currentTarget.style.borderColor = '#202C3D'
+                                e.currentTarget.style.color = '#CBD5E1'
+                                e.currentTarget.style.background = '#090E15'
                               }}
                             >
-                              [RADAR →]
+                              RADAR →
                             </button>
                           </div>
                         </td>
@@ -852,8 +868,8 @@ export default function Dashboard() {
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 style={{
-                  background: '#121822',
-                  border: '1px solid #2D3848',
+                  background: '#090E15',
+                  border: '1px solid #202C3D',
                   color: currentPage <= 1 ? '#475569' : '#CBD5E1',
                   borderRadius: '3px',
                   padding: '2px 6px',
@@ -870,8 +886,8 @@ export default function Dashboard() {
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 style={{
-                  background: '#121822',
-                  border: '1px solid #2D3848',
+                  background: '#090E15',
+                  border: '1px solid #202C3D',
                   color: currentPage >= totalPages ? '#475569' : '#CBD5E1',
                   borderRadius: '3px',
                   padding: '2px 6px',
@@ -902,7 +918,7 @@ export default function Dashboard() {
               marginBottom: '10px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Zap size={14} color="#EF4444" />
+                <Zap size={14} color="#D4A017" />
                 <span style={{ fontSize: '12px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                   COGNITIVE WARFARE (CEW) INDEX
                 </span>
@@ -917,7 +933,7 @@ export default function Dashboard() {
                   <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#94A3B8' }}>
                     POLARIZATION PRESSURE
                   </span>
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#EF4444' }}>
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#E2E8F0' }}>
                     {totalDebunks > 0 ? Math.round((threatItems.length / totalDebunks) * 100) : 0}% · TINGGI (OPINI PUBLIK)
                   </span>
                 </div>
@@ -937,7 +953,7 @@ export default function Dashboard() {
                   <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#94A3B8' }}>
                     CYBER THREAT EXPOSURE
                   </span>
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#06B6D4' }}>
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#E2E8F0' }}>
                     {cyberItems.length} PERETASAN AKTIF (BSSN)
                   </span>
                 </div>
@@ -957,7 +973,7 @@ export default function Dashboard() {
                   <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#94A3B8' }}>
                     NARRATIVE MUTATION VELOCITY
                   </span>
-                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#10B981' }}>
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#E2E8F0' }}>
                     4.2 KLAIM/JAM · LOW
                   </span>
                 </div>
@@ -974,7 +990,7 @@ export default function Dashboard() {
           </div>
 
           {/* Divider Garis Baja */}
-          <div style={{ height: '1px', background: '#2D3848', margin: '2px 0' }} />
+          <div style={{ height: '1px', background: '#253346', margin: '2px 0' }} />
 
           {/* B. Machined Dial Ring Donut Chart dengan Logo Resmi Konsentris */}
           <div>
@@ -1117,12 +1133,12 @@ export default function Dashboard() {
                         padding: '3px 6px',
                         borderRadius: '3px',
                         cursor: 'pointer',
-                        background: isSelected ? 'rgba(239, 68, 68, 0.20)' : 'transparent',
-                        border: isSelected ? '1px solid #EF4444' : '1px solid transparent',
+                        background: isSelected ? '#151D29' : 'transparent',
+                        border: isSelected ? '1px solid #3B4E66' : '1px solid transparent',
                         transition: 'background 0.15s ease'
                       }}
                       onMouseEnter={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = '#171F2A'
+                        if (!isSelected) e.currentTarget.style.background = '#111722'
                       }}
                       onMouseLeave={(e) => {
                         if (!isSelected) e.currentTarget.style.background = 'transparent'
@@ -1130,7 +1146,7 @@ export default function Dashboard() {
                       title="Klik untuk menyaring riwayat berdasarkan vonis ini"
                     >
                       <div style={{ width: 7, height: 7, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: isSelected ? '#FCA5A5' : '#94A3B8', flex: 1, fontWeight: isSelected ? 700 : 500 }}>
+                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: isSelected ? '#F1F5F9' : '#94A3B8', flex: 1, fontWeight: isSelected ? 700 : 500 }}>
                         {d.name}
                       </span>
                       <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: d.color }}>
@@ -1155,8 +1171,7 @@ export default function Dashboard() {
           label="TOTAL ISU TERDATA"
           value={totalDebunks}
           sub="KORPUS RADAR SITUASIONAL AKTIF"
-          accentColor="#3B82F6"
-          iconBg="rgba(59, 130, 246, 0.15)"
+          accentColor="#94A3B8"
           milspecCode="C2 // TOTAL-POOL"
         />
         <StatCard
@@ -1165,7 +1180,6 @@ export default function Dashboard() {
           value={threatItems.length}
           sub={`${totalDebunks > 0 ? Math.round((threatItems.length / totalDebunks) * 100) : 0}% DARI TOTAL ISU TERDATA`}
           accentColor="#EF4444"
-          iconBg="rgba(239, 68, 68, 0.15)"
           milspecCode="COGNITIVE // THREAT-RATIO"
           pulse={threatItems.length > 0}
         />
@@ -1174,8 +1188,7 @@ export default function Dashboard() {
           label="KLASTER SIBER & PERETASAN"
           value={cyberItems.length}
           sub="DATA BREACH, RANSOMWARE & JUDOL"
-          accentColor="#06B6D4"
-          iconBg="rgba(6, 182, 212, 0.15)"
+          accentColor="#38BDF8"
           milspecCode="CYBER // PUSSIBERAD"
           pulse={cyberItems.length > 0}
         />
@@ -1184,8 +1197,7 @@ export default function Dashboard() {
           label="BERITA TERSEMAT (C2)"
           value={archivedIds.size}
           sub="PRIORITAS PEMANTAUAN INTELIJEN"
-          accentColor="#38BDF8"
-          iconBg="rgba(56, 189, 248, 0.15)"
+          accentColor="#D4A017"
           milspecCode="C2 // PINNED-REPO"
         />
       </div>
@@ -1200,7 +1212,7 @@ export default function Dashboard() {
           <span className="bolt-br" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <TrendingUp size={15} color="#EF4444" />
+              <TrendingUp size={15} color="#D4A017" />
               <div style={{ fontSize: '13px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                 TREN AKUMULASI ANCAMAN KOGNITIF & SIBER
               </div>
@@ -1220,9 +1232,9 @@ export default function Dashboard() {
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 700,
                     border: '1px solid',
-                    borderColor: timelineFilter === f ? '#EF4444' : '#2D3848',
-                    background: timelineFilter === f ? 'rgba(239, 68, 68, 0.25)' : '#141B24',
-                    color: timelineFilter === f ? '#FCA5A5' : '#94A3B8',
+                    borderColor: timelineFilter === f ? '#43556D' : '#212C3B',
+                    background: timelineFilter === f ? '#1A2432' : '#0B1017',
+                    color: timelineFilter === f ? '#F8FAFC' : '#94A3B8',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -1240,9 +1252,9 @@ export default function Dashboard() {
             justifyContent: 'space-between',
             marginBottom: '8px',
             padding: '4px 10px',
-            background: 'rgba(239, 68, 68, 0.12)',
+            background: '#140D0F',
             borderRadius: '4px',
-            border: '1px solid rgba(239, 68, 68, 0.35)'
+            border: '1px solid #3E1B20'
           }}>
             <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#FCA5A5', fontWeight: 700 }}>
               PEAK ANOMALI: INSIDEN PDNS & KEBOCORAN DATA (14:00 WIB)
@@ -1329,48 +1341,69 @@ export default function Dashboard() {
             alignItems: 'center',
             gap: '6px'
           }}>
-            <Zap size={14} color="#EF4444" /> TACTICAL QUICK LAUNCHPAD (AKSI CEPAT)
+            <Zap size={14} color="#D4A017" /> TACTICAL QUICK LAUNCHPAD (AKSI CEPAT)
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {/* Card 1: Berita Tersemat */}
             <div
               onClick={() => navigate('/archive')}
+              className="card-crosshairs"
               style={{
                 padding: '9px 12px',
-                background: 'linear-gradient(160deg, #1A232E 0%, #111720 100%)',
-                border: '1px solid #2D3848',
+                background: 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)',
+                borderTop: '1px solid #3E4E63',
+                borderLeft: '1px solid #2D3B4D',
+                borderRight: '1px solid #141A24',
+                borderBottom: '1px solid #0D1219',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 8px rgba(0,0,0,0.6)',
+                position: 'relative'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#38BDF8'
+                e.currentTarget.style.borderTopColor = '#526885'
+                e.currentTarget.style.borderLeftColor = '#435770'
+                e.currentTarget.style.background = 'linear-gradient(170deg, #1D2837 0%, #131B26 50%, #0C121B 100%)'
                 e.currentTarget.style.transform = 'translateY(-1px)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#2D3848'
+                e.currentTarget.style.borderTopColor = '#3E4E63'
+                e.currentTarget.style.borderLeftColor = '#2D3B4D'
+                e.currentTarget.style.background = 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)'
                 e.currentTarget.style.transform = 'translateY(0)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '6px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Pin size={15} color="#38BDF8" style={{ transform: 'rotate(45deg)' }} />
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '5px',
+                  background: '#070A0F',
+                  border: '1px solid #1E2836',
+                  borderBottom: '1px solid #2C3B4E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.85)'
+                }}>
+                  <Pin size={15} color="#CBD5E1" style={{ transform: 'rotate(45deg)' }} />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F1F5F9' }}>1. Berita Tersemat</span>
-                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: 'rgba(56, 189, 248, 0.2)', color: '#38BDF8', padding: '1px 4px', borderRadius: '2px', fontWeight: 700 }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F8FAFC' }}>1. Berita Tersemat</span>
+                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: '#0D131C', color: '#94A3B8', border: '1px solid #222E3E', padding: '1px 5px', borderRadius: '2px', fontWeight: 700 }}>
                       C2 REPOSITORI
                     </span>
                   </div>
-                  <div style={{ fontSize: '9px', color: '#64748B', marginTop: '1px', display: 'flex', gap: '4px' }}>
-                    <span style={{ background: '#0C1016', padding: '1px 3px', borderRadius: '2px', border: '1px solid #1E2734' }}>[{archivedIds.size} TERSEMAT]</span>
-                    <span style={{ background: '#0C1016', padding: '1px 3px', borderRadius: '2px', border: '1px solid #1E2734' }}>[MONITORING]</span>
+                  <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px', display: 'flex', gap: '4px' }}>
+                    <span style={{ background: '#070A0F', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1A2432' }}>[{archivedIds.size} TERSEMAT]</span>
+                    <span style={{ background: '#070A0F', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1A2432' }}>[MONITORING]</span>
                   </div>
                 </div>
               </div>
@@ -1380,41 +1413,62 @@ export default function Dashboard() {
             {/* Card 2: Radar Situasional */}
             <div
               onClick={() => navigate('/radar')}
+              className="card-crosshairs"
               style={{
                 padding: '9px 12px',
-                background: 'linear-gradient(160deg, #1A232E 0%, #111720 100%)',
-                border: '1px solid #2D3848',
+                background: 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)',
+                borderTop: '1px solid #3E4E63',
+                borderLeft: '1px solid #2D3B4D',
+                borderRight: '1px solid #141A24',
+                borderBottom: '1px solid #0D1219',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 8px rgba(0,0,0,0.6)',
+                position: 'relative'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#3B82F6'
+                e.currentTarget.style.borderTopColor = '#526885'
+                e.currentTarget.style.borderLeftColor = '#435770'
+                e.currentTarget.style.background = 'linear-gradient(170deg, #1D2837 0%, #131B26 50%, #0C121B 100%)'
                 e.currentTarget.style.transform = 'translateY(-1px)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#2D3848'
+                e.currentTarget.style.borderTopColor = '#3E4E63'
+                e.currentTarget.style.borderLeftColor = '#2D3B4D'
+                e.currentTarget.style.background = 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)'
                 e.currentTarget.style.transform = 'translateY(0)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '6px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Radio size={15} color="#3B82F6" />
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '5px',
+                  background: '#070A0F',
+                  border: '1px solid #1E2836',
+                  borderBottom: '1px solid #2C3B4E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.85)'
+                }}>
+                  <Radio size={15} color="#CBD5E1" />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F1F5F9' }}>2. Radar Situasional</span>
-                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: 'rgba(59, 130, 246, 0.2)', color: '#3B82F6', padding: '1px 4px', borderRadius: '2px', fontWeight: 700 }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F8FAFC' }}>2. Radar Situasional</span>
+                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: '#0D131C', color: '#94A3B8', border: '1px solid #222E3E', padding: '1px 5px', borderRadius: '2px', fontWeight: 700 }}>
                       LIVE OSINT
                     </span>
                   </div>
-                  <div style={{ fontSize: '9px', color: '#64748B', marginTop: '1px', display: 'flex', gap: '4px' }}>
-                    <span style={{ background: '#0C1016', padding: '1px 3px', borderRadius: '2px', border: '1px solid #1E2734' }}>[AUTO SYNC]</span>
-                    <span style={{ background: '#0C1016', padding: '1px 3px', borderRadius: '2px', border: '1px solid #1E2734' }}>[9 KLASTER]</span>
+                  <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px', display: 'flex', gap: '4px' }}>
+                    <span style={{ background: '#070A0F', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1A2432' }}>[AUTO SYNC]</span>
+                    <span style={{ background: '#070A0F', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1A2432' }}>[9 KLASTER]</span>
                   </div>
                 </div>
               </div>
@@ -1424,41 +1478,62 @@ export default function Dashboard() {
             {/* Card 3: Analisa Postingan Medsos */}
             <div
               onClick={() => navigate('/social-forensic')}
+              className="card-crosshairs"
               style={{
                 padding: '9px 12px',
-                background: 'linear-gradient(160deg, #1A232E 0%, #111720 100%)',
-                border: '1px solid #2D3848',
+                background: 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)',
+                borderTop: '1px solid #3E4E63',
+                borderLeft: '1px solid #2D3B4D',
+                borderRight: '1px solid #141A24',
+                borderBottom: '1px solid #0D1219',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 8px rgba(0,0,0,0.6)',
+                position: 'relative'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#C084FC'
+                e.currentTarget.style.borderTopColor = '#526885'
+                e.currentTarget.style.borderLeftColor = '#435770'
+                e.currentTarget.style.background = 'linear-gradient(170deg, #1D2837 0%, #131B26 50%, #0C121B 100%)'
                 e.currentTarget.style.transform = 'translateY(-1px)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#2D3848'
+                e.currentTarget.style.borderTopColor = '#3E4E63'
+                e.currentTarget.style.borderLeftColor = '#2D3B4D'
+                e.currentTarget.style.background = 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)'
                 e.currentTarget.style.transform = 'translateY(0)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '6px', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Share2 size={15} color="#C084FC" />
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '5px',
+                  background: '#070A0F',
+                  border: '1px solid #1E2836',
+                  borderBottom: '1px solid #2C3B4E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.85)'
+                }}>
+                  <Share2 size={15} color="#CBD5E1" />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F1F5F9' }}>3. Analisa Postingan Medsos</span>
-                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: 'rgba(168, 85, 247, 0.2)', color: '#C084FC', padding: '1px 4px', borderRadius: '2px', fontWeight: 700 }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F8FAFC' }}>3. Analisa Postingan Medsos</span>
+                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: '#0D131C', color: '#94A3B8', border: '1px solid #222E3E', padding: '1px 5px', borderRadius: '2px', fontWeight: 700 }}>
                       FORENSIK SIBER
                     </span>
                   </div>
-                  <div style={{ fontSize: '9px', color: '#64748B', marginTop: '1px', display: 'flex', gap: '4px' }}>
-                    <span style={{ background: '#0C1016', padding: '1px 3px', borderRadius: '2px', border: '1px solid #1E2734' }}>[SENTIMEN]</span>
-                    <span style={{ background: '#0C1016', padding: '1px 3px', borderRadius: '2px', border: '1px solid #1E2734' }}>[BOT SCORE]</span>
+                  <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px', display: 'flex', gap: '4px' }}>
+                    <span style={{ background: '#070A0F', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1A2432' }}>[SENTIMEN]</span>
+                    <span style={{ background: '#070A0F', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1A2432' }}>[BOT SCORE]</span>
                   </div>
                 </div>
               </div>
@@ -1468,41 +1543,62 @@ export default function Dashboard() {
             {/* Card 4: Produk Intelijen A4 */}
             <div
               onClick={() => navigate('/reports')}
+              className="card-crosshairs"
               style={{
                 padding: '9px 12px',
-                background: 'linear-gradient(160deg, #1A232E 0%, #111720 100%)',
-                border: '1px solid #2D3848',
+                background: 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)',
+                borderTop: '1px solid #3E4E63',
+                borderLeft: '1px solid #2D3B4D',
+                borderRight: '1px solid #141A24',
+                borderBottom: '1px solid #0D1219',
                 borderRadius: '6px',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 8px rgba(0,0,0,0.6)',
+                position: 'relative'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#10B981'
+                e.currentTarget.style.borderTopColor = '#526885'
+                e.currentTarget.style.borderLeftColor = '#435770'
+                e.currentTarget.style.background = 'linear-gradient(170deg, #1D2837 0%, #131B26 50%, #0C121B 100%)'
                 e.currentTarget.style.transform = 'translateY(-1px)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#2D3848'
+                e.currentTarget.style.borderTopColor = '#3E4E63'
+                e.currentTarget.style.borderLeftColor = '#2D3B4D'
+                e.currentTarget.style.background = 'linear-gradient(170deg, #17202B 0%, #101620 50%, #0A0F16 100%)'
                 e.currentTarget.style.transform = 'translateY(0)'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: 30, height: 30, borderRadius: '6px', background: 'rgba(16, 185, 129, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Layers size={15} color="#10B981" />
+                <div style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '5px',
+                  background: '#070A0F',
+                  border: '1px solid #1E2836',
+                  borderBottom: '1px solid #2C3B4E',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.85)'
+                }}>
+                  <Layers size={15} color="#CBD5E1" />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F1F5F9' }}>4. Produk Intelijen A4</span>
-                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: 'rgba(16, 185, 129, 0.2)', color: '#10B981', padding: '1px 4px', borderRadius: '2px', fontWeight: 700 }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F8FAFC' }}>4. Produk Intelijen A4</span>
+                    <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', background: '#0D131C', color: '#94A3B8', border: '1px solid #222E3E', padding: '1px 5px', borderRadius: '2px', fontWeight: 700 }}>
                       DISPENAD OPORD
                     </span>
                   </div>
-                  <div style={{ fontSize: '9px', color: '#64748B', marginTop: '1px', display: 'flex', gap: '4px' }}>
-                    <span style={{ background: '#0C1016', padding: '1px 3px', borderRadius: '2px', border: '1px solid #1E2734' }}>[PDF A4]</span>
-                    <span style={{ background: '#0C1016', padding: '1px 3px', borderRadius: '2px', border: '1px solid #1E2734' }}>[SHA-256]</span>
+                  <div style={{ fontSize: '9px', color: '#64748B', marginTop: '2px', display: 'flex', gap: '4px' }}>
+                    <span style={{ background: '#070A0F', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1A2432' }}>[PDF A4]</span>
+                    <span style={{ background: '#070A0F', padding: '1px 4px', borderRadius: '2px', border: '1px solid #1A2432' }}>[SHA-256]</span>
                   </div>
                 </div>
               </div>
@@ -1522,7 +1618,7 @@ export default function Dashboard() {
           <span className="bolt-br" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Activity size={14} color="#F97316" />
+              <Activity size={14} color="#D4A017" />
               <div style={{ fontSize: '13px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                 LIVE COGNITIVE & CYBER THREAT FEED
               </div>
@@ -1532,7 +1628,7 @@ export default function Dashboard() {
               type="button"
               className="btn btn-ghost btn-sm"
               onClick={() => navigate('/radar')}
-              style={{ fontSize: '10px', color: '#38BDF8', fontFamily: 'var(--font-mono)', cursor: 'pointer' }}
+              style={{ fontSize: '10px', color: '#CBD5E1', fontFamily: 'var(--font-mono)', cursor: 'pointer' }}
             >
               Buka Radar Situasional <ChevronRight size={12} />
             </button>
@@ -1552,14 +1648,15 @@ export default function Dashboard() {
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '10px',
-                    padding: '10px 12px',
-                    background: '#121822',
-                    borderRadius: '6px',
-                    border: '1px solid #1E2734',
+                    padding: '8px 12px',
+                    background: '#090D14',
+                    borderRadius: '5px',
+                    border: '1px solid #1C2736',
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.8)',
                     transition: 'border-color 0.15s ease'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = threatMeta.color)}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1E2734')}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = '#3B4E66')}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = '#1C2736')}
                 >
                   <AlertTriangle size={15} color={threatMeta.color} style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -1571,11 +1668,15 @@ export default function Dashboard() {
                           fontWeight: 700,
                           padding: '1px 5px',
                           borderRadius: '2px',
-                          background: `${clusterMeta.color}20`,
-                          color: clusterMeta.color,
-                          border: `1px solid ${clusterMeta.color}40`
+                          background: '#0E141D',
+                          color: '#CBD5E1',
+                          border: '1px solid #222E3F',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: clusterMeta.color }} />
                         {clusterMeta.label}
                       </span>
                       <span
@@ -1585,19 +1686,23 @@ export default function Dashboard() {
                           fontWeight: 700,
                           padding: '1px 5px',
                           borderRadius: '2px',
-                          background: verdictMeta.bg,
-                          color: verdictMeta.color,
-                          border: `1px solid ${verdictMeta.border}`
+                          background: item.verdict === 'HOAKS' ? '#1B1113' : item.verdict === 'FAKTA' ? '#0F1814' : '#141820',
+                          color: item.verdict === 'HOAKS' ? '#FCA5A5' : item.verdict === 'FAKTA' ? '#86EFAC' : '#CBD5E1',
+                          border: item.verdict === 'HOAKS' ? '1px solid #451D22' : item.verdict === 'FAKTA' ? '1px solid #1C3B2D' : '1px solid #263345',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: verdictMeta.color }} />
                         {verdictMeta.label}
                       </span>
                       <span style={{
                         fontSize: '8px',
                         fontFamily: 'var(--font-mono)',
-                        color: '#94A3B8',
-                        background: '#0C1016',
-                        border: '1px solid #1E2734',
+                        color: '#64748B',
+                        background: '#070A0F',
+                        border: '1px solid #1A2432',
                         padding: '1px 4px',
                         borderRadius: '2px'
                       }}>
@@ -1607,7 +1712,7 @@ export default function Dashboard() {
                         {item.publishedDate || item.interceptedAt || 'Baru Saja'}
                       </span>
                     </div>
-                    <div style={{ fontSize: '11px', color: '#F1F5F9', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: '11px', color: '#E2E8F0', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {truncateText(item.claim, 68)}
                     </div>
                   </div>
@@ -1617,9 +1722,9 @@ export default function Dashboard() {
                     onClick={(e) => handleTogglePin(item, e)}
                     title={isPinned ? 'Lepas sematan' : 'Sematkan isu'}
                     style={{
-                      background: isPinned ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                      border: isPinned ? '1px solid #38BDF8' : '1px solid #2D3848',
-                      color: isPinned ? '#38BDF8' : '#64748B',
+                      background: isPinned ? '#162232' : '#070A0F',
+                      border: isPinned ? '1px solid #38BDF8' : '1px solid #202D3D',
+                      color: isPinned ? '#7DD3FC' : '#64748B',
                       borderRadius: '3px',
                       padding: '3px 5px',
                       cursor: 'pointer',
@@ -1642,20 +1747,20 @@ export default function Dashboard() {
           <span className="bolt-br" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Server size={14} color="#3B82F6" />
+              <Server size={14} color="#D4A017" />
               <div style={{ fontSize: '13px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
                 STATUS KESIAPAN SISTEM INTELIJEN
               </div>
             </div>
             <span style={{
-              fontSize: '10px',
+              fontSize: '9px',
               fontFamily: 'var(--font-mono)',
               fontWeight: 700,
               padding: '2px 8px',
-              borderRadius: 'var(--radius-pill)',
-              background: 'rgba(16, 185, 129, 0.2)',
-              color: '#10B981',
-              border: '1px solid rgba(16, 185, 129, 0.4)'
+              borderRadius: '3px',
+              background: '#0D1813',
+              color: '#34D399',
+              border: '1px solid #1A3E2D'
             }}>
               NORMAL
             </span>
@@ -1677,11 +1782,11 @@ export default function Dashboard() {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '5px 0',
-                  borderBottom: '1px solid #1E2734'
+                  borderBottom: '1px solid #1A2432'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '11px', color: '#94A3B8' }}>{item.label}</span>
+                  <span style={{ fontSize: '11px', color: '#CBD5E1' }}>{item.label}</span>
                   <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
                     ({item.latency})
                   </span>
@@ -1691,7 +1796,7 @@ export default function Dashboard() {
                   fontFamily: 'var(--font-mono)',
                   letterSpacing: '1px',
                   fontWeight: 700,
-                  color: item.ok ? '#10B981' : '#EF4444'
+                  color: item.ok ? '#34D399' : '#EF4444'
                 }}>
                   {item.status}
                 </span>

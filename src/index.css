@@ -479,8 +479,8 @@ body, #root, .app-layout {
 
 .sidebar.collapsed .nav-item.active {
   background: linear-gradient(135deg, rgba(200, 16, 46, 0.35) 0%, rgba(120, 10, 25, 0.5) 100%);
-  border: 1px solid #EF4444;
-  box-shadow: 0 0 14px rgba(239, 68, 68, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border: 1px solid #DC2626;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
 /* Icon Menu */
@@ -1537,18 +1537,23 @@ textarea.form-control {
 }
 .chunky-led-cell.led-active-green, .mechanical-led-cell.led-green {
   background: #10B981;
-  box-shadow: 0 0 8px #10B981, inset 0 1px 2px #D1FAE5;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -1px 2px rgba(0, 0, 0, 0.65);
   border-color: #059669;
 }
 .chunky-led-cell.led-active-amber, .mechanical-led-cell.led-amber {
   background: #F59E0B;
-  box-shadow: 0 0 8px #F59E0B, inset 0 1px 2px #FEF3C7;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -1px 2px rgba(0, 0, 0, 0.65);
   border-color: #D97706;
 }
 .chunky-led-cell.led-active-crimson, .mechanical-led-cell.led-crimson {
   background: #EF4444;
-  box-shadow: 0 0 8px #EF4444, inset 0 1px 2px #FEE2E2;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -1px 2px rgba(0, 0, 0, 0.65);
   border-color: #DC2626;
+}
+.chunky-led-cell.led-active-cyan, .mechanical-led-cell.led-cyan {
+  background: #06B6D4;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -1px 2px rgba(0, 0, 0, 0.65);
+  border-color: #0891B2;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
