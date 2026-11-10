@@ -32,6 +32,7 @@
     "test:youtube:compliance": "node scripts/test-youtube-compliance.js",
     "test:sprint11": "node scripts/test-sprint-11-social-intelligence.js",
     "test:sprint12": "node scripts/test-sprint-12-ui-workspace.js",
+    "test:archive": "node scripts/test-archive-intelligence.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "electron:build": "tsc -b && vite build && electron-builder --win nsis --x64"
   },

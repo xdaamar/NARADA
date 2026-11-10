@@ -19,6 +19,7 @@ export interface ArchivedDebunkEntry extends DebunkKnowledgeEntry {
   archivedAt: string            // Timestamp saat diarsipkan (format WIB/lokal)
   archivedTimestamp: number     // Unix timestamp epoch (ms)
   archiveVerdict: ArchiveVerdict // Status efektif pemantauan (default: DIPANTAU)
+  isManualOverride?: boolean     // Apakah analis secara manual menetapkan vonis
   notes?: string
 }
 
@@ -99,19 +100,11 @@ export function getArchivedEntries(): ArchivedDebunkEntry[] {
     ids.forEach(id => {
       const entry = dataMap[id]
       if (entry) {
-        // Tentukan vonis efektif terkini
-        let effective: ArchiveVerdict = verdicts[id] || entry.archiveVerdict || 'DIPANTAU'
-        
-        // Jika data radar asal sudah terkonfirmasi resmi dan analis belum override manual:
-        if (!verdicts[id]) {
-          if (entry.verdict === 'FAKTA') {
-            effective = 'FAKTA'
-          } else if (entry.verdict === 'HOAKS' || entry.verdict === 'DISINFORMASI' || entry.verdict === 'PROPAGANDA') {
-            effective = 'HOAKS'
-          } else {
-            effective = 'DIPANTAU'
-          }
-        }
+        // Tentukan vonis efektif terkini:
+        // Prioritaskan manual override jika ada, jika tidak gunakan status arsip tersinkron (default: DIPANTAU)
+        const effective: ArchiveVerdict = entry.isManualOverride 
+          ? (verdicts[id] || entry.archiveVerdict || 'DIPANTAU')
+          : (entry.archiveVerdict || verdicts[id] || 'DIPANTAU')
 
         entries.push({
           ...entry,
@@ -143,13 +136,10 @@ export function archiveIssue(item: DebunkKnowledgeEntry): void {
     ids.add(item.id)
     localStorage.setItem(STORAGE_KEY_IDS, JSON.stringify([...ids]))
 
-    // Pastikan status vonis awal adalah SEDANG DIPANTAU
+    // Pastikan status vonis awal adalah SELALU SEDANG DIPANTAU (DIPANTAU)
     const verdicts = getArchivedVerdicts()
-    if (!verdicts[item.id]) {
-      // Default: SEDANG DIPANTAU
-      verdicts[item.id] = 'DIPANTAU'
-      localStorage.setItem(STORAGE_KEY_VERDICTS, JSON.stringify(verdicts))
-    }
+    verdicts[item.id] = 'DIPANTAU'
+    localStorage.setItem(STORAGE_KEY_VERDICTS, JSON.stringify(verdicts))
 
     // Simpan objek lengkap entri arsip
     const rawData = localStorage.getItem(STORAGE_KEY_DATA)
@@ -159,7 +149,8 @@ export function archiveIssue(item: DebunkKnowledgeEntry): void {
       ...item,
       archivedAt: dataMap[item.id]?.archivedAt || getFormattedWib(),
       archivedTimestamp: dataMap[item.id]?.archivedTimestamp || Date.now(),
-      archiveVerdict: verdicts[item.id] || 'DIPANTAU'
+      archiveVerdict: 'DIPANTAU',
+      isManualOverride: false
     }
 
     dataMap[item.id] = archivedEntry
@@ -225,6 +216,14 @@ export function setArchivedVerdict(id: string, verdict: ArchiveVerdict): void {
       const dataMap: Record<string, ArchivedDebunkEntry> = JSON.parse(rawData)
       if (dataMap[id]) {
         dataMap[id].archiveVerdict = verdict
+        // Bila analis menetapkan FAKTA atau HOAKS -> tandai manual override
+        // Bila analis mereset ke DIPANTAU -> lepas manual override agar auto-sync radar aktif kembali
+        dataMap[id].isManualOverride = verdict !== 'DIPANTAU'
+        if (verdict === 'FAKTA') {
+          dataMap[id].verdict = 'FAKTA'
+        } else if (verdict === 'HOAKS') {
+          dataMap[id].verdict = 'HOAKS'
+        }
         localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
       }
     }
@@ -258,21 +257,39 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
         const isFreshHoax = fresh.verdict === 'HOAKS' || fresh.verdict === 'DISINFORMASI' || fresh.verdict === 'PROPAGANDA'
 
         // Perbarui naskah klarifikasi & referensi jika ada pembaruan
-        existing.clarification = fresh.clarification || existing.clarification
-        existing.officialSource = fresh.officialSource || existing.officialSource
-        existing.sourceUrl = fresh.sourceUrl || existing.sourceUrl
-        existing.tacticalResponseMilitary = fresh.tacticalResponseMilitary || existing.tacticalResponseMilitary
-        existing.publishedDate = fresh.publishedDate || existing.publishedDate
+        if (fresh.clarification && fresh.clarification !== existing.clarification) {
+          existing.clarification = fresh.clarification
+          hasChanges = true
+        }
+        if (fresh.officialSource && fresh.officialSource !== existing.officialSource) {
+          existing.officialSource = fresh.officialSource
+          hasChanges = true
+        }
+        if (fresh.sourceUrl && fresh.sourceUrl !== existing.sourceUrl) {
+          existing.sourceUrl = fresh.sourceUrl
+          hasChanges = true
+        }
+        if (fresh.tacticalResponseMilitary && fresh.tacticalResponseMilitary !== existing.tacticalResponseMilitary) {
+          existing.tacticalResponseMilitary = fresh.tacticalResponseMilitary
+          hasChanges = true
+        }
+        if (fresh.publishedDate && fresh.publishedDate !== existing.publishedDate) {
+          existing.publishedDate = fresh.publishedDate
+          hasChanges = true
+        }
 
-        // Jika analis belum menetapkan vonis manual (masih DIPANTAU), ikuti pembaruan radar resmi
-        if (!verdicts[fresh.id] || verdicts[fresh.id] === 'DIPANTAU') {
+        // Jika analis belum menetapkan vonis manual (tidak dalam state manual override),
+        // ikuti pembaruan radar resmi secara otomatis!
+        if (!existing.isManualOverride) {
           if (isFreshFact && existing.archiveVerdict !== 'FAKTA') {
             existing.archiveVerdict = 'FAKTA'
             existing.verdict = 'FAKTA'
+            verdicts[fresh.id] = 'FAKTA'
             hasChanges = true
           } else if (isFreshHoax && existing.archiveVerdict !== 'HOAKS') {
             existing.archiveVerdict = 'HOAKS'
             existing.verdict = fresh.verdict
+            verdicts[fresh.id] = 'HOAKS'
             hasChanges = true
           }
         }
@@ -281,9 +298,11 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
 
     if (hasChanges) {
       localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
+      localStorage.setItem(STORAGE_KEY_VERDICTS, JSON.stringify(verdicts))
       window.dispatchEvent(new CustomEvent('narada:archive-updated', { detail: { action: 'SYNC' } }))
     }
   } catch (err) {
     console.error('Gagal sinkronisasi arsip dengan radar:', err)
   }
 }
+
