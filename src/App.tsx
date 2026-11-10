@@ -3,7 +3,7 @@ import { HashRouter, Routes, Route, NavLink, useNavigate } from 'react-router-do
 import { 
   LayoutDashboard, 
   Radio,
-  ScanText, 
+  Archive, 
   FileText, 
   Settings,
   Activity,
@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
   { to: '/radar', icon: Radio, label: 'Radar Situasional', exact: true, hotkey: 'Alt+2' },
   { to: '/social-forensic', icon: Share2, label: 'Analisa Postingan Medsos', hotkey: 'Alt+3' },
-  { to: '/analyzer', icon: ScanText, label: 'Multi-Input Analyzer', hotkey: 'Alt+4' },
+  { to: '/analyzer', icon: Archive, label: 'Arsip Pemantauan', hotkey: 'Alt+4' },
   { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]
 

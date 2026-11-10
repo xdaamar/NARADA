@@ -26,8 +26,15 @@ import {
   ChevronDown,
   ChevronUp,
   Newspaper,
-  Pin
+  Archive
 } from 'lucide-react'
+import {
+  getArchivedIssueIds,
+  getArchivedVerdicts,
+  toggleArchive,
+  setArchivedVerdict,
+  syncArchivedItemsWithRadar
+} from '../engine/archive/archive-service.ts'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network.ts'
 import type { DebunkKnowledgeEntry, ThreatSpectrumCluster } from '../types.ts'
@@ -163,61 +170,39 @@ export default function LiveRadar() {
   const [activeCounterTab, setActiveCounterTab] = useState<'dispenad' | 'babinsa' | 'whatsapp' | 'social'>('dispenad')
   const [copiedSuccess, setCopiedSuccess] = useState<boolean>(false)
 
-  // State Isu Terpin (Khusus untuk Berita Sedang Dipantau agar tidak tenggelam)
-  const [pinnedIssueIds, setPinnedIssueIds] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem('narada_pinned_issues')
-      return raw ? new Set(JSON.parse(raw)) : new Set()
-    } catch {
-      return new Set()
-    }
-  })
+  // State Isu Terarsip (Repositori Pemantauan Narada)
+  const [archivedIssueIds, setArchivedIssueIds] = useState<Set<string>>(() => getArchivedIssueIds())
+  const [archivedVerdicts, setArchivedVerdicts] = useState<Record<string, 'HOAKS' | 'FAKTA' | 'DIPANTAU'>>(() => getArchivedVerdicts())
+  const [hideArchivedInRadar, setHideArchivedInRadar] = useState<boolean>(true)
 
-  // State Klasifikasi Dinamis untuk Isu Terpin ('HOAKS' | 'FAKTA' | 'DIPANTAU')
-  const [pinnedClassifications, setPinnedClassifications] = useState<Record<string, 'HOAKS' | 'FAKTA' | 'DIPANTAU'>>(() => {
-    try {
-      const raw = localStorage.getItem('narada_pinned_classifications')
-      return raw ? JSON.parse(raw) : {}
-    } catch {
-      return {}
+  // Sinkronisasi data arsip secara reaktif 0-ms antar halaman (LiveRadar & Analyzer)
+  useEffect(() => {
+    const handleArchiveUpdate = () => {
+      setArchivedIssueIds(getArchivedIssueIds())
+      setArchivedVerdicts(getArchivedVerdicts())
     }
-  })
+    window.addEventListener('narada:archive-updated', handleArchiveUpdate)
+    window.addEventListener('storage', handleArchiveUpdate)
+    return () => {
+      window.removeEventListener('narada:archive-updated', handleArchiveUpdate)
+      window.removeEventListener('storage', handleArchiveUpdate)
+    }
+  }, [])
 
   // State Tooltip Status Cyber Bubble Chat C2 (Respons instan 0-ms tanpa jeda sistem browser)
   const [hoveredStatusId, setHoveredStatusId] = useState<string | null>(null)
 
-  // Handler Toggle Pin / Unpin Isu
-  const togglePin = (id: string) => {
-    setPinnedIssueIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-        setPinnedClassifications(cPrev => {
-          const { [id]: _, ...rest } = cPrev
-          localStorage.setItem('narada_pinned_classifications', JSON.stringify(rest))
-          return rest
-        })
-      } else {
-        next.add(id)
-        // Saat pertama kali dipin, status default adalah 'DIPANTAU' (TIDAK BOLEH OTOMATIS HOAKS)
-        setPinnedClassifications(cPrev => {
-          const cNext: Record<string, 'HOAKS' | 'FAKTA' | 'DIPANTAU'> = { ...cPrev, [id]: 'DIPANTAU' }
-          localStorage.setItem('narada_pinned_classifications', JSON.stringify(cNext))
-          return cNext
-        })
-      }
-      localStorage.setItem('narada_pinned_issues', JSON.stringify([...next]))
-      return next
-    })
+  // Handler Toggle Arsip / Batal Arsip
+  const handleToggleArchive = (item: DebunkKnowledgeEntry) => {
+    toggleArchive(item)
+    setArchivedIssueIds(getArchivedIssueIds())
+    setArchivedVerdicts(getArchivedVerdicts())
   }
 
-  // Handler Set Klasifikasi untuk Isu Terpin
-  const handleSetPinnedVerdict = (id: string, verdict: 'HOAKS' | 'FAKTA' | 'DIPANTAU') => {
-    setPinnedClassifications(prev => {
-      const next: Record<string, 'HOAKS' | 'FAKTA' | 'DIPANTAU'> = { ...prev, [id]: verdict }
-      localStorage.setItem('narada_pinned_classifications', JSON.stringify(next))
-      return next
-    })
+  // Handler Set Klasifikasi untuk Isu Terarsip
+  const handleSetArchivedVerdict = (id: string, verdict: 'HOAKS' | 'FAKTA' | 'DIPANTAU') => {
+    setArchivedVerdict(id, verdict)
+    setArchivedVerdicts(getArchivedVerdicts())
   }
 
   // Fungsi sinkronisasi radar via RadarScheduler
@@ -236,6 +221,7 @@ export default function LiveRadar() {
         // SPRINT 5 (WP6) & SPRINT 13: Konsumsi hasil kanonikal tersortir dan tervalidasi
         const sorted = sanitizeRadarItems(entries)
         setDebunkItems(sorted)
+        syncArchivedItemsWithRadar(sorted)
       }
       const status = radarScheduler.getStatus()
       setSourceChannel(status.lastSyncSource as typeof sourceChannel || 'LOCAL_ARCHIVE')
@@ -266,6 +252,7 @@ export default function LiveRadar() {
           // SPRINT 5 (WP6) & SPRINT 13: Gunakan entri cache kanonikal tersortir dan tervalidasi
           const sorted = sanitizeRadarItems(cached)
           setDebunkItems(sorted)
+          syncArchivedItemsWithRadar(sorted)
         }
       })
       .catch((e) => {
@@ -283,6 +270,7 @@ export default function LiveRadar() {
       // SPRINT 5 (WP6) & SPRINT 13: Sinkronkan data terasemen tersortir dan tervalidasi
       const sorted = sanitizeRadarItems(newEntries)
       setDebunkItems(sorted)
+      syncArchivedItemsWithRadar(sorted)
       const now = new Date()
       setLastSyncTime(
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
@@ -374,6 +362,12 @@ export default function LiveRadar() {
       if (!item || !item.claim || isPureInstitutionOrPublisherName(item.claim, item.officialSource || item.originalPlatform)) {
         return false
       }
+
+      // Sembunyikan isu yang diarsipkan jika filter aktif agar radar tetap bersih dan selalu terupdate
+      if (hideArchivedInRadar && archivedIssueIds.has(item.id)) {
+        return false
+      }
+
       const normClaim = item.claim.trim().toLowerCase()
       if (seenClaims.has(normClaim)) {
         return false
@@ -428,14 +422,8 @@ export default function LiveRadar() {
 
       return matchCluster && matchView && matchQuery
     })
-    const sorted = sortRadarEntries(list)
-    // Isu yang dipin melayang ke urutan paling atas agar tidak pernah tenggelam
-    return [...sorted].sort((a, b) => {
-      const aPinned = pinnedIssueIds.has(a.id) ? 1 : 0
-      const bPinned = pinnedIssueIds.has(b.id) ? 1 : 0
-      return bPinned - aPinned
-    })
-  }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery, pinnedIssueIds])
+    return sortRadarEntries(list)
+  }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery, hideArchivedInRadar, archivedIssueIds])
 
   // Hitung jumlah item per klaster untuk pill count
   const clusterCounts = useMemo(() => {
@@ -639,6 +627,34 @@ export default function LiveRadar() {
                 }}
               >
                 Reset Buffer
+              </button>
+            )}
+
+            {/* Tombol Kontrol Visibilitas Berita Terarsip */}
+            {archivedIssueIds.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setHideArchivedInRadar(prev => !prev)}
+                title={hideArchivedInRadar ? "Tampilkan berita terarsip di radar" : "Sembunyikan berita terarsip agar radar tetap bersih dan selalu terupdate"}
+                style={{
+                  fontSize: '10.5px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  padding: '5px 10px',
+                  background: hideArchivedInRadar ? 'linear-gradient(180deg, #1E293B 0%, #0F172A 100%)' : 'linear-gradient(180deg, #243042 0%, #151D28 100%)',
+                  border: hideArchivedInRadar ? '1px solid #38BDF8' : '1px solid #3E4E68',
+                  boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.4)',
+                  color: hideArchivedInRadar ? '#38BDF8' : '#94A3B8',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Archive size={11} color={hideArchivedInRadar ? '#38BDF8' : '#94A3B8'} />
+                <span>{hideArchivedInRadar ? `TERARSIP DISEMBUNYIKAN (${archivedIssueIds.size})` : `TAMPILKAN SEMUA (${archivedIssueIds.size} ARSIP)`}</span>
               </button>
             )}
 
@@ -1390,22 +1406,22 @@ export default function LiveRadar() {
             const isHoax = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA'
             const isFact = item.verdict === 'FAKTA'
             const isUnverified = item.verdict === 'UNVERIFIED'
-            const isPinned = pinnedIssueIds.has(item.id)
+            const isArchived = archivedIssueIds.has(item.id)
 
             // Vonis klasifikasi efektif:
-            // 1. Jika terpin dan analis secara manual menyetel 'HOAKS' atau 'FAKTA', prioritaskan pilihan analis.
-            // 2. Jika status pin 'DIPANTAU' (default saat baru pertama dipin) atau belum diset:
+            // 1. Jika terarsip dan analis secara manual menyetel 'HOAKS' atau 'FAKTA', prioritaskan pilihan analis.
+            // 2. Jika status arsip 'DIPANTAU' (default saat baru pertama diarsipkan) atau belum diset:
             //    - Bila data radar terverifikasi FAKTA resmi -> tampilkan FAKTA RESMI.
             //    - Bila data radar terverifikasi HOAKS -> tampilkan TERINDIKASI HOAKS.
             //    - Bila masih dalam pemantauan (UNVERIFIED) -> STATUS TETAP 'SEDANG DIPANTAU' (TIDAK BOLEH OTOMATIS HOAKS!).
-            const pinClassification = isPinned ? pinnedClassifications[item.id] : undefined
+            const archivedClassification = isArchived ? archivedVerdicts[item.id] : undefined
 
             let effectiveVerdict: 'HOAKS' | 'FAKTA' | 'UNVERIFIED' = 'UNVERIFIED'
-            if (pinClassification === 'FAKTA') {
+            if (archivedClassification === 'FAKTA') {
               effectiveVerdict = 'FAKTA'
-            } else if (pinClassification === 'HOAKS') {
+            } else if (archivedClassification === 'HOAKS') {
               effectiveVerdict = 'HOAKS'
-            } else if (pinClassification === 'DIPANTAU') {
+            } else if (archivedClassification === 'DIPANTAU') {
               effectiveVerdict = isFact ? 'FAKTA' : isHoax ? 'HOAKS' : 'UNVERIFIED'
             } else if (isFact) {
               effectiveVerdict = 'FAKTA'
@@ -1503,13 +1519,13 @@ export default function LiveRadar() {
                   justifyContent: 'space-between',
                   position: 'relative',
                   gap: '12px',
-                  borderTop: isPinned 
-                    ? `2px solid ${isEffectiveHoax ? '#EF4444' : isEffectiveFact ? '#10B981' : '#F59E0B'}` 
+                  borderTop: isArchived 
+                    ? `2px solid ${isEffectiveHoax ? '#EF4444' : isEffectiveFact ? '#10B981' : '#38BDF8'}` 
                     : score >= 75 
                     ? '2px solid #EF4444' 
                     : '1px solid #1E2734',
-                  boxShadow: isPinned 
-                    ? `0 0 16px ${isEffectiveHoax ? 'rgba(239, 68, 68, 0.15)' : isEffectiveFact ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)'}, inset 0 1px 0 rgba(245, 158, 11, 0.2)` 
+                  boxShadow: isArchived 
+                    ? `0 0 16px ${isEffectiveHoax ? 'rgba(239, 68, 68, 0.15)' : isEffectiveFact ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)'}, inset 0 1px 0 rgba(56, 189, 248, 0.2)` 
                     : 'none',
                   minHeight: '440px',
                   height: isExpanded ? 'fit-content' : '440px',
@@ -1554,7 +1570,7 @@ export default function LiveRadar() {
                         onMouseEnter={() => setHoveredStatusId(item.id)}
                         onMouseLeave={() => setHoveredStatusId(null)}
                       >
-                        {isPinned ? (
+                        {isArchived ? (
                           <span 
                             style={{
                               fontSize: '9px',
@@ -1566,34 +1582,33 @@ export default function LiveRadar() {
                                 ? 'rgba(239, 68, 68, 0.14)' 
                                 : isEffectiveFact 
                                 ? 'rgba(16, 185, 129, 0.14)' 
-                                : 'rgba(245, 158, 11, 0.14)',
+                                : 'rgba(56, 189, 248, 0.14)',
                               color: isEffectiveHoax 
                                 ? '#F87171' 
                                 : isEffectiveFact 
                                 ? '#34D399' 
-                                : '#FBBF24',
+                                : '#38BDF8',
                               border: isEffectiveHoax 
                                 ? '1px solid #7F1D1D' 
                                 : isEffectiveFact 
                                 ? '1px solid #064E3B' 
-                                : '1px solid rgba(245, 158, 11, 0.4)',
+                                : '1px solid rgba(56, 189, 248, 0.4)',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '4px',
                               cursor: 'pointer'
                             }}
                           >
-                            <Pin 
+                            <Archive 
                               size={9} 
-                              color={isEffectiveHoax ? '#F87171' : isEffectiveFact ? '#34D399' : '#F59E0B'} 
-                              style={{ transform: 'rotate(-45deg)' }} 
+                              color={isEffectiveHoax ? '#F87171' : isEffectiveFact ? '#34D399' : '#38BDF8'} 
                             />
                             <span>
                               {isEffectiveHoax 
-                                ? 'TERPIN • TERINDIKASI HOAKS' 
+                                ? 'TERARSIP • TERINDIKASI HOAKS' 
                                 : isEffectiveFact 
-                                ? 'TERPIN • TERVERIFIKASI FAKTA' 
-                                : 'TERPIN • SEDANG DIPANTAU'}
+                                ? 'TERARSIP • TERVERIFIKASI FAKTA' 
+                                : 'TERARSIP • SEDANG DIPANTAU'}
                             </span>
                           </span>
                         ) : (
@@ -1637,7 +1652,7 @@ export default function LiveRadar() {
                                   animation: 'cyberPulseDot 1.4s infinite'
                                 }} />
                                 <span style={{ fontSize: '8.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.8px' }}>
-                                  {isPinned ? '// C2-INTEL-PINNED' : '// C2-RADAR-VERIFY'}
+                                  {isArchived ? '// C2-ARSIP-PEMANTAUAN' : '// C2-RADAR-VERIFY'}
                                 </span>
                               </div>
                               <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '1px 4px', borderRadius: '2px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
@@ -1654,12 +1669,12 @@ export default function LiveRadar() {
                               letterSpacing: '0.5px',
                               marginBottom: '5px'
                             }}>
-                              {isPinned
+                              {isArchived
                                 ? (isEffectiveHoax 
-                                    ? 'TERINDIKASI HOAKS / DISINFORMASI (PRIORITAS PIN)' 
+                                    ? 'TERINDIKASI HOAKS / DISINFORMASI (TERARSIP)' 
                                     : isEffectiveFact 
-                                    ? 'TERVERIFIKASI FAKTA RESMI (PRIORITAS PIN)' 
-                                    : 'SEDANG DALAM PEMANTAUAN (PRIORITAS PIN)')
+                                    ? 'TERVERIFIKASI FAKTA RESMI (TERARSIP)' 
+                                    : 'SEDANG DALAM PEMANTAUAN (TERARSIP)')
                                 : (isEffectiveHoax 
                                     ? 'TERINDIKASI HOAKS / DISINFORMASI' 
                                     : isEffectiveFact 
@@ -1675,12 +1690,12 @@ export default function LiveRadar() {
                               fontFamily: 'var(--font-sans)',
                               marginBottom: '6px'
                             }}>
-                              {isPinned ? (
+                              {isArchived ? (
                                 isEffectiveHoax
-                                  ? 'Isu dikunci di radar prioritas. Deteksi intelijen mengidentifikasi anomali narasi manipulatif atau provokatif yang memerlukan penangkalan opini segera.'
+                                  ? 'Isu tersimpan dalam Konsol Arsip Pemantauan. Deteksi intelijen mengidentifikasi anomali narasi manipulatif atau provokatif yang memerlukan penangkalan opini segera.'
                                   : isEffectiveFact
-                                  ? 'Isu dikunci di radar prioritas. Analisis intelijen mengonfirmasi keselarasan data lapangan dengan posko/instansi resmi terkait.'
-                                  : 'Isu dikunci di posisi teratas radar prioritas. Tim analis dan intelijen teritorial terus aktif memantau dinamika perkembangan berita sebelum menetapkan kesimpulan final.'
+                                  ? 'Isu tersimpan dalam Konsol Arsip Pemantauan. Analisis intelijen mengonfirmasi keselarasan data lapangan dengan posko/instansi resmi terkait.'
+                                  : 'Isu tersimpan dalam Konsol Arsip Pemantauan. Tim analis terus aktif memantau dinamika perkembangan berita sebelum menetapkan kesimpulan final.'
                               ) : isEffectiveUnverified ? (
                                 'Laporan baru diserap radar dan sedang dalam pemantauan teritorial Babinsa/Siber. Bukti forensik pendukung terus dihimpun.'
                               ) : isEffectiveHoax ? (
@@ -1702,7 +1717,7 @@ export default function LiveRadar() {
                               gap: '4px'
                             }}>
                               <span style={{ color: '#F59E0B' }}>▶</span>
-                              <span>{isPinned ? 'Gunakan tombol Set Fakta / Set Hoaks / Reset Pantau di baki kartu untuk override analis' : 'Klik PIN untuk mengunci isu ke daftar prioritas teratas'}</span>
+                              <span>{isArchived ? 'Gunakan tombol Set Fakta / Set Hoaks / Reset Pantau di baki kartu untuk override analis' : 'Klik ARSIPKAN untuk menyimpan berita ke Konsol Arsip Pemantauan'}</span>
                             </div>
                           </div>
                         )}
@@ -1722,18 +1737,18 @@ export default function LiveRadar() {
                         RELEVANSI {score}/100
                       </span>
 
-                      {/* Tombol PIN / UNPIN: Tersedia untuk semua isu di radar */}
+                      {/* Tombol ARSIPKAN / TERARSIP: Tersedia untuk semua isu di radar */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation()
-                          togglePin(item.id)
+                          handleToggleArchive(item)
                         }}
                         style={{
-                          background: isPinned ? 'linear-gradient(180deg, #2D2312 0%, #1A150B 100%)' : 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
-                          border: isPinned ? '1px solid #D97706' : '1px solid #3E4E63',
-                          boxShadow: isPinned ? '0 0 8px rgba(245, 158, 11, 0.3)' : 'inset 0 1px 0 rgba(255, 255, 255, 0.12)',
-                          color: isPinned ? '#F59E0B' : '#94A3B8',
+                          background: isArchived ? 'linear-gradient(180deg, #1A2838 0%, #0D1622 100%)' : 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                          border: isArchived ? '1px solid #38BDF8' : '1px solid #3E4E63',
+                          boxShadow: isArchived ? '0 0 8px rgba(56, 189, 248, 0.3)' : 'inset 0 1px 0 rgba(255, 255, 255, 0.12)',
+                          color: isArchived ? '#38BDF8' : '#94A3B8',
                           fontSize: '9px',
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 800,
@@ -1745,10 +1760,10 @@ export default function LiveRadar() {
                           gap: '4px',
                           transition: 'all 0.15s ease'
                         }}
-                        title={isPinned ? 'Lepas Pin (Unpin): Hapus dari daftar prioritas atas' : 'Pin Berita: Kunci isu di posisi teratas radar agar tidak tenggelam'}
+                        title={isArchived ? 'Batalkan Arsip: Kembalikan berita ke radar aktif' : 'Arsipkan Berita: Pindahkan ke Konsol Arsip Pemantauan agar radar tetap bersih'}
                       >
-                        <Pin size={10} color={isPinned ? '#F59E0B' : '#94A3B8'} style={{ transform: isPinned ? 'rotate(-45deg)' : 'none' }} />
-                        <span>{isPinned ? 'UNPIN' : 'PIN'}</span>
+                        <Archive size={10} color={isArchived ? '#38BDF8' : '#94A3B8'} />
+                        <span>{isArchived ? 'TERARSIP' : 'ARSIPKAN'}</span>
                       </button>
                     </div>
                   </div>
@@ -1861,12 +1876,12 @@ export default function LiveRadar() {
                     )}
                   </div>
 
-                  {/* Strip Indikasi Klasifikasi Khusus Isu Terpin */}
-                  {isPinned && (
+                  {/* Strip Indikasi Klasifikasi Khusus Isu Terarsip */}
+                  {isArchived && (
                     <div style={{
                       background: '#0D141F',
                       border: '1px solid #233144',
-                      borderLeft: `3px solid ${isEffectiveHoax ? '#EF4444' : isEffectiveFact ? '#10B981' : '#F59E0B'}`,
+                      borderLeft: `3px solid ${isEffectiveHoax ? '#EF4444' : isEffectiveFact ? '#10B981' : '#38BDF8'}`,
                       padding: '6px 10px',
                       borderRadius: '3px',
                       display: 'flex',
@@ -1876,11 +1891,11 @@ export default function LiveRadar() {
                       flexWrap: 'wrap'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '9.5px', fontFamily: 'var(--font-mono)' }}>
-                        <ShieldAlert size={12} color={isEffectiveHoax ? '#EF4444' : isEffectiveFact ? '#10B981' : '#F59E0B'} />
-                        <span style={{ color: '#94A3B8' }}>STATUS KLASIFIKASI PIN:</span>
+                        <Archive size={12} color="#38BDF8" />
+                        <span style={{ color: '#94A3B8' }}>STATUS ARSIP PEMANTAUAN:</span>
                         <span style={{ 
                           fontWeight: 800, 
-                          color: isEffectiveHoax ? '#F87171' : isEffectiveFact ? '#34D399' : '#FBBF24' 
+                          color: isEffectiveHoax ? '#F87171' : isEffectiveFact ? '#34D399' : '#38BDF8' 
                         }}>
                           {isEffectiveHoax 
                             ? 'TERINDIKASI HOAKS / DISINFORMASI' 
@@ -1894,7 +1909,7 @@ export default function LiveRadar() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <button
                           type="button"
-                          onClick={() => handleSetPinnedVerdict(item.id, 'HOAKS')}
+                          onClick={() => handleSetArchivedVerdict(item.id, 'HOAKS')}
                           title="Tandai dan konfirmasi isu pantauan ini sebagai Terindikasi Hoaks"
                           style={{
                             background: isEffectiveHoax ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
@@ -1912,7 +1927,7 @@ export default function LiveRadar() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleSetPinnedVerdict(item.id, 'FAKTA')}
+                          onClick={() => handleSetArchivedVerdict(item.id, 'FAKTA')}
                           title="Tandai dan konfirmasi isu pantauan ini sebagai Fakta Resmi"
                           style={{
                             background: isEffectiveFact ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
@@ -1928,11 +1943,11 @@ export default function LiveRadar() {
                         >
                           Set Fakta
                         </button>
-                        {(pinClassification === 'HOAKS' || pinClassification === 'FAKTA') && (
+                        {(archivedClassification === 'HOAKS' || archivedClassification === 'FAKTA') && (
                           <button
                             type="button"
-                            onClick={() => handleSetPinnedVerdict(item.id, 'DIPANTAU')}
-                            title="Kembalikan status isu terpin ini ke Sedang Dipantau"
+                            onClick={() => handleSetArchivedVerdict(item.id, 'DIPANTAU')}
+                            title="Kembalikan status isu terarsip ini ke Sedang Dipantau"
                             style={{
                               background: 'transparent',
                               color: '#F59E0B',
@@ -1948,6 +1963,24 @@ export default function LiveRadar() {
                             Reset Pantau
                           </button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleArchive(item)}
+                          title="Keluarkan berita ini dari repositori arsip"
+                          style={{
+                            background: 'transparent',
+                            color: '#94A3B8',
+                            border: '1px solid #334155',
+                            borderRadius: '2px',
+                            padding: '2px 7px',
+                            fontSize: '8.5px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Batal Arsip
+                        </button>
                       </div>
                     </div>
                   )}
