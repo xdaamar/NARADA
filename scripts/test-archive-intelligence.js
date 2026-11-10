@@ -285,13 +285,22 @@ runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol SEMATKAN / TERSEMAT dan kont
   assert.ok(radarSrc.includes('syncArchivedItemsWithRadar'), 'LiveRadar harus memanggil syncArchivedItemsWithRadar saat data masuk')
 })
 
-runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah mengadopsi Sematkan & Berita Tersemat', () => {
+runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah mengadopsi Sematkan & Berita Tersemat dengan urutan menu yang tepat', () => {
   const appSrc = fs.readFileSync(path.join(rootDir, 'src', 'App.tsx'), 'utf-8')
   const topBarSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'TacticalTopBar.tsx'), 'utf-8')
   const dashSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Dashboard.tsx'), 'utf-8')
 
-  assert.ok(appSrc.includes("label: 'Sematkan'"), 'Menu ke-4 di sidebar harus berlabel Sematkan')
+  assert.ok(appSrc.includes("label: 'Berita Tersemat'") || appSrc.includes("label: 'Sematkan'"), 'Menu di sidebar harus berlabel Berita Tersemat atau Sematkan')
   assert.ok(appSrc.includes("to: '/archive'"), 'Rute harus mengarah ke /archive')
+
+  // Verifikasi urutan: Radar Situasional -> Berita Tersemat -> Analisa Postingan Medsos
+  const radarIdx = appSrc.indexOf("to: '/radar'")
+  const archiveIdx = appSrc.indexOf("to: '/archive'")
+  const socialIdx = appSrc.indexOf("to: '/social-forensic'")
+  assert.ok(radarIdx !== -1 && archiveIdx !== -1 && socialIdx !== -1, 'Semua rute modul utama harus terdaftar di NAV_ITEMS')
+  assert.ok(radarIdx < archiveIdx, 'Menu Berita Tersemat harus diposisikan di bawah Radar Situasional')
+  assert.ok(archiveIdx < socialIdx, 'Menu Analisa Postingan Medsos harus diposisikan di bawah Berita Tersemat')
+
   assert.ok(!appSrc.includes("Multi Input anlyzer"), 'Label lama Multi Input analyzer harus sudah dihapus')
   assert.ok(topBarSrc.includes('BERITA TERSEMAT'), 'TacticalTopBar harus menampilkan judul Berita Tersemat')
   assert.ok(dashSrc.includes('1. Berita Tersemat'), 'Dashboard Tactical Quick Launchpad harus berlabel 1. Berita Tersemat')

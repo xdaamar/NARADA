@@ -27,12 +27,12 @@ import {
 } from './utils/db-adapter.ts'
 
 // ─── Nav Items Config dengan Keyboard Hotkeys (Sprint 9 Information Architecture) ───
-// Contract Preservation: Investigasi Kasus | Radar Situasional
+// Contract Preservation: Investigasi Kasus | Radar Situasional | Alt+3 assigned to investigative workspace
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
   { to: '/radar', icon: Radio, label: 'Radar Situasional', exact: true, hotkey: 'Alt+2' },
-  { to: '/social-forensic', icon: Share2, label: 'Analisa Postingan Medsos', hotkey: 'Alt+3' },
-  { to: '/archive', icon: Pin, label: 'Sematkan', hotkey: 'Alt+4' },
+  { to: '/archive', icon: Pin, label: 'Berita Tersemat', hotkey: 'Alt+3' },
+  { to: '/social-forensic', icon: Share2, label: 'Analisa Postingan Medsos', hotkey: 'Alt+4' },
   { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]
 
@@ -239,10 +239,10 @@ function AppShell() {
           navigate('/radar')
         } else if (e.key === '3') {
           e.preventDefault()
-          navigate('/social-forensic')
+          navigate('/archive')
         } else if (e.key === '4') {
           e.preventDefault()
-          navigate('/archive')
+          navigate('/social-forensic')
         } else if (e.key === '5') {
           e.preventDefault()
           navigate('/reports')
