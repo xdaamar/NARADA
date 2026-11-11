@@ -36,6 +36,7 @@ import {
   executeSocialPostAnalysis,
   validateSocialPlatformUrl,
   detectSocialPlatform,
+  sanitizeSocialUrl,
   PLATFORM_INFO_MAP,
   PRELOADED_TEST_SCENARIOS,
   type SocialMediaType,
@@ -52,7 +53,8 @@ function resolveInAppEmbedTarget(url: string, defaultPlatform: SocialMediaType) 
     return { embedUrl: null, platform: defaultPlatform, postId: null }
   }
 
-  const detected = detectSocialPlatform(url)
+  const cleanUrl = sanitizeSocialUrl(url.trim())
+  const detected = detectSocialPlatform(cleanUrl)
   const effectivePlatform = detected.platform !== 'UNKNOWN' ? detected.platform : defaultPlatform
   const postId = detected.postId
 
@@ -89,9 +91,9 @@ function resolveInAppEmbedTarget(url: string, defaultPlatform: SocialMediaType) 
   }
 
   // Fallback jika URL valid tapi tidak ada skema embed spesifik
-  if (/^https?:\/\//i.test(url.trim())) {
+  if (/^https?:\/\//i.test(cleanUrl)) {
     return {
-      embedUrl: url.trim(),
+      embedUrl: cleanUrl,
       platform: effectivePlatform,
       postId: null
     }
