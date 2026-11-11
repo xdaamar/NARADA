@@ -30,10 +30,7 @@ import {
   Eye,
   Clock,
   Zap,
-  X,
-  ChevronDown,
-  ChevronUp,
-  Sliders
+  X
 } from 'lucide-react'
 import {
   executeSocialPostAnalysis,
@@ -107,9 +104,7 @@ export default function SocialPostIntelligenceConsole() {
   // ─── STATE KONSOL TAKTIS ───
   const [selectedPlatform, setSelectedPlatform] = useState<SocialMediaType>('youtube')
   const [targetUrl, setTargetUrl] = useState<string>('')
-  const [extractionMode, setExtractionMode] = useState<'AUTO' | 'BROWSER' | 'INGEST'>('AUTO')
-  const [rawCommentsInput, setRawCommentsInput] = useState<string>('')
-  const [isIngestOpen, setIsIngestOpen] = useState<boolean>(false)
+  const [extractionMode, setExtractionMode] = useState<'AUTO' | 'BROWSER'>('AUTO')
 
   // Status Eksekusi (Halaman Bersih & Kosong saat Pertama Dibuka)
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false)
@@ -203,7 +198,6 @@ export default function SocialPostIntelligenceConsole() {
     if (plat === selectedPlatform) return
     setSelectedPlatform(plat)
     setTargetUrl('')
-    setRawCommentsInput('')
     setAnalysisResult(null)
     setErrorMessage(null)
     setMismatchNotice(null)
@@ -222,8 +216,8 @@ export default function SocialPostIntelligenceConsole() {
 
   // Eksekusi Analisis dengan Filter Link Ketat Antar Platform
   const handleRunAnalysis = async () => {
-    if (!targetUrl.trim() && !rawCommentsInput.trim()) {
-      setErrorMessage('Harap masukkan URL postingan media sosial atau teks komentar mentah.')
+    if (!targetUrl.trim()) {
+      setErrorMessage('Harap masukkan URL postingan media sosial yang valid.')
       return
     }
 
@@ -253,8 +247,7 @@ export default function SocialPostIntelligenceConsole() {
       setAnalysisProgress('Mengekstraksi metadata konten, kreator, dan aliran komentar...')
       const result = await executeSocialPostAnalysis({
         url: targetUrl,
-        platform: selectedPlatform,
-        rawCommentsText: rawCommentsInput
+        platform: selectedPlatform
       })
 
       setAnalysisProgress('Menjalankan klusterisasi kemiripan leksikal Jaccard (>= 0.70)...')
@@ -463,8 +456,7 @@ export default function SocialPostIntelligenceConsole() {
           </span>
           {[
             { id: 'AUTO' as const, label: 'Auto-API / oEmbed' },
-            { id: 'BROWSER' as const, label: 'Browser Mandiri (WAF/CAPTCHA)' },
-            { id: 'INGEST' as const, label: 'Direct Ingest (Mentah)' }
+            { id: 'BROWSER' as const, label: 'Browser Mandiri (WAF/CAPTCHA)' }
           ].map(m => {
             const isSel = extractionMode === m.id
             return (
@@ -474,7 +466,6 @@ export default function SocialPostIntelligenceConsole() {
                 onClick={() => {
                   setExtractionMode(m.id)
                   if (m.id === 'BROWSER') setIsBrowserOpen(true)
-                  if (m.id === 'INGEST') setIsIngestOpen(true)
                 }}
                 style={{
                   padding: '3px 10px',
@@ -520,11 +511,11 @@ export default function SocialPostIntelligenceConsole() {
             />
           </div>
 
-            {/* Tombol Mulai Analisis Plat Baja Solid */}
-            <button
-              type="button"
-              onClick={handleRunAnalysis}
-              disabled={isAnalyzing}
+          {/* Tombol Mulai Analisis Plat Baja Solid */}
+          <button
+            type="button"
+            onClick={handleRunAnalysis}
+            disabled={isAnalyzing}
             style={{
               padding: '0 22px',
               minHeight: '38px',
@@ -581,78 +572,7 @@ export default function SocialPostIntelligenceConsole() {
             <Globe size={13} color="#94A3B8" />
             {isBrowserOpen ? 'TUTUP BROWSER' : 'BROWSER MANDIRI'}
           </button>
-
-          {/* Tombol Toggle Ingest Komentar Plat Baja */}
-          <button
-            type="button"
-            onClick={() => setIsIngestOpen(prev => !prev)}
-            title="Buka Konsol Ingest untuk Salin-Tempel Komentar Mentah"
-            style={{
-              padding: '0 14px',
-              minHeight: '38px',
-              borderRadius: '4px',
-              background: isIngestOpen 
-                ? 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)' 
-                : 'linear-gradient(180deg, #243242 0%, #131B24 100%)',
-              border: isIngestOpen ? '1px solid #4D627E' : '1px solid #384A61',
-              borderBottom: '2px solid #0A0F15',
-              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 4px rgba(0, 0, 0, 0.5)',
-              color: isIngestOpen ? '#F8FAFC' : '#CBD5E1',
-              fontSize: '11px',
-              fontWeight: 700,
-              fontFamily: 'var(--font-mono)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}
-          >
-            <Sliders size={13} color="#94A3B8" />
-            INGEST
-            {isIngestOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          </button>
         </div>
-
-        {/* Drawer Ingest Komentar Mentah */}
-        {isIngestOpen && (
-          <div style={{
-            background: '#0B1017',
-            border: '1px solid #233144',
-            borderRadius: '4px',
-            padding: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '10.5px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#FBBF24' }}>
-                KONSOL INGEST KOMENTAR MENTAH (FAIL-SAFE)
-              </span>
-              <span style={{ fontSize: '9.5px', color: '#64748B' }}>
-                Format: @username: komentar ATAU baris demi baris ATAU JSON array
-              </span>
-            </div>
-            <textarea
-              rows={4}
-              value={rawCommentsInput}
-              onChange={(e) => setRawCommentsInput(e.target.value)}
-              placeholder={`Contoh:\n@budi_99: Mantap sekali penjelasannya!\n@sari_siber: Jangan percaya provokator\n@user8821: Maju terus pantang mundur!`}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '3px',
-                background: '#0F151E',
-                border: '1px solid #1E2B3B',
-                color: '#E2E8F0',
-                fontSize: '11.5px',
-                fontFamily: 'var(--font-mono)',
-                outline: 'none',
-                boxSizing: 'border-box',
-                resize: 'vertical'
-              }}
-            />
-          </div>
-        )}
 
         {/* Notifikasi Progres Analisis */}
         {isAnalyzing && (
@@ -819,7 +739,7 @@ export default function SocialPostIntelligenceConsole() {
               <button
                 type="button"
                 onClick={handleRunAnalysis}
-                disabled={isAnalyzing || (!targetUrl.trim() && !rawCommentsInput.trim())}
+                disabled={isAnalyzing || !targetUrl.trim()}
                 style={{
                   padding: '4px 12px',
                   borderRadius: '3px',

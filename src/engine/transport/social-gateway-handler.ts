@@ -627,7 +627,7 @@ async function extractTikTok(url: string, postId: string, authorHandle?: string)
       acquisitionMethod: hasRichData ? 'OFFICIAL_API' : 'OEMBED_PUBLIC',
       dataSourceNotice: hasRichData
         ? 'Data diekstraksi secara live dari aliran telemetri publik & komentar real-time TikTok.'
-        : 'Metadata publik TikTok diperoleh via oEmbed. Gunakan Ingest untuk analisis teks komentar tambahan.'
+        : 'Metadata publik TikTok diperoleh via oEmbed. Gunakan Browser Mandiri untuk verifikasi WAF lanjutan.'
     },
     comments
   }
@@ -653,7 +653,7 @@ async function extractInstagram(url: string, postId: string): Promise<SocialExtr
       authorName: 'Pengguna Instagram',
       authorHandle: handle,
       acquisitionMethod: 'OEMBED_PUBLIC',
-      dataSourceNotice: 'Metadata pos Instagram terdeteksi. Karena Meta mewajibkan autentikasi akun resmi, gunakan Browser Mandiri atau Ingest Komentar untuk menganalisis aliran komentar.'
+      dataSourceNotice: 'Metadata pos Instagram terdeteksi. Karena Meta mewajibkan autentikasi akun resmi, gunakan Browser Mandiri untuk menganalisis aliran komentar.'
     },
     comments: []
   }
@@ -678,7 +678,7 @@ async function extractThreads(url: string, postId: string, authorHandle?: string
       authorName: authorHandle || 'Pengguna Threads',
       authorHandle: handle,
       acquisitionMethod: 'OEMBED_PUBLIC',
-      dataSourceNotice: 'Metadata utas Threads terdeteksi. Gunakan fitur Ingest Komentar untuk menganalisis balasan diskusi komunitas.'
+      dataSourceNotice: 'Metadata utas Threads terdeteksi. Gunakan Browser Mandiri untuk menganalisis balasan diskusi komunitas.'
     },
     comments: []
   }
