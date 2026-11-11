@@ -70,6 +70,51 @@ const VERDICT_CONFIG: Record<string, { label: string; color: string; bg: string;
   NETRAL: { label: 'NETRAL', color: '#64748B', bg: 'rgba(100, 116, 139, 0.18)', border: 'rgba(100, 116, 139, 0.4)' },
 }
 
+// ─── Deklarasi Makna Operasional Data Tiap Vonis ───
+const VERDICT_DECLARATIONS: Record<string, {
+  title: string
+  code: string
+  desc: string
+  implication: string
+}> = {
+  HOAKS: {
+    title: 'FABRIKASI HOAKS (PALSU)',
+    code: 'CEW-LVL-1 · FABRICATION',
+    desc: 'Informasi palsu terkonfirmasi tanpa basis faktual yang sengaja direkayasa dan disebarkan untuk memanipulasi opini publik.',
+    implication: 'Destabilisasi persepsi sosial & eskalasi agitasi horizontal.'
+  },
+  DISINFORMASI: {
+    title: 'DISINFORMASI TERARAH',
+    code: 'CEW-LVL-2 · DISTORTION',
+    desc: 'Informasi keliru atau konteks yang dipelintir sengaja guna mengaburkan fakta objektif dan memperdaya analisis publik.',
+    implication: 'Pengaburan kebenaran objektif & degradasi kepercayaan institusi.'
+  },
+  PROPAGANDA: {
+    title: 'PROPAGANDA TERSTRUKTUR',
+    code: 'CEW-LVL-3 · DOCTRINE',
+    desc: 'Narasi terkoordinasi secara masif dengan manipulasi kognitif untuk mendikte cara pandang dan doktrin sasaran.',
+    implication: 'Polarisasi opini terkoordinasi & penggalangan massa artifisial.'
+  },
+  FAKTA: {
+    title: 'FAKTA EMPIRIS TERVERIFIKASI',
+    code: 'CEW-AUTH · EMPIRICAL TRUTH',
+    desc: 'Informasi sahih dan akurat yang telah divalidasi silang melalui bukti empiris dan sumber rujukan primer terpercaya.',
+    implication: 'Basis referensi kebenaran & benteng penangkal narasi manipulatif.'
+  },
+  UNVERIFIED: {
+    title: 'SEDANG DIPANTAU / TRIAGE',
+    code: 'CEW-RADAR · SURVEILLANCE',
+    desc: 'Isu atau anomali narasi yang sedang dalam proses verifikasi intelijen dan triage forensik sinyal.',
+    implication: 'Pengawasan dini potensi mutasi anomali informasi.'
+  },
+  NETRAL: {
+    title: 'INFORMASI NETRAL UMUM',
+    code: 'CEW-BASE · INFORMATIONAL',
+    desc: 'Data atau kabar publik bersifat informatif standar tanpa tendensi ancaman operasi psikologis.',
+    implication: 'Lalu lintas komunikasi normal tanpa anomali kognitif.'
+  }
+}
+
 // ─── Konfigurasi Tingkat Ancaman ───
 const THREAT_CONFIG: Record<ThreatLevel, { label: string; color: string; bg: string }> = {
   critical: { label: 'KRITIS', color: '#EF4444', bg: 'rgba(239, 68, 68, 0.2)' },
@@ -195,6 +240,7 @@ export default function Dashboard() {
   // ─── State Filter & Navigasi Ledger ───
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
   const [selectedVerdictFilter, setSelectedVerdictFilter] = useState<string | null>(null)
+  const [hoveredVerdict, setHoveredVerdict] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [currentPage, setCurrentPage] = useState<number>(1)
   const pageSize = 8
@@ -315,6 +361,23 @@ export default function Dashboard() {
       }
     })
   }, [debunkItems, totalDebunks])
+
+  // Item Vonis Aktif & Deklarasi Taktis untuk HUD Donut Lingkaran
+  const activeVerdictKey = hoveredVerdict || selectedVerdictFilter
+  const activeVerdictItem = useMemo(() => {
+    if (!activeVerdictKey) return null
+    return verdictChartData.find(d => d.rawVerdict === activeVerdictKey) || null
+  }, [activeVerdictKey, verdictChartData])
+
+  const activeDeclaration = useMemo(() => {
+    if (!activeVerdictItem) return null
+    return VERDICT_DECLARATIONS[activeVerdictItem.rawVerdict] || {
+      title: activeVerdictItem.name,
+      code: 'CEW-INTEL',
+      desc: `Kategori intelijen kognitif ${activeVerdictItem.name}.`,
+      implication: 'Pemantauan spektrum persepsi terpadu.'
+    }
+  }, [activeVerdictItem])
 
   // Saring Riwayat Baris untuk Active Incident & Cognitive Triage Ledger
   const filteredLedgerRows = useMemo(() => {
@@ -490,7 +553,7 @@ export default function Dashboard() {
       </div>
 
       {/* ─── 3. DUAL SECTOR: ACTIVE INCIDENT & COGNITIVE TRIAGE LEDGER (60%) & CEW INDEX + DONUT (40%) ─── */}
-      <div className="grid-2 mb-4" style={{ gridTemplateColumns: '1.52fr 1fr', gap: '16px', marginBottom: '20px' }}>
+      <div className="grid-2 mb-4" style={{ gridTemplateColumns: 'minmax(0, 1.45fr) minmax(320px, 1fr)', gap: '16px', marginBottom: '20px' }}>
         
         {/* MODUL UTAMA 1: ACTIVE INCIDENT & COGNITIVE TRIAGE LEDGER (Real Operational Telemetry Data) */}
         <div className="steel-chassis-card" style={{ padding: '16px 24px 14px 24px', minWidth: 0 }}>
@@ -991,9 +1054,10 @@ export default function Dashboard() {
           {/* Divider Garis Baja */}
           <div style={{ height: '1px', background: '#253346', margin: '2px 0' }} />
 
-          {/* B. Machined Dial Ring Donut Chart dengan Logo Resmi Konsentris */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'nowrap' }}>
+          {/* B. Machined Dial Ring Donut Chart dengan Logo Resmi Konsentris (Full & Centered) */}
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            {/* Header: Title + Total Counter */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'nowrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <PieChartIcon size={14} color="#D4A017" />
                 <span style={{ fontSize: '11px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.6px', whiteSpace: 'nowrap' }}>
@@ -1005,45 +1069,73 @@ export default function Dashboard() {
               </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {/* Machined Dial Bezel Ring Logam Lingkaran Konsentris V2 (Calibrated 120px) */}
-              <div className="machined-dial-bezel-v2">
-                {/* Layer 1: Outer Rotating Dashed Reticle (Presisi cx=60, cy=60, r=54) */}
-                <svg
-                  width="120"
-                  height="120"
-                  viewBox="0 0 120 120"
-                  style={{ position: 'absolute', top: 0, left: 0, width: 120, height: 120, pointerEvents: 'none', zIndex: 1 }}
+            {/* Dial Bezel Container: Berdiri Sendiri di Tengah (Full Circle, Zero Clipping) */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              padding: '8px 0 4px 0'
+            }}>
+              {/* Machined Dial Bezel Ring Logam Lingkaran Konsentris V2 (Calibrated 140px) */}
+              <div
+                className="machined-dial-bezel-v2"
+                style={{
+                  width: '140px',
+                  height: '140px',
+                  position: 'relative',
+                  margin: '0 auto'
+                }}
+              >
+                {/* Layer 1: Outer Rotating Dashed Reticle (Presisi cx=70, cy=70, r=64) */}
+                <div
+                  className="tactical-spin-slow"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '140px',
+                    height: '140px',
+                    pointerEvents: 'none',
+                    zIndex: 1
+                  }}
                 >
-                  <g className="tactical-spin-slow" style={{ transformOrigin: '60px 60px' }}>
-                    <circle cx="60" cy="60" r="54" fill="none" stroke="#D4A017" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.85" />
-                    <circle cx="60" cy="60" r="56.5" fill="none" stroke="#475569" strokeWidth="0.75" opacity="0.4" />
-                  </g>
-                </svg>
+                  <svg width="140" height="140" viewBox="0 0 140 140">
+                    <circle cx="70" cy="70" r="64" fill="none" stroke="#D4A017" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.85" />
+                    <circle cx="70" cy="70" r="66.5" fill="none" stroke="#475569" strokeWidth="0.75" opacity="0.4" />
+                  </svg>
+                </div>
 
-                {/* Layer 2: Inner Rotating Degree Reticle (Presisi cx=60, cy=60, r=28) */}
-                <svg
-                  width="120"
-                  height="120"
-                  viewBox="0 0 120 120"
-                  style={{ position: 'absolute', top: 0, left: 0, width: 120, height: 120, pointerEvents: 'none', zIndex: 1 }}
+                {/* Layer 2: Inner Rotating Degree Reticle (Presisi cx=70, cy=70, r=27) */}
+                <div
+                  className="tactical-spin-reverse"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '140px',
+                    height: '140px',
+                    pointerEvents: 'none',
+                    zIndex: 2
+                  }}
                 >
-                  <g className="tactical-spin-reverse" style={{ transformOrigin: '60px 60px' }}>
-                    <circle cx="60" cy="60" r="28" fill="none" stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-                    <line x1="60" y1="24" x2="60" y2="32" stroke="#D4A017" strokeWidth="1.5" />
-                    <line x1="60" y1="88" x2="60" y2="96" stroke="#D4A017" strokeWidth="1.5" />
-                    <line x1="24" y1="60" x2="32" y2="60" stroke="#D4A017" strokeWidth="1.5" />
-                    <line x1="88" y1="60" x2="96" y2="60" stroke="#D4A017" strokeWidth="1.5" />
-                  </g>
-                </svg>
+                  <svg width="140" height="140" viewBox="0 0 140 140">
+                    <circle cx="70" cy="70" r="27" fill="none" stroke="#94A3B8" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+                    <line x1="70" y1="22" x2="70" y2="30" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="70" y1="110" x2="70" y2="118" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="22" y1="70" x2="30" y2="70" stroke="#D4A017" strokeWidth="1.5" />
+                    <line x1="110" y1="70" x2="118" y2="70" stroke="#D4A017" strokeWidth="1.5" />
+                  </svg>
+                </div>
 
-                {/* Layer 3: Flowing Light Sweep Beam (Presisi cx=60, cy=60) */}
+                {/* Layer 3: Flowing Light Sweep Beam (Presisi cx=70, cy=70) */}
                 <div style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
-                  width: '120px',
-                  height: '120px',
+                  width: '140px',
+                  height: '140px',
                   borderRadius: '50%',
                   background: 'conic-gradient(from 0deg, transparent 0deg, rgba(212, 160, 23, 0.16) 60deg, transparent 90deg)',
                   pointerEvents: 'none',
@@ -1051,18 +1143,26 @@ export default function Dashboard() {
                   animation: 'tactical-radar-sweep 8s linear infinite'
                 }} />
 
-                {/* Layer 4: Recharts Pie Chart (Presisi cx=60, cy=60, innerRadius=33, outerRadius=49) */}
-                <div style={{ position: 'absolute', top: 0, left: 0, width: '120px', height: '120px', zIndex: 3 }}>
-                  <PieChart width={120} height={120} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                {/* Layer 4: Recharts Pie Chart (Presisi cx=70, cy=70, innerRadius=38, outerRadius=58) */}
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '140px', height: '140px', zIndex: 3 }}>
+                  <PieChart width={140} height={140} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <Pie
                       data={verdictChartData}
-                      cx={60}
-                      cy={60}
-                      innerRadius={33}
-                      outerRadius={49}
+                      cx={70}
+                      cy={70}
+                      innerRadius={38}
+                      outerRadius={58}
                       paddingAngle={3}
                       dataKey="value"
                       style={{ cursor: 'pointer' }}
+                      onMouseEnter={(_, index) => {
+                        if (verdictChartData[index]) {
+                          setHoveredVerdict(verdictChartData[index].rawVerdict)
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        setHoveredVerdict(null)
+                      }}
                       onClick={(data) => {
                         const item = data as unknown as { rawVerdict?: string }
                         if (item && item.rawVerdict) {
@@ -1070,36 +1170,35 @@ export default function Dashboard() {
                         }
                       }}
                     >
-                      {verdictChartData.map((entry, i) => (
-                        <Cell 
-                          key={i} 
-                          fill={entry.color} 
-                          stroke={selectedVerdictFilter === entry.rawVerdict ? '#F1F5F9' : '#090C10'}
-                          strokeWidth={selectedVerdictFilter === entry.rawVerdict ? 2 : 1}
-                        />
-                      ))}
+                      {verdictChartData.map((entry, i) => {
+                        const isHovered = hoveredVerdict === entry.rawVerdict
+                        const isSelected = selectedVerdictFilter === entry.rawVerdict
+                        const isActive = isHovered || isSelected
+                        return (
+                          <Cell 
+                            key={i} 
+                            fill={entry.color} 
+                            stroke={isActive ? '#FFFFFF' : '#090C10'}
+                            strokeWidth={isActive ? 2 : 1}
+                            style={{
+                              filter: isActive ? `drop-shadow(0 0 6px ${entry.color})` : 'none',
+                              cursor: 'pointer'
+                            }}
+                          />
+                        )
+                      })}
                     </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: '#141B24',
-                        border: '1px solid #2D3848',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontFamily: 'var(--font-mono)',
-                        color: '#F1F5F9'
-                      }}
-                    />
                   </PieChart>
                 </div>
 
-                {/* Layer 5: Logo Resmi Proyek di Pusat (Presisi cx=60, cy=60, diameter=30px) */}
+                {/* Layer 5: Logo Resmi Proyek di Pusat (Presisi cx=70, cy=70, diameter=32px) */}
                 <div style={{
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  width: '30px',
-                  height: '30px',
+                  width: '32px',
+                  height: '32px',
                   borderRadius: '50%',
                   background: 'radial-gradient(circle, #1A232E 50%, #0D1218 100%)',
                   boxShadow: '0 0 8px rgba(0,0,0,0.8), inset 0 0 5px rgba(212, 160, 23, 0.25)',
@@ -1112,60 +1211,146 @@ export default function Dashboard() {
                   <img
                     src="/image/Electrified%20Golden%20Globe%20Crest.png"
                     alt="Official Project Crest"
-                    style={{ width: '20px', height: '20px', objectFit: 'contain' }}
+                    style={{ width: '22px', height: '22px', objectFit: 'contain' }}
                   />
                 </div>
               </div>
 
-              {/* Legend List Sisi Kanan dengan Click-to-Filter (Geser ke Kiri & Anti-Overlap) */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0, paddingLeft: '4px' }}>
-                {verdictChartData.map(d => {
-                  const isSelected = selectedVerdictFilter === d.rawVerdict
-                  return (
-                    <div
-                      key={d.rawVerdict}
-                      onClick={() => setSelectedVerdictFilter(isSelected ? null : d.rawVerdict)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '3px 6px',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                        background: isSelected ? '#151D29' : 'rgba(255, 255, 255, 0.02)',
-                        border: isSelected ? '1px solid #3B4E66' : '1px solid #141B24',
-                        transition: 'background 0.15s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = '#111722'
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'
-                      }}
-                      title="Klik untuk menyaring riwayat berdasarkan vonis ini"
-                    >
-                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: d.color, flexShrink: 0 }} />
-                      <span style={{
-                        fontSize: '10px',
-                        fontFamily: 'var(--font-mono)',
-                        color: isSelected ? '#F1F5F9' : '#94A3B8',
-                        flex: 1,
-                        fontWeight: isSelected ? 700 : 500,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {d.name}
-                      </span>
-                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: d.color, flexShrink: 0, textAlign: 'right', minWidth: '22px' }}>
-                        {d.value}
-                      </span>
-                      <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', width: '26px', textAlign: 'right', flexShrink: 0 }}>
-                        {d.pct}%
+              {/* Dynamic Tactical Declaration Readout HUD (Muncul saat Hover atau Segmen Dipilih) */}
+              <div style={{
+                marginTop: '12px',
+                width: '100%',
+                background: activeVerdictItem ? `${activeVerdictItem.color}0D` : '#0B0F15',
+                border: activeVerdictItem ? `1px solid ${activeVerdictItem.color}45` : '1px solid #1C2633',
+                borderRadius: '6px',
+                padding: '9px 12px',
+                transition: 'all 0.2s ease',
+                position: 'relative',
+                overflow: 'hidden',
+                minHeight: '84px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center'
+              }}>
+                {/* Top Accent Line */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '2px',
+                  background: activeVerdictItem ? activeVerdictItem.color : '#253346',
+                  transition: 'background 0.2s ease'
+                }} />
+
+                {activeVerdictItem && activeDeclaration ? (
+                  <div>
+                    {/* Header: Judul Kategori & Metrik Dinamis */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: activeVerdictItem.color, boxShadow: `0 0 8px ${activeVerdictItem.color}` }} />
+                        <span style={{ fontSize: '11px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.6px' }}>
+                          {activeDeclaration.title}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: activeVerdictItem.color }}>
+                        {activeVerdictItem.value} ISU · {activeVerdictItem.pct}%
                       </span>
                     </div>
-                  )
-                })}
+
+                    {/* Threat Code & Filter Status */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '5px' }}>
+                      <span style={{
+                        fontSize: '9px',
+                        fontFamily: 'var(--font-mono)',
+                        padding: '1px 5px',
+                        borderRadius: '3px',
+                        background: `${activeVerdictItem.color}22`,
+                        color: activeVerdictItem.color,
+                        border: `1px solid ${activeVerdictItem.color}55`,
+                        fontWeight: 700
+                      }}>
+                        {activeDeclaration.code}
+                      </span>
+                      {selectedVerdictFilter === activeVerdictItem.rawVerdict && (
+                        <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+                          [FILTER TABEL AKTIF]
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Operational Declaration Description */}
+                    <p style={{
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      color: '#CBD5E1',
+                      lineHeight: 1.4,
+                      margin: '0 0 5px 0'
+                    }}>
+                      {activeDeclaration.desc}
+                    </p>
+
+                    {/* Implication Footer */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '9px',
+                      fontFamily: 'var(--font-mono)',
+                      color: '#94A3B8',
+                      borderTop: '1px solid rgba(255,255,255,0.06)',
+                      paddingTop: '4px'
+                    }}>
+                      <span style={{ color: activeVerdictItem.color, fontWeight: 700 }}>↳ DAMPAK:</span>
+                      <span style={{ color: '#E2E8F0' }}>{activeDeclaration.implication}</span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Standby Prompt when Idle */
+                  <div style={{ textAlign: 'center', padding: '2px 0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                      <ShieldAlert size={12} color="#D4A017" />
+                      <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#D4A017', letterSpacing: '0.8px' }}>
+                        TELEMETRI SPEKTRUM KOGNITIF
+                      </span>
+                    </div>
+                    <p style={{
+                      fontSize: '10px',
+                      fontFamily: 'var(--font-mono)',
+                      color: '#94A3B8',
+                      margin: '0 0 6px 0',
+                      lineHeight: 1.35
+                    }}>
+                      Arahkan kursor ke segmen lingkaran untuk melihat deklarasi data & makna operasional.
+                    </p>
+                    {/* Quick interactive category dots */}
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {verdictChartData.map(d => (
+                        <div
+                          key={d.rawVerdict}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            cursor: 'pointer',
+                            padding: '1px 4px',
+                            borderRadius: '3px',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)'
+                          }}
+                          onMouseEnter={() => setHoveredVerdict(d.rawVerdict)}
+                          onClick={() => setSelectedVerdictFilter(selectedVerdictFilter === d.rawVerdict ? null : d.rawVerdict)}
+                          title={`Lihat deklarasi ${d.name}`}
+                        >
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: d.color }} />
+                          <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+                            {d.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

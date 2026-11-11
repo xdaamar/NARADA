@@ -1300,14 +1300,12 @@ textarea.form-control {
 
 .tactical-spin-slow {
   animation: tactical-spin 20s linear infinite;
-  transform-origin: 50% 50%;
-  transform-box: fill-box;
+  transform-origin: center center;
 }
 
 .tactical-spin-reverse {
   animation: tactical-reverse-spin 15s linear infinite;
-  transform-origin: 50% 50%;
-  transform-box: fill-box;
+  transform-origin: center center;
 }
 
 /* Reticle Corner Brackets [ ┌ ┐ └ ┘ ] */
@@ -1496,18 +1494,18 @@ textarea.form-control {
 /* Machined Dial Bezel Ring Logam Lingkaran untuk Donut Chart */
 .machined-dial-bezel-v2, .machined-dial-bezel {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   flex-shrink: 0;
   border-radius: 50%;
   background: radial-gradient(circle, #0B0E13 55%, #18212D 85%, #2D3949 100%);
   border: none !important;
   box-shadow: 
-    0 0 0 3px #364457,
-    0 5px 12px rgba(0, 0, 0, 0.85),
-    inset 0 3px 5px rgba(0, 0, 0, 0.9),
-    inset 0 -1px 2px rgba(255, 255, 255, 0.2),
-    0 0 0 5px #121822;
+    0 0 0 2px #364457,
+    0 5px 14px rgba(0, 0, 0, 0.85),
+    inset 0 2px 4px rgba(0, 0, 0, 0.9),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.15),
+    0 0 0 4px #121822;
   display: flex;
   align-items: center;
   justify-content: center;
