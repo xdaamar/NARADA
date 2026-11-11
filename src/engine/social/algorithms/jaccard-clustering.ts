@@ -10,13 +10,29 @@
 
 import type { AnalyzedCommentItem, CopypastaCluster } from '../types/social-analysis-types.ts'
 
-export function tokenizeText(text: string): Set<string> {
+/**
+ * Daftar kata henti (stopwords) & partikel slang/percakapan Indonesia
+ * untuk meningkatkan akurasi ekstraksi leksikal dan pencegahan false positive pada copypasta.
+ */
+export const INDONESIAN_COLLOQUIAL_STOPWORDS = new Set([
+  'yang', 'yg', 'dan', 'di', 'ke', 'dari', 'ini', 'itu', 'untuk', 'utk',
+  'pada', 'adalah', 'dengan', 'dgn', 'karena', 'bisa', 'ada', 'juga',
+  'sudah', 'udah', 'sdh', 'saya', 'kami', 'kita', 'mereka', 'akan',
+  'klo', 'kalo', 'nih', 'sih', 'ya', 'dong', 'kok', 'kan', 'nya'
+])
+
+export function tokenizeText(text: string, filterStopwords = true): Set<string> {
+  if (!text) return new Set()
   const clean = text
     .toLowerCase()
     .replace(/[^\w\s\u00C0-\u1FFF\u2C00-\uD7FF]/g, ' ')
     .trim()
-  const words = clean.split(/\s+/).filter(w => w.length > 2)
-  return new Set(words)
+  const allWords = clean.split(/\s+/).filter(w => w.length > 2)
+  if (!filterStopwords) return new Set(allWords)
+
+  const contentWords = allWords.filter(w => !INDONESIAN_COLLOQUIAL_STOPWORDS.has(w))
+  // Jika seluruh kata terfilter sebagai stopwords, fallback ke token asli agar leksikal tetap terjaga
+  return new Set(contentWords.length > 0 ? contentWords : allWords)
 }
 
 export function calculateJaccardSimilarity(tokensA: Set<string>, tokensB: Set<string>): number {
