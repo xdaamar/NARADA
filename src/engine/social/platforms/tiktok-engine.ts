@@ -72,14 +72,69 @@ export class TikTokEngine implements PlatformEngine {
               likeCount: c.likeCount || 0,
               publishedAt: c.publishedAt
             }))
+            comments.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
           }
         }
       }
     } catch {
-      // Gateway offline, lanjut ke jalur oEmbed
+      // Gateway offline, lanjut ke jalur TikWM client-side / oEmbed
     }
 
-    // ─── Jalur 2: Official Public oEmbed Endpoint TikTok ───
+    // ─── Jalur 2: Direct Public TikWM Telemetry & Comments (Client-Side CORS Allowed) ───
+    if (postData.title === 'Video TikTok' || !postData.viewCount || comments.length === 0) {
+      try {
+        const cleanUrl = url.split('?')[0].trim()
+        const twRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}`)
+        if (twRes.ok) {
+          const twData: any = await twRes.json()
+          if (twData.code === 0 && twData.data) {
+            const d = twData.data
+            postData.title = d.title || d.content_desc || postData.title
+            postData.caption = d.title || d.content_desc || postData.caption
+            if (d.author) {
+              postData.authorName = d.author.nickname || d.author.unique_id || postData.authorName
+              postData.authorHandle = d.author.unique_id ? `@${d.author.unique_id}` : postData.authorHandle
+              postData.authorAvatarUrl = d.author.avatar || postData.authorAvatarUrl
+            }
+            postData.thumbnailUrl = d.cover || d.origin_cover || postData.thumbnailUrl
+            postData.viewCount = typeof d.play_count === 'number' ? d.play_count : postData.viewCount
+            postData.likeCount = typeof d.digg_count === 'number' ? d.digg_count : postData.likeCount
+            postData.commentCount = typeof d.comment_count === 'number' ? d.comment_count : postData.commentCount
+            if (d.create_time) {
+              postData.publishedAt = new Date(d.create_time * 1000).toISOString()
+            }
+            postData.acquisitionMethod = 'OFFICIAL_API'
+            postData.dataSourceNotice = 'Data diekstraksi secara live dari telemetri publik TikTok.'
+          }
+        }
+
+        if (comments.length === 0) {
+          const cRes = await fetch(`https://www.tikwm.com/api/comment/list?url=${encodeURIComponent(cleanUrl)}&web=1`)
+          if (cRes.ok) {
+            const cData: any = await cRes.json()
+            if (cData.code === 0 && Array.isArray(cData.data?.comments)) {
+              for (const c of cData.data.comments) {
+                if (c && c.text) {
+                  comments.push({
+                    id: c.id ? `tt-cmt-${c.id}` : `tt-cmt-${comments.length + 1}`,
+                    authorUsername: c.user?.unique_id ? `@${c.user.unique_id}` : '@user',
+                    authorDisplayName: c.user?.nickname || c.user?.unique_id || 'Pengguna TikTok',
+                    authorAvatarUrl: c.user?.avatar,
+                    text: c.text,
+                    likeCount: typeof c.digg_count === 'number' ? c.digg_count : 0,
+                    publishedAt: c.create_time ? new Date(c.create_time * 1000).toISOString() : undefined
+                  })
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // Fallback ke oEmbed
+      }
+    }
+
+    // ─── Jalur 3: Official Public oEmbed Endpoint TikTok ───
     if (postData.title === 'Video TikTok' || !postData.authorName || postData.authorName === 'Kreator TikTok') {
       try {
         const customFetch = typeof fetch !== 'undefined' ? fetch : null
@@ -102,6 +157,10 @@ export class TikTokEngine implements PlatformEngine {
       } catch {
         // Fallback
       }
+    }
+
+    if (comments.length > 1) {
+      comments.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
     }
 
     return {

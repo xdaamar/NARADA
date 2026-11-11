@@ -397,31 +397,212 @@ async function extractYouTube(url: string, videoId: string): Promise<SocialExtra
 }
 
 /**
- * Ekstraksi metadata TikTok via oEmbed publik & resolving tautan.
+ * Helper fetch dengan retry ringan untuk mengatasi fluktuasi DNS / koneksi pihak ketiga.
+ */
+async function safeFetchText(targetUrl: string, headers: Record<string, string>): Promise<string | null> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(targetUrl, { headers })
+      if (res.ok) return await res.text()
+    } catch {
+      await new Promise(r => setTimeout(r, 250))
+    }
+  }
+  return null
+}
+
+/**
+ * Ekstraksi metadata dan komentar TikTok secara live via TikWM Telemetry + OpenGraph Crawler + oEmbed Fallback.
  */
 async function extractTikTok(url: string, postId: string, authorHandle?: string): Promise<SocialExtractionResponse> {
+  let cleanUrl = url.split('?')[0].trim()
+
+  // Resolusi shortlink jika pengguna memasukkan vt.tiktok.com / vm.tiktok.com / tiktok.com/t/
+  if (/(?:vt|vm)\.tiktok\.com|tiktok\.com\/t\//i.test(cleanUrl)) {
+    try {
+      const redRes = await fetch(cleanUrl, {
+        method: 'HEAD',
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      })
+      if (redRes.url && redRes.url !== cleanUrl) {
+        cleanUrl = redRes.url.split('?')[0].trim()
+        const vm = cleanUrl.match(/@([a-zA-Z0-9_.-]+)\/(?:video|photo)\/(\d+)/i)
+        if (vm) {
+          authorHandle = authorHandle || vm[1]
+          postId = postId || vm[2]
+        }
+      }
+    } catch {
+      // Abaikan redirect error
+    }
+  }
+
   let title = 'Postingan Video TikTok'
+  let caption = ''
   let authorName = authorHandle || 'Kreator TikTok'
   let handle = authorHandle ? (authorHandle.startsWith('@') ? authorHandle : `@${authorHandle}`) : '@creator'
   let thumbnailUrl: string | undefined = undefined
+  let authorAvatarUrl: string | undefined = undefined
+  let authorFollowersCount: number | undefined = undefined
+  let views = 0
+  let likes = 0
+  let commentsCount = 0
+  let publishedAt: string | undefined = undefined
+  const comments: ExtractedSocialComment[] = []
 
+  // 1. Jalur Utama: TikWM Telemetry API (Direct Video Stats & Meta)
   try {
-    const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`
-    const oRes = await fetch(oembedUrl, {
+    const tikwmUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}`
+    const twRes = await fetch(tikwmUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     })
-    if (oRes.ok) {
-      const data: any = await oRes.json()
-      if (data.title) title = data.title
-      if (data.author_name) authorName = data.author_name
-      if (data.author_unique_id) handle = `@${data.author_unique_id}`
-      if (data.thumbnail_url) thumbnailUrl = data.thumbnail_url
+    if (twRes.ok) {
+      const twData: any = await twRes.json()
+      if (twData.code === 0 && twData.data) {
+        const d = twData.data
+        if (d.title || d.content_desc) {
+          title = d.title || d.content_desc
+          caption = d.title || d.content_desc
+        }
+        if (d.author) {
+          if (d.author.nickname) authorName = d.author.nickname
+          if (d.author.unique_id) handle = `@${d.author.unique_id}`
+          if (d.author.avatar) authorAvatarUrl = d.author.avatar
+        }
+        if (d.cover || d.origin_cover) {
+          thumbnailUrl = d.cover || d.origin_cover
+        }
+        if (typeof d.play_count === 'number') views = d.play_count
+        if (typeof d.digg_count === 'number') likes = d.digg_count
+        if (typeof d.comment_count === 'number') commentsCount = d.comment_count
+        if (d.create_time) {
+          publishedAt = new Date(d.create_time * 1000).toISOString()
+        }
+      }
     }
-  } catch (err) {
-    // Abaikan jika diblokir WAF
+  } catch {
+    // Lanjut ke fallback jika TikWM gagal
   }
+
+  // 2. Ambil Komentar Publik Riil dari TikTok via TikWM Comment Stream
+  try {
+    const cmtUrl = `https://www.tikwm.com/api/comment/list?url=${encodeURIComponent(cleanUrl)}&web=1`
+    const cRes = await fetch(cmtUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    })
+    if (cRes.ok) {
+      const cData: any = await cRes.json()
+      if (cData.code === 0 && Array.isArray(cData.data?.comments)) {
+        for (const c of cData.data.comments) {
+          if (c && c.text) {
+            const cAuthor = c.user?.nickname || c.user?.unique_id || 'Pengguna TikTok'
+            const cUsername = c.user?.unique_id ? `@${c.user.unique_id}` : '@user'
+            comments.push({
+              id: c.id ? `tt-cmt-${c.id}` : `tt-cmt-${comments.length + 1}`,
+              authorUsername: cUsername,
+              authorDisplayName: cAuthor,
+              authorAvatarUrl: c.user?.avatar,
+              text: c.text,
+              likeCount: typeof c.digg_count === 'number' ? c.digg_count : 0,
+              publishedAt: c.create_time ? new Date(c.create_time * 1000).toISOString() : undefined
+            })
+          }
+        }
+        // Urutkan komentar berdasarkan likes tertinggi
+        comments.sort((a, b) => b.likeCount - a.likeCount)
+      }
+    }
+  } catch {
+    // Abaikan jika stream komentar gagal
+  }
+
+  // 3. Ambil data profil pengikut (Followers) via crawler OpenGraph profil TikTok
+  const cleanHandle = handle.replace(/^@/, '')
+  if (cleanHandle && cleanHandle !== 'creator') {
+    try {
+      const authorProfileUrl = `https://www.tiktok.com/@${cleanHandle}`
+      const pHtml = await safeFetchText(authorProfileUrl, {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'Accept-Language': 'id,en-US;q=0.9,en;q=0.8'
+      })
+      if (pHtml) {
+        const descMatch = pHtml.match(/<meta property="og:description" content="([^"]+)"/i)
+        const targetDesc = descMatch ? descMatch[1] : pHtml
+        const fMatch = targetDesc.match(/([\d.,]+)\s*([kKmMbB]|rb|jt)?\s*(?:Followers|Pengikut)/i)
+        if (fMatch) {
+          let numStr = fMatch[1].replace(',', '.')
+          const unit = (fMatch[2] || '').toLowerCase()
+          let val = parseFloat(numStr)
+          if (unit === 'k' || unit === 'rb') val *= 1000
+          else if (unit === 'm' || unit === 'jt') val *= 1000000
+          else if (unit === 'b') val *= 1000000000
+          if (!isNaN(val)) authorFollowersCount = Math.round(val)
+        }
+        if (!authorAvatarUrl) {
+          const avMatch = pHtml.match(/<meta property="og:image" content="([^"]+)"/i)
+          if (avMatch) authorAvatarUrl = avMatch[1]
+        }
+      }
+    } catch {
+      // Abaikan jika profil tidak dapat dijangkau
+    }
+  }
+
+  // 4. Fallback OpenGraph Video Crawler jika judul atau thumbnail belum didapat
+  if (title === 'Postingan Video TikTok' || !thumbnailUrl) {
+    try {
+      const ogHtml = await safeFetchText(cleanUrl, {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+      })
+      if (ogHtml) {
+        const tMatch = ogHtml.match(/<meta property="og:title" content="([^"]+)"/i)
+        if (tMatch && tMatch[1] && !tMatch[1].includes('TikTok ·')) {
+          title = tMatch[1]
+          caption = tMatch[1]
+        }
+        const imgMatch = ogHtml.match(/<meta property="og:image" content="([^"]+)"/i)
+        if (imgMatch && !thumbnailUrl) {
+          thumbnailUrl = imgMatch[1]
+        }
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  // 5. Fallback oEmbed resmi jika judul masih default
+  if (title === 'Postingan Video TikTok') {
+    try {
+      const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(cleanUrl)}`
+      const oRes = await fetch(oembedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      })
+      if (oRes.ok) {
+        const data: any = await oRes.json()
+        if (data.title) {
+          title = data.title
+          caption = data.title
+        }
+        if (data.author_name && authorName === 'Kreator TikTok') authorName = data.author_name
+        if (data.author_unique_id) handle = `@${data.author_unique_id}`
+        if (data.thumbnail_url && !thumbnailUrl) thumbnailUrl = data.thumbnail_url
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  const finalCommentCount = commentsCount || comments.length || undefined
+  const hasRichData = views > 0 || likes > 0 || comments.length > 0 || (title !== 'Postingan Video TikTok' && !title.startsWith('TikTok ·'))
 
   return {
     success: true,
@@ -429,17 +610,26 @@ async function extractTikTok(url: string, postId: string, authorHandle?: string)
     post: {
       platform: 'tiktok',
       url,
-      canonicalUrl: url,
+      canonicalUrl: cleanUrl,
       postId: postId || `tt-${Date.now()}`,
       title,
-      caption: title,
+      caption: caption || title,
       authorName,
       authorHandle: handle,
+      authorAvatarUrl,
+      authorFollowersCount,
+      publishedAt,
+      viewCount: views || undefined,
+      likeCount: likes || undefined,
+      commentCount: finalCommentCount,
       thumbnailUrl,
-      acquisitionMethod: 'OEMBED_PUBLIC',
-      dataSourceNotice: 'Metadata publik TikTok diperoleh via oEmbed. Karena pembatasan privasi WAF TikTok, gunakan Browser Mandiri atau tempel komentar ke Ingest untuk analisis teks komentar.'
+      commentsDisabled: false,
+      acquisitionMethod: hasRichData ? 'OFFICIAL_API' : 'OEMBED_PUBLIC',
+      dataSourceNotice: hasRichData
+        ? 'Data diekstraksi secara live dari aliran telemetri publik & komentar real-time TikTok.'
+        : 'Metadata publik TikTok diperoleh via oEmbed. Gunakan Ingest untuk analisis teks komentar tambahan.'
     },
-    comments: []
+    comments
   }
 }
 
