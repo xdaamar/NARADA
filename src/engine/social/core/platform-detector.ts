@@ -110,12 +110,36 @@ export function detectSocialPlatform(url: string): DetectedPlatformInfo {
     return { platform: 'tiktok', postId: null }
   }
 
-  // 3. Instagram (Mendukung /p/, /reel/, /reels/, /tv/, /share/p/)
+  // 3. Instagram (Mendukung /p/, /reel/, /reels/, /tv/, /share/p/, dan format profil/kreator)
   if (/instagram\.com|instagr\.am/i.test(trimmed)) {
-    const postMatch = trimmed.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|reels|tv|share\/p)\/([a-zA-Z0-9_-]+)/i)
+    // Format dengan username eksplisit di path: instagram.com/kompascom/reel/Dfj4bCUPfsX/
+    const userPostMatch = cleanUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.-]+)\/(?:p|reel|reels|tv)\/([a-zA-Z0-9_-]+)/i)
+    if (userPostMatch && !['p', 'reel', 'reels', 'tv', 'stories', 'share'].includes(userPostMatch[1].toLowerCase())) {
+      return {
+        platform: 'instagram',
+        authorHandle: userPostMatch[1],
+        authorUsername: userPostMatch[1],
+        postId: userPostMatch[2]
+      }
+    }
+
+    const postMatch = cleanUrl.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|reels|tv|share\/p)\/([a-zA-Z0-9_-]+)/i) ||
+                      trimmed.match(/(?:instagram\.com|instagr\.am)\/(?:p|reel|reels|tv|share\/p)\/([a-zA-Z0-9_-]+)/i)
     if (postMatch) {
       return { platform: 'instagram', postId: postMatch[1] }
     }
+
+    // Format profil: instagram.com/kompascom/
+    const profileMatch = cleanUrl.match(/(?:instagram\.com|instagr\.am)\/([a-zA-Z0-9_.-]+)/i)
+    if (profileMatch && !['p', 'reel', 'reels', 'tv', 'explore', 'stories', 'accounts'].includes(profileMatch[1].toLowerCase())) {
+      return {
+        platform: 'instagram',
+        authorHandle: profileMatch[1],
+        authorUsername: profileMatch[1],
+        postId: null
+      }
+    }
+
     return { platform: 'instagram', postId: null }
   }
 

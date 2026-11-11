@@ -10,6 +10,7 @@
 import http from 'http'
 import { parse } from 'url'
 import { handleRadarFeedRequest, getGatewayHealthStatus } from '../src/engine/transport/rss-gateway-handler.ts'
+import { handleSocialExtractionRequest } from '../src/engine/transport/social-gateway-handler.ts'
 
 const PORT = parseInt(process.env.PORT || '5174', 10)
 const HOST = process.env.HOST || '127.0.0.1'
@@ -41,6 +42,26 @@ const server = http.createServer(async (req, res) => {
     const health = getGatewayHealthStatus()
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(health, null, 2))
+    return
+  }
+
+  // 2. Social Media Extraction Gateway: /api/social/extract
+  if (pathname === '/api/social/extract') {
+    try {
+      const stringQuery = {}
+      for (const [k, v] of Object.entries(query)) {
+        stringQuery[k] = Array.isArray(v) ? v[0] : (v || '')
+      }
+      const result = await handleSocialExtractionRequest(stringQuery)
+      for (const [k, v] of Object.entries(result.headers)) {
+        res.setHeader(k, v)
+      }
+      res.writeHead(result.statusCode)
+      res.end(result.body)
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ success: false, errorMessage: err?.message || 'Social extraction gateway error' }))
+    }
     return
   }
 

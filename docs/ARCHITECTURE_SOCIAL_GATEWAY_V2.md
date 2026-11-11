@@ -79,3 +79,4 @@ $$S(A, B) = \frac{|A \cap B|}{|A \cup B|}$$
 
 ---
 *NARADA — Divisi Siber Sosial & Operasi Informasi PUSSIBERAD TNI AD*
+

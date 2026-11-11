@@ -79,6 +79,24 @@ runTest('SOC-01.4', 'detectSocialPlatform mengenali shortlink YouTube youtu.be',
   assert.equal(res.postId, 'Ge9bc81PT2o')
 })
 
+runTest('SOC-01.5', 'detectSocialPlatform mengenali URL Instagram Reel & Post serta mengekstrak shortcode dan username', () => {
+  const reelUrl = 'https://www.instagram.com/reel/Dfj4bCUPfsX/'
+  const reelRes = detectSocialPlatform(reelUrl)
+  assert.equal(reelRes.platform, 'instagram')
+  assert.equal(reelRes.postId, 'Dfj4bCUPfsX')
+
+  const userReelUrl = 'https://www.instagram.com/kompascom/reel/Dfj4bCUPfsX/'
+  const userRes = detectSocialPlatform(userReelUrl)
+  assert.equal(userRes.platform, 'instagram')
+  assert.equal(userRes.postId, 'Dfj4bCUPfsX')
+  assert.equal(userRes.authorHandle, 'kompascom')
+
+  const postUrl = 'https://www.instagram.com/p/C4abc123DEF/'
+  const postRes = detectSocialPlatform(postUrl)
+  assert.equal(postRes.platform, 'instagram')
+  assert.equal(postRes.postId, 'C4abc123DEF')
+})
+
 // ─── GATE 2: JACCARD SIMILARITY & STOPWORD TOKENIZER ───
 console.log('\n─── Gate 2: Tokenisasi Leksikal & Klusterisasi Jaccard ───')
 
@@ -178,6 +196,16 @@ runTest('SOC-04.1', 'YouTube & TikTok comments selalu terurut berdasarkan suka t
   assert.equal(sorted[3].likeCount, 5)
 })
 
+runTest('SOC-04.2', 'Instagram extraction engine mengonversi metadata OpenGraph dan telemetri komentar', () => {
+  const igSrc = fs.readFileSync(path.join(rootDir, 'src', 'engine', 'social', 'platforms', 'instagram-engine.ts'), 'utf-8')
+  assert.ok(igSrc.includes("b.likeCount || 0) - (a.likeCount || 0"), 'Instagram comments harus selalu disort descending likeCount')
+  assert.ok(igSrc.includes("/api/social/extract"), 'Instagram engine harus terhubung ke Gateway Server')
+  
+  const gatewaySrc = fs.readFileSync(path.join(rootDir, 'src', 'engine', 'transport', 'social-gateway-handler.ts'), 'utf-8')
+  assert.ok(gatewaySrc.includes('facebookexternalhit'), 'Gateway Instagram harus memanfaatkan user-agent bot crawling resmi')
+  assert.ok(gatewaySrc.includes('XIGComment'), 'Gateway Instagram harus membedah node GraphQL komentar publik')
+})
+
 // ─── GATE 5: WORKSPACE STREAMLINING INTEGRITY ───
 console.log('\n─── Gate 5: Streamlining Halaman Forensik & Konsol Taktis ───')
 
@@ -206,3 +234,4 @@ if (passCount === totalCount) {
   process.exit(1)
 }
 console.log('══════════════════════════════════════════════════════════════════════\n')
+
