@@ -9,7 +9,7 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Share2
+  Search
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import LiveRadar from './pages/LiveRadar'
@@ -32,7 +32,7 @@ const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
   { to: '/radar', icon: Radio, label: 'Radar Situasional', exact: true, hotkey: 'Alt+2' },
   { to: '/archive', icon: Pin, label: 'Berita Tersemat', hotkey: 'Alt+3' },
-  { to: '/social-forensic', icon: Share2, label: 'Analisa Postingan Medsos', hotkey: 'Alt+4' },
+  { to: '/social-forensic', icon: Search, label: 'Analisa Postingan Medsos', hotkey: 'Alt+4' },
   { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
 ]
 

@@ -11,6 +11,7 @@ import {
   Upload,
   Copy,
   Share2,
+  Search,
   Layers,
   Sliders,
   HelpCircle,
@@ -792,7 +793,7 @@ export default function SocialForensic() {
               transition: 'all 0.15s ease'
             }}
           >
-            <Share2 size={13} color={forensicViewMode === 'POST_ANALYZER' ? '#EF4444' : '#64748B'} />
+            <Search size={13} color={forensicViewMode === 'POST_ANALYZER' ? '#EF4444' : '#64748B'} />
             ANALISIS POSTINGAN MEDSOS &amp; KOMENTAR
           </button>
 

@@ -31,7 +31,6 @@ import {
   X,
   Search,
   ChevronLeft,
-  Share2,
   Lock
 } from 'lucide-react'
 import type { DebunkKnowledgeEntry, ThreatSpectrumCluster, ThreatLevel } from '../types.ts'
@@ -1528,7 +1527,7 @@ export default function Dashboard() {
                   flexShrink: 0,
                   boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.85)'
                 }}>
-                  <Share2 size={15} color="#CBD5E1" />
+                  <Search size={15} color="#CBD5E1" />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

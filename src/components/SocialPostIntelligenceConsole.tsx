@@ -19,6 +19,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Share2,
+  Search,
   Globe,
   ShieldCheck,
   AlertTriangle,
@@ -338,7 +339,7 @@ export default function SocialPostIntelligenceConsole() {
             justifyContent: 'center',
             color: '#94A3B8'
           }}>
-            <Share2 size={20} />
+            <Search size={20} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
