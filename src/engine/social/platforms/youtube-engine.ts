@@ -21,6 +21,23 @@ import type {
 import { detectSocialPlatform } from '../core/platform-detector.ts'
 import { youtubeConnector, type YouTubeCommentItem } from '../../acquisition/youtube-connector.ts'
 
+/**
+ * Konversi durasi format ISO 8601 (e.g. PT4M13S, PT1H2M10S) menjadi durasi detik total
+ */
+function parseIso8601Duration(durationStr: string): number {
+  if (!durationStr) return 0
+  if (typeof durationStr === 'number') return durationStr
+  const match = durationStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/i)
+  if (!match) {
+    const numeric = parseInt(durationStr, 10)
+    return isNaN(numeric) ? 0 : numeric
+  }
+  const hours = parseInt(match[1] || '0', 10)
+  const minutes = parseInt(match[2] || '0', 10)
+  const seconds = parseInt(match[3] || '0', 10)
+  return hours * 3600 + minutes * 60 + seconds
+}
+
 export class YouTubeEngine implements PlatformEngine {
   readonly platform: SocialMediaType = 'youtube'
   readonly name = 'YouTube'
@@ -63,6 +80,11 @@ export class YouTubeEngine implements PlatformEngine {
             ...postData,
             ...ext.post
           }
+          if (ext.post.durationSeconds) {
+            postData.durationSeconds = Number(ext.post.durationSeconds)
+          } else if (ext.post.duration) {
+            postData.durationSeconds = parseIso8601Duration(String(ext.post.duration))
+          }
           if (comments.length === 0 && ext.comments && Array.isArray(ext.comments) && ext.comments.length > 0) {
             comments = ext.comments.map((c: any) => ({
               id: c.id,
@@ -93,6 +115,9 @@ export class YouTubeEngine implements PlatformEngine {
           postData.authorName = meta.channelTitle
           postData.authorHandle = `@${meta.channelTitle.replace(/\s+/g, '').toLowerCase()}`
           postData.publishedAt = meta.publishedAt
+          if ((meta as any).duration) {
+            postData.durationSeconds = parseIso8601Duration(String((meta as any).duration))
+          }
           postData.viewCount = meta.viewCount
           postData.likeCount = meta.likeCount
           postData.commentCount = meta.commentCount
