@@ -73,6 +73,8 @@ export class YouTubeEngine implements PlatformEngine {
               likeCount: c.likeCount || 0,
               publishedAt: c.publishedAt
             }))
+            // Urutkan komentar berdasarkan suka tertinggi secara mutlak
+            comments.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
           }
         }
       }
@@ -151,6 +153,11 @@ export class YouTubeEngine implements PlatformEngine {
       } catch {
         // Abaikan
       }
+    }
+
+    // Pastikan seluruh komentar selalu terurut berdasarkan likes tertinggi (real fresh top comments)
+    if (comments.length > 1) {
+      comments.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
     }
 
     return {

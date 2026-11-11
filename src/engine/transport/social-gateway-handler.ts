@@ -53,6 +53,84 @@ export interface SocialExtractionResponse {
 }
 
 /**
+ * Parsing angka format ringkas YouTube / Medsos (cth: "1,2 rb", "96", "1.5k", "15 jt").
+ */
+function parseAbbreviatedCount(str?: string | null): number {
+  if (!str) return 0
+  const clean = str.trim().toLowerCase().replace(/\s+/g, ' ')
+  if (!clean || clean === ' ') return 0
+
+  const match = clean.match(/^([\d.,]+)\s*(rb|k|jt|m)?/)
+  if (!match) return 0
+
+  let numStr = match[1]
+  const unit = match[2]
+
+  if (numStr.includes(',') && !numStr.includes('.')) {
+    numStr = numStr.replace(',', '.')
+  } else if (numStr.includes('.') && numStr.includes(',')) {
+    numStr = numStr.replace(/\./g, '').replace(',', '.')
+  }
+
+  const val = parseFloat(numStr)
+  if (isNaN(val)) return 0
+
+  if (unit === 'rb' || unit === 'k') {
+    return Math.round(val * 1000)
+  }
+  if (unit === 'jt' || unit === 'm') {
+    return Math.round(val * 1000000)
+  }
+  return Math.round(val)
+}
+
+/**
+ * Ekstraksi angka suka (like count) YouTube dari berbagai varian payload InnerTube:
+ * - toolbar.likeCountNotliked
+ * - toolbar.likeCountLiked
+ * - toolbar.likeCountA11y (cth: "96 suka")
+ * - toolbar.likeButtonA11y (cth: "bersama 96 orang lainnya")
+ * - raw voteCount (schema klasik)
+ */
+function parseYouTubeLikeCount(toolbar: any, rawVoteCount?: any): number {
+  let maxLikes = 0
+
+  if (rawVoteCount) {
+    const text = typeof rawVoteCount === 'string' ? rawVoteCount : (rawVoteCount.simpleText || rawVoteCount.runs?.[0]?.text || '')
+    const parsed = parseAbbreviatedCount(text)
+    if (parsed > maxLikes) maxLikes = parsed
+  }
+
+  if (toolbar) {
+    if (toolbar.likeCountNotliked && typeof toolbar.likeCountNotliked === 'string' && toolbar.likeCountNotliked.trim()) {
+      const parsed = parseAbbreviatedCount(toolbar.likeCountNotliked)
+      if (parsed > maxLikes) maxLikes = parsed
+    }
+    if (toolbar.likeCountLiked && typeof toolbar.likeCountLiked === 'string' && toolbar.likeCountLiked.trim()) {
+      const parsed = parseAbbreviatedCount(toolbar.likeCountLiked)
+      const adjusted = Math.max(0, parsed - 1)
+      if (adjusted > maxLikes) maxLikes = adjusted
+    }
+    if (toolbar.likeCountA11y && typeof toolbar.likeCountA11y === 'string') {
+      const match = toolbar.likeCountA11y.match(/([\d.,]+(?:\s*(?:rb|jt|k|m))?)/i)
+      if (match) {
+        const parsed = parseAbbreviatedCount(match[1])
+        if (parsed > maxLikes) maxLikes = parsed
+      }
+    }
+    if (toolbar.likeButtonA11y && typeof toolbar.likeButtonA11y === 'string') {
+      const match = toolbar.likeButtonA11y.match(/bersama\s+([\d.,]+(?:\s*(?:rb|jt|k|m))?)/i)
+      if (match) {
+        const parsed = parseAbbreviatedCount(match[1])
+        if (parsed > maxLikes) maxLikes = parsed
+      }
+    }
+  }
+
+  return maxLikes
+}
+
+/**
  * Ekstraksi video dan aliran komentar YouTube secara live via oEmbed + InnerTube Telemetry.
  */
 async function extractYouTube(url: string, videoId: string): Promise<SocialExtractionResponse> {
@@ -66,6 +144,7 @@ async function extractYouTube(url: string, videoId: string): Promise<SocialExtra
   let subscriberCount = 0
   let description = ''
   let publishedAt = ''
+  let totalVideoComments = 0
   const comments: ExtractedSocialComment[] = []
 
   // 1. Ambil oEmbed resmi (cepat dan berintegritas tinggi, ~150ms)
@@ -172,16 +251,23 @@ async function extractYouTube(url: string, videoId: string): Promise<SocialExtra
         description = secondary.attributedDescription?.content || ''
       }
 
-      // 3. Ambil aliran komentar riil menggunakan token kelanjutan (continuation token)
+      // 3. Ambil aliran komentar riil menggunakan token kelanjutan (continuation token) secara multi-halaman
       const commentSection = contents.find(c => c.itemSectionRenderer?.targetId === 'comments-section')
-      const token = commentSection?.itemSectionRenderer?.contents?.[0]?.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token
+      let token = commentSection?.itemSectionRenderer?.contents?.[0]?.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token
 
-      if (token) {
+      const commentsMap = new Map<string, ExtractedSocialComment>()
+      totalVideoComments = 0
+      let page = 1
+      const maxPages = 4 // Ambil hingga 4 halaman (~80-100 komentar riil) untuk menangkap top like paling akurat
+
+      while (token && page <= maxPages) {
         const cmtRes = await fetch(nextUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'X-YouTube-Client-Name': '1',
+            'X-YouTube-Client-Version': '2.20240101.00.00'
           },
           body: JSON.stringify({
             context: {
@@ -196,23 +282,35 @@ async function extractYouTube(url: string, videoId: string): Promise<SocialExtra
           })
         })
 
-        if (cmtRes.ok) {
-          const cmtData: any = await cmtRes.json()
-          
-          // Schema modern: mutations entityBatchUpdate
-          const mutations = cmtData.frameworkUpdates?.entityBatchUpdate?.mutations
-          if (mutations && Array.isArray(mutations)) {
-            for (const m of mutations) {
-              const payload = m.payload?.commentEntityPayload
-              if (payload && payload.properties?.content?.content) {
-                const author = payload.author?.displayName || 'Anonim'
-                const text = payload.properties.content.content
-                const likeCount = parseInt(payload.toolbar?.likeCountNotliked || '0', 10) || 0
-                const published = payload.properties.publishedTime || ''
-                const avatar = payload.author?.avatarThumbnailUrl || ''
+        if (!cmtRes.ok) break
+        const cmtData: any = await cmtRes.json()
 
-                comments.push({
-                  id: `yt-cmt-${comments.length + 1}`,
+        // Ambil total komentar resmi video dari header pada halaman pertama
+        if (page === 1) {
+          const header = cmtData.onResponseReceivedEndpoints?.[0]?.reloadContinuationItemsCommand?.continuationItems?.[0]?.commentsHeaderRenderer
+          if (header?.countText?.runs) {
+            const fullCountStr = header.countText.runs.map((r: any) => r.text).join('')
+            const cMatch = fullCountStr.replace(/\./g, '').match(/(\d+)/)
+            if (cMatch) totalVideoComments = parseInt(cMatch[1], 10)
+          }
+        }
+
+        // 3a. Schema modern: mutations entityBatchUpdate
+        const mutations = cmtData.frameworkUpdates?.entityBatchUpdate?.mutations
+        if (mutations && Array.isArray(mutations)) {
+          for (const m of mutations) {
+            const payload = m.payload?.commentEntityPayload
+            if (payload && payload.properties?.content?.content) {
+              const author = payload.author?.displayName || 'Anonim'
+              const text = payload.properties.content.content
+              const likeCount = parseYouTubeLikeCount(payload.toolbar)
+              const published = payload.properties.publishedTime || ''
+              const avatar = payload.author?.avatarThumbnailUrl || ''
+              const dedupeKey = `${author.toLowerCase()}:${text.trim().substring(0, 60)}`
+
+              if (!commentsMap.has(dedupeKey) || (commentsMap.get(dedupeKey)?.likeCount || 0) < likeCount) {
+                commentsMap.set(dedupeKey, {
+                  id: `yt-cmt-${commentsMap.size + 1}`,
                   authorUsername: author.startsWith('@') ? author : `@${author.replace(/\s+/g, '_').toLowerCase()}`,
                   authorDisplayName: author,
                   authorAvatarUrl: avatar,
@@ -223,22 +321,33 @@ async function extractYouTube(url: string, videoId: string): Promise<SocialExtra
               }
             }
           }
+        }
 
-          // Fallback schema klasik jika mutations kosong
-          if (comments.length === 0) {
-            const endpoints = cmtData.onResponseReceivedEndpoints || []
-            const rawItems = endpoints[1]?.reloadContinuationItemsCommand?.continuationItems || endpoints[0]?.reloadContinuationItemsCommand?.continuationItems || []
-            for (const item of rawItems) {
-              const c = item.commentThreadRenderer?.comment?.commentRenderer
-              if (c && c.contentText?.runs) {
-                const text = c.contentText.runs.map((r: any) => r.text).join('')
-                const author = c.authorText?.simpleText || 'Pengguna YouTube'
-                const likeCount = parseInt(c.voteCount?.simpleText || '0', 10) || 0
-                const published = c.publishedTimeText?.runs?.[0]?.text || ''
-                comments.push({
-                  id: `yt-cmt-${comments.length + 1}`,
+        // 3b. Ekstraksi token berikutnya & schema klasik
+        const endpoints = cmtData.onResponseReceivedEndpoints || []
+        let nextTok: string | null = null
+
+        for (const ep of endpoints) {
+          const rawItems = ep.reloadContinuationItemsCommand?.continuationItems || ep.appendContinuationItemsAction?.continuationItems || []
+          for (const item of rawItems) {
+            if (item.continuationItemRenderer) {
+              nextTok = item.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token || null
+            }
+            const c = item.commentThreadRenderer?.comment?.commentRenderer
+            if (c && c.contentText?.runs) {
+              const text = c.contentText.runs.map((r: any) => r.text).join('')
+              const author = c.authorText?.simpleText || 'Pengguna YouTube'
+              const likeCount = parseYouTubeLikeCount(null, c.voteCount)
+              const published = c.publishedTimeText?.runs?.[0]?.text || ''
+              const avatar = c.authorThumbnail?.thumbnails?.[0]?.url || ''
+              const dedupeKey = `${author.toLowerCase()}:${text.trim().substring(0, 60)}`
+
+              if (!commentsMap.has(dedupeKey) || (commentsMap.get(dedupeKey)?.likeCount || 0) < likeCount) {
+                commentsMap.set(dedupeKey, {
+                  id: `yt-cmt-${commentsMap.size + 1}`,
                   authorUsername: author.startsWith('@') ? author : `@${author.replace(/\s+/g, '_').toLowerCase()}`,
                   authorDisplayName: author,
+                  authorAvatarUrl: avatar,
                   text,
                   likeCount,
                   publishedAt: published
@@ -247,6 +356,14 @@ async function extractYouTube(url: string, videoId: string): Promise<SocialExtra
             }
           }
         }
+
+        token = nextTok
+        page++
+      }
+
+      if (commentsMap.size > 0) {
+        const sorted = Array.from(commentsMap.values()).sort((a, b) => b.likeCount - a.likeCount)
+        comments.push(...sorted)
       }
     }
   } catch (err) {
@@ -269,7 +386,7 @@ async function extractYouTube(url: string, videoId: string): Promise<SocialExtra
       publishedAt: publishedAt || undefined,
       viewCount: views || undefined,
       likeCount: likes || undefined,
-      commentCount: comments.length || undefined,
+      commentCount: totalVideoComments || comments.length || undefined,
       thumbnailUrl,
       commentsDisabled: false,
       acquisitionMethod: 'OFFICIAL_API',
