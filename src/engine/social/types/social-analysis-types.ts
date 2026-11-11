@@ -32,6 +32,10 @@ export interface AnalyzedPostProfile {
   viewCount?: number
   likeCount?: number
   commentCount?: number
+  shareCount?: number
+  downloadCount?: number
+  durationSeconds?: number
+  paginationPagesCaptured?: number
   thumbnailUrl?: string
   commentsDisabled?: boolean
   acquisitionMethod: SocialAcquisitionMethod
@@ -98,6 +102,7 @@ export interface SocialLinkValidationResult {
 
 export interface SocialExtractionOptions {
   maxComments?: number
+  maxPages?: number
   fetchChannelDetails?: boolean
   overrideComments?: AnalyzedCommentItem[]
   rawCommentsText?: string
