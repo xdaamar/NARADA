@@ -1211,8 +1211,13 @@ export default function SocialPostIntelligenceConsole() {
                 </div>
 
                 {/* Grid Metrik Interaksi */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '14px' }}>
-                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center' }}>
+                <div style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: analysisResult.post.shareCount !== undefined ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', 
+                  gap: '8px', 
+                  marginBottom: '14px' 
+                }}>
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center', boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.4)' }}>
                     <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       <Heart size={11} color="#F87171" /> LIKES
                     </div>
@@ -1221,7 +1226,7 @@ export default function SocialPostIntelligenceConsole() {
                     </div>
                   </div>
 
-                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center' }}>
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center', boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.4)' }}>
                     <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       <Eye size={11} color="#EF4444" /> TAYANGAN
                     </div>
@@ -1230,20 +1235,36 @@ export default function SocialPostIntelligenceConsole() {
                     </div>
                   </div>
 
-                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center' }}>
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center', boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.4)' }}>
                     <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                       <MessageSquare size={11} color="#FBBF24" /> KOMENTAR
                     </div>
                     <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
-                      {analysisResult.post.commentsDisabled ? 'DINONAKTIFKAN' : fmt(analysisResult.post.commentCount)}
+                      {analysisResult.post.commentsDisabled ? 'NONAKTIF' : fmt(analysisResult.post.commentCount)}
                     </div>
                   </div>
+
+                  {analysisResult.post.shareCount !== undefined && (
+                    <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837', textAlign: 'center', boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.4)' }}>
+                      <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                        <Share2 size={11} color="#38BDF8" /> BAGIKAN
+                      </div>
+                      <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
+                        {fmt(analysisResult.post.shareCount)}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Provenance Notice */}
-              <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#475569', borderTop: '1px solid #1E2837', paddingTop: '8px' }}>
-                INTEGRITAS SUMBER: {analysisResult.post.dataSourceNotice}
+              <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#475569', borderTop: '1px solid #1E2837', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                <div>INTEGRITAS SUMBER: {analysisResult.post.dataSourceNotice}</div>
+                {analysisResult.post.durationSeconds ? (
+                  <div style={{ color: '#94A3B8' }}>
+                    DURASI: {Math.floor(analysisResult.post.durationSeconds / 60)}m {analysisResult.post.durationSeconds % 60}s
+                  </div>
+                ) : null}
               </div>
             </div>
 
