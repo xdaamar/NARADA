@@ -18,6 +18,7 @@ export interface DetectedPlatformInfo {
   platform: SocialMediaType | 'UNKNOWN'
   postId: string | null
   authorHandle?: string
+  authorUsername?: string
 }
 
 export const PLATFORM_INFO_MAP: Record<SocialMediaType, PlatformMetadataInfo> = {
@@ -96,7 +97,7 @@ export function detectSocialPlatform(url: string): DetectedPlatformInfo {
   if (/tiktok\.com/i.test(trimmed)) {
     const videoMatch = cleanUrl.match(/@([a-zA-Z0-9_.-]+)\/(?:video|photo)\/(\d+)/i) || trimmed.match(/@([a-zA-Z0-9_.-]+)\/(?:video|photo)\/(\d+)/i)
     if (videoMatch) {
-      return { platform: 'tiktok', authorHandle: videoMatch[1], postId: videoMatch[2] }
+      return { platform: 'tiktok', authorHandle: videoMatch[1], authorUsername: videoMatch[1], postId: videoMatch[2] }
     }
     const shortMatch = cleanUrl.match(/(?:vt|vm)\.tiktok\.com\/([a-zA-Z0-9_-]+)/i) || cleanUrl.match(/tiktok\.com\/t\/([a-zA-Z0-9_-]+)/i)
     if (shortMatch) {
@@ -104,7 +105,7 @@ export function detectSocialPlatform(url: string): DetectedPlatformInfo {
     }
     const userMatch = cleanUrl.match(/@([a-zA-Z0-9_.-]+)/i)
     if (userMatch) {
-      return { platform: 'tiktok', authorHandle: userMatch[1], postId: null }
+      return { platform: 'tiktok', authorHandle: userMatch[1], authorUsername: userMatch[1], postId: null }
     }
     return { platform: 'tiktok', postId: null }
   }

@@ -34,6 +34,7 @@
     "test:sprint12": "node scripts/test-sprint-12-ui-workspace.js",
     "test:archive": "node scripts/test-archive-intelligence.js",
     "test:cyber": "node scripts/test-cyber-cluster.js",
+    "test:social": "node scripts/test-social-intelligence-v2.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
     "electron:build": "tsc -b && vite build && electron-builder --win nsis --x64"
   },
