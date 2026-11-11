@@ -39,6 +39,7 @@ import {
   getArchivedIssueIds,
   toggleArchive
 } from '../engine/archive/archive-service.ts'
+import { playTacticalPinChime } from '../utils/tactical-audio.ts'
 import { truncateText } from '../utils/format.ts'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
@@ -426,6 +427,10 @@ export default function Dashboard() {
   // Toggle Sematkan Isu
   const handleTogglePin = (item: DebunkKnowledgeEntry, e: React.MouseEvent) => {
     e.stopPropagation()
+    const isCurrentlyArchived = archivedIds.has(item.id)
+    if (!isCurrentlyArchived) {
+      playTacticalPinChime()
+    }
     toggleArchive(item)
     setArchivedIds(getArchivedIssueIds())
   }

@@ -51,53 +51,7 @@ import { parseSourceDate, evaluateFreshness, sortRadarEntries } from '../engine/
 import type { ConnectorHealth, SearchTrendSignal } from '../engine/radar/radar-types.ts'
 import { getLastRadarResult, clearKnownPublications } from '../engine/data/live-radar-service.ts'
 import { isPureInstitutionOrPublisherName } from '../engine/ingest/rss-parser.ts'
-
-/**
- * Efek suara notifikasi taktis bernuansa HUD C2 saat menyematkan berita.
- * Menggunakan Web Audio API sintetis terisolasi (0ms latency, zero external network dependency).
- */
-function playTacticalPinChime() {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-    if (!AudioCtx) return
-    const ctx = new AudioCtx()
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {})
-    }
-
-    const now = ctx.currentTime
-    const osc1 = ctx.createOscillator()
-    const osc2 = ctx.createOscillator()
-    const gainNode = ctx.createGain()
-
-    osc1.type = 'sine'
-    osc1.frequency.setValueAtTime(587.33, now) // D5
-    osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.08) // A5
-
-    osc2.type = 'triangle'
-    osc2.frequency.setValueAtTime(880.00, now) // A5 Harmoni
-    osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.08) // D6
-
-    gainNode.gain.setValueAtTime(0.0001, now)
-    gainNode.gain.exponentialRampToValueAtTime(0.12, now + 0.02)
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.16)
-
-    osc1.connect(gainNode)
-    osc2.connect(gainNode)
-    gainNode.connect(ctx.destination)
-
-    osc1.start(now)
-    osc2.start(now)
-    osc1.stop(now + 0.18)
-    osc2.stop(now + 0.18)
-
-    setTimeout(() => {
-      try { ctx.close() } catch (_) {}
-    }, 250)
-  } catch (_) {
-    // Autoplay restrictions fallback
-  }
-}
+import { playTacticalPinChime } from '../utils/tactical-audio.ts'
 
 /**
  * Filter penjamin integritas: membuang entri non-berita/nama instansi murni
@@ -159,7 +113,9 @@ export default function LiveRadar() {
   const [sourceScheduleStates, setSourceScheduleStates] = useState<Record<string, SourceScheduleState>>({})
 
   // State Toast Notifikasi Pojok Kanan Bawah saat Berita Disematkan
-  const [pinToast, setPinToast] = useState<{ id: string; claim: string } | null>(null)
+  const [pinToast, setPinToast] = useState<{ id: string; claim: string; cluster?: string; clusterColor?: string } | null>(null)
+  const [isToastExiting, setIsToastExiting] = useState<boolean>(false)
+  const [animatingPinIds, setAnimatingPinIds] = useState<Set<string>>(new Set())
 
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
@@ -245,31 +201,65 @@ export default function LiveRadar() {
   // State Tooltip Status Cyber Bubble Chat C2 (Respons instan 0-ms tanpa jeda sistem browser)
   const [hoveredStatusId, setHoveredStatusId] = useState<string | null>(null)
 
-  // Auto-dismiss pin toast notifikasi setelah 4.2 detik
+  // Auto-dismiss pin toast notifikasi setelah 5.2 detik dengan transisi keluar yang halus
   useEffect(() => {
-    if (pinToast) {
+    if (pinToast && !isToastExiting) {
       const timer = setTimeout(() => {
-        setPinToast(null)
-      }, 4200)
+        setIsToastExiting(true)
+        setTimeout(() => {
+          setPinToast(null)
+          setIsToastExiting(false)
+        }, 280)
+      }, 5200)
       return () => clearTimeout(timer)
     }
-  }, [pinToast])
+  }, [pinToast, isToastExiting])
 
-  // Handler Toggle Arsip / Batal Arsip
+  const handleDismissToast = () => {
+    setIsToastExiting(true)
+    setTimeout(() => {
+      setPinToast(null)
+      setIsToastExiting(false)
+    }, 280)
+  }
+
+  // Handler Toggle Arsip / Batal Arsip dengan Animasi Teleport Blur & Audio Taktis
   const handleToggleArchive = (item: DebunkKnowledgeEntry) => {
     const isCurrentlyArchived = archivedIssueIds.has(item.id)
-    toggleArchive(item)
-    setArchivedIssueIds(getArchivedIssueIds())
-    setArchivedVerdicts(getArchivedVerdicts())
 
     if (!isCurrentlyArchived) {
-      // Mainkan efek suara notifikasi taktis HUD (Web Audio API)
+      // 1. Mainkan efek suara notifikasi taktis HUD (Web Audio API)
       playTacticalPinChime()
-      // Tampilkan popup informasi taktis di pojok kanan bawah
+
+      // 2. Aktifkan animasi keluar smooth blur teleport pada kartu
+      setAnimatingPinIds(prev => new Set(prev).add(item.id))
+
+      // 3. Tampilkan popup notifikasi taktis informatif
+      const clusterMeta = CLUSTER_OPTIONS.find(c => c.key === item.cluster)
+      setIsToastExiting(false)
       setPinToast({
         id: item.id,
-        claim: item.claim
+        claim: item.claim,
+        cluster: clusterMeta?.label || item.cluster,
+        clusterColor: clusterMeta?.color || '#38BDF8'
       })
+
+      // 4. Setelah animasi selesai (380ms), pindahkan data ke arsip
+      setTimeout(() => {
+        toggleArchive(item)
+        setArchivedIssueIds(getArchivedIssueIds())
+        setArchivedVerdicts(getArchivedVerdicts())
+        setAnimatingPinIds(prev => {
+          const next = new Set(prev)
+          next.delete(item.id)
+          return next
+        })
+      }, 380)
+    } else {
+      // Pelepasan sematan
+      toggleArchive(item)
+      setArchivedIssueIds(getArchivedIssueIds())
+      setArchivedVerdicts(getArchivedVerdicts())
     }
   }
 
@@ -1661,11 +1651,12 @@ export default function LiveRadar() {
 
             // Ekstraksi paragraf-paragraf agar dapat dirender rapi dengan spasi baris antar paragraf
             const paragraphs = textToShow.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+            const isExiting = animatingPinIds.has(item.id)
 
             return (
               <div
                 key={item.id}
-                className="steel-chassis-card"
+                className={`steel-chassis-card ${isExiting ? 'card-pin-exit-anim' : ''}`}
                 style={{
                   padding: '16px 18px',
                   display: 'flex',
@@ -1681,9 +1672,10 @@ export default function LiveRadar() {
                   boxShadow: isArchived 
                     ? `0 0 16px ${isEffectiveHoax ? 'rgba(239, 68, 68, 0.15)' : isEffectiveFact ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)'}, inset 0 1px 0 rgba(56, 189, 248, 0.2)` 
                     : 'none',
-                  minHeight: '440px',
-                  height: isExpanded ? 'fit-content' : '440px',
-                  transition: 'all 0.2s ease'
+                  minHeight: isExiting ? '0px' : '440px',
+                  height: isExiting ? 'auto' : (isExpanded ? 'fit-content' : '440px'),
+                  transition: isExiting ? 'none' : 'all 0.2s ease',
+                  pointerEvents: isExiting ? 'none' : 'auto'
                 }}
               >
                 <span className="bolt-tl" />
@@ -2643,21 +2635,25 @@ export default function LiveRadar() {
       {/* ─── TOAST NOTIFIKASI TAKTIS: BERITA TERSEMAT (Pojok Kanan Bawah) ─── */}
       {pinToast && (
         <div
-          className="steel-chassis-card"
+          className={`steel-chassis-card ${isToastExiting ? 'tactical-popup-exit' : 'tactical-popup-enter'}`}
           style={{
             position: 'fixed',
             bottom: '24px',
             right: '24px',
             zIndex: 99999,
-            width: '360px',
+            width: '390px',
             maxWidth: 'calc(100vw - 48px)',
             padding: '14px 16px',
-            background: 'linear-gradient(180deg, #16202E 0%, #0D141F 100%)',
+            background: 'linear-gradient(180deg, #131C28 0%, #0A1017 100%)',
             border: '1px solid #38BDF8',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+            borderRadius: '6px',
+            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85), 0 0 24px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             display: 'flex',
             flexDirection: 'column',
-            gap: '8px'
+            gap: '10px',
+            overflow: 'hidden'
           }}
         >
           <span className="bolt-tl" />
@@ -2666,96 +2662,198 @@ export default function LiveRadar() {
           <span className="bolt-br" />
 
           {/* Header Toast */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
-                width: '24px',
-                height: '24px',
-                borderRadius: '3px',
-                background: 'rgba(56, 189, 248, 0.15)',
+                width: '30px',
+                height: '30px',
+                borderRadius: '4px',
+                background: 'rgba(56, 189, 248, 0.16)',
                 border: '1px solid #38BDF8',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#38BDF8'
+                color: '#38BDF8',
+                boxShadow: '0 0 12px rgba(56, 189, 248, 0.35)',
+                flexShrink: 0
               }}>
-                <Pin size={13} style={{ transform: 'rotate(-45deg)' }} />
+                <Pin size={15} style={{ transform: 'rotate(-45deg)' }} />
               </div>
               <div>
-                <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.5px' }}>
+                <div style={{
+                  fontSize: '11.5px',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 800,
+                  color: '#38BDF8',
+                  letterSpacing: '0.6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
                   BERITA TELAH DISEMATKAN!
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    background: '#10B981',
+                    boxShadow: '0 0 6px #10B981',
+                    display: 'inline-block'
+                  }} />
                 </div>
-                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
-                  Dipindahkan ke halaman Berita Tersemat
+                <div style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#CBD5E1', marginTop: '1px' }}>
+                  Dipindahkan ke menu <strong>Berita Tersemat</strong> agar tidak tenggelam di arus radar.
                 </div>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={() => setPinToast(null)}
+              onClick={handleDismissToast}
               title="Tutup notifikasi"
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#64748B',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid #2A3644',
+                borderRadius: '3px',
+                color: '#94A3B8',
                 cursor: 'pointer',
-                padding: '2px',
+                padding: '3px',
                 display: 'inline-flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#F1F5F9'
+                e.currentTarget.style.borderColor = '#475569'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#94A3B8'
+                e.currentTarget.style.borderColor = '#2A3644'
               }}
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           </div>
 
-          {/* Deskripsi Klaim */}
+          {/* Cuplikan Isu Tersemat */}
           <div style={{
             fontSize: '11px',
             color: '#E2E8F0',
-            lineHeight: '1.4',
+            lineHeight: 1.45,
             display: '-webkit-box',
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            background: 'rgba(11, 16, 23, 0.6)',
-            padding: '6px 8px',
-            borderRadius: '3px',
-            border: '1px solid #1E2734'
+            background: 'rgba(9, 13, 19, 0.75)',
+            padding: '7px 10px',
+            borderRadius: '4px',
+            border: '1px solid #1E293B',
+            fontFamily: 'var(--font-mono)'
           }}>
+            {pinToast.cluster && (
+              <span style={{
+                color: pinToast.clusterColor || '#38BDF8',
+                fontWeight: 700,
+                marginRight: '6px'
+              }}>
+                [{pinToast.cluster}]
+              </span>
+            )}
             "{pinToast.claim}"
           </div>
 
-          {/* Footer Action */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
-            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <CheckCircle size={10} color="#10B981" /> Siap Dipantau Khusus
-            </span>
+          {/* Footer Action Buttons */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '2px' }}>
+            {hideArchivedInRadar ? (
+              <button
+                type="button"
+                onClick={() => setHideArchivedInRadar(false)}
+                title="Tampilkan kembali berita yang disematkan di halaman radar ini"
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #2B3B50',
+                  color: '#94A3B8',
+                  borderRadius: '3px',
+                  padding: '4px 8px',
+                  fontSize: '9.5px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#F1F5F9'
+                  e.currentTarget.style.borderColor = '#475569'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#94A3B8'
+                  e.currentTarget.style.borderColor = '#2B3B50'
+                }}
+              >
+                Tetap Tampilkan di Radar
+              </button>
+            ) : (
+              <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <CheckCircle size={10} color="#10B981" /> Terlihat di Radar & Tersemat
+              </span>
+            )}
+
             <button
               type="button"
               onClick={() => {
-                setPinToast(null)
+                handleDismissToast()
                 navigate('/archive')
               }}
               style={{
-                background: 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                background: 'linear-gradient(180deg, #1E2C3D 0%, #101925 100%)',
                 border: '1px solid #38BDF8',
                 color: '#38BDF8',
                 borderRadius: '3px',
-                padding: '3px 8px',
-                fontSize: '9.5px',
+                padding: '4px 10px',
+                fontSize: '10px',
                 fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                gap: '5px',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(180deg, #2A3C52 0%, #162232 100%)'
+                e.currentTarget.style.color = '#7DD3FC'
+                e.currentTarget.style.borderColor = '#7DD3FC'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(180deg, #1E2C3D 0%, #101925 100%)'
+                e.currentTarget.style.color = '#38BDF8'
+                e.currentTarget.style.borderColor = '#38BDF8'
               }}
             >
-              <span>Buka Berita Tersemat</span>
-              <ExternalLink size={9} />
+              <span>BUKA BERITA TERSEMAT</span>
+              <ExternalLink size={10} />
             </button>
+          </div>
+
+          {/* Auto-Dismiss Animated Progress Bar */}
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '2px',
+            background: 'rgba(56, 189, 248, 0.15)'
+          }}>
+            <div
+              className="toast-progress-bar"
+              style={{
+                height: '100%',
+                background: '#38BDF8',
+                boxShadow: '0 0 6px #38BDF8'
+              }}
+            />
           </div>
         </div>
       )}
