@@ -43,13 +43,14 @@ export function analyzeBuzzerPatterns(
   const totalClustered = clusters.reduce((acc, c) => acc + c.commentCount, 0)
   const copypastaRatio = totalComments > 0 ? totalClustered / totalComments : 0
 
-  // 1. Cek anomali temporal (Burst Velocity)
+  // 1. Cek anomali temporal (Burst Velocity & Adaptive Interval Clustering)
   const timestamps = comments
     .map(c => c.publishedAt ? Date.parse(c.publishedAt) : NaN)
     .filter(t => !isNaN(t))
     .sort((a, b) => a - b)
 
   let burstVelocity = 0
+  let peakBurstVelocity = 0
   let temporalWindowSeconds = 0
 
   if (timestamps.length >= 2) {
@@ -58,7 +59,22 @@ export function analyzeBuzzerPatterns(
     const diffSec = Math.max(1, (maxTime - minTime) / 1000)
     temporalWindowSeconds = Math.round(diffSec)
     burstVelocity = Math.round((timestamps.length / (diffSec / 60)) * 10) / 10
+
+    // Deteksi sub-interval terpadat (sliding window 120 detik)
+    let maxInWindow = 1
+    let left = 0
+    for (let right = 0; right < timestamps.length; right++) {
+      while ((timestamps[right] - timestamps[left]) > 120000) {
+        left++
+      }
+      maxInWindow = Math.max(maxInWindow, right - left + 1)
+    }
+    peakBurstVelocity = Math.round((maxInWindow / 2) * 10) / 10 // komentar per menit di jendela terpadat
   }
+
+  // 1.b Konsentrasi dan keunikan akun pengirim
+  const uniqueAuthors = new Set(comments.map(c => c.authorUsername)).size
+  const authorConcentrationRatio = totalComments > 0 ? (totalComments - uniqueAuthors) / totalComments : 0
 
   // 2. Ekstraksi kata kunci dominan
   const wordFreq: Record<string, number> = {}
@@ -81,13 +97,17 @@ export function analyzeBuzzerPatterns(
     .map(([w]) => w)
 
   // 3. Skor Koordinasi (0 - 100)
-  // Bobot: Copypasta Ratio (60%) + Burst Spike (25%) + Cluster Dominance (15%)
-  let rawScore = (copypastaRatio * 60)
-  if (burstVelocity >= 15) rawScore += 25
-  else if (burstVelocity >= 5) rawScore += 15
+  // Bobot: Copypasta Ratio (50%) + Burst Spike / Peak (25%) + Konsentrasi Akun (15%) + Cluster Dominance (10%)
+  let rawScore = (copypastaRatio * 50)
+  const effectiveVelocity = Math.max(burstVelocity, peakBurstVelocity)
+  if (effectiveVelocity >= 15) rawScore += 25
+  else if (effectiveVelocity >= 5) rawScore += 15
+
+  if (authorConcentrationRatio >= 0.3) rawScore += 15
+  else if (authorConcentrationRatio >= 0.15) rawScore += 10
 
   if (clusters.length > 0 && clusters[0].percentageOfTotal >= 20) {
-    rawScore += 15
+    rawScore += 10
   }
 
   const coordinationScore = Math.min(100, Math.round(rawScore))
@@ -115,7 +135,11 @@ export function analyzeBuzzerPatterns(
     narrativeSummary = `Pola koordinasi tergolong RENDAH / ORGANIK (${coordinationScore}%). Variasi leksikal tinggi, tidak terdeteksi lonjakan templat duplikasi signifikan dalam rentang waktu observasi.`
   }
 
-  const evidenceRationale = `Berdasarkan observasi ${totalComments} komentar publik. Ditemukan ${clusters.length} kluster templat (Jaccard >= 0.70) melibatkan ${sampleAccounts.length} akun teridentifikasi. Kecepatan sebaran terukur ${burstVelocity} komentar/menit.`
+  const velocityDetail = peakBurstVelocity > burstVelocity
+    ? `Kecepatan rata-rata ${burstVelocity} kpm (puncak ${peakBurstVelocity} kpm).`
+    : `Kecepatan sebaran terukur ${burstVelocity} komentar/menit.`
+
+  const evidenceRationale = `Berdasarkan observasi ${totalComments} komentar publik (${uniqueAuthors} akun unik). Ditemukan ${clusters.length} kluster templat (Jaccard >= 0.70) melibatkan ${sampleAccounts.length} akun teridentifikasi. ${velocityDetail}`
 
   return {
     coordinationScore,
