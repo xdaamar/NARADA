@@ -16,7 +16,24 @@ Platform desktop berbasis AI yang membantu analis siber satuan TNI AD mendeteksi
 - **Build:** electron-builder → .exe installer
 
 ### Dokumentasi
-Seluruh dokumen perencanaan (PRD, Blueprint, Rules) ada di folder `docs/`.
+Seluruh dokumen perencanaan dan arsitektur (PRD, Blueprint, Architecture V2, Mission Log) berada di direktori `docs/`:
+- `docs/ARCHITECTURE_SOCIAL_GATEWAY_V2.md`: Spesifikasi gerbang intelijen media sosial v2 & buzzer detection.
+- `docs/SPRINT_13_MISSION_LOG.md`: Log misi hardening engine YouTube, TikTok, dan perampingan konsol forensik.
+
+### Verifikasi & Pengujian Otomatis
+```bash
+# Validasi menyeluruh kluster media sosial & buzzer swarm
+npm run test:social
+
+# Validasi spektrum siber & peretasan nasional
+npm run test:cyber
+
+# Validasi konsol berita tersemat & arsip dinamis
+npm run test:archive
+
+# Verifikasi kompilasi produksi
+npm run build
+```
 
 ---
 *NARADA — Menjaga Pikiran, Melindungi Bangsa*
