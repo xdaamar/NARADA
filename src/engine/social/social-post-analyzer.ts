@@ -45,6 +45,7 @@ export {
   PLATFORM_INFO_MAP,
   detectSocialPlatform,
   validateSocialPlatformUrl,
+  sanitizeSocialUrl,
   type DetectedPlatformInfo
 } from './core/platform-detector.ts'
 

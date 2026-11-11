@@ -48,24 +48,45 @@ export const PLATFORM_INFO_MAP: Record<SocialMediaType, PlatformMetadataInfo> = 
 }
 
 /**
+ * Sanitasi URL media sosial dari parameter pelacak (?is_from_webapp, ?si=, ?utm_source, dll).
+ */
+export function sanitizeSocialUrl(url: string): string {
+  if (!url || typeof url !== 'string') return ''
+  const trimmed = url.trim()
+  try {
+    const parsed = new URL(trimmed)
+    // Untuk YouTube /watch?v=, simpan hanya parameter v
+    if (parsed.hostname.includes('youtube.com') && parsed.pathname === '/watch') {
+      const v = parsed.searchParams.get('v')
+      return v ? `https://www.youtube.com/watch?v=${v}` : trimmed.split('?')[0]
+    }
+    // Untuk TikTok, Instagram, Threads, dan format path lainnya, buang seluruh query string
+    return `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, '')
+  } catch {
+    return trimmed.split('?')[0].replace(/\/+$/, '')
+  }
+}
+
+/**
  * Deteksi platform media sosial dari teks URL dengan pengenalan regex presisi tinggi.
  */
 export function detectSocialPlatform(url: string): DetectedPlatformInfo {
   if (!url || typeof url !== 'string') return { platform: 'UNKNOWN', postId: null }
   const trimmed = url.trim()
+  const cleanUrl = sanitizeSocialUrl(trimmed)
 
   // 1. YouTube (Mendukung /watch?v=, youtu.be/, /shorts/, /live/, /embed/, dan parameter si/t)
   if (/youtube\.com|youtu\.be/i.test(trimmed)) {
     const watchMatch = trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/i)
     if (watchMatch) return { platform: 'youtube', postId: watchMatch[1] }
 
-    const shortMatch = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i)
+    const shortMatch = cleanUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i)
     if (shortMatch) return { platform: 'youtube', postId: shortMatch[1] }
 
-    const pathMatch = trimmed.match(/youtube\.com\/(?:shorts|live|embed|v)\/([a-zA-Z0-9_-]{11})/i)
+    const pathMatch = cleanUrl.match(/youtube\.com\/(?:shorts|live|embed|v)\/([a-zA-Z0-9_-]{11})/i)
     if (pathMatch) return { platform: 'youtube', postId: pathMatch[1] }
 
-    const fallbackMatch = trimmed.match(/\/([a-zA-Z0-9_-]{11})(?:[?&#]|$)/i)
+    const fallbackMatch = cleanUrl.match(/\/([a-zA-Z0-9_-]{11})(?:[?&#]|$)/i)
     if (fallbackMatch) return { platform: 'youtube', postId: fallbackMatch[1] }
 
     return { platform: 'youtube', postId: null }
@@ -73,15 +94,15 @@ export function detectSocialPlatform(url: string): DetectedPlatformInfo {
 
   // 2. TikTok (Mendukung /video/, /photo/, vt.tiktok.com, vm.tiktok.com, tiktok.com/t/)
   if (/tiktok\.com/i.test(trimmed)) {
-    const videoMatch = trimmed.match(/@([a-zA-Z0-9_.-]+)\/(?:video|photo)\/(\d+)/i)
+    const videoMatch = cleanUrl.match(/@([a-zA-Z0-9_.-]+)\/(?:video|photo)\/(\d+)/i) || trimmed.match(/@([a-zA-Z0-9_.-]+)\/(?:video|photo)\/(\d+)/i)
     if (videoMatch) {
       return { platform: 'tiktok', authorHandle: videoMatch[1], postId: videoMatch[2] }
     }
-    const shortMatch = trimmed.match(/(?:vt|vm)\.tiktok\.com\/([a-zA-Z0-9_-]+)/i) || trimmed.match(/tiktok\.com\/t\/([a-zA-Z0-9_-]+)/i)
+    const shortMatch = cleanUrl.match(/(?:vt|vm)\.tiktok\.com\/([a-zA-Z0-9_-]+)/i) || cleanUrl.match(/tiktok\.com\/t\/([a-zA-Z0-9_-]+)/i)
     if (shortMatch) {
       return { platform: 'tiktok', postId: shortMatch[1] }
     }
-    const userMatch = trimmed.match(/@([a-zA-Z0-9_.-]+)/i)
+    const userMatch = cleanUrl.match(/@([a-zA-Z0-9_.-]+)/i)
     if (userMatch) {
       return { platform: 'tiktok', authorHandle: userMatch[1], postId: null }
     }
