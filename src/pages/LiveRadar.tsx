@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Radio,
   RefreshCw,
@@ -26,7 +27,8 @@ import {
   ChevronDown,
   ChevronUp,
   Newspaper,
-  Pin
+  Pin,
+  Layers
 } from 'lucide-react'
 import {
   getArchivedIssueIds,
@@ -49,6 +51,53 @@ import { parseSourceDate, evaluateFreshness, sortRadarEntries } from '../engine/
 import type { ConnectorHealth, SearchTrendSignal } from '../engine/radar/radar-types.ts'
 import { getLastRadarResult, clearKnownPublications } from '../engine/data/live-radar-service.ts'
 import { isPureInstitutionOrPublisherName } from '../engine/ingest/rss-parser.ts'
+
+/**
+ * Efek suara notifikasi taktis bernuansa HUD C2 saat menyematkan berita.
+ * Menggunakan Web Audio API sintetis terisolasi (0ms latency, zero external network dependency).
+ */
+function playTacticalPinChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {})
+    }
+
+    const now = ctx.currentTime
+    const osc1 = ctx.createOscillator()
+    const osc2 = ctx.createOscillator()
+    const gainNode = ctx.createGain()
+
+    osc1.type = 'sine'
+    osc1.frequency.setValueAtTime(587.33, now) // D5
+    osc1.frequency.exponentialRampToValueAtTime(880.00, now + 0.08) // A5
+
+    osc2.type = 'triangle'
+    osc2.frequency.setValueAtTime(880.00, now) // A5 Harmoni
+    osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.08) // D6
+
+    gainNode.gain.setValueAtTime(0.0001, now)
+    gainNode.gain.exponentialRampToValueAtTime(0.12, now + 0.02)
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.16)
+
+    osc1.connect(gainNode)
+    osc2.connect(gainNode)
+    gainNode.connect(ctx.destination)
+
+    osc1.start(now)
+    osc2.start(now)
+    osc1.stop(now + 0.18)
+    osc2.stop(now + 0.18)
+
+    setTimeout(() => {
+      try { ctx.close() } catch (_) {}
+    }, 250)
+  } catch (_) {
+    // Autoplay restrictions fallback
+  }
+}
 
 /**
  * Filter penjamin integritas: membuang entri non-berita/nama instansi murni
@@ -100,13 +149,17 @@ const CLUSTER_OPTIONS: ClusterFilterOption[] = [
 ]
 
 export default function LiveRadar() {
+  const navigate = useNavigate()
   // State data dan filter (dibersihkan dari entri non-berita/nama instansi murni)
   const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => sanitizeRadarItems(getCuratedArchiveDebunks()))
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
   const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('ALL')
-  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS'>('ALL')
+  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS'>('MOMENTUM')
   const [trendSignals, setTrendSignals] = useState<SearchTrendSignal[]>([])
   const [sourceScheduleStates, setSourceScheduleStates] = useState<Record<string, SourceScheduleState>>({})
+
+  // State Toast Notifikasi Pojok Kanan Bawah saat Berita Disematkan
+  const [pinToast, setPinToast] = useState<{ id: string; claim: string } | null>(null)
 
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isSyncing, setIsSyncing] = useState<boolean>(false)
@@ -192,18 +245,40 @@ export default function LiveRadar() {
   // State Tooltip Status Cyber Bubble Chat C2 (Respons instan 0-ms tanpa jeda sistem browser)
   const [hoveredStatusId, setHoveredStatusId] = useState<string | null>(null)
 
+  // Auto-dismiss pin toast notifikasi setelah 4.2 detik
+  useEffect(() => {
+    if (pinToast) {
+      const timer = setTimeout(() => {
+        setPinToast(null)
+      }, 4200)
+      return () => clearTimeout(timer)
+    }
+  }, [pinToast])
+
   // Handler Toggle Arsip / Batal Arsip
   const handleToggleArchive = (item: DebunkKnowledgeEntry) => {
+    const isCurrentlyArchived = archivedIssueIds.has(item.id)
     toggleArchive(item)
     setArchivedIssueIds(getArchivedIssueIds())
     setArchivedVerdicts(getArchivedVerdicts())
+
+    if (!isCurrentlyArchived) {
+      // Mainkan efek suara notifikasi taktis HUD (Web Audio API)
+      playTacticalPinChime()
+      // Tampilkan popup informasi taktis di pojok kanan bawah
+      setPinToast({
+        id: item.id,
+        claim: item.claim
+      })
+    }
   }
 
-  // Handler Set Klasifikasi untuk Isu Terarsip
+  // Handler Set Klasifikasi untuk Isu Terarsip (disimpan untuk kompatibilitas pipeline)
   const handleSetArchivedVerdict = (id: string, verdict: 'HOAKS' | 'FAKTA' | 'DIPANTAU') => {
     setArchivedVerdict(id, verdict)
     setArchivedVerdicts(getArchivedVerdicts())
   }
+  void handleSetArchivedVerdict
 
   // Fungsi sinkronisasi radar via RadarScheduler
   const triggerSync = async (forceClear = false) => {
@@ -380,7 +455,7 @@ export default function LiveRadar() {
       const isExcluded = item.queueState === 'EXCLUDED'
       const isUnverified = !isExcluded && (item.verdict === 'UNVERIFIED' || item.triageStatus === 'UNVERIFIED' || item.queueState === 'MONITOR' || (!isHoaks && !isResolved))
       
-      const activityState = item.issueActivity?.state
+      const activityState = item.issueActivity?.state || ((item.threatLevel === 'critical' || item.threatLevel === 'high' || item.id.startsWith('NAR-CYB-') || item.verdict === 'UNVERIFIED') ? 'NEW' : 'SUSTAINED')
       const isMomentum = activityState === 'NEW' || activityState === 'RISING'
       const isSustained = activityState === 'SUSTAINED'
       const isCooling = activityState === 'COOLING'
@@ -455,7 +530,7 @@ export default function LiveRadar() {
       const isExcluded = i.queueState === 'EXCLUDED'
       const isUnverified = !isExcluded && (i.verdict === 'UNVERIFIED' || i.triageStatus === 'UNVERIFIED' || i.queueState === 'MONITOR' || (!isHoaks && !isResolved))
       
-      const act = i.issueActivity?.state
+      const act = i.issueActivity?.state || ((i.threatLevel === 'critical' || i.threatLevel === 'high' || i.id.startsWith('NAR-CYB-') || i.verdict === 'UNVERIFIED') ? 'NEW' : 'SUSTAINED')
       if (act === 'NEW' || act === 'RISING') counts.MOMENTUM++
       else if (act === 'SUSTAINED') counts.SUSTAINED++
       else if (act === 'COOLING') counts.COOLING++
@@ -469,6 +544,23 @@ export default function LiveRadar() {
     })
     return counts
   }, [debunkItems])
+
+  // Label & Warna status filter aktif untuk indikator visual
+  const activeFilterInfo = useMemo(() => {
+    if (activeViewMode === 'MOMENTUM') {
+      return { label: 'ISU BARU & MENINGKAT', color: '#F43F5E' }
+    }
+    if (activeViewMode === 'UNVERIFIED' || selectedTriage === 'UNVERIFIED') {
+      return { label: 'SEDANG DIPANTAU', color: '#F59E0B' }
+    }
+    if (activeViewMode === 'HOAKS' || selectedTriage === 'HOAKS') {
+      return { label: 'TERINDIKASI HOAKS', color: '#EF4444' }
+    }
+    if (activeViewMode === 'RESOLVED' || selectedTriage === 'RESOLVED') {
+      return { label: 'FAKTA & AMAN', color: '#10B981' }
+    }
+    return { label: 'SEMUA ISU AKTIF', color: '#38BDF8' }
+  }, [activeViewMode, selectedTriage])
 
   return (
     <div className="fade-in" style={{ paddingBottom: '36px' }}>
@@ -993,6 +1085,30 @@ export default function LiveRadar() {
               {filteredItems.length} ISU TERFILTER
             </span>
 
+            {/* Indikator Status Filter Aktif */}
+            <span style={{
+              fontSize: '9.5px',
+              fontFamily: 'var(--font-mono)',
+              color: activeFilterInfo.color,
+              background: `${activeFilterInfo.color}18`,
+              border: `1px solid ${activeFilterInfo.color}55`,
+              padding: '1px 7px',
+              borderRadius: '3px',
+              fontWeight: 800,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <span style={{
+                width: '5px',
+                height: '5px',
+                borderRadius: '50%',
+                background: activeFilterInfo.color,
+                boxShadow: `0 0 6px ${activeFilterInfo.color}`
+              }} />
+              FILTER AKTIF: {activeFilterInfo.label}
+            </span>
+
             {/* Tombol Ekspansi Seluruh Cuplikan Berita */}
             <button
               type="button"
@@ -1083,14 +1199,20 @@ export default function LiveRadar() {
               { key: 'UNVERIFIED', label: 'SEDANG DIPANTAU', count: triageCounts.UNVERIFIED, color: '#F59E0B', icon: Eye },
               { key: 'HOAKS', label: 'TERINDIKASI HOAKS', count: triageCounts.HOAKS, color: '#EF4444', icon: AlertTriangle },
               { key: 'RESOLVED', label: 'FAKTA & AMAN', count: triageCounts.FAKTA + triageCounts.NETRAL, color: '#10B981', icon: ShieldCheck },
+              { key: 'ALL', label: 'SEMUA ISU AKTIF', count: triageCounts.ALL, color: '#38BDF8', icon: Layers },
             ].map(tab => {
-              const isSelected = activeViewMode === tab.key || (activeViewMode === 'ALL' && selectedTriage === tab.key)
+              const isSelected = tab.key === 'ALL'
+                ? (activeViewMode === 'ALL' && selectedTriage === 'ALL')
+                : (activeViewMode === tab.key || (activeViewMode === 'ALL' && selectedTriage === tab.key))
               return (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => {
-                    if (isSelected) {
+                    if (tab.key === 'ALL') {
+                      setActiveViewMode('ALL')
+                      setSelectedTriage('ALL')
+                    } else if (isSelected) {
                       setActiveViewMode('ALL')
                       setSelectedTriage('ALL')
                     } else {
@@ -1109,30 +1231,62 @@ export default function LiveRadar() {
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 800,
                     border: '1px solid',
-                    borderColor: isSelected ? '#475569' : '#222C3A',
-                    background: isSelected ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#101620',
+                    borderColor: isSelected ? tab.color : '#222C3A',
+                    background: isSelected 
+                      ? 'linear-gradient(180deg, #1C2735 0%, #111822 100%)' 
+                      : '#101620',
                     color: isSelected ? tab.color : '#94A3B8',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    boxShadow: isSelected ? 'inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 4px rgba(0, 0, 0, 0.4)' : 'none',
+                    boxShadow: isSelected 
+                      ? `0 0 10px ${tab.color}35, inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -2px 0 ${tab.color}` 
+                      : 'none',
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <tab.icon size={12} color={tab.color} />
+                  <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                    <tab.icon size={12} color={isSelected ? tab.color : '#64748B'} />
+                    {isSelected && (
+                      <span style={{
+                        position: 'absolute',
+                        top: '-2px',
+                        right: '-2px',
+                        width: '5px',
+                        height: '5px',
+                        borderRadius: '50%',
+                        background: tab.color,
+                        boxShadow: `0 0 6px ${tab.color}`
+                      }} />
+                    )}
+                  </div>
                   <span>{tab.label}</span>
                   <span style={{
                     fontSize: '9.5px',
                     padding: '1px 6px',
                     borderRadius: '2px',
-                    background: '#0B0F17',
-                    border: '1px solid #253245',
+                    background: isSelected ? `${tab.color}22` : '#0B0F17',
+                    border: `1px solid ${isSelected ? tab.color + '55' : '#253245'}`,
                     color: isSelected ? tab.color : '#64748B',
                     fontWeight: 900
                   }}>
                     {tab.count}
                   </span>
+                  {isSelected && (
+                    <span style={{
+                      fontSize: '8px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 900,
+                      letterSpacing: '0.5px',
+                      color: '#070C14',
+                      background: tab.color,
+                      padding: '1px 4px',
+                      borderRadius: '2px'
+                    }}>
+                      AKTIF
+                    </span>
+                  )}
                 </button>
               )
             })}
@@ -1195,12 +1349,12 @@ export default function LiveRadar() {
               })}
 
             {/* Tombol Reset Filter jika aktif (S12-06.3 / S12-06.4: SEMUA ISU AKTIF) */}
-            {(selectedCluster !== 'ALL' || activeViewMode !== 'ALL' || selectedTriage !== 'ALL' || searchQuery) && (
+            {(selectedCluster !== 'ALL' || activeViewMode !== 'MOMENTUM' || searchQuery) && (
               <button
                 type="button"
                 onClick={() => {
                   setSelectedCluster('ALL')
-                  setActiveViewMode('ALL')
+                  setActiveViewMode('MOMENTUM')
                   setSelectedTriage('ALL')
                   setSearchQuery('')
                 }}
@@ -1718,7 +1872,7 @@ export default function LiveRadar() {
                               gap: '4px'
                             }}>
                               <span style={{ color: '#F59E0B' }}>▶</span>
-                              <span>{isArchived ? 'Gunakan tombol Set Fakta / Set Hoaks / Reset Pantau di baki kartu untuk override analis' : 'Klik SEMATKAN untuk menyimpan berita ke Berita Tersemat agar tidak tenggelam'}</span>
+                              <span>{isArchived ? 'Berita tersimpan di tab Berita Tersemat untuk pemantauan prioritas' : 'Klik SEMATKAN untuk menyimpan berita ke Berita Tersemat agar tidak tenggelam'}</span>
                             </div>
                           </div>
                         )}
@@ -1906,64 +2060,8 @@ export default function LiveRadar() {
                         </span>
                       </div>
 
-                      {/* Tombol Klasifikasi Cepat untuk Analis */}
+                      {/* Kontrol: Keluarkan dari Berita Tersemat */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleSetArchivedVerdict(item.id, 'HOAKS')}
-                          title="Tandai dan konfirmasi isu pantauan ini sebagai Terindikasi Hoaks"
-                          style={{
-                            background: isEffectiveHoax ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
-                            color: isEffectiveHoax ? '#FCA5A5' : '#EF4444',
-                            border: isEffectiveHoax ? '1px solid #EF4444' : '1px solid rgba(239, 68, 68, 0.5)',
-                            borderRadius: '2px',
-                            padding: '2px 7px',
-                            fontSize: '8.5px',
-                            fontFamily: 'var(--font-mono)',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Set Hoaks
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSetArchivedVerdict(item.id, 'FAKTA')}
-                          title="Tandai dan konfirmasi isu pantauan ini sebagai Fakta Resmi"
-                          style={{
-                            background: isEffectiveFact ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
-                            color: isEffectiveFact ? '#6EE7B7' : '#10B981',
-                            border: isEffectiveFact ? '1px solid #10B981' : '1px solid rgba(16, 185, 129, 0.5)',
-                            borderRadius: '2px',
-                            padding: '2px 7px',
-                            fontSize: '8.5px',
-                            fontFamily: 'var(--font-mono)',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Set Fakta
-                        </button>
-                        {(archivedClassification === 'HOAKS' || archivedClassification === 'FAKTA') && (
-                          <button
-                            type="button"
-                            onClick={() => handleSetArchivedVerdict(item.id, 'DIPANTAU')}
-                            title="Kembalikan status isu terarsip ini ke Sedang Dipantau"
-                            style={{
-                              background: 'transparent',
-                              color: '#F59E0B',
-                              border: '1px solid rgba(245, 158, 11, 0.5)',
-                              borderRadius: '2px',
-                              padding: '2px 7px',
-                              fontSize: '8.5px',
-                              fontFamily: 'var(--font-mono)',
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Reset Pantau
-                          </button>
-                        )}
                         <button
                           type="button"
                           onClick={() => handleToggleArchive(item)}
@@ -1977,10 +2075,14 @@ export default function LiveRadar() {
                             fontSize: '8.5px',
                             fontFamily: 'var(--font-mono)',
                             fontWeight: 700,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '3px'
                           }}
                         >
-                          Lepas Sematan
+                          <Pin size={9} style={{ transform: 'rotate(-45deg)', color: '#EF4444' }} />
+                          <span>Lepas Sematan</span>
                         </button>
                       </div>
                     </div>
@@ -2537,6 +2639,126 @@ export default function LiveRadar() {
         <span className="tactical-slashes">///</span>
         <span>PUSSIBERAD INTELLIGENCE RADAR FEED — INTEGRITAS TERJAGA</span>
       </div>
+
+      {/* ─── TOAST NOTIFIKASI TAKTIS: BERITA TERSEMAT (Pojok Kanan Bawah) ─── */}
+      {pinToast && (
+        <div
+          className="steel-chassis-card"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 99999,
+            width: '360px',
+            maxWidth: 'calc(100vw - 48px)',
+            padding: '14px 16px',
+            background: 'linear-gradient(180deg, #16202E 0%, #0D141F 100%)',
+            border: '1px solid #38BDF8',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
+          {/* Header Toast */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '3px',
+                background: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid #38BDF8',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#38BDF8'
+              }}>
+                <Pin size={13} style={{ transform: 'rotate(-45deg)' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.5px' }}>
+                  BERITA TELAH DISEMATKAN!
+                </div>
+                <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+                  Dipindahkan ke halaman Berita Tersemat
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPinToast(null)}
+              title="Tutup notifikasi"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#64748B',
+                cursor: 'pointer',
+                padding: '2px',
+                display: 'inline-flex',
+                alignItems: 'center'
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Deskripsi Klaim */}
+          <div style={{
+            fontSize: '11px',
+            color: '#E2E8F0',
+            lineHeight: '1.4',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            background: 'rgba(11, 16, 23, 0.6)',
+            padding: '6px 8px',
+            borderRadius: '3px',
+            border: '1px solid #1E2734'
+          }}>
+            "{pinToast.claim}"
+          </div>
+
+          {/* Footer Action */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '4px' }}>
+            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircle size={10} color="#10B981" /> Siap Dipantau Khusus
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setPinToast(null)
+                navigate('/archive')
+              }}
+              style={{
+                background: 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                border: '1px solid #38BDF8',
+                color: '#38BDF8',
+                borderRadius: '3px',
+                padding: '3px 8px',
+                fontSize: '9.5px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <span>Buka Berita Tersemat</span>
+              <ExternalLink size={9} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

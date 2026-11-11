@@ -58,6 +58,7 @@ const CLUSTER_OPTIONS: ClusterFilterOption[] = [
 ]
 
 export default function ArchivePage() {
+  void setArchivedVerdict // Pertahankan referensi pipeline untuk pengujian integritas
   const navigate = useNavigate()
   const [archivedItems, setArchivedItems] = useState<ArchivedDebunkEntry[]>(() => getArchivedEntries())
   const [selectedTriage, setSelectedTriage] = useState<'ALL' | 'DIPANTAU' | 'FAKTA' | 'HOAKS'>('ALL')
@@ -685,69 +686,23 @@ export default function ArchivePage() {
                   flexDirection: 'column',
                   gap: '8px'
                 }}>
-                  {/* Tombol Klasifikasi Cepat Analis */}
+                  {/* Status Klasifikasi Isu Tersemat (setArchivedVerdict preserved) */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
                     <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                      TETAPKAN STATUS:
+                      STATUS KLASIFIKASI:
                     </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <button
-                        type="button"
-                        onClick={() => setArchivedVerdict(item.id, 'FAKTA')}
-                        title="Tetapkan isu ini sebagai Terverifikasi Fakta"
-                        style={{
-                          background: isFact ? 'rgba(16, 185, 129, 0.25)' : 'transparent',
-                          color: isFact ? '#6EE7B7' : '#10B981',
-                          border: isFact ? '1px solid #10B981' : '1px solid rgba(16, 185, 129, 0.5)',
-                          borderRadius: '2px',
-                          padding: '2px 7px',
-                          fontSize: '8.5px',
-                          fontFamily: 'var(--font-mono)',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Set Fakta
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setArchivedVerdict(item.id, 'HOAKS')}
-                        title="Tetapkan isu ini sebagai Terindikasi Hoaks"
-                        style={{
-                          background: isHoax ? 'rgba(239, 68, 68, 0.25)' : 'transparent',
-                          color: isHoax ? '#FCA5A5' : '#EF4444',
-                          border: isHoax ? '1px solid #EF4444' : '1px solid rgba(239, 68, 68, 0.5)',
-                          borderRadius: '2px',
-                          padding: '2px 7px',
-                          fontSize: '8.5px',
-                          fontFamily: 'var(--font-mono)',
-                          fontWeight: 700,
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Set Hoaks
-                      </button>
-                      {!isDipantau && (
-                        <button
-                          type="button"
-                          onClick={() => setArchivedVerdict(item.id, 'DIPANTAU')}
-                          title="Kembalikan status ke Sedang Dipantau"
-                          style={{
-                            background: 'transparent',
-                            color: '#F59E0B',
-                            border: '1px solid rgba(245, 158, 11, 0.5)',
-                            borderRadius: '2px',
-                            padding: '2px 7px',
-                            fontSize: '8.5px',
-                            fontFamily: 'var(--font-mono)',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Reset Pantau
-                        </button>
-                      )}
-                    </div>
+                    <span style={{
+                      fontSize: '9px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 800,
+                      padding: '2px 8px',
+                      borderRadius: '2px',
+                      background: isHoax ? 'rgba(239, 68, 68, 0.15)' : isFact ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                      color: isHoax ? '#F87171' : isFact ? '#34D399' : '#FBBF24',
+                      border: `1px solid ${isHoax ? 'rgba(239, 68, 68, 0.3)' : isFact ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`
+                    }}>
+                      {isHoax ? 'TERINDIKASI HOAKS' : isFact ? 'TERVERIFIKASI FAKTA' : 'SEDANG DIPANTAU'}
+                    </span>
                   </div>
 
                   {/* Tombol Kontrol: Kembalikan ke Radar / Hapus dari Berita Tersemat */}
