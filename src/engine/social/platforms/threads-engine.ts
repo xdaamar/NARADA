@@ -4,10 +4,10 @@
  * PUSSIBERAD TNI AD × CODEPOLITAN (Kartika Cyber Hackathon 2026)
  * ══════════════════════════════════════════════════════════════════════════
  * Engine khusus ekstraksi Meta Threads:
- * 1. Gateway Server-Side Narada (Bypass CORS)
- * 2. Threads Thread Shortcode Resolver (threads.net/@user/post/<id> / threads.net/t/<id>)
- * 3. Threads Public oEmbed API (https://www.threads.net/oembed)
- * 4. Analisis Diskusi Teks & Ingest Komentar
+ * 1. Gateway Server-Side Narada (Bypass CORS & Rate Limiting, Live OpenGraph Telemetry)
+ * 2. Threads Thread Shortcode Resolver (threads.net / threads.com /@user/post/<id>)
+ * 3. Threads Public oEmbed API & Diskusi Komentar
+ * 4. Paginasi & Urutan Komentar Terpopuler
  * ══════════════════════════════════════════════════════════════════════════
  */
 
@@ -23,16 +23,19 @@ import { detectSocialPlatform } from '../core/platform-detector.ts'
 export class ThreadsEngine implements PlatformEngine {
   readonly platform: SocialMediaType = 'threads'
   readonly name = 'Threads'
-  readonly officialDomain = 'threads.net'
+  readonly officialDomain = 'threads.net / threads.com'
 
   canHandle(url: string): boolean {
     if (!url) return false
-    return /threads\.net/i.test(url.trim())
+    return /threads\.(?:net|com)/i.test(url.trim())
   }
 
   async extract(url: string, options?: SocialExtractionOptions): Promise<PlatformExtractionResult> {
     const parsed = detectSocialPlatform(url)
     const postId = parsed.postId || `th-${Date.now()}`
+
+    const initialHandle = parsed.authorHandle ? (parsed.authorHandle.startsWith('@') ? parsed.authorHandle : `@${parsed.authorHandle}`) : '@threads_user'
+    const initialName = parsed.authorHandle ? parsed.authorHandle.replace(/^@/, '') : 'Pengguna Threads'
 
     let postData: Partial<AnalyzedPostProfile> = {
       platform: 'threads',
@@ -41,8 +44,8 @@ export class ThreadsEngine implements PlatformEngine {
       postId,
       title: 'Utas Meta Threads',
       caption: '',
-      authorName: 'Pengguna Threads',
-      authorHandle: parsed.authorHandle ? (parsed.authorHandle.startsWith('@') ? parsed.authorHandle : `@${parsed.authorHandle}`) : '@threads_user',
+      authorName: initialName,
+      authorHandle: initialHandle,
       acquisitionMethod: 'OEMBED_PUBLIC',
       dataSourceNotice: 'Resolusi data Threads sedang diproses...',
       commentsDisabled: false
@@ -50,7 +53,7 @@ export class ThreadsEngine implements PlatformEngine {
 
     let comments: AnalyzedCommentItem[] = options?.overrideComments || []
 
-    // ─── Jalur 1: Gateway Server-Side Narada ───
+    // ─── Jalur 1: Gateway Server-Side Narada OSINT ───
     try {
       const gProcess = (globalThis as any).process
       const baseUrl = typeof window !== 'undefined' ? '' : (gProcess?.env?.VITE_DEV_SERVER_URL || 'http://localhost:5175')
@@ -72,6 +75,8 @@ export class ThreadsEngine implements PlatformEngine {
               likeCount: c.likeCount || 0,
               publishedAt: c.publishedAt
             }))
+            // Urutkan komentar berdasarkan suka tertinggi
+            comments.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
           }
         }
       }
@@ -79,12 +84,13 @@ export class ThreadsEngine implements PlatformEngine {
       // Gateway offline
     }
 
-    // ─── Jalur 2: Official Public oEmbed Endpoint Threads ───
-    if (postData.title === 'Utas Meta Threads') {
+    // ─── Jalur 2: Fallback Client-Side Langsung jika Data Belum Lengkap ───
+    if (postData.authorHandle === '@threads_user' || postData.title === 'Utas Meta Threads') {
       try {
         const customFetch = typeof fetch !== 'undefined' ? fetch : null
         if (customFetch) {
-          const oembedUrl = `https://www.threads.net/oembed?url=${encodeURIComponent(url)}`
+          const normUrl = url.replace('threads.com', 'threads.net')
+          const oembedUrl = `https://www.threads.net/oembed?url=${encodeURIComponent(normUrl)}`
           const res = await customFetch(oembedUrl, {
             headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
           })
@@ -102,6 +108,11 @@ export class ThreadsEngine implements PlatformEngine {
       } catch {
         // Fallback
       }
+    }
+
+    // Pastikan seluruh balasan komentar selalu terurut berdasarkan likes tertinggi (real fresh top comments)
+    if (comments.length > 1) {
+      comments.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
     }
 
     return {

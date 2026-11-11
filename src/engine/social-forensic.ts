@@ -68,7 +68,7 @@ export function detectSocialPlatform(url: string): SocialPlatform {
   if (lower.includes('tiktok.com')) return 'TIKTOK'
   if (lower.includes('twitter.com') || lower.includes('x.com')) return 'TWITTER'
   if (lower.includes('facebook.com') || lower.includes('fb.watch') || lower.includes('fb.com')) return 'FACEBOOK'
-  if (lower.includes('threads.net')) return 'THREADS'
+  if (lower.includes('threads.net') || lower.includes('threads.com')) return 'THREADS'
   return 'GENERIC_WEB'
 }
 

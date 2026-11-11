@@ -97,6 +97,17 @@ runTest('SOC-01.5', 'detectSocialPlatform mengenali URL Instagram Reel & Post se
   assert.equal(postRes.postId, 'C4abc123DEF')
 })
 
+runTest('SOC-01.6', 'detectSocialPlatform mengenali URL threads.com dengan query parameter tracking (?xmt=...)', () => {
+  const threadsComUrl = 'https://www.threads.com/@dr.tirta/post/DfjkcSskv8p?xmt=AQG0Z-xiKnQR_aWEBLhAkpBJU3DzRe_ZBDPjnr0ZjTybeg'
+  const res = detectSocialPlatform(threadsComUrl)
+  assert.equal(res.platform, 'threads')
+  assert.equal(res.postId, 'DfjkcSskv8p')
+  assert.equal(res.authorHandle, 'dr.tirta')
+
+  const clean = sanitizeSocialUrl(threadsComUrl)
+  assert.equal(clean, 'https://www.threads.com/@dr.tirta/post/DfjkcSskv8p')
+})
+
 // ─── GATE 2: JACCARD SIMILARITY & STOPWORD TOKENIZER ───
 console.log('\n─── Gate 2: Tokenisasi Leksikal & Klusterisasi Jaccard ───')
 
@@ -204,6 +215,15 @@ runTest('SOC-04.2', 'Instagram extraction engine mengonversi metadata OpenGraph 
   const gatewaySrc = fs.readFileSync(path.join(rootDir, 'src', 'engine', 'transport', 'social-gateway-handler.ts'), 'utf-8')
   assert.ok(gatewaySrc.includes('facebookexternalhit'), 'Gateway Instagram harus memanfaatkan user-agent bot crawling resmi')
   assert.ok(gatewaySrc.includes('XIGComment'), 'Gateway Instagram harus membedah node GraphQL komentar publik')
+})
+
+runTest('SOC-04.3', 'Threads extraction engine mendukung threads.com dan terhubung ke Gateway OSINT', () => {
+  const thSrc = fs.readFileSync(path.join(rootDir, 'src', 'engine', 'social', 'platforms', 'threads-engine.ts'), 'utf-8')
+  assert.ok(thSrc.includes("threads\\.(?:net|com)"), 'Threads engine harus mengenali threads.com dan threads.net')
+  assert.ok(thSrc.includes("/api/social/extract"), 'Threads engine harus terhubung ke Gateway Server')
+
+  const gatewaySrc = fs.readFileSync(path.join(rootDir, 'src', 'engine', 'transport', 'social-gateway-handler.ts'), 'utf-8')
+  assert.ok(gatewaySrc.includes('threads\\.(?:net|com)'), 'Gateway router harus mendukung domain threads.com')
 })
 
 // ─── GATE 5: WORKSPACE STREAMLINING INTEGRITY ───

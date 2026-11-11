@@ -42,9 +42,9 @@ export const PLATFORM_INFO_MAP: Record<SocialMediaType, PlatformMetadataInfo> = 
   },
   threads: {
     name: 'Threads',
-    officialDomain: 'threads.net',
+    officialDomain: 'threads.net / threads.com',
     exampleUrl: 'https://www.threads.net/@puspentni/post/C4xyz789ABC',
-    urlPatternsDescription: 'threads.net/@user/post/...'
+    urlPatternsDescription: 'threads.net/@user/post/..., threads.com/@user/post/...'
   }
 }
 
@@ -143,11 +143,26 @@ export function detectSocialPlatform(url: string): DetectedPlatformInfo {
     return { platform: 'instagram', postId: null }
   }
 
-  // 4. Threads (Mendukung /@user/post/, /post/, /t/)
-  if (/threads\.net/i.test(trimmed)) {
-    const threadsMatch = trimmed.match(/threads\.net\/(?:@([a-zA-Z0-9_.-]+)\/post|t|post)\/([a-zA-Z0-9_-]+)/i)
+  // 4. Threads (Mendukung threads.net & threads.com, format /@user/post/, /post/, /t/)
+  if (/threads\.(?:net|com)/i.test(trimmed)) {
+    const threadsMatch = cleanUrl.match(/threads\.(?:net|com)\/(?:@([a-zA-Z0-9_.-]+)\/post|t|post)\/([a-zA-Z0-9_-]+)/i) ||
+                         trimmed.match(/threads\.(?:net|com)\/(?:@([a-zA-Z0-9_.-]+)\/post|t|post)\/([a-zA-Z0-9_-]+)/i)
     if (threadsMatch) {
-      return { platform: 'threads', authorHandle: threadsMatch[1] || undefined, postId: threadsMatch[2] }
+      return { 
+        platform: 'threads', 
+        authorHandle: threadsMatch[1] || undefined, 
+        authorUsername: threadsMatch[1] || undefined, 
+        postId: threadsMatch[2] 
+      }
+    }
+    const profileMatch = cleanUrl.match(/threads\.(?:net|com)\/@([a-zA-Z0-9_.-]+)/i)
+    if (profileMatch) {
+      return {
+        platform: 'threads',
+        authorHandle: profileMatch[1],
+        authorUsername: profileMatch[1],
+        postId: null
+      }
     }
     return { platform: 'threads', postId: null }
   }
