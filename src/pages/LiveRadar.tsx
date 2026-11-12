@@ -35,7 +35,8 @@ import {
   getArchivedVerdicts,
   toggleArchive,
   setArchivedVerdict,
-  syncArchivedItemsWithRadar
+  syncArchivedItemsWithRadar,
+  reconcileArchivedItems
 } from '../engine/archive/archive-service.ts'
 import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
 import { checkNetworkStatus, type NetworkTelemetryInfo } from '../utils/network.ts'
@@ -570,6 +571,7 @@ export default function LiveRadar() {
         const sorted = sanitizeRadarItems(entries)
         setDebunkItems(sorted)
         syncArchivedItemsWithRadar(sorted)
+        reconcileArchivedItems(sorted).catch(() => {})
       }
       const status = radarScheduler.getStatus()
       setSourceChannel(status.lastSyncSource as typeof sourceChannel || 'LOCAL_ARCHIVE')
@@ -597,6 +599,7 @@ export default function LiveRadar() {
           const sorted = sanitizeRadarItems(cached)
           setDebunkItems(sorted)
           syncArchivedItemsWithRadar(sorted)
+          reconcileArchivedItems(sorted).catch(() => {})
         }
       })
       .catch((e) => {
@@ -615,6 +618,7 @@ export default function LiveRadar() {
       const sorted = sanitizeRadarItems(newEntries)
       setDebunkItems(sorted)
       syncArchivedItemsWithRadar(sorted)
+      reconcileArchivedItems(sorted).catch(() => {})
       const now = new Date()
       setLastSyncTime(
         `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`

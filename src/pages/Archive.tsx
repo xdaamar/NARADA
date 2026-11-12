@@ -34,6 +34,7 @@ import {
   getArchivedEntries,
   unarchiveIssue,
   setArchivedVerdict,
+  reconcileArchivedItems,
   type ArchivedDebunkEntry
 } from '../engine/archive/archive-service.ts'
 import type { ThreatSpectrumCluster } from '../types.ts'
@@ -65,6 +66,8 @@ export default function ArchivePage() {
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [lastSyncTime, setLastSyncTime] = useState<string>('')
+  const [isReconciling, setIsReconciling] = useState<boolean>(false)
+  const [reconcileFeedback, setReconcileFeedback] = useState<string>('')
 
   // Sinkronisasi data arsip saat terjadi perubahan (event-driven 0-ms)
   useEffect(() => {
@@ -81,11 +84,45 @@ export default function ArchivePage() {
 
     handleUpdate()
 
+    // Rekonsiliasi multi-hari otomatis saat halaman dibuka agar berita tersemat lama langsung terupdate
+    reconcileArchivedItems().then(res => {
+      if (res.updatedCount > 0) {
+        setArchivedItems(getArchivedEntries())
+        setReconcileFeedback(`${res.updatedCount} berita tersemat berhasil terklasifikasi otomatis!`)
+        setTimeout(() => setReconcileFeedback(''), 4500)
+      }
+    }).catch(err => {
+      console.warn('[Archive] Gagal auto-reconcile:', err)
+    })
+
     return () => {
       window.removeEventListener('narada:archive-updated', handleUpdate)
       window.removeEventListener('storage', handleUpdate)
     }
   }, [])
+
+  // Handler Refresh & Rekonsiliasi Manual dengan Korpus Cek Fakta Lengkap
+  const handleRefresh = async () => {
+    setIsReconciling(true)
+    try {
+      const res = await reconcileArchivedItems()
+      setArchivedItems(getArchivedEntries())
+      const now = new Date()
+      setLastSyncTime(
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
+      )
+      if (res.updatedCount > 0) {
+        setReconcileFeedback(`${res.updatedCount} berita tersemat berhasil dimutakhirkan ke FAKTA/HOAKS!`)
+      } else {
+        setReconcileFeedback('Status berita tersemat telah terverifikasi mutakhir')
+      }
+      setTimeout(() => setReconcileFeedback(''), 4000)
+    } catch (err) {
+      console.warn('[Archive] Gagal menyegarkan data arsip:', err)
+    } finally {
+      setIsReconciling(false)
+    }
+  }
 
   // Filter entri arsip
   const filteredItems = useMemo(() => {
@@ -181,6 +218,21 @@ export default function ArchivePage() {
                   • SINKRON: {lastSyncTime}
                 </span>
               )}
+              {reconcileFeedback && (
+                <span style={{
+                  fontSize: '9.5px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700,
+                  padding: '2px 7px',
+                  borderRadius: '3px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#34D399',
+                  border: '1px solid rgba(16, 185, 129, 0.4)',
+                  animation: 'fadeIn 0.3s ease'
+                }}>
+                  ⚡ {reconcileFeedback}
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '3px' }}>
               Penyimpanan berita yang disematkan agar tidak tenggelam di radar • Dipantau hingga terklasifikasi sebagai Fakta atau Hoaks
@@ -191,14 +243,9 @@ export default function ArchivePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <button
             type="button"
-            onClick={() => {
-              setArchivedItems(getArchivedEntries())
-              const now = new Date()
-              setLastSyncTime(
-                `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
-              )
-            }}
-            title="Segarkan data berita tersemat"
+            onClick={handleRefresh}
+            disabled={isReconciling}
+            title="Segarkan dan rekonsiliasikan status berita tersemat dengan basis cek fakta lengkap"
             style={{
               padding: '6px 10px',
               borderRadius: '4px',
@@ -210,14 +257,15 @@ export default function ArchivePage() {
               fontSize: '11px',
               fontWeight: 700,
               fontFamily: 'var(--font-mono)',
-              cursor: 'pointer',
+              cursor: isReconciling ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '5px'
+              gap: '5px',
+              opacity: isReconciling ? 0.7 : 1
             }}
           >
-            <RefreshCw size={12} color="#38BDF8" />
-            SEGARKAN
+            <RefreshCw size={12} color="#38BDF8" style={{ animation: isReconciling ? 'spin 1s linear infinite' : 'none' }} />
+            {isReconciling ? 'MENYELARASKAN...' : 'SEGARKAN'}
           </button>
           <button
             type="button"

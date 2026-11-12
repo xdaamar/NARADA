@@ -80,7 +80,9 @@ const {
   unarchiveIssue,
   toggleArchive,
   setArchivedVerdict,
-  syncArchivedItemsWithRadar
+  syncArchivedItemsWithRadar,
+  reconcileArchivedItems,
+  areClaimsSemanticallyMatching
 } = serviceModule
 
 // ─── GATE 1: ARSIPKAN FUNCTIONALITY & INITIAL STATUS "SEDANG DIPANTAU" ───
@@ -305,6 +307,93 @@ runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah mengadop
   assert.ok(topBarSrc.includes('BERITA TERSEMAT'), 'TacticalTopBar harus menampilkan judul Berita Tersemat')
   assert.ok(dashSrc.includes('1. Berita Tersemat'), 'Dashboard Tactical Quick Launchpad harus berlabel 1. Berita Tersemat')
   assert.ok(!dashSrc.includes('Multi-Input Analyzer'), 'Multi-Input Analyzer harus bersih dari Dashboard')
+})
+
+// ─── GATE 6: SPRINT 14 ENGINE HARDENING — SEMANTIC MATCHING & MULTI-DAY RECONCILE ───
+console.log('\n─── Gate 6: Sprint 14 Engine Hardening (Semantic Matching & Multi-Day Reconcile) ───')
+
+runTest('ARC-11', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi HOAKS melalui Semantic Claim Matching meskipun ID berbeda', () => {
+  // Simulasikan berita disematkan analis saat masih belum terverifikasi
+  const pinnedNewsItem = {
+    id: 'CLUST-POLI-99214a',
+    claim: 'Megawati dan Prabowo deklarasi koalisi darurat nasional bubarkan kabinet',
+    cluster: 'POLITIK_NEGARA',
+    verdict: 'UNVERIFIED',
+    clarification: 'Isu beredar di ruang publik digital tanpa konfirmasi.',
+    officialSource: 'Medsos X',
+    sourceUrl: 'https://twitter.com/anon/status/123456789'
+  }
+
+  archiveIssue(pinnedNewsItem)
+
+  let entries = getArchivedEntries()
+  let pinned = entries.find(e => e.id === 'CLUST-POLI-99214a')
+  assert.ok(pinned)
+  assert.equal(pinned.archiveVerdict, 'DIPANTAU', 'Status awal harus DIPANTAU')
+
+  // Beberapa waktu kemudian, TurnBackHoax menerbitkan artikel sanggahan dengan ID berbeda total!
+  const freshFactCheckFeed = [
+    {
+      id: 'src-tbh-88412b', // ID BEDA TOTAL DARI CLUST-POLI-99214a
+      claim: '[SALAH] Megawati dan Prabowo deklarasi koalisi darurat nasional bubarkan kabinet',
+      verdict: 'HOAKS',
+      clarification: 'Pertemuan rahasia Megawati dan Prabowo adalah hoaks bermotif adu domba politik.',
+      officialSource: 'DPP PDI Perjuangan & DPP Gerindra',
+      sourceUrl: 'https://turnbackhoax.id/2026/11/13/salah-megawati-prabowo-koalisi-darurat/'
+    }
+  ]
+
+  // Jalankan syncArchivedItemsWithRadar
+  syncArchivedItemsWithRadar(freshFactCheckFeed)
+
+  entries = getArchivedEntries()
+  pinned = entries.find(e => e.id === 'CLUST-POLI-99214a')
+  assert.ok(pinned)
+  assert.equal(pinned.archiveVerdict, 'HOAKS', 'Status berita tersemat HARUS otomatis berubah menjadi HOAKS via Semantic Matching!')
+  assert.ok(pinned.clarification.includes('adu domba politik'), 'Naskah klarifikasi harus dimutakhirkan dengan data cek fakta')
+  assert.equal(pinned.officialSource, 'DPP PDI Perjuangan & DPP Gerindra')
+})
+
+runTest('ARC-12', 'reconcileArchivedItems otomatis memperbarui berita tersemat dari hari lampau (10 Nov) ke HOAKS/FAKTA per 13 Nov', async () => {
+  // Simulasikan berita disematkan pada 10 Nov (sudah tidak ada di feed radar hari ini)
+  const oldPinnedItem = {
+    id: 'CLUST-SIBE-10NOV-001',
+    claim: 'KPU akui ada kecurangan algoritma pemilu dan membatalkan hasil pilpres',
+    cluster: 'SIBER_PERETASAN',
+    verdict: 'UNVERIFIED',
+    clarification: 'Isu beredar di grup percakapan digital.',
+    officialSource: 'Grup WhatsApp',
+    sourceUrl: 'https://wa.me/xyz'
+  }
+
+  archiveIssue(oldPinnedItem)
+
+  let entries = getArchivedEntries()
+  let oldItem = entries.find(e => e.id === 'CLUST-SIBE-10NOV-001')
+  assert.ok(oldItem)
+  assert.equal(oldItem.archiveVerdict, 'DIPANTAU')
+
+  // Korpus cek fakta lengkap yang baru saja berhasil dihimpun sistem per 13 Nov
+  const completeCorpus = [
+    {
+      id: 'tbh-kpu-final-2026',
+      claim: '[DISINFORMASI] KPU Membatalkan Hasil Pilpres Karena Kecurangan Algoritma',
+      verdict: 'HOAKS',
+      clarification: 'Klaim bahwa KPU membatalkan hasil Pilpres adalah disinformasi. Putusan MK telah final dan mengikat.',
+      officialSource: 'Komisi Pemilihan Umum RI',
+      sourceUrl: 'https://turnbackhoax.id/2026/11/12/kpu-algoritma-pilpres/'
+    }
+  ]
+
+  // Jalankan reconcileArchivedItems
+  const result = await reconcileArchivedItems(completeCorpus)
+  assert.ok(result.updatedCount >= 1, 'Harus mencatat minimal 1 item yang berhasil direkonsiliasi')
+
+  entries = getArchivedEntries()
+  oldItem = entries.find(e => e.id === 'CLUST-SIBE-10NOV-001')
+  assert.ok(oldItem)
+  assert.equal(oldItem.archiveVerdict, 'HOAKS', 'Berita tersemat 10 Nov HARUS otomatis berubah statusnya menjadi HOAKS!')
+  assert.ok(oldItem.clarification.includes('Putusan MK'), 'Klarifikasi resmi harus terpasang di berita tersemat')
 })
 
 console.log('\n══════════════════════════════════════════════════════════════════════')

@@ -8,6 +8,13 @@
  * Berita yang diarsipkan status utamanya adalah SEDANG DIPANTAU secara persisten,
  * dan dapat berubah secara otomatis saat data asli muncul (Fakta atau Hoaks)
  * maupun melalui penetapan verifikasi manual oleh analis intelijen.
+ * 
+ * SPRINT 14 ENGINE HARDENING:
+ * 1. Semantic Claim Matching: Mendeteksi kecocokan klaim berita tersemat dengan
+ *    artikel sanggahan (TurnBackHoax/MAFINDO/ANTARA) meskipun memiliki ID berbeda.
+ * 2. Multi-Day Reconciler (reconcileArchivedItems): Menjamin berita tersemat lama
+ *    (misal dari 10 Nov) yang kini telah terkonfirmasi faktual/hoaks (per 13 Nov)
+ *    otomatis bertransisi statusnya menjadi FAKTA atau HOAKS.
  * ══════════════════════════════════════════════════════════════════════════
  */
 
@@ -39,6 +46,95 @@ function getFormattedWib(): string {
   const dStr = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
   const tStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} WIB`
   return `${dStr}, ${tStr}`
+}
+
+/**
+ * Normalisasi teks klaim untuk pembandingan semantik:
+ * Menghapus tag awalan verifikasi cek fakta [SALAH], [HOAKS], [DISINFORMASI], [KLARIFIKASI], tanda baca, dan spasi.
+ */
+export function normalizeClaimForMatching(text: string): string {
+  if (!text) return ''
+  return text
+    .toLowerCase()
+    .replace(/\[\s*(salah|hoaks|hoax|disinformasi|misinformasi|klarifikasi|fakta|bukan|palsu|manipulasi)\s*\]/gi, '')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * Ekstraksi token substantif (kata bermakna panjang >= 3 karakter, non-stopword umum)
+ */
+export function extractSubstantiveTokens(text: string): string[] {
+  const STOPWORDS = new Set([
+    'dan', 'atau', 'yang', 'ini', 'itu', 'dari', 'pada', 'untuk', 'dengan', 'dalam', 'oleh',
+    'ke', 'di', 'adalah', 'akan', 'telah', 'sudah', 'bisa', 'dapat', 'ada', 'karena', 'jika',
+    'bahwa', 'saat', 'para', 'atas', 'tentang', 'terkait', 'sebagai', 'lebih', 'tidak', 'bukan'
+  ])
+  const normalized = normalizeClaimForMatching(text)
+  return normalized
+    .split(' ')
+    .filter(w => w.length >= 3 && !STOPWORDS.has(w))
+}
+
+/**
+ * Menguji apakah dua klaim secara semantik merujuk pada isu yang sama
+ */
+export function areClaimsSemanticallyMatching(claimA: string, claimB: string): boolean {
+  const normA = normalizeClaimForMatching(claimA)
+  const normB = normalizeClaimForMatching(claimB)
+  if (!normA || !normB) return false
+  if (normA === normB) return true
+  if (normA.length >= 20 && normB.length >= 20 && (normA.includes(normB) || normB.includes(normA))) {
+    return true
+  }
+
+  const tokensA = extractSubstantiveTokens(normA)
+  const tokensB = extractSubstantiveTokens(normB)
+  if (tokensA.length === 0 || tokensB.length === 0) return false
+
+  const setB = new Set(tokensB)
+  let common = 0
+  for (const t of tokensA) {
+    if (setB.has(t)) common++
+  }
+
+  const union = tokensA.length + tokensB.length - common
+  const jaccard = union > 0 ? common / union : 0
+
+  // 1. Jaccard similarity kuat (>= 0.35)
+  if (jaccard >= 0.35) return true
+
+  // 2. Berbagi minimal 3 kata kunci substantif penting (cakupan >= 45% dari klaim yang lebih pendek)
+  const minLen = Math.min(tokensA.length, tokensB.length)
+  if (common >= 3 && (common / minLen) >= 0.45) return true
+
+  return false
+}
+
+/**
+ * Mengevaluasi vonis definitif (HOAKS atau FAKTA) dari entri rujukan
+ */
+export function resolveReferenceVerdict(ref: DebunkKnowledgeEntry): 'HOAKS' | 'FAKTA' | null {
+  const v = (ref.verdict || '').toUpperCase()
+  const rawClaim = (ref.claim || '').trim().toUpperCase()
+
+  if (v === 'HOAKS' || v === 'DISINFORMASI' || v === 'PROPAGANDA' || v === 'SALAH') {
+    return 'HOAKS'
+  }
+  if (v === 'FAKTA' || v === 'BENAR' || v === 'KLARIFIKASI_RESMI') {
+    return 'FAKTA'
+  }
+
+  // Deteksi berbasis tag standar cek fakta TurnBackHoax / Mafindo
+  if (rawClaim.startsWith('[SALAH]') || rawClaim.startsWith('[DISINFORMASI]') || rawClaim.startsWith('[HOAKS]') || rawClaim.startsWith('[MANIPULASI]')) {
+    return 'HOAKS'
+  }
+  if (rawClaim.startsWith('[KLARIFIKASI]') || rawClaim.startsWith('[FAKTA]')) {
+    return 'FAKTA'
+  }
+
+  return null
 }
 
 /**
@@ -236,8 +332,9 @@ export function setArchivedVerdict(id: string, verdict: ArchiveVerdict): void {
 
 /**
  * Menyinkronkan item arsip dengan arus radar terbaru:
- * Jika data radar resmi mengonfirmasi fakta atau hoaks pada isu yang diarsipkan,
- * perbarui metadata dan vonis arsip secara otomatis!
+ * 1. Exact ID Matching (kompatibilitas pipeline historis)
+ * 2. Semantic Claim Matching: Jika artikel berita disematkan, kemudian terbit artikel cek fakta
+ *    (seperti TurnBackHoax/MAFINDO/ANTARA) dengan ID berbeda, vonis otomatis disinkronkan!
  */
 export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): void {
   try {
@@ -249,14 +346,13 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
     const verdicts = getArchivedVerdicts()
     let hasChanges = false
 
+    // 1. Exact ID Matching
     freshItems.forEach(fresh => {
       if (ids.has(fresh.id) && dataMap[fresh.id]) {
         const existing = dataMap[fresh.id]
-        // Cek apakah data radar membawa pembaruan vonis resmi
         const isFreshFact = fresh.verdict === 'FAKTA'
         const isFreshHoax = fresh.verdict === 'HOAKS' || fresh.verdict === 'DISINFORMASI' || fresh.verdict === 'PROPAGANDA'
 
-        // Perbarui naskah klarifikasi & referensi jika ada pembaruan
         if (fresh.clarification && fresh.clarification !== existing.clarification) {
           existing.clarification = fresh.clarification
           hasChanges = true
@@ -278,8 +374,6 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
           hasChanges = true
         }
 
-        // Jika analis belum menetapkan vonis manual (tidak dalam state manual override),
-        // ikuti pembaruan radar resmi secara otomatis!
         if (!existing.isManualOverride) {
           if (isFreshFact && existing.archiveVerdict !== 'FAKTA') {
             existing.archiveVerdict = 'FAKTA'
@@ -296,6 +390,37 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
       }
     })
 
+    // 2. Semantic Claim Matching bagi item yang belum terverifikasi
+    Object.values(dataMap).forEach(existing => {
+      if (!existing || existing.isManualOverride || existing.archiveVerdict !== 'DIPANTAU') return
+
+      const matchedFresh = freshItems.find(fresh => 
+        fresh.id !== existing.id && areClaimsSemanticallyMatching(existing.claim, fresh.claim)
+      )
+
+      if (matchedFresh) {
+        const resolved = resolveReferenceVerdict(matchedFresh)
+        if (resolved === 'HOAKS') {
+          existing.archiveVerdict = 'HOAKS'
+          existing.verdict = matchedFresh.verdict || 'HOAKS'
+          verdicts[existing.id] = 'HOAKS'
+          if (matchedFresh.clarification) existing.clarification = matchedFresh.clarification
+          if (matchedFresh.officialSource) existing.officialSource = matchedFresh.officialSource
+          if (matchedFresh.sourceUrl) existing.sourceUrl = matchedFresh.sourceUrl
+          if (matchedFresh.tacticalResponseMilitary) existing.tacticalResponseMilitary = matchedFresh.tacticalResponseMilitary
+          hasChanges = true
+        } else if (resolved === 'FAKTA') {
+          existing.archiveVerdict = 'FAKTA'
+          existing.verdict = 'FAKTA'
+          verdicts[existing.id] = 'FAKTA'
+          if (matchedFresh.clarification) existing.clarification = matchedFresh.clarification
+          if (matchedFresh.officialSource) existing.officialSource = matchedFresh.officialSource
+          if (matchedFresh.sourceUrl) existing.sourceUrl = matchedFresh.sourceUrl
+          hasChanges = true
+        }
+      }
+    })
+
     if (hasChanges) {
       localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
       localStorage.setItem(STORAGE_KEY_VERDICTS, JSON.stringify(verdicts))
@@ -303,6 +428,138 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
     }
   } catch (err) {
     console.error('Gagal sinkronisasi arsip dengan radar:', err)
+  }
+}
+
+/**
+ * Rekonsiliasi Otomatis Berita Tersemat Multi-Hari:
+ * Menyelaraskan seluruh berita yang disematkan dengan basis data lengkap (arsip terkurasi,
+ * TurnBackHoax, Antara, dan cache radar lokal).
+ * Menjamin bahwa berita yang disematkan dari hari-hari sebelumnya (misal tanggal 10 Nov)
+ * yang kini telah memiliki vonis resmi (per 13 Nov) otomatis bertransisi statusnya menjadi FAKTA atau HOAKS!
+ */
+export async function reconcileArchivedItems(
+  referenceDebunks?: DebunkKnowledgeEntry[]
+): Promise<{ updatedCount: number; items: ArchivedDebunkEntry[] }> {
+  try {
+    const ids = getArchivedIssueIds()
+    if (ids.size === 0) {
+      return { updatedCount: 0, items: [] }
+    }
+
+    const rawData = localStorage.getItem(STORAGE_KEY_DATA)
+    const dataMap: Record<string, ArchivedDebunkEntry> = rawData ? JSON.parse(rawData) : {}
+    const verdicts = getArchivedVerdicts()
+
+    let references: DebunkKnowledgeEntry[] = Array.isArray(referenceDebunks) ? [...referenceDebunks] : []
+
+    // 1. Muat korpus arsip kurasi lokal dari debunk-service (200+ entri Mafindo/TurnBackHoax) jika belum disediakan
+    if (references.length === 0) {
+      try {
+        const debunkService = await import('../data/debunk-service.ts')
+        if (debunkService?.getCuratedArchiveDebunks) {
+          references = [...references, ...debunkService.getCuratedArchiveDebunks()]
+        }
+      } catch {
+        // Fallback jika di lingkungan isolasi runner
+      }
+    }
+
+    // 2. Muat cache radar dari IndexedDB untuk melengkapi data terkini
+    try {
+      const dbAdapter = await import('../../utils/db-adapter.ts')
+      if (dbAdapter?.getCachedRadarItems) {
+        const cached = await dbAdapter.getCachedRadarItems()
+        if (Array.isArray(cached) && cached.length > 0) {
+          references = [...references, ...cached]
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    let updatedCount = 0
+    let hasChanges = false
+
+    Object.values(dataMap).forEach(existing => {
+      if (!existing || existing.isManualOverride) return
+
+      // Hanya proses item yang masih berstatus DIPANTAU
+      if (existing.archiveVerdict === 'DIPANTAU') {
+        // Cari referensi yang cocok baik dari ID maupun kesamaan semantik klaim
+        const matchedRef = references.find(ref => 
+          ref.id === existing.id || areClaimsSemanticallyMatching(existing.claim, ref.claim)
+        )
+
+        if (matchedRef) {
+          const resolved = resolveReferenceVerdict(matchedRef)
+          if (resolved === 'HOAKS') {
+            existing.archiveVerdict = 'HOAKS'
+            existing.verdict = 'HOAKS'
+            verdicts[existing.id] = 'HOAKS'
+            if (matchedRef.clarification && matchedRef.clarification.length > (existing.clarification?.length || 0)) {
+              existing.clarification = matchedRef.clarification
+            }
+            if (matchedRef.officialSource) {
+              existing.officialSource = matchedRef.officialSource
+            }
+            if (matchedRef.sourceUrl) {
+              existing.sourceUrl = matchedRef.sourceUrl
+            }
+            if (matchedRef.tacticalResponseMilitary) {
+              existing.tacticalResponseMilitary = matchedRef.tacticalResponseMilitary
+            }
+            if (matchedRef.threatLevel) {
+              existing.threatLevel = matchedRef.threatLevel
+            }
+            hasChanges = true
+            updatedCount++
+          } else if (resolved === 'FAKTA') {
+            existing.archiveVerdict = 'FAKTA'
+            existing.verdict = 'FAKTA'
+            verdicts[existing.id] = 'FAKTA'
+            if (matchedRef.clarification && matchedRef.clarification.length > (existing.clarification?.length || 0)) {
+              existing.clarification = matchedRef.clarification
+            }
+            if (matchedRef.officialSource) {
+              existing.officialSource = matchedRef.officialSource
+            }
+            if (matchedRef.sourceUrl) {
+              existing.sourceUrl = matchedRef.sourceUrl
+            }
+            hasChanges = true
+            updatedCount++
+          }
+        } else {
+          // Jika tidak ada di references eksternal, evaluasi indikator internal pada entri itu sendiri
+          const selfResolved = resolveReferenceVerdict(existing)
+          if (selfResolved === 'HOAKS') {
+            existing.archiveVerdict = 'HOAKS'
+            existing.verdict = 'HOAKS'
+            verdicts[existing.id] = 'HOAKS'
+            hasChanges = true
+            updatedCount++
+          } else if (selfResolved === 'FAKTA') {
+            existing.archiveVerdict = 'FAKTA'
+            existing.verdict = 'FAKTA'
+            verdicts[existing.id] = 'FAKTA'
+            hasChanges = true
+            updatedCount++
+          }
+        }
+      }
+    })
+
+    if (hasChanges) {
+      localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
+      localStorage.setItem(STORAGE_KEY_VERDICTS, JSON.stringify(verdicts))
+      window.dispatchEvent(new CustomEvent('narada:archive-updated', { detail: { action: 'AUTO_RECONCILE', updatedCount } }))
+    }
+
+    return { updatedCount, items: getArchivedEntries() }
+  } catch (err) {
+    console.error('Gagal rekonsiliasi arsip:', err)
+    return { updatedCount: 0, items: getArchivedEntries() }
   }
 }
 
@@ -315,5 +572,3 @@ export const getWatchlistEntries = getArchivedEntries
 export const getWatchlistIssueIds = getArchivedIssueIds
 export const setWatchlistVerdict = setArchivedVerdict
 export const syncWatchlistWithRadar = syncArchivedItemsWithRadar
-
-
