@@ -44,7 +44,7 @@ export const ACTIVE_RADAR_SOURCES: SourceDefinition[] = sourceCatalog.sources.ma
   enabled: s.enabled,
   attributionLabel: s.attributionLabel,
   attributionUrl: s.attributionUrl,
-  fetchTimeoutMs: s.timeoutMs || 6000,
+  fetchTimeoutMs: s.timeoutMs || 14000,
   policyGuardrail: s.id === 'src-youtube-policy-stub' ? {
     sourceId: 'src-youtube-policy-stub',
     prohibitedActions: [

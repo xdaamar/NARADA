@@ -176,8 +176,10 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
           }
         }
 
+        const isGdelt = targetUrl.includes('gdeltproject.org')
+        const timeoutMs = (sourceConfig && sourceConfig.timeoutMs) || (isGdelt ? 15000 : 14000)
         const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), 8000)
+        const timer = setTimeout(() => controller.abort(), timeoutMs)
 
         let resp
         try {
@@ -551,8 +553,10 @@ async function handleRadarSearchRequest(profileId, queryParams = {}) {
           }
         }
 
+        const isGdelt = targetUrl.includes('gdeltproject.org')
+        const timeoutMs = (sourceConfig && sourceConfig.timeoutMs) || (isGdelt ? 15000 : 14000)
         const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), 8000)
+        const timer = setTimeout(() => controller.abort(), timeoutMs)
 
         let resp
         try {

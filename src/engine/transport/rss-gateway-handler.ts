@@ -77,7 +77,7 @@ export interface GatewayResponse {
 }
 
 const MAX_RESPONSE_SIZE = 2 * 1024 * 1024 // 2 MB
-const DEFAULT_TIMEOUT_MS = 8000 // 8 Detik
+const DEFAULT_TIMEOUT_MS = 14000 // 14 Detik (toleran terhadap beban multi-stream concurrent di Indonesia)
 
 /**
  * Validasi apakah URL tujuan aman dan tidak melanggar batasan SSRF
@@ -225,9 +225,9 @@ export async function handleRadarFeedRequest(
   // 6. Jalankan Fetch Nyata ke Upstream dengan Pengamanan Ketat
   const fetchPromise = (async (): Promise<GatewayResponse> => {
     try {
-      // SPRINT 10: Batas waktu 12 detik dan jeda 5 detik khusus GDELT API untuk mencegah HTTP 429
+      // SPRINT 10 & 14: Batas waktu adaptif dari katalog sumber (10-15s) dan jeda 5s khusus GDELT API
       const isGdeltHost = sourceConfig.allowedHost === 'api.gdeltproject.org' || sourceConfig.upstreamUrl.includes('gdeltproject.org')
-      const timeoutMs = customTimeoutMs || (isGdeltHost ? 12000 : DEFAULT_TIMEOUT_MS)
+      const timeoutMs = customTimeoutMs || (sourceConfig as any).timeoutMs || (isGdeltHost ? 15000 : DEFAULT_TIMEOUT_MS)
 
       if (isGdeltHost) {
         const elapsed = Date.now() - lastGdeltCallTime
@@ -861,7 +861,7 @@ export async function handleRadarSearchRequest(
         lastGdeltCallTime = Date.now()
       }
 
-      const timeoutMs = customTimeoutMs || (isGdelt ? 12000 : DEFAULT_TIMEOUT_MS)
+      const timeoutMs = customTimeoutMs || (isGdelt ? 15000 : DEFAULT_TIMEOUT_MS)
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), timeoutMs)
       const fetchFn = options?.customFetch || fetch

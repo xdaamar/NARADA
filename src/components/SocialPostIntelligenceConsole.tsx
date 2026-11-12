@@ -1047,7 +1047,7 @@ export default function SocialPostIntelligenceConsole() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {/* BARIS ATAS: DECK 1 & DECK 2 */}
+          {/* BARIS ATAS: DECK 1 & DECK 2 (Tinggi Identik 540px dengan Scroll Internal di Card Komentar) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
             {/* ─── DECK 1: PROFIL KONTEN & METRIK KREATOR ─── */}
             <div 
@@ -1059,7 +1059,8 @@ export default function SocialPostIntelligenceConsole() {
                 justifyContent: 'space-between',
                 padding: '18px 20px',
                 position: 'relative',
-                height: '100%'
+                height: '540px',
+                maxHeight: '540px'
               }}
             >
               <span className="bolt-tl" />
@@ -1253,8 +1254,8 @@ export default function SocialPostIntelligenceConsole() {
                 flexDirection: 'column',
                 padding: '18px 20px',
                 position: 'relative',
-                height: '100%',
-                minHeight: '480px'
+                height: '540px',
+                maxHeight: '540px'
               }}
             >
               <span className="bolt-tl" />
@@ -1269,8 +1270,8 @@ export default function SocialPostIntelligenceConsole() {
                 </h3>
               </div>
 
-              {/* Daftar Top Komentar: Memenuhi seluruh tinggi vertikal card, scroll otomatis saat melebihi batas */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+              {/* Daftar Top Komentar: Memenuhi seluruh tinggi vertikal card (identik Card 1), scroll internal otomatis jika memuat 10 komentar */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
                 {analysisResult.topComments.length === 0 ? (
                   <div style={{
                     padding: '24px',
@@ -1370,7 +1371,7 @@ export default function SocialPostIntelligenceConsole() {
             </div>
           </div>
 
-          {/* BARIS BAWAH: DECK 3 & DECK 4 */}
+          {/* BARIS BAWAH: DECK 3 & DECK 4 (Tinggi Identik 460px dengan Scroll Internal di Kluster Templat) */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '18px' }}>
             {/* ─── DECK 3: KLUSTER KOMENTAR TEMPLATE (COPYPASTA) ─── */}
             <div 
@@ -1381,8 +1382,8 @@ export default function SocialPostIntelligenceConsole() {
                 flexDirection: 'column',
                 padding: '18px 20px',
                 position: 'relative',
-                height: '100%',
-                minHeight: '400px'
+                height: '460px',
+                maxHeight: '460px'
               }}
             >
               <span className="bolt-tl" />
@@ -1397,8 +1398,8 @@ export default function SocialPostIntelligenceConsole() {
                 </h3>
               </div>
 
-              {/* Daftar Kluster Copypasta */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+              {/* Daftar Kluster Copypasta: Scroll internal saat daftar kluster panjang */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: '4px' }}>
                 {analysisResult.copypastaClusters.length === 0 ? (
                   <div style={{
                     padding: '24px',
@@ -1497,7 +1498,8 @@ export default function SocialPostIntelligenceConsole() {
                 justifyContent: 'space-between',
                 padding: '18px 20px',
                 position: 'relative',
-                height: '100%'
+                height: '460px',
+                maxHeight: '460px'
               }}
             >
               <span className="bolt-tl" />
