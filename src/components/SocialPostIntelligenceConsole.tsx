@@ -1052,12 +1052,14 @@ export default function SocialPostIntelligenceConsole() {
             {/* ─── DECK 1: PROFIL KONTEN & METRIK KREATOR ─── */}
             <div 
               className="steel-chassis-card"
+              data-deck="DECK 1"
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 padding: '18px 20px',
-                position: 'relative'
+                position: 'relative',
+                height: '100%'
               }}
             >
               <span className="bolt-tl" />
@@ -1066,37 +1068,11 @@ export default function SocialPostIntelligenceConsole() {
               <span className="bolt-br" />
 
               <div>
-                {/* Header Deck 1 */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{
-                      padding: '2px 7px',
-                      borderRadius: '2px',
-                      background: '#101622',
-                      border: '1px solid #2B384E',
-                      color: '#EF4444',
-                      fontSize: '9.5px',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 800
-                    }}>
-                      DECK 1
-                    </span>
-                    <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
-                      PROFIL KONTEN &amp; METRIK KREATOR
-                    </h3>
-                  </div>
-
-                  <span style={{
-                    padding: '2px 6px',
-                    borderRadius: '2px',
-                    background: '#0B1017',
-                    border: '1px solid #1E2B3B',
-                    color: '#64748B',
-                    fontSize: '9.5px',
-                    fontFamily: 'var(--font-mono)'
-                  }}>
-                    METODE: {analysisResult.post.acquisitionMethod}
-                  </span>
+                {/* Header Card Profil Konten */}
+                <div style={{ marginBottom: '14px' }}>
+                  <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
+                    PROFIL KONTEN &amp; METRIK KREATOR
+                  </h3>
                 </div>
 
                 {/* Thumbnail Preview Konten Asli */}
@@ -1271,11 +1247,14 @@ export default function SocialPostIntelligenceConsole() {
             {/* ─── DECK 2: TOP KOMENTAR TERPOPULER ─── */}
             <div 
               className="steel-chassis-card"
+              data-deck="DECK 2"
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 padding: '18px 20px',
-                position: 'relative'
+                position: 'relative',
+                height: '100%',
+                minHeight: '480px'
               }}
             >
               <span className="bolt-tl" />
@@ -1283,41 +1262,15 @@ export default function SocialPostIntelligenceConsole() {
               <span className="bolt-bl" />
               <span className="bolt-br" />
 
-              {/* Header Deck 2 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{
-                    padding: '2px 7px',
-                    borderRadius: '2px',
-                    background: '#101622',
-                    border: '1px solid #2B384E',
-                    color: '#FBBF24',
-                    fontSize: '9.5px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 800
-                  }}>
-                    DECK 2
-                  </span>
-                  <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
-                    TOP KOMENTAR TERPOPULER
-                  </h3>
-                </div>
-
-                <span style={{
-                  padding: '2px 6px',
-                  borderRadius: '2px',
-                  background: '#0B1017',
-                  border: '1px solid #1E2B3B',
-                  color: '#64748B',
-                  fontSize: '9.5px',
-                  fontFamily: 'var(--font-mono)'
-                }}>
-                  {analysisResult.topComments.length} KOMENTAR TERSELEKSI
-                </span>
+              {/* Header Card Top Komentar */}
+              <div style={{ marginBottom: '14px' }}>
+                <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
+                  TOP KOMENTAR TERPOPULER
+                </h3>
               </div>
 
-              {/* Daftar Top Komentar */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', overflowY: 'auto', maxHeight: '340px' }}>
+              {/* Daftar Top Komentar: Memenuhi seluruh tinggi vertikal card, scroll otomatis saat melebihi batas */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '9px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 {analysisResult.topComments.length === 0 ? (
                   <div style={{
                     padding: '24px',
@@ -1326,7 +1279,11 @@ export default function SocialPostIntelligenceConsole() {
                     borderRadius: '3px',
                     border: '1px dashed #233144',
                     color: '#64748B',
-                    fontSize: '11.5px'
+                    fontSize: '11.5px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: 1
                   }}>
                     {analysisResult.post.commentsDisabled
                       ? 'Komentar pada postingan ini dinonaktifkan oleh pembuat konten.'
@@ -1418,11 +1375,14 @@ export default function SocialPostIntelligenceConsole() {
             {/* ─── DECK 3: KLUSTER KOMENTAR TEMPLATE (COPYPASTA) ─── */}
             <div 
               className="steel-chassis-card"
+              data-deck="DECK 3"
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 padding: '18px 20px',
-                position: 'relative'
+                position: 'relative',
+                height: '100%',
+                minHeight: '400px'
               }}
             >
               <span className="bolt-tl" />
@@ -1430,42 +1390,15 @@ export default function SocialPostIntelligenceConsole() {
               <span className="bolt-bl" />
               <span className="bolt-br" />
 
-              {/* Header Deck 3 */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{
-                    padding: '2px 7px',
-                    borderRadius: '2px',
-                    background: '#101622',
-                    border: '1px solid #2B384E',
-                    color: '#F59E0B',
-                    fontSize: '9.5px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 800
-                  }}>
-                    DECK 3
-                  </span>
-                  <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
-                    KLUSTER KOMENTAR TEMPLAT (COPYPASTA)
-                  </h3>
-                </div>
-
-                <span style={{
-                  padding: '2px 6px',
-                  borderRadius: '2px',
-                  background: '#0B1017',
-                  border: '1px solid #1E2B3B',
-                  color: analysisResult.copypastaClusters.length > 0 ? '#FBBF24' : '#64748B',
-                  fontSize: '9.5px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700
-                }}>
-                  {analysisResult.copypastaClusters.length} KLUSTER DITEMUKAN
-                </span>
+              {/* Header Card Kluster Templat */}
+              <div style={{ marginBottom: '14px' }}>
+                <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
+                  KLUSTER KOMENTAR TEMPLAT (COPYPASTA)
+                </h3>
               </div>
 
               {/* Daftar Kluster Copypasta */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: '340px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, minHeight: 0, overflowY: 'auto' }}>
                 {analysisResult.copypastaClusters.length === 0 ? (
                   <div style={{
                     padding: '24px',
@@ -1557,12 +1490,14 @@ export default function SocialPostIntelligenceConsole() {
             {/* ─── DECK 4: INDIKATOR POLA BUZZER & BOT ─── */}
             <div 
               className="steel-chassis-card"
+              data-deck="DECK 4"
               style={{
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 padding: '18px 20px',
-                position: 'relative'
+                position: 'relative',
+                height: '100%'
               }}
             >
               <span className="bolt-tl" />
@@ -1571,42 +1506,11 @@ export default function SocialPostIntelligenceConsole() {
               <span className="bolt-br" />
 
               <div>
-                {/* Header Deck 4 */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{
-                      padding: '2px 7px',
-                      borderRadius: '2px',
-                      background: '#101622',
-                      border: '1px solid #2B384E',
-                      color: '#F87171',
-                      fontSize: '9.5px',
-                      fontFamily: 'var(--font-mono)',
-                      fontWeight: 800
-                    }}>
-                      DECK 4
-                    </span>
-                    <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
-                      INDIKATOR POLA BUZZER &amp; BOT
-                    </h3>
-                  </div>
-
-                  <span style={{
-                    padding: '2px 6px',
-                    borderRadius: '2px',
-                    background: '#0B1017',
-                    border: '1px solid #1E2B3B',
-                    color: analysisResult.buzzerPattern.coordinationLevel === 'TINGGI'
-                      ? '#F87171'
-                      : analysisResult.buzzerPattern.coordinationLevel === 'SEDANG'
-                      ? '#FBBF24'
-                      : '#34D399',
-                    fontSize: '9.5px',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 800
-                  }}>
-                    KOORDINASI: {analysisResult.buzzerPattern.coordinationLevel} ({analysisResult.buzzerPattern.coordinationScore}%)
-                  </span>
+                {/* Header Card Pola Buzzer & Bot */}
+                <div style={{ marginBottom: '14px' }}>
+                  <h3 style={{ margin: 0, fontSize: '12.5px', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.8px' }}>
+                    INDIKATOR POLA BUZZER &amp; BOT
+                  </h3>
                 </div>
 
                 {/* Ringkasan Narasi Buzzer */}
@@ -1625,13 +1529,32 @@ export default function SocialPostIntelligenceConsole() {
                   </div>
                 </div>
 
-                {/* Metrik Burst Velocity & Keywords */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+                {/* Metrik Koordinasi, Burst Velocity & Keywords */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginBottom: '14px' }}>
+                  <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837' }}>
+                    <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+                      TINGKAT KOORDINASI
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 800,
+                      color: analysisResult.buzzerPattern.coordinationLevel === 'TINGGI'
+                        ? '#F87171'
+                        : analysisResult.buzzerPattern.coordinationLevel === 'SEDANG'
+                        ? '#FBBF24'
+                        : '#34D399',
+                      marginTop: '3px'
+                    }}>
+                      {analysisResult.buzzerPattern.coordinationLevel} ({analysisResult.buzzerPattern.coordinationScore}%)
+                    </div>
+                  </div>
+
                   <div style={{ padding: '8px', background: '#0B1017', borderRadius: '3px', border: '1px solid #1E2837' }}>
                     <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
                       KECEPATAN SEBARAN (BURST)
                     </div>
-                    <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
+                    <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
                       {analysisResult.buzzerPattern.burstVelocityCommentPerMinute} cmt/menit
                     </div>
                   </div>
