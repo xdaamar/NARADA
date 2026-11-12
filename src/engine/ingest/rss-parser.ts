@@ -270,7 +270,7 @@ export function extractOfficialSourceFromText(text: string): string {
 /**
  * Pemetaan klaster spektrum ancaman kognitif nasional
  */
-export function classifyCluster(title: string, body: string): ThreatSpectrumCluster {
+export function classifyCluster(title: string, body: string, fallbackCluster?: ThreatSpectrumCluster): ThreatSpectrumCluster {
   const norm = (title + ' ' + body).toLowerCase()
 
   // 1. SIBER & PERETASAN (Prioritas Utama Pertahanan Siber & Hackathon)
@@ -308,6 +308,7 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     return 'SIBER_PERETASAN'
   }
 
+  // 2. KEDAULATAN & PERTAHANAN MILITER
   if (
     norm.includes('tni') ||
     norm.includes('militer') ||
@@ -327,6 +328,50 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     return 'KEDAULATAN_MILITER'
   }
 
+  // 3. AKSI MASSA & DINAMIKA SIPIL LAPANGAN
+  if (
+    norm.includes('unjuk rasa') ||
+    norm.includes('demonstrasi') ||
+    norm.includes('demonstran') ||
+    norm.includes('aksi massa') ||
+    norm.includes('demo buruh') ||
+    norm.includes('buruh') ||
+    norm.includes('mogok') ||
+    norm.includes('mahasiswa turun') ||
+    norm.includes('protes') ||
+    norm.includes('penolakan') ||
+    norm.includes('bentrok') ||
+    norm.includes('ricuh') ||
+    norm.includes('kericuhan') ||
+    norm.includes('pemakzulan') ||
+    norm.includes('petisi')
+  ) {
+    return 'AKSI_MASSA'
+  }
+
+  // 4. EKONOMI & TRANSAKSI DIGITAL
+  if (
+    norm.includes('pajak digital') ||
+    norm.includes('transaksi digital') ||
+    norm.includes('ekonomi digital') ||
+    norm.includes('fintech') ||
+    norm.includes('marketplace') ||
+    norm.includes('pph 22') ||
+    norm.includes('pph digital') ||
+    norm.includes('bank digital') ||
+    norm.includes('qris') ||
+    norm.includes('kripto') ||
+    norm.includes('crypto') ||
+    norm.includes('e-commerce') ||
+    norm.includes('ojk') ||
+    norm.includes('bank indonesia') ||
+    norm.includes('fiskal') ||
+    norm.includes('devisa')
+  ) {
+    return 'EKONOMI_DIGITAL'
+  }
+
+  // 5. BENCANA DARURAT & KRISIS PUBLIK
   if (
     norm.includes('gempa') ||
     norm.includes('tsunami') ||
@@ -336,12 +381,16 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     norm.includes('merapi') ||
     norm.includes('erupsi') ||
     norm.includes('banjir') ||
+    norm.includes('longsor') ||
     norm.includes('bmkg') ||
-    norm.includes('bnpb')
+    norm.includes('bnpb') ||
+    norm.includes('kekeringan') ||
+    norm.includes('darurat bencana')
   ) {
     return 'BENCANA_DARURAT'
   }
 
+  // 6. PENIPUAN BANSOS & LINK FIKTIF
   if (
     norm.includes('bansos') ||
     norm.includes('blt') ||
@@ -359,6 +408,7 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     return 'PENIPUAN_BANSOS'
   }
 
+  // 7. UMUM & KEDINASAN (PANGAN / KESEHATAN PUBLIK)
   if (
     norm.includes('beras plastik') ||
     norm.includes('vaksin') ||
@@ -367,12 +417,15 @@ export function classifyCluster(title: string, body: string): ThreatSpectrumClus
     norm.includes('racun') ||
     norm.includes('telur palsu') ||
     norm.includes('bpom') ||
-    norm.includes('kemenkes')
+    norm.includes('kemenkes') ||
+    norm.includes('harga pangan') ||
+    norm.includes('stok beras')
   ) {
     return 'UMUM_NETRAL'
   }
 
-  return 'POLITIK_NEGARA'
+  // 8. Fallback cerdas sesuai preferensi kanal atau default Politik Negara
+  return fallbackCluster || 'POLITIK_NEGARA'
 }
 
 /**
@@ -563,8 +616,8 @@ export function evaluatePublicationEligibility(
   }
 }
 
-export function isEligibleCognitiveRadarItem(title: string, sourceName = ''): boolean {
-  return evaluatePublicationEligibility(title, sourceName).isEligible
+export function isEligibleCognitiveRadarItem(title: string, sourceName = '', domainHint?: string): boolean {
+  return evaluatePublicationEligibility(title, sourceName, domainHint).isEligible
 }
 
 /**
@@ -696,7 +749,7 @@ export function extractTurnBackHoaxPublicationTimestamp(rawPubDate?: string | nu
   return bestTs
 }
 
-export function parseTurnBackHoaxRss(xmlText: string, maxItems = 25): DebunkKnowledgeEntry[] {
+export function parseTurnBackHoaxRss(xmlText: string, maxItems = 25, defaultCluster?: ThreatSpectrumCluster): DebunkKnowledgeEntry[] {
   if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
 
   try {
@@ -734,7 +787,7 @@ export function parseTurnBackHoaxRss(xmlText: string, maxItems = 25): DebunkKnow
 
       const clarification = extractClarificationFromDesc(rawDesc)
       const officialSource = extractOfficialSourceFromText(cleanTitle + ' ' + rawDesc)
-      const cluster = classifyCluster(cleanTitle, rawDesc)
+      const cluster = classifyCluster(cleanTitle, rawDesc, defaultCluster)
       const keywords = extractKeywords(claim)
 
       const pubTimestamp = extractTurnBackHoaxPublicationTimestamp(rawPubDate, rawDesc)
@@ -780,7 +833,7 @@ export function parseTurnBackHoaxRss(xmlText: string, maxItems = 25): DebunkKnow
  * 2. Parser Live RSS Feed Google News (Profil Isu Nasional Terakreditasi)
  * Menghasilkan entri publikasi pers dengan ID stabil dan status awal UNVERIFIED
  */
-export function parseGoogleNewsRss(xmlText: string, maxItems = 25): DebunkKnowledgeEntry[] {
+export function parseGoogleNewsRss(xmlText: string, maxItems = 25, defaultCluster?: ThreatSpectrumCluster, domainHint?: string): DebunkKnowledgeEntry[] {
   if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
 
   try {
@@ -811,11 +864,13 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25): DebunkKnowle
         continue
       }
 
-      if (!isEligibleCognitiveRadarItem(cleanClaim, sourceName)) {
+      if (!isEligibleCognitiveRadarItem(cleanClaim, sourceName, domainHint)) {
         continue
       }
 
-      const cluster = classifyCluster(cleanTitle, '')
+      const rawDesc = extractNodeText(item.description)
+      const cleanDesc = cleanHtmlText(rawDesc)
+      const cluster = classifyCluster(cleanTitle, cleanDesc || '', defaultCluster)
       const keywords = extractKeywords(cleanClaim)
 
       const isOfficial = sourceName.toUpperCase().includes('TNI') || 
@@ -831,8 +886,6 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25): DebunkKnowle
       const isBreakingRecent = freshness.status === 'BREAKING'
       const stableId = generateStablePublicationId(cleanLink)
 
-      const rawDesc = extractNodeText(item.description)
-      const cleanDesc = cleanHtmlText(rawDesc)
       const hasRealDesc = cleanDesc && 
                           cleanDesc.length > 35 && 
                           !cleanDesc.includes(cleanClaim) && 
@@ -881,7 +934,7 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25): DebunkKnowle
 /**
  * 2b. Parser Live RSS Feed ANTARA News (Kantor Berita Nasional LKBN ANTARA)
  */
-export function parseAntaraRss(xmlText: string, maxItems = 25): DebunkKnowledgeEntry[] {
+export function parseAntaraRss(xmlText: string, maxItems = 25, defaultCluster?: ThreatSpectrumCluster): DebunkKnowledgeEntry[] {
   if (!xmlText || typeof xmlText !== 'string' || !xmlText.trim()) return []
 
   try {
@@ -909,7 +962,7 @@ export function parseAntaraRss(xmlText: string, maxItems = 25): DebunkKnowledgeE
         continue
       }
 
-      const cluster = classifyCluster(cleanTitle, rawDesc)
+      const cluster = classifyCluster(cleanTitle, rawDesc, defaultCluster)
       const keywords = extractKeywords(cleanTitle)
       const { timestamp: pubTimestamp } = parseSourceDate(rawPubDate)
       const publishedDate = formatMilitaryDate(pubTimestamp)

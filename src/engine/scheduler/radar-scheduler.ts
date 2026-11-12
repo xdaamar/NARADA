@@ -260,6 +260,21 @@ export class RadarSchedulerEngine {
   }
 
   /**
+   * Reset status Circuit Breaker dan kegagalan seluruh sumber
+   * Memungkinkan percobaan ulang segera saat sinkronisasi manual atau pemulihan jaringan
+   */
+  public resetCircuitBreakers(): void {
+    const now = Date.now()
+    this.sourceStates.forEach(state => {
+      state.circuitBreakerStatus = 'CLOSED'
+      state.circuitBreakerOpenUntil = null
+      state.consecutiveFailures = 0
+      state.rateLimitResetAt = null
+      state.nextDueAt = now
+    })
+  }
+
+  /**
    * Scheduler Tick internal yang memeriksa dan mengeksekusi sumber yang sedang Due (WP1 / S61-01 s.d. S61-06)
    */
   public async schedulerTick(now = Date.now(), customFetch?: typeof fetch): Promise<DebunkKnowledgeEntry[]> {
@@ -517,6 +532,9 @@ export class RadarSchedulerEngine {
       const errors: Array<{ connectorId: string; code: string; message: string }> = []
 
       try {
+        if (triggerType === 'MANUAL') {
+          this.resetCircuitBreakers()
+        }
         const now = Date.now()
         const enabledSources = sourceCatalog.sources.filter(s => s.enabled)
         

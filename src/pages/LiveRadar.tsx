@@ -129,7 +129,7 @@ export default function LiveRadar() {
   })
   const [sourceChannel, setSourceChannel] = useState<'API_PROXY' | 'API_DIRECT' | 'API_CORS_PROXY' | 'LOCAL_ARCHIVE'>('LOCAL_ARCHIVE')
   const [connectorHealth, setConnectorHealth] = useState<Record<string, ConnectorHealth>>(() => getAllConnectorHealth())
-  const [isConnectorDetailsOpen, setIsConnectorDetailsOpen] = useState<boolean>(false)
+  const [isConnectorDetailsOpen, setIsConnectorDetailsOpen] = useState<boolean>(true)
 
   // State ekspansi cuplikan panjang kartu berita (Sprint 13 UX Polish)
   const [expandedCardIds, setExpandedCardIds] = useState<Set<string>>(new Set())
@@ -197,6 +197,19 @@ export default function LiveRadar() {
       window.removeEventListener('storage', handleArchiveUpdate)
     }
   }, [])
+
+  // Pembaruan telemetri status konektor secara real-time selama proses sinkronisasi berlangsung
+  useEffect(() => {
+    if (!isSyncing) return
+    const interval = setInterval(() => {
+      setConnectorHealth(getAllConnectorHealth())
+      const status = radarScheduler.getStatus()
+      if (status.sourceStates) {
+        setSourceScheduleStates(status.sourceStates)
+      }
+    }, 600)
+    return () => clearInterval(interval)
+  }, [isSyncing])
 
   // State Tooltip Status Cyber Bubble Chat C2 (Respons instan 0-ms tanpa jeda sistem browser)
   const [hoveredStatusId, setHoveredStatusId] = useState<string | null>(null)
@@ -281,6 +294,7 @@ export default function LiveRadar() {
         await clearRadarCacheDB()
         clearKnownPublications()
       }
+      radarScheduler.resetCircuitBreakers()
       const entries = await radarScheduler.triggerNow()
       if (entries && entries.length > 0) {
         // SPRINT 5 (WP6) & SPRINT 13: Konsumsi hasil kanonikal tersortir dan tervalidasi

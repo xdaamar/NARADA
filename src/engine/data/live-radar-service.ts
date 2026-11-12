@@ -202,7 +202,7 @@ async function fetchXmlWithFallback(
   sourceId: string,
   proxyUrl: string, 
   directUrl: string, 
-  timeoutMs = 6000,
+  timeoutMs = 12000,
   customFetch?: typeof fetch
 ): Promise<FetchXmlResult> {
   const fetchStart = Date.now()
@@ -381,6 +381,33 @@ async function fetchXmlWithFallback(
         lastErrorCode = 'NETWORK_ERROR'
         lastErrorMessage = err?.message || 'Gagal koneksi langsung'
       }
+    }
+  }
+
+  // Lapis 4: Fallback Jembatan CORS (Jika berjalan di browser dan direct fetch terhalang CORS)
+  if (directUrl && typeof window !== 'undefined') {
+    const corsProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(directUrl)}`
+    try {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+      const res = await (fetchFn as any)(corsProxyUrl, {
+        signal: controller.signal,
+        headers: { 'Accept': defaultAccept }
+      })
+      clearTimeout(timer)
+      if (res.ok) {
+        const text = await res.text()
+        if (isJsonExpected) {
+          const trimmed = text.trim()
+          if (!trimmed.startsWith('<') && (trimmed.startsWith('{') || trimmed.startsWith('['))) {
+            return { success: true, xml: text, channel: 'API_CORS_PROXY', latencyMs: Date.now() - fetchStart, httpStatus: res.status }
+          }
+        } else if (text.includes('<item>') || text.includes('<entry>') || text.includes('<channel>')) {
+          return { success: true, xml: text, channel: 'API_CORS_PROXY', latencyMs: Date.now() - fetchStart, httpStatus: res.status }
+        }
+      }
+    } catch {
+      // Abaikan jika fallback CORS proxy publik tidak dapat dijangkau
     }
   }
 
@@ -663,11 +690,11 @@ export async function fetchSingleRadarSource(
       } else {
         let parsedEntries: DebunkKnowledgeEntry[] = []
         if (src.parserAdapter === 'antara') {
-          parsedEntries = parseAntaraRss(fetchRes.xml, src.maxItems || 25)
+          parsedEntries = parseAntaraRss(fetchRes.xml, src.maxItems || 25, src.category)
         } else if (src.parserAdapter === 'turnbackhoax' || src.sourceType === 'fact_check') {
-          parsedEntries = parseTurnBackHoaxRss(fetchRes.xml, src.maxItems || 25)
+          parsedEntries = parseTurnBackHoaxRss(fetchRes.xml, src.maxItems || 25, src.category)
         } else {
-          parsedEntries = parseGoogleNewsRss(fetchRes.xml, src.maxItems || 25)
+          parsedEntries = parseGoogleNewsRss(fetchRes.xml, src.maxItems || 25, src.category, src.domain)
         }
 
         norm = parsedEntries.map(item =>

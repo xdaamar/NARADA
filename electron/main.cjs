@@ -392,12 +392,14 @@ app.whenReady().then(async () => {
     console.error('[NARADA Main] SQLite database initialization failed:', err)
   }
 
-  if (!isDev) {
-    try {
-      gatewayInstance = await startGatewayServer(5174, '127.0.0.1')
-      console.log('[NARADA Main] Packaged local loopback gateway started on 127.0.0.1:5174')
-    } catch (err) {
-      console.error('[NARADA Main] Failed to start packaged gateway:', err)
+  try {
+    gatewayInstance = await startGatewayServer(5174, '127.0.0.1')
+    console.log('[NARADA Main] Local loopback gateway started on 127.0.0.1:5174')
+  } catch (err) {
+    if (err && err.code === 'EADDRINUSE') {
+      console.log('[NARADA Main] Gateway server already running on port 5174')
+    } else {
+      console.warn('[NARADA Main] Note: Loopback gateway port 5174 notice:', err?.message || err)
     }
   }
   createWindow()
