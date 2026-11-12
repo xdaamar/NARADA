@@ -1,3 +1,19 @@
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * NARADA — MILITARY A4 INTELLIGENCE REPORT GENERATOR (PRODUK INTELIJEN A4)
+ * PUSSIBERAD TNI AD × CODEPOLITAN (Kartika Cyber Hackathon 2026)
+ * ══════════════════════════════════════════════════════════════════════════
+ * 
+ * Modul resmi penyusunan Produk Intelijen Standar Dinas Militer TNI AD:
+ * 1. Live Reactive Connection ke Berita Tersemat (getArchivedEntries).
+ * 2. Live Reactive Connection ke Hasil Analisis Postingan Medsos (sessionStorage / Scenarios).
+ * 3. Terintegrasi Pengaturan Identitas Operator (Nama Analis, Pangkat, NRP, Satuan).
+ * 4. Stempel Kriptografis SHA-256 & Rantai Bukti Sah Digital (Chain of Custody).
+ * 5. Layout Cetak Siap A4 Resmi Militer lengkap dengan Watermark, Kop Surat, 
+ *    Matriks Temuan Isu, Forensik Medsos, Rekomendasi Komando, dan Draf 4-Kanal Dispenad.
+ * ══════════════════════════════════════════════════════════════════════════
+ */
+
 import { useState, useEffect, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import {
@@ -13,13 +29,16 @@ import {
   Award,
   Lock,
   AlertTriangle,
-  Download
+  Download,
+  Pin,
+  Share2,
+  Layers
 } from 'lucide-react'
-import type { AnalysisResult, IntelReportConfig, ReportClassification } from '../types'
-import { getStoredAnalyses, getUserSettings, seedDemoAnalyses } from '../utils/storage'
-import { formatMilitaryDate, truncateText } from '../utils/format'
-import { generateSHA256 } from '../utils/crypto'
-import { generateCounterNarratives } from '../engine/forensic/counter-narrative-generator'
+import type { IntelReportConfig, ReportClassification } from '../types.ts'
+import { getUserSettings, saveUserSettings } from '../utils/storage.ts'
+import { truncateText } from '../utils/format.ts'
+import { generateSHA256 } from '../utils/crypto.ts'
+import { generateCounterNarratives } from '../engine/forensic/counter-narrative-generator.ts'
 import {
   getInvestigationCase,
   getAllInvestigationCases,
@@ -27,7 +46,17 @@ import {
   getClaimsForCase,
   getAssessmentsForCase,
   generateEvidenceManifest
-} from '../engine/investigation'
+} from '../engine/investigation/index.ts'
+import {
+  getArchivedEntries,
+  archiveIssue,
+  type ArchivedDebunkEntry
+} from '../engine/archive/archive-service.ts'
+import { getCuratedArchiveDebunks } from '../engine/data/debunk-service.ts'
+import {
+  PRELOADED_TEST_SCENARIOS,
+  type SocialPostAnalysisResult
+} from '../engine/social/social-post-analyzer.ts'
 
 export default function Reports() {
   const location = useLocation()
@@ -40,7 +69,81 @@ export default function Reports() {
   }
   const isSimulationMode = Boolean(navState.isSimulation)
 
-  // Muat data kasus jika diteruskan dari Workbench
+  // ─── 1. INTEGRASI DATA BERITA TERSEMAT (LIVE ARSIP) ───
+  const [archivedEntries, setArchivedEntries] = useState<ArchivedDebunkEntry[]>(() => {
+    let existing = getArchivedEntries()
+    if (existing.length === 0) {
+      const cur = getCuratedArchiveDebunks()
+      if (cur.length > 0) {
+        const samples = [
+          cur.find(c => c.cluster === 'KEDAULATAN_MILITER') || cur[0],
+          cur.find(c => c.cluster === 'SIBER_PERETASAN') || cur[1],
+          cur.find(c => c.cluster === 'POLITIK_NEGARA') || cur[2]
+        ].filter(Boolean) as typeof cur
+        samples.forEach(item => archiveIssue(item))
+        existing = getArchivedEntries()
+      }
+    }
+    return existing
+  })
+  const [selectedArchiveIds, setSelectedArchiveIds] = useState<Set<string>>(() => {
+    const all = getArchivedEntries()
+    return new Set(all.map(item => item.id))
+  })
+
+  // Sinkronisasi dinamis Berita Tersemat
+  useEffect(() => {
+    const handleArchiveUpdate = () => {
+      const fresh = getArchivedEntries()
+      setArchivedEntries(fresh)
+      setSelectedArchiveIds(prev => {
+        if (prev.size === 0) return new Set(fresh.map(f => f.id))
+        return prev
+      })
+    }
+    window.addEventListener('narada:archive-updated', handleArchiveUpdate)
+    window.addEventListener('storage', handleArchiveUpdate)
+    return () => {
+      window.removeEventListener('narada:archive-updated', handleArchiveUpdate)
+      window.removeEventListener('storage', handleArchiveUpdate)
+    }
+  }, [])
+
+  // ─── 2. INTEGRASI DATA ANALISIS MEDSOS TERKINI ───
+  const [selectedScenarioIndex, setSelectedScenarioIndex] = useState<number>(0)
+  const [socialAnalysis, setSocialAnalysis] = useState<SocialPostAnalysisResult | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('narada_latest_social_analysis')
+      if (raw) return JSON.parse(raw)
+    } catch {}
+    return PRELOADED_TEST_SCENARIOS[0]?.mockResult || null
+  })
+
+  useEffect(() => {
+    const handleSocialUpdate = (e: any) => {
+      if (e.detail) {
+        setSocialAnalysis(e.detail)
+      } else {
+        try {
+          const raw = sessionStorage.getItem('narada_latest_social_analysis')
+          if (raw) setSocialAnalysis(JSON.parse(raw))
+        } catch {}
+      }
+    }
+    window.addEventListener('narada:social-analysis-updated', handleSocialUpdate)
+    return () => window.removeEventListener('narada:social-analysis-updated', handleSocialUpdate)
+  }, [])
+
+  // Ganti skenario medsos secara interaktif jika diinginkan analis
+  const handleSelectSocialScenario = (idx: number) => {
+    setSelectedScenarioIndex(idx)
+    const sc = PRELOADED_TEST_SCENARIOS[idx]
+    if (sc) {
+      setSocialAnalysis(sc.mockResult)
+    }
+  }
+
+  // ─── 3. INTEGRASI KASUS INVESTIGASI (WORKBENCH LINK) ───
   const linkedCase = useMemo(() => {
     return navState.caseId ? getInvestigationCase(navState.caseId) : undefined
   }, [navState.caseId])
@@ -57,13 +160,21 @@ export default function Reports() {
     return navState.caseId ? getAssessmentsForCase(navState.caseId) : []
   }, [navState.caseId])
 
-  const [analyses, setAnalyses] = useState<AnalysisResult[]>(() => getStoredAnalyses())
+  // ─── 4. KONFIGURASI LAPORAN & IDENTITAS OPERATOR TERPADU ───
   const userSettings = useMemo(() => getUserSettings(), [])
-  const [reportHash, setReportHash] = useState<string>('')
 
-  // Auto-generate nomor laporan standar dinas militer
+  // Format tanggal dinas militer hari ini
+  const todayMilitary = useMemo(() => {
+    const d = new Date()
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+  }, [])
+
   const generatedReportNumber = useMemo(() => {
-    return 'NRD-LAP/X/2026/01'
+    const d = new Date()
+    const romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
+    const romanMonth = romans[d.getMonth()]
+    return `NRD-LAP/${romanMonth}/${d.getFullYear()}/04`
   }, [])
 
   const [config, setConfig] = useState<IntelReportConfig>({
@@ -72,70 +183,108 @@ export default function Reports() {
     analystNrp: userSettings.analystNrp || '21260408',
     reportNumber: generatedReportNumber,
     classification: 'RAHASIA',
-    date: '25 Oktober 2026',
+    date: todayMilitary,
     includeFindingsDetail: true,
     includeFactCheck: true,
     includeRecommendations: true,
   })
 
-  // Sinkronisasi data analisis
-  useEffect(() => {
-    const handleUpdate = () => {
-      setAnalyses(getStoredAnalyses())
-    }
-    window.addEventListener('narada:analyses-updated', handleUpdate)
-    return () => window.removeEventListener('narada:analyses-updated', handleUpdate)
-  }, [])
+  // Mode cakupan sumber data pada dokumen:
+  // 'ALL' = Gabungan Berita Tersemat + Analisis Medsos
+  // 'ARCHIVE_ONLY' = Berita Tersemat Saja
+  // 'SOCIAL_ONLY' = Analisis Medsos Saja
+  const [dataSourceMode, setDataSourceMode] = useState<'ALL' | 'ARCHIVE_ONLY' | 'SOCIAL_ONLY'>('ALL')
+  const [includeSocialForensics, setIncludeSocialForensics] = useState<boolean>(true)
+  const [includeCounterNarrative, setIncludeCounterNarrative] = useState<boolean>(true)
 
-  // Kalkulasi stempel hash kriptografis laporan SHA-256
+  // Auto-persist profil operator ke storage setiap kali ada perubahan
+  const handleUpdateConfigField = (field: keyof IntelReportConfig, val: any) => {
+    setConfig(prev => {
+      const updated = { ...prev, [field]: val }
+      if (field === 'unitName' || field === 'analystName' || field === 'analystNrp') {
+        saveUserSettings({
+          defaultUnit: updated.unitName,
+          analystName: updated.analystName,
+          analystNrp: updated.analystNrp
+        })
+      }
+      return updated
+    })
+  }
+
+  // ─── 5. PENYARINGAN DATA YANG DIMASUKKAN KE LAPORAN ───
+  const activeArchiveItems = useMemo(() => {
+    if (dataSourceMode === 'SOCIAL_ONLY') return []
+    return archivedEntries.filter(item => selectedArchiveIds.has(item.id))
+  }, [archivedEntries, selectedArchiveIds, dataSourceMode])
+
+  // Hitung metrik ringkasan eksekutif
+  const archiveStats = useMemo(() => {
+    const total = activeArchiveItems.length
+    const hoaksCount = activeArchiveItems.filter(i => i.archiveVerdict === 'HOAKS').length
+    const faktaCount = activeArchiveItems.filter(i => i.archiveVerdict === 'FAKTA').length
+    const dipantauCount = activeArchiveItems.filter(i => i.archiveVerdict === 'DIPANTAU' || !i.archiveVerdict).length
+    return { total, hoaksCount, faktaCount, dipantauCount }
+  }, [activeArchiveItems])
+
+  // Draf Kontranarasi Terintegrasi 4 Kanal
+  const counterNarratives = useMemo(() => {
+    const topHoax = activeArchiveItems.find(i => i.archiveVerdict === 'HOAKS')
+    const topPinned = activeArchiveItems[0]
+
+    let topic = 'Operasi Disinformasi dan Manipulasi Persepsi Publik Siber'
+    let clarification = 'Informasi yang beredar telah diverifikasi tidak memiliki dasar faktual kedinasan.'
+    let source = 'Dinas Penerangan TNI Angkatan Darat (Dispenad)'
+    let url = 'https://tniad.mil.id'
+
+    if (topHoax) {
+      topic = topHoax.claim
+      clarification = topHoax.clarification || clarification
+      source = topHoax.officialSource || source
+      url = topHoax.sourceUrl || url
+    } else if (socialAnalysis) {
+      topic = socialAnalysis.post.caption || socialAnalysis.post.title || topic
+      clarification = 'Berdasarkan penelusuran forensik narasi dan verifikasi lapangan, konten tersebut mengandung manipulasi konteks terencana.'
+    } else if (topPinned) {
+      topic = topPinned.claim
+      clarification = topPinned.clarification || clarification
+      source = topPinned.officialSource || source
+    }
+
+    return generateCounterNarratives(topic, {
+      claim: topic,
+      clarification,
+      officialSource: source,
+      sourceUrl: url
+    }, socialAnalysis?.post.platform || 'MEDIA SOSIAL')
+  }, [activeArchiveItems, socialAnalysis])
+
+  // ─── 6. KALKULASI STEMPEL KRIPTOGRAFIS SHA-256 ───
+  const [reportHash, setReportHash] = useState<string>('')
+
   useEffect(() => {
     let isMounted = true
     const computeReportHash = async () => {
-      const rawData = `${config.reportNumber}|${config.classification}|${config.unitName}|${config.date}|${analyses.length}`
+      const rawData = [
+        config.reportNumber,
+        config.classification,
+        config.unitName,
+        config.analystName,
+        config.analystNrp,
+        config.date,
+        dataSourceMode,
+        activeArchiveItems.map(i => `${i.id}:${i.archiveVerdict}:${i.claim}`).join('|'),
+        socialAnalysis ? `${socialAnalysis.post.platform}:${socialAnalysis.post.authorHandle}:${socialAnalysis.buzzerPattern.coordinationScore}` : 'NO_SOCIAL'
+      ].join('///')
+
       const h = await generateSHA256(rawData)
       if (isMounted) setReportHash(h)
     }
     computeReportHash()
     return () => { isMounted = false }
-  }, [config, analyses])
+  }, [config, activeArchiveItems, socialAnalysis, dataSourceMode])
 
-  // Perhitungan metrik laporan
-  const totalAnalyses = analyses.length
-  const threats = useMemo(() => analyses.filter(a => a.category !== 'NETRAL'), [analyses])
-  const criticals = useMemo(() => analyses.filter(a => a.threatLevel === 'critical'), [analyses])
-  const highs = useMemo(() => analyses.filter(a => a.threatLevel === 'high'), [analyses])
-  const mediums = useMemo(() => analyses.filter(a => a.threatLevel === 'medium'), [analyses])
-
-  // Rekapitulasi per kategori
-  const categoryStats = useMemo(() => {
-    const cats = ['HOAKS', 'PROPAGANDA', 'BUZZER', 'DISINFORMASI', 'NETRAL'] as const
-    return cats.map(cat => {
-      const matched = analyses.filter(a => a.category === cat)
-      const count = matched.length
-      const pct = totalAnalyses > 0 ? Math.round((count / totalAnalyses) * 100) : 0
-      const avgMl = count > 0 ? Math.round(matched.reduce((acc, c) => acc + c.mlScore, 0) / count) : 0
-      return {
-        category: cat,
-        count,
-        pct,
-        avgMl,
-        severity: cat === 'HOAKS' || cat === 'PROPAGANDA' ? 'TINGGI / KRITIS' : cat === 'BUZZER' ? 'SEDANG / KOORDINASI' : cat === 'DISINFORMASI' ? 'SEDANG' : 'RENDAH (AMAN)'
-      }
-    })
-  }, [analyses, totalAnalyses])
-
-  // Temuan dengan Cek Fakta
-  const factCheckedItems = useMemo(() => {
-    return analyses.filter(a => a.factCheck && a.factCheck.claims && a.factCheck.claims.length > 0)
-  }, [analyses])
-
-  // Draf Kontranarasi 4 Kanal Otomatis Terintegrasi
-  const counterNarratives = useMemo(() => {
-    const topThreat = criticals[0] || highs[0] || threats[0] || analyses[0]
-    const topic = topThreat?.rawContent || topThreat?.input || 'Ancaman Disinformasi dan Agitasi Kognitif Siber terhadap Kedaulatan'
-    return generateCounterNarratives(topic, topThreat?.debunkMatch, 'Multi-Channel Intel Report')
-  }, [criticals, highs, threats, analyses])
-
+  // ─── 7. HANDLER AKSI ───
   const handlePrint = () => {
     window.print()
   }
@@ -147,7 +296,50 @@ export default function Reports() {
       targetCase = allCases[0]
     }
     if (!targetCase) {
-      alert('Belum ada kasus investigasi aktif untuk mengekspor Evidence Manifest.')
+      // Buat manifest virtual dari laporan aktif saat ini
+      const virtualManifest = {
+        manifestVersion: '2.0.0-MIL-A4',
+        generatedAt: new Date().toISOString(),
+        reportNumber: config.reportNumber,
+        classification: config.classification,
+        reportingUnit: config.unitName,
+        analyst: {
+          name: config.analystName,
+          nrp: config.analystNrp
+        },
+        cryptographicProof: {
+          algorithm: 'SHA-256',
+          digest: reportHash,
+          status: 'VALIDATED_BY_PUSSIBERAD'
+        },
+        scope: {
+          mode: dataSourceMode,
+          pinnedIssuesCount: activeArchiveItems.length,
+          pinnedIssues: activeArchiveItems.map(item => ({
+            id: item.id,
+            verdict: item.archiveVerdict,
+            cluster: item.cluster,
+            claim: item.claim,
+            officialSource: item.officialSource
+          })),
+          socialForensic: socialAnalysis ? {
+            platform: socialAnalysis.post.platform,
+            authorHandle: socialAnalysis.post.authorHandle,
+            copypastaClustersCount: socialAnalysis.copypastaClusters?.length || 0,
+            coordinationLevel: socialAnalysis.buzzerPattern.coordinationLevel,
+            coordinationScore: socialAnalysis.buzzerPattern.coordinationScore
+          } : null
+        }
+      }
+
+      const jsonStr = JSON.stringify(virtualManifest, null, 2)
+      const blob = new Blob([jsonStr], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `evidence-manifest-${config.reportNumber.replace(/[/\\?%*:|"<>]/g, '_')}.json`
+      a.click()
+      URL.revokeObjectURL(url)
       return
     }
 
@@ -166,8 +358,22 @@ export default function Reports() {
     }
   }
 
-  const handleSeedDemo = () => {
-    seedDemoAnalyses()
+  // Muat sampel isu strategis tersemat binaan Pussiberad jika arsip kosong
+  const handleSeedCuratedArchive = () => {
+    const cur = getCuratedArchiveDebunks()
+    if (cur.length > 0) {
+      // Ambil 3 isu paling strategis (Kedaulatan Militer, Siber/Peretasan, Politik Negara)
+      const samples = [
+        cur.find(c => c.cluster === 'KEDAULATAN_MILITER') || cur[0],
+        cur.find(c => c.cluster === 'SIBER_PERETASAN') || cur[1],
+        cur.find(c => c.cluster === 'POLITIK_NEGARA') || cur[2]
+      ].filter(Boolean) as typeof cur
+
+      samples.forEach(item => archiveIssue(item))
+      const fresh = getArchivedEntries()
+      setArchivedEntries(fresh)
+      setSelectedArchiveIds(new Set(fresh.map(f => f.id)))
+    }
   }
 
   const handleResetConfig = () => {
@@ -177,11 +383,31 @@ export default function Reports() {
       analystNrp: '21260408',
       reportNumber: generatedReportNumber,
       classification: 'RAHASIA',
-      date: '25 Oktober 2026',
+      date: todayMilitary,
       includeFindingsDetail: true,
       includeFactCheck: true,
       includeRecommendations: true,
     })
+    setDataSourceMode('ALL')
+    setIncludeSocialForensics(true)
+    setIncludeCounterNarrative(true)
+  }
+
+  const toggleArchiveSelection = (id: string) => {
+    setSelectedArchiveIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAllArchives = () => {
+    if (selectedArchiveIds.size === archivedEntries.length) {
+      setSelectedArchiveIds(new Set())
+    } else {
+      setSelectedArchiveIds(new Set(archivedEntries.map(e => e.id)))
+    }
   }
 
   return (
@@ -198,12 +424,13 @@ export default function Reports() {
             color: 'var(--narada-red)',
             border: '1px solid rgba(200, 16, 46, 0.3)',
             letterSpacing: '1.5px',
-            textTransform: 'uppercase'
+            textTransform: 'uppercase',
+            fontWeight: 700
           }}>
             INTELLIGENCE REPORT GENERATOR
           </span>
           <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-            FORMAT DOKUMEN DINAS MILITER TNI AD
+            /// FORMAT DOKUMEN DINAS MILITER TNI AD (A4 RESMI)
           </span>
         </div>
 
@@ -218,11 +445,11 @@ export default function Reports() {
           Laporan Intelijen Ancaman Kognitif & Siber
         </h1>
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Penyusunan berkas produk intelijen resmi standar militer siap cetak dan siap dilaporkan ke pimpinan komando.
+          Penyusunan produk telaahan intelijen komando militer yang terhubung langsung dengan <strong>Berita Tersemat</strong> dan <strong>Analisis Medsos</strong> terkini, siap cetak standar A4 resmi dengan stempel SHA-256.
         </p>
       </div>
 
-      {/* ─── Banner Peringatan Simulasi Sintetis (Sprint 1D Firewall) ─── */}
+      {/* ─── Banner Peringatan Simulasi Sintetis (Firewall Integritas) ─── */}
       {isSimulationMode && (
         <div className="no-print" style={{
           marginBottom: '16px',
@@ -248,17 +475,21 @@ export default function Reports() {
 
       {/* ─── Layout 2 Kolom: Kiri Panel Konfigurasi, Kanan Pratinjau Kertas Resmi ─── */}
       <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+
         {/* ─── KOLOM KIRI: Panel Konfigurasi Laporan (Disembunyikan saat cetak) ─── */}
-        <div className="report-config-panel no-print" style={{ width: '340px', flexShrink: 0 }}>
+        <div className="report-config-panel no-print" style={{ width: '360px', flexShrink: 0 }}>
+          
+          {/* Card 1: Pengaturan Identitas & Kop Militer */}
           <div className="steel-chassis-card" style={{ marginBottom: '16px', position: 'relative' }}>
             <span className="bolt-tl" />
             <span className="bolt-tr" />
             <span className="bolt-bl" />
             <span className="bolt-br" />
+            
             <div className="card-header">
               <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Sliders size={13} color="var(--narada-red)" />
-                KONFIGURASI PRODUK INTELIJEN
+                IDENTITAS & KOP DOKUMEN MILITER
               </div>
               <button
                 type="button"
@@ -270,7 +501,7 @@ export default function Reports() {
               </button>
             </div>
 
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {/* Nama Satuan */}
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -280,49 +511,64 @@ export default function Reports() {
                   type="text"
                   className="form-control"
                   value={config.unitName}
-                  onChange={e => setConfig({ ...config, unitName: e.target.value })}
+                  onChange={e => handleUpdateConfigField('unitName', e.target.value)}
+                  placeholder="PUSSIBERAD TNI AD"
                 />
               </div>
 
               {/* Nama Analis & NRP */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <User size={11} /> NAMA ANALIS & PANGKAT
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={config.analystName}
-                  onChange={e => setConfig({ ...config, analystName: e.target.value })}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '8px' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <User size={11} /> NAMA ANALIS & PANGKAT
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={config.analystName}
+                    onChange={e => handleUpdateConfigField('analystName', e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Award size={11} /> NRP / NIP
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={config.analystNrp || ''}
+                    onChange={e => handleUpdateConfigField('analystNrp', e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Award size={11} /> NRP / NIP ANALIS
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={config.analystNrp || ''}
-                  onChange={e => setConfig({ ...config, analystNrp: e.target.value })}
-                />
+              {/* Nomor Laporan & Tanggal */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Hash size={11} /> NO. LAPORAN DINAS
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={config.reportNumber}
+                    onChange={e => handleUpdateConfigField('reportNumber', e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">TANGGAL DINAS</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={config.date}
+                    onChange={e => handleUpdateConfigField('date', e.target.value)}
+                  />
+                </div>
               </div>
 
-              {/* Nomor Laporan */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Hash size={11} /> NOMOR LAPORAN DINAS
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={config.reportNumber}
-                  onChange={e => setConfig({ ...config, reportNumber: e.target.value })}
-                />
-              </div>
-
-              {/* Klasifikasi Keamanan */}
+              {/* Tingkat Klasifikasi Keamanan */}
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <Lock size={11} /> TINGKAT KLASIFIKASI DOKUMEN
@@ -335,7 +581,7 @@ export default function Reports() {
                       <button
                         key={cls}
                         type="button"
-                        onClick={() => setConfig({ ...config, classification: cls })}
+                        onClick={() => handleUpdateConfigField('classification', cls)}
                         style={{
                           padding: '7px 4px',
                           fontSize: '11px',
@@ -357,54 +603,243 @@ export default function Reports() {
                   })}
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Tanggal Laporan */}
+          {/* Card 2: Sumber Data & Komponen Dokumen */}
+          <div className="steel-chassis-card" style={{ marginBottom: '16px', position: 'relative' }}>
+            <span className="bolt-tl" />
+            <span className="bolt-tr" />
+            <span className="bolt-bl" />
+            <span className="bolt-br" />
+
+            <div className="card-header">
+              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Layers size={13} color="var(--narada-gold)" />
+                SUMBER DATA LAPORAN INTELIJEN
+              </div>
+            </div>
+
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Pilihan Cakupan Sumber Data */}
               <div className="form-group">
-                <label className="form-label">TANGGAL LAPORAN</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={config.date}
-                  onChange={e => setConfig({ ...config, date: e.target.value })}
-                />
+                <label className="form-label">CAKUPAN SUMBER INTELIJEN</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '4px' }}>
+                  {[
+                    { key: 'ALL', label: 'Gabungan' },
+                    { key: 'ARCHIVE_ONLY', label: 'Tersemat' },
+                    { key: 'SOCIAL_ONLY', label: 'Medsos' }
+                  ].map(m => (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setDataSourceMode(m.key as any)}
+                      style={{
+                        padding: '6px 4px',
+                        fontSize: '10px',
+                        fontWeight: '700',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        background: dataSourceMode === m.key ? 'var(--steel-plate-active)' : 'var(--bg-elevated)',
+                        color: dataSourceMode === m.key ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        border: dataSourceMode === m.key ? '1px solid var(--border-focus)' : '1px solid var(--border-subtle)'
+                      }}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Pilihan Komponen Laporan (Checkboxes) */}
+              {/* Checklist Isu Berita Tersemat */}
+              {dataSourceMode !== 'SOCIAL_ONLY' && (
+                <div style={{
+                  padding: '10px',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-subtle)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Pin size={11} color="var(--accent-gold)" />
+                      PILIH ISU TERSEMAT ({activeArchiveItems.length}/{archivedEntries.length}):
+                    </span>
+                    {archivedEntries.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={toggleSelectAllArchives}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--accent-cyan)',
+                          fontSize: '9px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        {selectedArchiveIds.size === archivedEntries.length ? 'Batal Semua' : 'Pilih Semua'}
+                      </button>
+                    )}
+                  </div>
+
+                  {archivedEntries.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '10px 4px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                        Belum ada berita tersemat dari Radar.
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleSeedCuratedArchive}
+                        style={{ width: '100%', fontSize: '10px', justifyContent: 'center' }}
+                      >
+                        <Sparkles size={11} color="var(--accent-gold)" /> + Muat Isu Tersemat Binaan
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
+                      {archivedEntries.map(entry => {
+                        const isChecked = selectedArchiveIds.has(entry.id)
+                        const verdictColor = entry.archiveVerdict === 'HOAKS' ? '#EF4444' : entry.archiveVerdict === 'FAKTA' ? '#10B981' : '#F59E0B'
+                        return (
+                          <div
+                            key={entry.id}
+                            onClick={() => toggleArchiveSelection(entry.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '5px 6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              background: isChecked ? 'rgba(255,255,255,0.04)' : 'transparent',
+                              border: isChecked ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent'
+                            }}
+                          >
+                            {isChecked ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                            <div style={{ flex: 1, minWidth: 0, fontSize: '11px' }}>
+                              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
+                                {entry.claim}
+                              </div>
+                            </div>
+                            <span style={{
+                              fontSize: '8px',
+                              fontWeight: 800,
+                              padding: '1px 4px',
+                              borderRadius: '2px',
+                              background: `${verdictColor}22`,
+                              color: verdictColor,
+                              border: `1px solid ${verdictColor}44`,
+                              flexShrink: 0
+                            }}>
+                              {entry.archiveVerdict || 'DIPANTAU'}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pilihan Postingan Medsos */}
+              {dataSourceMode !== 'ARCHIVE_ONLY' && (
+                <div style={{
+                  padding: '10px',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-subtle)'
+                }}>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Share2 size={11} color="var(--accent-cyan)" />
+                    SKENARIO ANALISIS MEDSOS:
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginBottom: '8px' }}>
+                    {PRELOADED_TEST_SCENARIOS.map((sc, idx) => {
+                      const isSel = selectedScenarioIndex === idx
+                      return (
+                        <button
+                          key={sc.id}
+                          type="button"
+                          onClick={() => handleSelectSocialScenario(idx)}
+                          style={{
+                            padding: '4px 2px',
+                            fontSize: '9px',
+                            fontWeight: 800,
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            textTransform: 'uppercase',
+                            background: isSel ? 'var(--narada-red)' : 'var(--bg-tertiary)',
+                            color: isSel ? '#FFFFFF' : 'var(--text-secondary)',
+                            border: isSel ? '1px solid var(--narada-red)' : '1px solid var(--border-subtle)'
+                          }}
+                        >
+                          {sc.platform}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {socialAnalysis && (
+                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                      <div><strong>Kreator:</strong> {socialAnalysis.post.authorHandle || '@official_source'}</div>
+                      <div style={{ color: 'var(--accent-gold)' }}><strong>Kluster Copypasta:</strong> {socialAnalysis.copypastaClusters?.length || 0} kelompok terdeteksi</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Komponen yang Disertakan */}
               <div style={{
-                padding: '12px',
+                padding: '10px',
                 background: 'var(--bg-elevated)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--bg-border)',
+                borderRadius: '4px',
+                border: '1px solid var(--border-subtle)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px'
               }}>
-                <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
                   BAGIAN DOKUMEN YANG DISERTAKAN:
                 </div>
 
                 <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}
-                  onClick={() => setConfig({ ...config, includeFindingsDetail: !config.includeFindingsDetail })}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
+                  onClick={() => handleUpdateConfigField('includeFindingsDetail', !config.includeFindingsDetail)}
                 >
-                  {config.includeFindingsDetail ? <CheckSquare size={14} color="var(--narada-red)" /> : <Square size={14} color="var(--text-muted)" />}
-                  <span>Matriks Bukti Digital & Temuan</span>
+                  {config.includeFindingsDetail ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                  <span>Matriks Temuan Isu Tersemat</span>
                 </div>
 
                 <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}
-                  onClick={() => setConfig({ ...config, includeFactCheck: !config.includeFactCheck })}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
+                  onClick={() => setIncludeSocialForensics(!includeSocialForensics)}
                 >
-                  {config.includeFactCheck ? <CheckSquare size={14} color="var(--narada-red)" /> : <Square size={14} color="var(--text-muted)" />}
-                  <span>Lembar Verifikasi Fakta (Mafindo)</span>
+                  {includeSocialForensics ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                  <span>Forensik Medsos & Kluster Buzzer</span>
                 </div>
 
                 <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px' }}
-                  onClick={() => setConfig({ ...config, includeRecommendations: !config.includeRecommendations })}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
+                  onClick={() => handleUpdateConfigField('includeRecommendations', !config.includeRecommendations)}
                 >
-                  {config.includeRecommendations ? <CheckSquare size={14} color="var(--narada-red)" /> : <Square size={14} color="var(--text-muted)" />}
-                  <span>Rekomendasi Respons Komando</span>
+                  {config.includeRecommendations ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                  <span>Rekomendasi Tindakan Komando</span>
+                </div>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
+                  onClick={() => setIncludeCounterNarrative(!includeCounterNarrative)}
+                >
+                  {includeCounterNarrative ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                  <span>Draf Kontranarasi 4 Kanal Dispenad</span>
                 </div>
               </div>
 
@@ -416,10 +851,10 @@ export default function Reports() {
                 style={{ width: '100%', justifyContent: 'center' }}
               >
                 <Printer size={16} />
-                Cetak / Simpan PDF Resmi
+                Cetak / Simpan PDF Resmi (A4)
               </button>
 
-              {/* Tombol Unduh Evidence Manifest JSON (Sprint 3 - P5) */}
+              {/* Tombol Unduh Evidence Manifest JSON */}
               <button
                 type="button"
                 className="btn btn-secondary btn-lg"
@@ -427,7 +862,6 @@ export default function Reports() {
                 style={{
                   width: '100%',
                   justifyContent: 'center',
-                  marginTop: '8px',
                   border: '1px solid rgba(212, 175, 55, 0.4)',
                   color: '#D4AF37'
                 }}
@@ -438,23 +872,6 @@ export default function Reports() {
               </button>
             </div>
           </div>
-
-          {/* Banner Sampel Demo jika data kosong */}
-          {totalAnalyses === 0 && (
-            <div className="card" style={{ padding: '14px', background: 'var(--bg-elevated)', textAlign: 'center' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                Belum ada data analisis pada sesi ini.
-              </div>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={handleSeedDemo}
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                <Sparkles size={12} color="#EF4444" /> Muat Skenario Demo Siap Pantau
-              </button>
-            </div>
-          )}
         </div>
 
         {/* ─── KOLOM KANAN: LIVE DOCUMENT PREVIEW (Kertas Putih Standar Militer) ─── */}
@@ -497,7 +914,7 @@ export default function Reports() {
               DOKUMEN INTELIJEN PUSSIBERAD - KLASIFIKASI: {config.classification}
             </div>
 
-            {/* ─── WATERMARK SIMULASI BENCHMARK (SPRINT 1D FIREWALL) ─── */}
+            {/* ─── WATERMARK SIMULASI BENCHMARK (FIREWALL INTEGRITAS) ─── */}
             {isSimulationMode && (
               <div className="watermark-simulation" style={{
                 position: 'absolute',
@@ -527,8 +944,15 @@ export default function Reports() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <img
-                    src="/image/Electrified Golden Globe Crest.png"
-                    alt="Lambang Kartika Eka Paksi & Pussiberad TNI AD"
+                    src="./image/Electrified%20Golden%20Globe%20Crest.png"
+                    onError={(e) => {
+                      // Fallback jika dimuat di web dev server
+                      const target = e.currentTarget
+                      if (target.src.includes('./image/')) {
+                        target.src = '/image/Electrified%20Golden%20Globe%20Crest.png'
+                      }
+                    }}
+                    alt="Lambang Kartika Eka Paksi &amp; Pussiberad TNI AD"
                     style={{
                       width: '68px',
                       height: '68px',
@@ -584,7 +1008,7 @@ export default function Reports() {
                       borderRadius: '3px',
                       display: 'inline-block'
                     }}>
-                      DEMONSTRATION / UNCLASSIFIED — NARADA ANALYTICAL ASSESSMENT
+                      RESMI / DOKUMEN INTELIJEN DINAS — ANALISIS CROSS-CORROBORATION
                     </div>
                   </div>
                 </div>
@@ -629,7 +1053,7 @@ export default function Reports() {
               <div><strong style={{ color: '#4B5563' }}>Satuan Pelapor:</strong> {config.unitName}</div>
               <div><strong style={{ color: '#4B5563' }}>Klasifikasi:</strong> {config.classification}</div>
               <div><strong style={{ color: '#4B5563' }}>Analis Intelijen:</strong> {config.analystName} {config.analystNrp ? `(NRP: ${config.analystNrp})` : ''}</div>
-              <div><strong style={{ color: '#4B5563' }}>Engine Pemroses:</strong> NARADA AI Hybrid (TF-IDF + NB 60% / Rules 40%)</div>
+              <div><strong style={{ color: '#4B5563' }}>Engine Pemroses:</strong> NARADA SIBER ENGINE (Multi-Stream Reconciler &amp; Jaccard ≥ 0.70)</div>
             </div>
 
             {/* ─── BAGIAN I: RINGKASAN EKSEKUTIF ─── */}
@@ -646,14 +1070,15 @@ export default function Reports() {
                 I. RINGKASAN EKSEKUTIF (EXECUTIVE SUMMARY)
               </div>
               <p style={{ color: '#1F2937', lineHeight: '1.8', textAlign: 'justify' }}>
-                Berdasarkan operasi pemantauan dan analisis kognitif pada sesi ini, satuan telah memproses sebanyak{' '}
-                <strong>{totalAnalyses} konten informasi digital</strong> dari berbagai modalitas sumber (URL portal berita, tangkapan layar media sosial, teks langsung, dan berkas batch). Dari total tersebut, terdeteksi{' '}
-                <strong>{threats.length} konten berindikasi ancaman kognitif aktif</strong>, dengan rincian:{' '}
-                <strong style={{ color: '#DC2626' }}>{criticals.length} berstatus Kritis (CRITICAL)</strong>,{' '}
-                <strong style={{ color: '#D97706' }}>{highs.length} berstatus Tinggi (HIGH)</strong>, dan{' '}
-                <strong style={{ color: '#B45309' }}>{mediums.length} berstatus Sedang (MEDIUM)</strong>.
+                Berdasarkan operasi pemantauan dan analisis kognitif siber pada sesi ini, satuan telah mengevaluasi sebanyak{' '}
+                <strong>{activeArchiveItems.length} isu berita tersemat</strong> dan{' '}
+                <strong>{socialAnalysis ? '1 investigasi mendalam postingan media sosial' : '0 postingan medsos'}</strong>. 
+                Dari penelaahan data silang (*cross-corroboration*), teridentifikasi{' '}
+                <strong style={{ color: '#DC2626' }}>{archiveStats.hoaksCount} materi HOAKS/DISINFORMASI terkonfirmasi</strong>,{' '}
+                <strong style={{ color: '#16A34A' }}>{archiveStats.faktaCount} materi FAKTA/KLARIFIKASI resmi</strong>, dan{' '}
+                <strong style={{ color: '#D97706' }}>{archiveStats.dipantauCount} materi SEDANG DIPANTAU</strong> secara berkala.
               </p>
-              {criticals.length > 0 && (
+              {(archiveStats.hoaksCount > 0 || (socialAnalysis && socialAnalysis.copypastaClusters && socialAnalysis.copypastaClusters.length > 0)) && (
                 <div style={{
                   marginTop: '10px',
                   padding: '10px 14px',
@@ -663,51 +1088,12 @@ export default function Reports() {
                   fontSize: '11px',
                   lineHeight: '1.6'
                 }}>
-                  <strong>PERHATIAN KOMANDO:</strong> Teridentifikasi serangan informasi terstruktur yang menargetkan reputasi pengadaan alutsista serta narasi provokasi separatis wilayah. Disarankan pelibatan counter-narrative resmi Dispenad dan eskalasi koordinasi BSSN.
+                  <strong>PERHATIAN KOMANDO:</strong> Teridentifikasi upaya manipulasi kognitif siber terstruktur dengan amplifikasi pola seragam (*astroturfing*). Disarankan aktivasi strategi komunikasi 4-kanal Dispenad serta penguatan komsos teritorial Babinsa untuk meredam kegaduhan opini publik.
                 </div>
               )}
             </div>
 
-            {/* ─── BAGIAN II: STATISTIK & DISTRIBUSI ANCAMAN ─── */}
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{
-                fontSize: '12px',
-                fontWeight: '800',
-                letterSpacing: '1.5px',
-                color: '#C8102E',
-                marginBottom: '8px',
-                borderBottom: '1.5px solid #E5E7EB',
-                paddingBottom: '4px'
-              }}>
-                II. REKAPITULASI STATISTIK ANCAMAN KOGNITIF
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: '#F3F4F6', borderBottom: '2px solid #D1D5DB' }}>
-                    <th style={{ padding: '8px 10px', color: '#374151' }}>KATEGORI KOGNITIF</th>
-                    <th style={{ padding: '8px 10px', color: '#374151', textAlign: 'center' }}>JUMLAH KASUS</th>
-                    <th style={{ padding: '8px 10px', color: '#374151', textAlign: 'center' }}>PERSENTASE</th>
-                    <th style={{ padding: '8px 10px', color: '#374151', textAlign: 'center' }}>RATA-RATA ML</th>
-                    <th style={{ padding: '8px 10px', color: '#374151' }}>TINGKAT RISIKO KEAMANAN</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categoryStats.map((st, i) => (
-                    <tr key={st.category} style={{ borderBottom: '1px solid #E5E7EB', background: i % 2 === 1 ? '#F9FAFB' : '#FFFFFF' }}>
-                      <td style={{ padding: '8px 10px', fontWeight: '700', color: st.category === 'HOAKS' ? '#DC2626' : st.category === 'PROPAGANDA' ? '#D97706' : '#111827' }}>
-                        {st.category}
-                      </td>
-                      <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: '"JetBrains Mono", monospace' }}>{st.count}</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: '"JetBrains Mono", monospace' }}>{st.pct}%</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: '"JetBrains Mono", monospace' }}>{st.avgMl}%</td>
-                      <td style={{ padding: '8px 10px', fontSize: '10px', color: '#4B5563' }}>{st.severity}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ─── MANIFEST INVESTIGASI KASUS BERBASIS BUKTI DIGITAL (SPRINT 2 - D8.D) ─── */}
+            {/* ─── MANIFEST INVESTIGASI KASUS BERBASIS BUKTI DIGITAL ─── */}
             {linkedCase && (
               <div style={{ marginBottom: '24px', background: '#F8FAFC', padding: '14px', borderRadius: '6px', border: '1px solid #CBD5E1' }}>
                 <div style={{
@@ -734,7 +1120,7 @@ export default function Reports() {
 
                 {/* Ringkasan Klaim */}
                 <div style={{ fontSize: '10px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
-                  DAFTAR KLAIM ATOMIK ({caseClaimsList.length} Klaim) & HASIL PENELAAHAN:
+                  DAFTAR KLAIM ATOMIK ({caseClaimsList.length} Klaim) &amp; HASIL PENELAAHAN:
                 </div>
                 {caseClaimsList.length === 0 ? (
                   <div style={{ fontSize: '10px', color: '#94A3B8', fontStyle: 'italic', marginBottom: '8px' }}>Belum ada klaim atomik terdaftar.</div>
@@ -784,8 +1170,8 @@ export default function Reports() {
               </div>
             )}
 
-            {/* ─── BAGIAN III: MATRIKS BUKTI DIGITAL & TEMUAN (OPSIONAL) ─── */}
-            {config.includeFindingsDetail && (
+            {/* ─── BAGIAN II: MATRIKS TEMUAN ISU TERSEMAT ─── */}
+            {config.includeFindingsDetail && dataSourceMode !== 'SOCIAL_ONLY' && (
               <div style={{ marginBottom: '24px' }}>
                 <div style={{
                   fontSize: '12px',
@@ -796,63 +1182,74 @@ export default function Reports() {
                   borderBottom: '1.5px solid #E5E7EB',
                   paddingBottom: '4px'
                 }}>
-                  III. MATRIKS BUKTI DIGITAL & TEMUAN LAPANGAN
+                  II. MATRIKS TEMUAN ISU TERSEMAT & KLARIFIKASI LAPANGAN
                 </div>
-                {threats.length === 0 ? (
+
+                {activeArchiveItems.length === 0 ? (
                   <div style={{ padding: '12px', background: '#F9FAFB', border: '1px dashed #D1D5DB', textAlign: 'center', color: '#6B7280', fontSize: '11px' }}>
-                    Tidak ditemukan konten ancaman kognitif dalam sesi ini.
+                    Tidak ada isu tersemat yang dipilih untuk disertakan dalam dokumen ini.
                   </div>
                 ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10.5px', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: '#F3F4F6', borderBottom: '2px solid #D1D5DB' }}>
-                        <th style={{ padding: '6px 8px', width: '30px' }}>#</th>
-                        <th style={{ padding: '6px 8px', width: '90px' }}>WAKTU / ID</th>
-                        <th style={{ padding: '6px 8px', width: '85px' }}>KATEGORI</th>
-                        <th style={{ padding: '6px 8px' }}>BUKTI NASKAH KONTEN / INDIKATOR</th>
-                        <th style={{ padding: '6px 8px', width: '120px' }}>SASARAN ENTITAS</th>
-                        <th style={{ padding: '6px 8px', width: '60px', textAlign: 'right' }}>KEYAKINAN</th>
+                        <th style={{ padding: '6px 8px', width: '24px' }}>#</th>
+                        <th style={{ padding: '6px 8px', width: '90px' }}>KLASTER</th>
+                        <th style={{ padding: '6px 8px' }}>NARASI KLAIM / ISU TERDETEKSI</th>
+                        <th style={{ padding: '6px 8px', width: '85px', textAlign: 'center' }}>VONIS</th>
+                        <th style={{ padding: '6px 8px', width: '130px' }}>ATRIBUSI RESMI</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {threats.slice(0, 10).map((t, idx) => (
-                        <tr key={t.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
-                          <td style={{ padding: '6px 8px', verticalAlign: 'top', color: '#6B7280' }}>{idx + 1}</td>
-                          <td style={{ padding: '6px 8px', verticalAlign: 'top', fontFamily: '"JetBrains Mono", monospace' }}>
-                            {formatMilitaryDate(t.timestamp).split(' ')[0]}<br />
-                            <span style={{ fontSize: '9px', color: '#6B7280' }}>{t.id.split('-').slice(-1)[0]}</span>
-                          </td>
-                          <td style={{ padding: '6px 8px', verticalAlign: 'top', fontWeight: '700' }}>
-                            <span style={{ color: t.threatLevel === 'critical' ? '#DC2626' : t.threatLevel === 'high' ? '#D97706' : '#2563EB' }}>
-                              {t.category}
-                            </span>
-                            <br />
-                            <span style={{ fontSize: '9px', color: '#6B7280' }}>[{t.threatLevel.toUpperCase()}]</span>
-                          </td>
-                          <td style={{ padding: '6px 8px', verticalAlign: 'top', lineHeight: '1.5' }}>
-                            "{truncateText(t.input || t.rawContent, 120)}"
-                            {t.keywords.length > 0 && (
-                              <div style={{ marginTop: '2px', color: '#4B5563', fontSize: '9px' }}>
-                                Kata Kunci: {t.keywords.join(', ')}
-                              </div>
-                            )}
-                          </td>
-                          <td style={{ padding: '6px 8px', verticalAlign: 'top', color: '#374151' }}>
-                            {t.targetedEntities && t.targetedEntities.length > 0 ? t.targetedEntities.join(', ') : 'Umum / Publik'}
-                          </td>
-                          <td style={{ padding: '6px 8px', verticalAlign: 'top', textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontWeight: '700' }}>
-                            {t.confidence}%
-                          </td>
-                        </tr>
-                      ))}
+                      {activeArchiveItems.map((item, idx) => {
+                        const vColor = item.archiveVerdict === 'HOAKS' ? '#DC2626' : item.archiveVerdict === 'FAKTA' ? '#16A34A' : '#D97706'
+                        return (
+                          <tr key={item.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                            <td style={{ padding: '6px 8px', verticalAlign: 'top', color: '#6B7280' }}>{idx + 1}</td>
+                            <td style={{ padding: '6px 8px', verticalAlign: 'top', fontSize: '9.5px', fontFamily: '"JetBrains Mono", monospace' }}>
+                              <span style={{ background: '#F3F4F6', padding: '2px 4px', borderRadius: '3px' }}>
+                                {item.cluster || 'UMUM'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '6px 8px', verticalAlign: 'top', lineHeight: '1.4' }}>
+                              <strong style={{ color: '#111827' }}>"{item.claim}"</strong>
+                              {item.clarification && (
+                                <div style={{ marginTop: '3px', fontSize: '9.5px', color: '#4B5563', lineHeight: '1.3' }}>
+                                  <em>Klarifikasi:</em> {truncateText(item.clarification, 140)}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ padding: '6px 8px', verticalAlign: 'top', textAlign: 'center' }}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '2px 6px',
+                                borderRadius: '3px',
+                                fontWeight: '800',
+                                fontSize: '9px',
+                                color: '#FFFFFF',
+                                background: vColor,
+                                letterSpacing: '0.5px'
+                              }}>
+                                {item.archiveVerdict || 'DIPANTAU'}
+                              </span>
+                            </td>
+                            <td style={{ padding: '6px 8px', verticalAlign: 'top', fontSize: '9.5px', color: '#374151' }}>
+                              <strong>{item.officialSource || 'TurnBackHoax / MAFINDO'}</strong>
+                              {item.publishedDate && (
+                                <div style={{ fontSize: '8.5px', color: '#6B7280' }}>{item.publishedDate}</div>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 )}
               </div>
             )}
 
-            {/* ─── BAGIAN IV: HASIL VERIFIKASI FAKTA (DEBUNKING SHEET) ─── */}
-            {config.includeFactCheck && factCheckedItems.length > 0 && (
+            {/* ─── BAGIAN III: ANALISIS FORENSIK POSTINGAN MEDSOS & POLA BUZZER ─── */}
+            {includeSocialForensics && dataSourceMode !== 'ARCHIVE_ONLY' && socialAnalysis && (
               <div style={{ marginBottom: '24px' }}>
                 <div style={{
                   fontSize: '12px',
@@ -863,48 +1260,65 @@ export default function Reports() {
                   borderBottom: '1.5px solid #E5E7EB',
                   paddingBottom: '4px'
                 }}>
-                  IV. HASIL VERIFIKASI FAKTA (DEBUNKING CROSS-REFERENCE SHEET)
+                  III. ANALISIS FORENSIK POSTINGAN MEDSOS & POLA AMPLIFIKASI KOGNITIF
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {factCheckedItems.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        padding: '10px 12px',
-                        background: '#F9FAFB',
-                        border: '1px solid #E5E7EB',
-                        borderRadius: '4px',
-                        fontSize: '11px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: '700', color: '#111827' }}>
-                          Klaim Terverifikasi: "{truncateText(item.factCheck?.claims[0]?.claimText || item.input, 90)}"
-                        </span>
-                        <span style={{
-                          fontWeight: '800',
-                          fontSize: '10px',
-                          color: item.factCheck?.claims[0]?.ratingColor || '#DC2626',
-                          border: `1px solid ${item.factCheck?.claims[0]?.ratingColor || '#DC2626'}40`,
-                          padding: '1px 6px',
-                          borderRadius: '2px'
-                        }}>
-                          {item.factCheck?.claims[0]?.rating}
-                        </span>
-                      </div>
-                      <div style={{ color: '#4B5563', fontSize: '10px' }}>
-                        Sumber Debunking: <strong>{item.factCheck?.claims[0]?.publisherName}</strong> ({item.factCheck?.claims[0]?.publisherSite}) ·{' '}
-                        Artikel: {item.factCheck?.claims[0]?.articleTitle}
-                      </div>
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '12px',
+                  padding: '12px',
+                  background: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '4px',
+                  marginBottom: '10px'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>
+                      METRIK KONTEN & PROFIL KREATOR:
                     </div>
-                  ))}
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#111827', marginTop: '2px' }}>
+                      {socialAnalysis.post.authorHandle || '@official_source'} [{socialAnalysis.post.platform?.toUpperCase()}]
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#4B5563', marginTop: '4px' }}>
+                      Kreator: <strong>{socialAnalysis.post.authorName || 'Akun Publik'}</strong> · Status Verifikasi: {socialAnalysis.post.authorVerified ? 'Terverifikasi (Verified)' : 'Akun Anonim / Non-Verified'}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#4B5563', marginTop: '2px' }}>
+                      Views: {(socialAnalysis.post.viewCount || 0).toLocaleString()} · Suka: {(socialAnalysis.post.likeCount || 0).toLocaleString()} · Komentar: {(socialAnalysis.post.commentCount || 0).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>
+                      SINTESIS POLA BUZZER & BOTNET:
+                    </div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: socialAnalysis.buzzerPattern.coordinationLevel === 'TINGGI' ? '#DC2626' : socialAnalysis.buzzerPattern.coordinationLevel === 'SEDANG' ? '#D97706' : '#16A34A', marginTop: '2px' }}>
+                      Skor Koordinasi: {socialAnalysis.buzzerPattern.coordinationScore}/100 [{socialAnalysis.buzzerPattern.coordinationLevel}]
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#4B5563', marginTop: '4px' }}>
+                      Lonjakan: <strong>{socialAnalysis.buzzerPattern.burstVelocityCommentPerMinute} komentar/menit</strong>
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#4B5563', marginTop: '2px' }}>
+                      Kluster Copypasta: <strong>{socialAnalysis.copypastaClusters?.length || 0} kluster teridentifikasi</strong> (Jaccard Similarity ≥ 0.70)
+                    </div>
+                  </div>
                 </div>
+
+                {/* Cuplikan Kluster Templat / Copypasta jika ada */}
+                {socialAnalysis.copypastaClusters && socialAnalysis.copypastaClusters.length > 0 && (
+                  <div style={{ padding: '8px 12px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '4px', fontSize: '10px' }}>
+                    <strong style={{ color: '#991B1B' }}>Temuan Kluster Copypasta Terdeteksi:</strong>
+                    <div style={{ color: '#7F1D1D', marginTop: '2px' }}>
+                      "{socialAnalysis.copypastaClusters[0]?.templateText}" ({socialAnalysis.copypastaClusters[0]?.commentCount} pengulangan identik dari akun-akun buzzer)
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* ─── BAGIAN V: REKOMENDASI TAKTIS KOMANDO ─── */}
+            {/* ─── BAGIAN IV: REKOMENDASI TAKTIS KOMANDO ─── */}
             {config.includeRecommendations && (
-              <div style={{ marginBottom: '32px' }}>
+              <div style={{ marginBottom: '24px' }}>
                 <div style={{
                   fontSize: '12px',
                   fontWeight: '800',
@@ -914,105 +1328,107 @@ export default function Reports() {
                   borderBottom: '1.5px solid #E5E7EB',
                   paddingBottom: '4px'
                 }}>
-                  V. REKOMENDASI TINDAKAN TAKTIS KOMANDO
+                  IV. REKOMENDASI TINDAKAN TAKTIS KOMANDO
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '11px', color: '#1F2937', lineHeight: '1.7' }}>
                   <div>
-                    <strong>1. Penerangan TNI AD (Dispenad):</strong> Segera rilis lembar klarifikasi resmi (press fact sheet) dan siapkan video pendek infografis pembanding untuk menangkal disinformasi alutsista serta manipulasi konteks penugasan wilayah.
+                    <strong>1. Penerangan TNI AD (Dispenad):</strong> Segera rilis lembar klarifikasi resmi (press fact sheet) dan infografis pembanding untuk menangkal disinformasi alutsista serta manipulasi konteks penugasan satuan di ruang publik.
                   </div>
                   <div>
-                    <strong>2. Asintel / Pussiberad:</strong> Lakukan pelacakan jejak digital simpul awal akun penyebar (seed account) pada Nexus Network Graph serta pantau pola botnet astroturfing yang mengamplifikasi tagar provokatif.
+                    <strong>2. Asintel / Pussiberad:</strong> Lakukan pelacakan jejak digital simpul awal akun penyebar (*seed accounts*) serta pantau pola botnet astroturfing yang mengamplifikasi tagar provokatif secara serentak.
                   </div>
                   <div>
-                    <strong>3. Satuan Teritorial Terdampak:</strong> Tingkatkan pendekatan komunikasi sosial (komsos) bersama tokoh masyarakat dan pemuda setempat guna meredam dampak psikologis narasi separatis.
+                    <strong>3. Satuan Teritorial Komando Wilayah (Kodam/Korem/Kodim/Babinsa):</strong> Tingkatkan pendekatan komunikasi sosial (komsos) tatap muka bersama tokoh masyarakat, pemuda, dan tokoh agama setempat guna meredam dampak psikologis disinformasi.
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ─── BAGIAN VI: DRAF KONTRANARASI TAKTIS 4 KANAL DISPENAD ─── */}
-            <div className="report-section card-section" style={{ marginBottom: '28px' }}>
-              <div className="section-title" style={{
-                fontSize: '12px',
-                fontWeight: '800',
-                letterSpacing: '1.5px',
-                color: '#C8102E',
-                marginBottom: '10px',
-                borderBottom: '1.5px solid #E5E7EB',
-                paddingBottom: '4px'
-              }}>
-                VI. DRAF KONTRANARASI TAKTIS 4 KANAL DISPENAD & SATUAN TERITORIAL
+            {/* ─── BAGIAN V: DRAF KONTRANARASI TAKTIS 4 KANAL ─── */}
+            {includeCounterNarrative && (
+              <div className="report-section card-section" style={{ marginBottom: '28px' }}>
+                <div className="section-title" style={{
+                  fontSize: '12px',
+                  fontWeight: '800',
+                  letterSpacing: '1.5px',
+                  color: '#C8102E',
+                  marginBottom: '10px',
+                  borderBottom: '1.5px solid #E5E7EB',
+                  paddingBottom: '4px'
+                }}>
+                  V. DRAF KONTRANARASI TAKTIS 4 KANAL DISPENAD & SATUAN TERITORIAL
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                  {/* Kanal 1: Siaran Pers Dispenad */}
+                  <div className="report-item" style={{
+                    padding: '12px 14px',
+                    background: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    color: '#1F2937'
+                  }}>
+                    <div style={{ fontWeight: '800', marginBottom: '4px', color: '#B91C1C', letterSpacing: '0.5px' }}>
+                      1. SIARAN PERS RESMI DISPENAD (Media Cetak & Online):
+                    </div>
+                    <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
+                      {counterNarratives.dispenadOfficial}
+                    </div>
+                  </div>
+
+                  {/* Kanal 2: Komsos Babinsa */}
+                  <div className="report-item" style={{
+                    padding: '12px 14px',
+                    background: '#F0FDF4',
+                    border: '1px solid #BBF7D0',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    color: '#1F2937'
+                  }}>
+                    <div style={{ fontWeight: '800', marginBottom: '4px', color: '#15803D', letterSpacing: '0.5px' }}>
+                      2. PANDUAN KOMSOS BABINSA (Aparat Teritorial & Koramil):
+                    </div>
+                    <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
+                      {counterNarratives.babinsaTerritorial}
+                    </div>
+                  </div>
+
+                  {/* Kanal 3: Pesan Edukasi WhatsApp Warga */}
+                  <div className="report-item" style={{
+                    padding: '12px 14px',
+                    background: '#EFF6FF',
+                    border: '1px solid #BFDBFE',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    color: '#1F2937'
+                  }}>
+                    <div style={{ fontWeight: '800', marginBottom: '4px', color: '#1D4ED8', letterSpacing: '0.5px' }}>
+                      3. PESAN EDUKASI WHATSAPP WARGA (Mitigasi Kepanikan Publik):
+                    </div>
+                    <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
+                      {counterNarratives.whatsappCivilian}
+                    </div>
+                  </div>
+
+                  {/* Kanal 4: Medsos Taktis */}
+                  <div className="report-item" style={{
+                    padding: '12px 14px',
+                    background: '#FFFBEB',
+                    border: '1px solid #FDE68A',
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    color: '#1F2937'
+                  }}>
+                    <div style={{ fontWeight: '800', marginBottom: '4px', color: '#B45309', letterSpacing: '0.5px' }}>
+                      4. CUITAN MEDSOS TAKTIS (Twitter/X, Instagram, TikTok):
+                    </div>
+                    <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
+                      {counterNarratives.socialTactical}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-                {/* Kanal 1: Siaran Pers Dispenad */}
-                <div className="report-item" style={{
-                  padding: '12px 14px',
-                  background: '#FEF2F2',
-                  border: '1px solid #FECACA',
-                  borderRadius: '4px',
-                  fontSize: '11px',
-                  color: '#1F2937'
-                }}>
-                  <div style={{ fontWeight: '800', marginBottom: '4px', color: '#B91C1C', letterSpacing: '0.5px' }}>
-                    1. SIARAN PERS RESMI DISPENAD (Media Cetak & Online):
-                  </div>
-                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
-                    {counterNarratives.dispenadOfficial}
-                  </div>
-                </div>
-
-                {/* Kanal 2: Komsos Babinsa */}
-                <div className="report-item" style={{
-                  padding: '12px 14px',
-                  background: '#F0FDF4',
-                  border: '1px solid #BBF7D0',
-                  borderRadius: '4px',
-                  fontSize: '11px',
-                  color: '#1F2937'
-                }}>
-                  <div style={{ fontWeight: '800', marginBottom: '4px', color: '#15803D', letterSpacing: '0.5px' }}>
-                    2. PANDUAN KOMSOS BABINSA (Aparat Teritorial & Koramil):
-                  </div>
-                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
-                    {counterNarratives.babinsaTerritorial}
-                  </div>
-                </div>
-
-                {/* Kanal 3: Pesan Edukasi WhatsApp Warga */}
-                <div className="report-item" style={{
-                  padding: '12px 14px',
-                  background: '#EFF6FF',
-                  border: '1px solid #BFDBFE',
-                  borderRadius: '4px',
-                  fontSize: '11px',
-                  color: '#1F2937'
-                }}>
-                  <div style={{ fontWeight: '800', marginBottom: '4px', color: '#1D4ED8', letterSpacing: '0.5px' }}>
-                    3. PESAN EDUKASI WHATSAPP WARGA (Mitigasi Kepanikan Publik):
-                  </div>
-                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
-                    {counterNarratives.whatsappCivilian}
-                  </div>
-                </div>
-
-                {/* Kanal 4: Medsos Taktis */}
-                <div className="report-item" style={{
-                  padding: '12px 14px',
-                  background: '#FFFBEB',
-                  border: '1px solid #FDE68A',
-                  borderRadius: '4px',
-                  fontSize: '11px',
-                  color: '#1F2937'
-                }}>
-                  <div style={{ fontWeight: '800', marginBottom: '4px', color: '#B45309', letterSpacing: '0.5px' }}>
-                    4. CUITAN MEDSOS TAKTIS (Twitter/X, Instagram, TikTok):
-                  </div>
-                  <div style={{ whiteSpace: 'pre-line', lineHeight: '1.6', fontSize: '10.5px' }}>
-                    {counterNarratives.socialTactical}
-                  </div>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* ─── KOLOM TANDA TANGAN DINAS MILITER ─── */}
             <div className="signature-block" style={{

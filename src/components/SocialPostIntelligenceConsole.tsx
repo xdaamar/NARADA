@@ -259,6 +259,12 @@ export default function SocialPostIntelligenceConsole() {
       await new Promise(r => setTimeout(r, 300))
 
       setAnalysisResult(result)
+      try {
+        sessionStorage.setItem('narada_latest_social_analysis', JSON.stringify(result))
+        window.dispatchEvent(new CustomEvent('narada:social-analysis-updated', { detail: result }))
+      } catch {
+        // Safe storage error bypass
+      }
     } catch (err: any) {
       setErrorMessage(`Gagal memproses analisis: ${err?.message || 'Koneksi platform terputus'}`)
     } finally {

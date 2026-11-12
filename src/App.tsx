@@ -1,11 +1,10 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { HashRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, useNavigate, Navigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
   Radio,
   Pin, 
   FileText, 
-  Settings,
   Activity,
   ChevronLeft,
   ChevronRight,
@@ -18,7 +17,6 @@ const LiveRadar = lazy(() => import('./pages/LiveRadar'))
 const ArchivePage = lazy(() => import('./pages/Archive'))
 const SocialForensic = lazy(() => import('./pages/SocialForensic'))
 const Reports = lazy(() => import('./pages/Reports'))
-const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
 import TacticalTopBar from './components/TacticalTopBar'
 import InteractiveDoctrineModal from './components/InteractiveDoctrineModal'
@@ -134,24 +132,6 @@ function Sidebar({ isCollapsed, onToggle, storageState }: SidebarProps) {
           </NavLink>
         ))}
 
-        {!isCollapsed ? (
-          <div className="nav-section-label" style={{ marginTop: '12px' }}>
-            <span>SISTEM</span>
-            <span style={{ color: 'var(--accent-gold)', fontSize: '10px', letterSpacing: '1px' }}>///</span>
-          </div>
-        ) : (
-          <div className="sidebar-collapsed-divider" style={{ marginTop: '10px' }} />
-        )}
-
-        <NavLink
-          to="/settings"
-          data-tooltip="Pengaturan Sistem"
-          title={isCollapsed ? "Pengaturan Sistem" : undefined}
-          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
-        >
-          <Settings size={isCollapsed ? 22 : 18} className="nav-item-icon" />
-          {!isCollapsed && <span>Pengaturan</span>}
-        </NavLink>
       </nav>
 
       {/* Footer Sidebar: Status Penyimpanan Jujur */}
@@ -323,7 +303,7 @@ function TacticalPageLoader() {
               <Route path="/profiler" element={<SocialForensic />} />
               <Route path="/nexus" element={<LiveRadar />} />
               <Route path="/reports" element={<Reports />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings" element={<Navigate to="/reports" replace />} />
             </Routes>
           </Suspense>
         </main>
