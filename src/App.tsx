@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { HashRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
@@ -11,12 +11,15 @@ import {
   ChevronRight,
   Search
 } from 'lucide-react'
-import Dashboard from './pages/Dashboard'
-import LiveRadar from './pages/LiveRadar'
-import ArchivePage from './pages/Archive'
-import SocialForensic from './pages/SocialForensic'
-import Reports from './pages/Reports'
-import SettingsPage from './pages/SettingsPage'
+
+// Code-Splitting Rute Halaman (Sprint 14 Performance Hardening)
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const LiveRadar = lazy(() => import('./pages/LiveRadar'))
+const ArchivePage = lazy(() => import('./pages/Archive'))
+const SocialForensic = lazy(() => import('./pages/SocialForensic'))
+const Reports = lazy(() => import('./pages/Reports'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+
 import TacticalTopBar from './components/TacticalTopBar'
 import InteractiveDoctrineModal from './components/InteractiveDoctrineModal'
 
@@ -256,6 +259,43 @@ function AppShell() {
     }
   }, [navigate])
 
+// ─── Indikator Muat Halaman Taktis (Ultra-Lightweight Tactical Loader) ───
+function TacticalPageLoader() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '55vh',
+      gap: '14px',
+      color: '#38BDF8',
+      fontFamily: 'var(--font-mono)'
+    }}>
+      <div style={{
+        width: '36px',
+        height: '36px',
+        border: '2px solid rgba(56, 189, 248, 0.2)',
+        borderTop: '2px solid #38BDF8',
+        borderRadius: '50%',
+        animation: 'spin 0.6s linear infinite'
+      }} />
+      <div style={{
+        fontSize: '11px',
+        fontWeight: 700,
+        letterSpacing: '1px',
+        color: '#94A3B8',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px'
+      }}>
+        <span style={{ color: 'var(--accent-gold)' }}>///</span>
+        <span>MEMUAT MODUL INTELIJEN...</span>
+      </div>
+    </div>
+  )
+}
+
   return (
     <div className="app-layout">
       <Sidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} storageState={storageState} />
@@ -266,24 +306,26 @@ function AppShell() {
           isSidebarCollapsed={isSidebarCollapsed}
         />
         <main className="page-content">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/radar" element={<LiveRadar />} />
-            <Route path="/radar/monitor/:id" element={<SocialForensic />} />
-            <Route path="/radar/monitor" element={<SocialForensic />} />
-            <Route path="/archive" element={<ArchivePage />} />
-            <Route path="/tersemat" element={<ArchivePage />} />
-            <Route path="/pinned" element={<ArchivePage />} />
-            <Route path="/watchlist" element={<ArchivePage />} />
-            <Route path="/daftar-pantau" element={<ArchivePage />} />
-            <Route path="/analyzer" element={<ArchivePage />} />
-            <Route path="/classifier" element={<ArchivePage />} />
-            <Route path="/social-forensic" element={<SocialForensic />} />
-            <Route path="/profiler" element={<SocialForensic />} />
-            <Route path="/nexus" element={<LiveRadar />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
+          <Suspense fallback={<TacticalPageLoader />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/radar" element={<LiveRadar />} />
+              <Route path="/radar/monitor/:id" element={<SocialForensic />} />
+              <Route path="/radar/monitor" element={<SocialForensic />} />
+              <Route path="/archive" element={<ArchivePage />} />
+              <Route path="/tersemat" element={<ArchivePage />} />
+              <Route path="/pinned" element={<ArchivePage />} />
+              <Route path="/watchlist" element={<ArchivePage />} />
+              <Route path="/daftar-pantau" element={<ArchivePage />} />
+              <Route path="/analyzer" element={<ArchivePage />} />
+              <Route path="/classifier" element={<ArchivePage />} />
+              <Route path="/social-forensic" element={<SocialForensic />} />
+              <Route path="/profiler" element={<SocialForensic />} />
+              <Route path="/nexus" element={<LiveRadar />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
 

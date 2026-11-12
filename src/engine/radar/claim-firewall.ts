@@ -15,7 +15,7 @@
  * ══════════════════════════════════════════════════════════════════════════
  */
 
-import { extractSubstantiveTokens, calculateJaccardSimilarity } from './clustering-engine.ts'
+import { extractSubstantiveTokens } from './clustering-engine.ts'
 import type { 
   ClaimMatchCandidate, 
   PublicationReportingStance, 
@@ -46,6 +46,17 @@ const QUOTATION_MARKERS = [
   'kata', 'ujar', 'sebut', 'klaim', 'menurut', 'dugaan', 'diduga',
   'soroti', 'tuding', 'bocorkan', 'katanya'
 ]
+
+// In-memory token cache for known debunks to avoid re-tokenizing on every comparison loop
+interface CachedDebunkTokens {
+  tokens: string[]
+  tokenSet: Set<string>
+}
+const debunkTokenCache = new Map<string, CachedDebunkTokens>()
+
+export function clearDebunkTokenCache(): void {
+  debunkTokenCache.clear()
+}
 
 /**
  * 1. Deteksi Sikap Pelaporan (Stance Detection) dari Teks Publikasi
@@ -92,6 +103,7 @@ export function evaluateClaimFirewall(
 ): ClaimMatchCandidate {
   const fullText = publicationTitle + ' ' + publicationExcerpt
   const pubTokens = extractSubstantiveTokens(fullText)
+  const setPub = new Set(pubTokens)
   const stance = detectPublicationStance(publicationTitle, publicationExcerpt)
 
   if (pubTokens.length === 0 || fullText.trim().length < 10) {
@@ -123,15 +135,32 @@ export function evaluateClaimFirewall(
     overlapRatio: number
   } | null = null
 
-  // Cari kandidat cek fakta paling relevan
+  // Cari kandidat cek fakta paling relevan dengan token pre-indexed
   for (const debunk of knownDebunks) {
-    const debunkTokens = extractSubstantiveTokens(debunk.claim)
-    const similarity = calculateJaccardSimilarity(pubTokens, debunkTokens)
+    const cacheKey = debunk.id || debunk.claim
+    let cached = debunkTokenCache.get(cacheKey)
+    if (!cached) {
+      const tokens = extractSubstantiveTokens(debunk.claim)
+      cached = { tokens, tokenSet: new Set(tokens) }
+      debunkTokenCache.set(cacheKey, cached)
+    }
 
-    const setPub = new Set(pubTokens)
-    const setDebunk = new Set(debunkTokens)
+    const debunkTokens = cached.tokens
+    const setDebunk = cached.tokenSet
+
     let sharedCount = 0
-    setPub.forEach(t => { if (setDebunk.has(t)) sharedCount++ })
+    if (pubTokens.length < debunkTokens.length) {
+      for (const t of pubTokens) {
+        if (setDebunk.has(t)) sharedCount++
+      }
+    } else {
+      for (const t of debunkTokens) {
+        if (setPub.has(t)) sharedCount++
+      }
+    }
+
+    const unionSize = setPub.size + setDebunk.size - sharedCount
+    const similarity = unionSize > 0 ? sharedCount / unionSize : 0
     const minTokens = Math.min(setPub.size, setDebunk.size)
     const overlapRatio = minTokens > 0 ? sharedCount / minTokens : 0
 

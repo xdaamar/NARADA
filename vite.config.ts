@@ -102,6 +102,17 @@ export default defineConfig({
   base: './',
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('node_modules')) {
+            if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts'
+            if (id.includes('lucide-react') || id.includes('@phosphor-icons')) return 'vendor-icons'
+            if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-pdf'
+          }
+        }
+      }
+    }
   },
   preview: {
     port: 4173

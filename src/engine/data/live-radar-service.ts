@@ -6,8 +6,10 @@ import {
   parseGoogleNewsRss, 
   parseAntaraRss,
   parseGoogleTrendsRssAsSignals,
-  isPureInstitutionOrPublisherName
+  isPureInstitutionOrPublisherName,
+  isEligibleCognitiveRadarItem
 } from '../ingest/rss-parser.ts'
+import { clearDebunkTokenCache } from '../radar/claim-firewall.ts'
 import { 
   cacheRadarItems, 
   getCachedRadarItems, 
@@ -120,6 +122,7 @@ const knownFirstObservedTimes = new Map<string, number>()
 export function clearKnownPublications(): void {
   knownPublicationsMap.clear()
   knownFirstObservedTimes.clear()
+  clearDebunkTokenCache()
 }
 
 /**
@@ -1196,10 +1199,18 @@ export async function processRadarIngestion(
 ): Promise<LiveRadarFetchResult> {
   const startTime = Date.now()
 
-  // 1. Pertahankan firstObservedAt yang stabil (WP4 / S61-20)
+  // 1. TIER 1 GATEKEEPER: Validasi kelayakan intelijen & pertahankan firstObservedAt yang stabil (WP4 / S61-20)
   for (const pub of incomingPubs) {
     if (!pub || !pub.title || typeof pub.title !== 'string' || !pub.title.trim()) continue
     if (isPureInstitutionOrPublisherName(pub.title, pub.publisher || pub.sourceName)) continue
+    
+    // Gatekeeper: Artikel wajib lolos uji relevansi doktrin pertahanan/siber/krisis
+    // Rujukan cek fakta resmi (TurnBackHoax) otomatis lolos sebagai sumber kebenaran primer
+    const isFactCheck = pub.sourceId === 'src-tbh' || pub.sourceId.includes('tbh')
+    if (!isFactCheck && !isEligibleCognitiveRadarItem(pub.title, pub.publisher || pub.sourceName)) {
+      continue
+    }
+
     const persistedFirstObserved = knownFirstObservedTimes.get(pub.id)
     const existing = knownPublicationsMap.get(pub.id)
     if (persistedFirstObserved) {
@@ -1226,6 +1237,28 @@ export async function processRadarIngestion(
   for (const [id, p] of knownPublicationsMap.entries()) {
     if (!p || !p.title || isPureInstitutionOrPublisherName(p.title, p.publisher || p.sourceName)) {
       knownPublicationsMap.delete(id)
+    }
+  }
+
+  // TIER 2: TACTICAL QUOTA RING BUFFER & SLIDING WINDOW (MAX 120 PUBLIKASI AKTIF DI MEMORI)
+  // Menjaga agar akumulasi memori peramban tidak membengkak liar ke 1.000+
+  const MAX_ACTIVE_PUBS = 120
+  if (knownPublicationsMap.size > MAX_ACTIVE_PUBS) {
+    const allKnown = Array.from(knownPublicationsMap.values())
+    // Urutkan: beri prioritas pada publikasi fact-check/TBH dan publikasi terkini
+    allKnown.sort((a, b) => {
+      const isA_TBH = a.sourceId === 'src-tbh' || a.verdict === 'HOAKS' ? 1 : 0
+      const isB_TBH = b.sourceId === 'src-tbh' || b.verdict === 'HOAKS' ? 1 : 0
+      if (isA_TBH !== isB_TBH) return isB_TBH - isA_TBH
+      return (b.observedAt || b.publishedAt || 0) - (a.observedAt || a.publishedAt || 0)
+    })
+    // Sisakan hanya MAX_ACTIVE_PUBS terbaik
+    const retained = allKnown.slice(0, MAX_ACTIVE_PUBS)
+    const retainedIds = new Set(retained.map(r => r.id))
+    for (const id of knownPublicationsMap.keys()) {
+      if (!retainedIds.has(id)) {
+        knownPublicationsMap.delete(id)
+      }
     }
   }
 
@@ -1302,16 +1335,38 @@ export async function processRadarIngestion(
     }
   }
 
+  // TIER 3: KURASI CERDAS KUOTA ISU (MAKSIMAL 85 ISU EMAS PRIORITAS TINGGI)
+  // Menjamin seluruh isu HOAKS dan isu berprioritas kritis/tinggi tidak pernah terpotong,
+  // sambil menjaga beban DOM dan peramban tetap super ringan.
+  const MAX_CURATED_RADAR_ITEMS = 85
+  let finalCuratedEntries = sortedEntries
+  if (sortedEntries.length > MAX_CURATED_RADAR_ITEMS) {
+    const highPriority = sortedEntries.filter(i => 
+      i.verdict === 'HOAKS' || 
+      i.verdict === 'DISINFORMASI' || 
+      i.threatLevel === 'critical' || 
+      i.threatLevel === 'high'
+    )
+    const standardPriority = sortedEntries.filter(i => 
+      i.verdict !== 'HOAKS' && 
+      i.verdict !== 'DISINFORMASI' && 
+      i.threatLevel !== 'critical' && 
+      i.threatLevel !== 'high'
+    )
+    const remainingSlots = Math.max(0, MAX_CURATED_RADAR_ITEMS - highPriority.length)
+    finalCuratedEntries = sortRadarEntries([...highPriority, ...standardPriority.slice(0, remainingSlots)])
+  }
+
   // 10. Daftarkan ke in-memory cache dan simpan ke IndexedDB
-  registerLiveDebunks(sortedEntries)
+  registerLiveDebunks(finalCuratedEntries)
   try {
-    await cacheRadarItems(sortedEntries)
+    await cacheRadarItems(finalCuratedEntries)
   } catch (e) {
     console.warn('[LiveRadarService] Gagal menyimpan ke cache IndexedDB:', e)
   }
 
   const result: LiveRadarFetchResult = {
-    entries: sortedEntries,
+    entries: finalCuratedEntries,
     clusters,
     trendSignals: incomingTrends,
     topicCandidates: topicDiscoveryEngine.getAllCandidates(),

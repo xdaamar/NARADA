@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Radio,
@@ -102,6 +102,302 @@ const CLUSTER_OPTIONS: ClusterFilterOption[] = [
   { key: 'UMUM_NETRAL', label: 'Umum & Kedinasan', color: '#64748B' },
 ]
 
+// ─── Bilah Telemetri Status Konektor Mandiri (Isolated Reactive Component) ───
+// Menghilangkan re-render liar komponen utama LiveRadar selama interval detak sinkronisasi
+interface ConnectorTelemetryStripProps {
+  isSyncing: boolean
+  lastSyncTime: string
+  telemetryStatus: string
+}
+
+const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
+  isSyncing,
+  lastSyncTime,
+  telemetryStatus
+}: ConnectorTelemetryStripProps) {
+  const [connectorHealth, setConnectorHealth] = useState<Record<string, ConnectorHealth>>(() => getAllConnectorHealth())
+  const [sourceScheduleStates, setSourceScheduleStates] = useState<Record<string, SourceScheduleState>>({})
+  const [isConnectorDetailsOpen, setIsConnectorDetailsOpen] = useState<boolean>(true)
+
+  useEffect(() => {
+    setConnectorHealth(getAllConnectorHealth())
+    const status = radarScheduler.getStatus()
+    if (status.sourceStates) {
+      setSourceScheduleStates(status.sourceStates)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isSyncing) {
+      setConnectorHealth(getAllConnectorHealth())
+      const status = radarScheduler.getStatus()
+      if (status.sourceStates) {
+        setSourceScheduleStates(status.sourceStates)
+      }
+      return
+    }
+    const interval = setInterval(() => {
+      setConnectorHealth(getAllConnectorHealth())
+      const status = radarScheduler.getStatus()
+      if (status.sourceStates) {
+        setSourceScheduleStates(status.sourceStates)
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isSyncing])
+
+  const connectorSummary = useMemo(() => {
+    const list = Object.values(connectorHealth)
+    const online = list.filter(c => c.state === 'HEALTHY').length
+    const degraded = list.filter(c => c.state === 'DEGRADED' || c.state === 'RATE_LIMITED' || c.state === 'STALE' || c.state === 'CONNECTING').length
+    const offline = list.filter(c => c.state === 'UNAVAILABLE').length
+    const disabled = list.filter(c => c.state === 'DISABLED').length
+    return {
+      total: list.length,
+      online,
+      degraded,
+      offline,
+      disabled
+    }
+  }, [connectorHealth])
+
+  return (
+    <div style={{
+      paddingTop: '4px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
+      {/* Header Bar Ringkas (Always Visible 1-Line) */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '8px'
+      }}>
+        <div 
+          onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}
+          title="Klik untuk buka / tutup rincian 14 kanal radar"
+        >
+          <span style={{ color: '#94A3B8', fontWeight: 700, fontSize: '10.5px', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Radio size={12} color="#38BDF8" />
+            <span>STATUS KONEKTOR RADAR (14 KANAL):</span>
+          </span>
+
+          {/* Status Counters */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 7px',
+              borderRadius: '3px',
+              background: '#101722',
+              border: '1px solid #263345',
+              color: '#10B981',
+              fontSize: '9.5px',
+              fontWeight: 700,
+              fontFamily: 'var(--font-mono)'
+            }}>
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 4px #10B981' }} />
+              {connectorSummary.online} Online
+            </span>
+
+            {connectorSummary.degraded > 0 && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 7px',
+                borderRadius: '3px',
+                background: '#101722',
+                border: '1px solid #263345',
+                color: '#F59E0B',
+                fontSize: '9.5px',
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)'
+              }}>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F59E0B' }} />
+                {connectorSummary.degraded} Degraded
+              </span>
+            )}
+
+            {connectorSummary.offline > 0 && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 7px',
+                borderRadius: '3px',
+                background: '#101722',
+                border: '1px solid #263345',
+                color: '#EF4444',
+                fontSize: '9.5px',
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)'
+              }}>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#EF4444' }} />
+                {connectorSummary.offline} Offline
+              </span>
+            )}
+
+            {connectorSummary.disabled > 0 && (
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 7px',
+                borderRadius: '3px',
+                background: '#101722',
+                border: '1px solid #263345',
+                color: '#64748B',
+                fontSize: '9.5px',
+                fontWeight: 600,
+                fontFamily: 'var(--font-mono)'
+              }}>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#64748B' }} />
+                {connectorSummary.disabled} Nonaktif
+              </span>
+            )}
+
+            <span style={{ color: '#2D3848', margin: '0 2px' }}>│</span>
+            <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+              SYNC: {lastSyncTime} ({telemetryStatus})
+            </span>
+          </div>
+        </div>
+
+        {/* Toggle Button */}
+        <button
+          type="button"
+          onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
+            background: isConnectorDetailsOpen ? 'rgba(56, 189, 248, 0.12)' : '#090D14',
+            border: isConnectorDetailsOpen ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #1E2734',
+            borderRadius: '4px',
+            color: isConnectorDetailsOpen ? '#38BDF8' : '#94A3B8',
+            fontSize: '10px',
+            fontWeight: 600,
+            fontFamily: 'var(--font-mono)',
+            padding: '3px 8px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+          title={isConnectorDetailsOpen ? 'Tutup rincian kanal' : 'Buka rincian 14 kanal radar'}
+        >
+          <span>{isConnectorDetailsOpen ? 'Sembunyikan Kanal' : `Lihat Detail (${connectorSummary.total} Kanal)`}</span>
+          {isConnectorDetailsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+      </div>
+
+      {/* Tray Dropdown Detail Kanal (Hanya Tampil Saat Buka) */}
+      {isConnectorDetailsOpen && (
+        <div style={{
+          background: '#070B11',
+          border: '1px solid #1E2734',
+          borderRadius: '6px',
+          padding: '10px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          animation: 'fadeIn 200ms ease-out'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+            <span>RINCIAN MULTI-STREAM TELEMETRY & CIRCUIT BREAKER (HOVER UNTUK METRIK LENGKAP)</span>
+            <span>STATUS KONEKSI: {connectorSummary.online}/{connectorSummary.total} AKTIF</span>
+          </div>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))',
+            gap: '6px',
+            fontSize: '9.5px',
+            fontFamily: 'var(--font-mono)'
+          }}>
+            {Object.values(connectorHealth).map(ch => {
+              const isHealthy = ch.state === 'HEALTHY'
+              const isConnecting = ch.state === 'CONNECTING'
+              const isDegraded = ch.state === 'DEGRADED'
+              const isRateLimited = ch.state === 'RATE_LIMITED'
+              const isStale = ch.state === 'STALE'
+              const isUnknown = ch.state === 'UNKNOWN'
+              const isDisabled = ch.state === 'DISABLED'
+              const dotColor = isDisabled ? '#475569' : isHealthy ? '#10B981' : isConnecting ? '#38BDF8' : isDegraded ? '#F59E0B' : isRateLimited ? '#A855F7' : isStale ? '#38BDF8' : isUnknown ? '#94A3B8' : '#EF4444'
+              const statusLabel = isDisabled ? 'DISABLED' : isHealthy ? 'ONLINE' : isConnecting ? 'CONNECTING' : isDegraded ? 'PROXY' : isRateLimited ? 'RATE_LIMIT' : isStale ? 'CACHE' : isUnknown ? 'IDLE' : 'OFFLINE'
+              
+              const schedule = sourceScheduleStates[ch.sourceId]
+              const lastSuccessStr = ch.lastSuccessAt ? new Date(ch.lastSuccessAt).toLocaleTimeString('id-ID') : (schedule?.lastSuccessAt ? new Date(schedule.lastSuccessAt).toLocaleTimeString('id-ID') : 'Belum Ada')
+              const lastAttemptStr = schedule?.lastAttemptAt ? new Date(schedule.lastAttemptAt).toLocaleTimeString('id-ID') : 'Belum Ada'
+              const nextRefreshStr = schedule?.nextDueAt ? (schedule.nextDueAt <= Date.now() ? 'Saat ini (Due)' : new Date(schedule.nextDueAt).toLocaleTimeString('id-ID')) : 'Tergantung Jadwal'
+              const cbStatus = schedule?.circuitBreakerStatus || 'CLOSED'
+              const httpStatusStr = ch.httpStatus ? `HTTP Status: ${ch.httpStatus}\n` : ''
+              
+              const tooltipText = `${ch.sourceName} (${ch.sourceId})\nStatus: ${ch.state} [${statusLabel}]\n${httpStatusStr}Latensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nItem Diterima: ${ch.itemCount || ch.itemCountLastFetch || 0}\nTerakhir Sukses: ${lastSuccessStr}\nTerakhir Dicoba: ${lastAttemptStr}\nJadwal Berikutnya: ${nextRefreshStr}\nCircuit Breaker: ${cbStatus}\nKegagalan Beruntun: ${ch.consecutiveFailures || schedule?.consecutiveFailures || 0}\nKeterangan: ${ch.userReadableMessage}`
+
+              const displayName = ch.shortLabel || (
+                ch.sourceName.includes('—')
+                  ? 'G-News · ' + ch.sourceName.split('—')[1].split('(')[0].trim()
+                  : ch.sourceName.replace('Google Trends Indonesia (Search Interest)', 'Google Trends ID').split('(')[0].trim()
+              )
+
+              return (
+                <div
+                  key={ch.sourceId}
+                  title={tooltipText}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '6px',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    background: '#0B111A',
+                    border: `1px solid ${dotColor}35`,
+                    color: isDisabled ? '#64748B' : '#CBD5E1',
+                    opacity: isDisabled ? 0.7 : 1,
+                    cursor: 'help'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: dotColor,
+                      boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none',
+                      flexShrink: 0
+                    }} />
+                    <span style={{ fontWeight: 700, color: isDisabled ? '#94A3B8' : '#F1F5F9', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {displayName}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
+                    {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
+                      <span style={{ color: '#64748B', fontSize: '9px' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+})
+
 export default function LiveRadar() {
   const navigate = useNavigate()
   // State data dan filter (dibersihkan dari entri non-berita/nama instansi murni)
@@ -110,7 +406,10 @@ export default function LiveRadar() {
   const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('ALL')
   const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS'>('MOMENTUM')
   const [trendSignals, setTrendSignals] = useState<SearchTrendSignal[]>([])
-  const [sourceScheduleStates, setSourceScheduleStates] = useState<Record<string, SourceScheduleState>>({})
+
+  // State Paginasi Taktis Viewport Segmented (60 FPS DOM Optimization)
+  const [currentPage, setCurrentPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(15)
 
   // State Toast Notifikasi Pojok Kanan Bawah saat Berita Disematkan
   const [pinToast, setPinToast] = useState<{ id: string; claim: string; cluster?: string; clusterColor?: string } | null>(null)
@@ -128,8 +427,6 @@ export default function LiveRadar() {
     isUsingProxy: false,
   })
   const [sourceChannel, setSourceChannel] = useState<'API_PROXY' | 'API_DIRECT' | 'API_CORS_PROXY' | 'LOCAL_ARCHIVE'>('LOCAL_ARCHIVE')
-  const [connectorHealth, setConnectorHealth] = useState<Record<string, ConnectorHealth>>(() => getAllConnectorHealth())
-  const [isConnectorDetailsOpen, setIsConnectorDetailsOpen] = useState<boolean>(true)
 
   // State ekspansi cuplikan panjang kartu berita (Sprint 13 UX Polish)
   const [expandedCardIds, setExpandedCardIds] = useState<Set<string>>(new Set())
@@ -157,21 +454,6 @@ export default function LiveRadar() {
     }
   }
 
-  const connectorSummary = useMemo(() => {
-    const list = Object.values(connectorHealth)
-    const online = list.filter(c => c.state === 'HEALTHY').length
-    const degraded = list.filter(c => c.state === 'DEGRADED' || c.state === 'RATE_LIMITED' || c.state === 'STALE' || c.state === 'CONNECTING').length
-    const offline = list.filter(c => c.state === 'UNAVAILABLE').length
-    const disabled = list.filter(c => c.state === 'DISABLED').length
-    return {
-      total: list.length,
-      online,
-      degraded,
-      offline,
-      disabled
-    }
-  }, [connectorHealth])
-
   // State Pop-up Draf Kontranarasi Dispenad (untuk Isu TERINDIKASI HOAKS)
   const [selectedCounterItem, setSelectedCounterItem] = useState<DebunkKnowledgeEntry | null>(null)
   const [isCounterModalOpen, setIsCounterModalOpen] = useState<boolean>(false)
@@ -197,19 +479,6 @@ export default function LiveRadar() {
       window.removeEventListener('storage', handleArchiveUpdate)
     }
   }, [])
-
-  // Pembaruan telemetri status konektor secara real-time selama proses sinkronisasi berlangsung
-  useEffect(() => {
-    if (!isSyncing) return
-    const interval = setInterval(() => {
-      setConnectorHealth(getAllConnectorHealth())
-      const status = radarScheduler.getStatus()
-      if (status.sourceStates) {
-        setSourceScheduleStates(status.sourceStates)
-      }
-    }, 600)
-    return () => clearInterval(interval)
-  }, [isSyncing])
 
   // State Tooltip Status Cyber Bubble Chat C2 (Respons instan 0-ms tanpa jeda sistem browser)
   const [hoveredStatusId, setHoveredStatusId] = useState<string | null>(null)
@@ -304,10 +573,6 @@ export default function LiveRadar() {
       }
       const status = radarScheduler.getStatus()
       setSourceChannel(status.lastSyncSource as typeof sourceChannel || 'LOCAL_ARCHIVE')
-      setConnectorHealth(getAllConnectorHealth())
-      if (status.sourceStates) {
-        setSourceScheduleStates(status.sourceStates)
-      }
       const lastRes = getLastRadarResult()
       if (lastRes?.trendSignals) {
         setTrendSignals(lastRes.trendSignals)
@@ -503,6 +768,30 @@ export default function LiveRadar() {
     })
     return sortRadarEntries(list)
   }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery, hideArchivedInRadar, archivedIssueIds])
+
+  // ─── Paginasi Taktis Viewport Segmented (60 FPS DOM Optimization) ───
+  // Reset ke halaman 1 saat filter atau mode pencarian berganti
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedCluster, selectedTriage, activeViewMode, searchQuery, hideArchivedInRadar])
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedItems = useMemo(() => {
+    if (pageSize >= 999) return filteredItems
+    const start = (safeCurrentPage - 1) * pageSize
+    return filteredItems.slice(start, start + pageSize)
+  }, [filteredItems, safeCurrentPage, pageSize])
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage)
+    const deckElement = document.getElementById('tactical-radar-feed-deck')
+    if (deckElement) {
+      deckElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      window.scrollTo({ top: 180, behavior: 'smooth' })
+    }
+  }
 
   // Hitung jumlah item per klaster untuk pill count
   const clusterCounts = useMemo(() => {
@@ -809,240 +1098,12 @@ export default function LiveRadar() {
           </div>
         </div>
 
-        {/* ─── KESEHATAN KONEKTOR SUMBER (SPRINT 6 MULTI-STREAM TELEMETRY STRIP - COLLAPSIBLE ACCORDION) ─── */}
-        <div style={{
-          paddingTop: '4px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          {/* Header Bar Ringkas (Always Visible 1-Line) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '8px'
-          }}>
-            <div 
-              onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: 'pointer',
-                userSelect: 'none'
-              }}
-              title="Klik untuk buka / tutup rincian 14 kanal radar"
-            >
-              <span style={{ color: '#94A3B8', fontWeight: 700, fontSize: '10.5px', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Radio size={12} color="#38BDF8" />
-                <span>STATUS KONEKTOR RADAR (14 KANAL):</span>
-              </span>
-
-              {/* Status Counters */}
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '2px 7px',
-                  borderRadius: '3px',
-                  background: '#101722',
-                  border: '1px solid #263345',
-                  color: '#10B981',
-                  fontSize: '9.5px',
-                  fontWeight: 700,
-                  fontFamily: 'var(--font-mono)'
-                }}>
-                  <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 4px #10B981' }} />
-                  {connectorSummary.online} Online
-                </span>
-
-                {connectorSummary.degraded > 0 && (
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 7px',
-                    borderRadius: '3px',
-                    background: '#101722',
-                    border: '1px solid #263345',
-                    color: '#F59E0B',
-                    fontSize: '9.5px',
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-mono)'
-                  }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F59E0B' }} />
-                    {connectorSummary.degraded} Degraded
-                  </span>
-                )}
-
-                {connectorSummary.offline > 0 && (
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 7px',
-                    borderRadius: '3px',
-                    background: '#101722',
-                    border: '1px solid #263345',
-                    color: '#EF4444',
-                    fontSize: '9.5px',
-                    fontWeight: 700,
-                    fontFamily: 'var(--font-mono)'
-                  }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#EF4444' }} />
-                    {connectorSummary.offline} Offline
-                  </span>
-                )}
-
-                {connectorSummary.disabled > 0 && (
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 7px',
-                    borderRadius: '3px',
-                    background: '#101722',
-                    border: '1px solid #263345',
-                    color: '#64748B',
-                    fontSize: '9.5px',
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-mono)'
-                  }}>
-                    <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#64748B' }} />
-                    {connectorSummary.disabled} Nonaktif
-                  </span>
-                )}
-
-                <span style={{ color: '#2D3848', margin: '0 2px' }}>│</span>
-                <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                  SYNC: {lastSyncTime} ({telemetry.status})
-                </span>
-              </div>
-            </div>
-
-            {/* Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                background: isConnectorDetailsOpen ? 'rgba(56, 189, 248, 0.12)' : '#090D14',
-                border: isConnectorDetailsOpen ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #1E2734',
-                borderRadius: '4px',
-                color: isConnectorDetailsOpen ? '#38BDF8' : '#94A3B8',
-                fontSize: '10px',
-                fontWeight: 600,
-                fontFamily: 'var(--font-mono)',
-                padding: '3px 8px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              title={isConnectorDetailsOpen ? 'Tutup rincian kanal' : 'Buka rincian 14 kanal radar'}
-            >
-              <span>{isConnectorDetailsOpen ? 'Sembunyikan Kanal' : `Lihat Detail (${connectorSummary.total} Kanal)`}</span>
-              {isConnectorDetailsOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            </button>
-          </div>
-
-          {/* Tray Dropdown Detail Kanal (Hanya Tampil Saat Buka) */}
-          {isConnectorDetailsOpen && (
-            <div style={{
-              background: '#070B11',
-              border: '1px solid #1E2734',
-              borderRadius: '6px',
-              padding: '10px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              animation: 'fadeIn 200ms ease-out'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
-                <span>RINCIAN MULTI-STREAM TELEMETRY & CIRCUIT BREAKER (HOVER UNTUK METRIK LENGKAP)</span>
-                <span>STATUS KONEKSI: {connectorSummary.online}/{connectorSummary.total} AKTIF</span>
-              </div>
-              
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(215px, 1fr))',
-                gap: '6px',
-                fontSize: '9.5px',
-                fontFamily: 'var(--font-mono)'
-              }}>
-                {Object.values(connectorHealth).map(ch => {
-                  const isHealthy = ch.state === 'HEALTHY'
-                  const isConnecting = ch.state === 'CONNECTING'
-                  const isDegraded = ch.state === 'DEGRADED'
-                  const isRateLimited = ch.state === 'RATE_LIMITED'
-                  const isStale = ch.state === 'STALE'
-                  const isUnknown = ch.state === 'UNKNOWN'
-                  const isDisabled = ch.state === 'DISABLED'
-                  const dotColor = isDisabled ? '#475569' : isHealthy ? '#10B981' : isConnecting ? '#38BDF8' : isDegraded ? '#F59E0B' : isRateLimited ? '#A855F7' : isStale ? '#38BDF8' : isUnknown ? '#94A3B8' : '#EF4444'
-                  const statusLabel = isDisabled ? 'DISABLED' : isHealthy ? 'ONLINE' : isConnecting ? 'CONNECTING' : isDegraded ? 'PROXY' : isRateLimited ? 'RATE_LIMIT' : isStale ? 'CACHE' : isUnknown ? 'IDLE' : 'OFFLINE'
-                  
-                  const schedule = sourceScheduleStates[ch.sourceId]
-                  const lastSuccessStr = ch.lastSuccessAt ? new Date(ch.lastSuccessAt).toLocaleTimeString('id-ID') : (schedule?.lastSuccessAt ? new Date(schedule.lastSuccessAt).toLocaleTimeString('id-ID') : 'Belum Ada')
-                  const lastAttemptStr = schedule?.lastAttemptAt ? new Date(schedule.lastAttemptAt).toLocaleTimeString('id-ID') : 'Belum Ada'
-                  const nextRefreshStr = schedule?.nextDueAt ? (schedule.nextDueAt <= Date.now() ? 'Saat ini (Due)' : new Date(schedule.nextDueAt).toLocaleTimeString('id-ID')) : 'Tergantung Jadwal'
-                  const cbStatus = schedule?.circuitBreakerStatus || 'CLOSED'
-                  const httpStatusStr = ch.httpStatus ? `HTTP Status: ${ch.httpStatus}\n` : ''
-                  
-                  const tooltipText = `${ch.sourceName} (${ch.sourceId})\nStatus: ${ch.state} [${statusLabel}]\n${httpStatusStr}Latensi: ${ch.latencyMs ? ch.latencyMs + 'ms' : 'N/A'}\nItem Diterima: ${ch.itemCount || ch.itemCountLastFetch || 0}\nTerakhir Sukses: ${lastSuccessStr}\nTerakhir Dicoba: ${lastAttemptStr}\nJadwal Berikutnya: ${nextRefreshStr}\nCircuit Breaker: ${cbStatus}\nKegagalan Beruntun: ${ch.consecutiveFailures || schedule?.consecutiveFailures || 0}\nKeterangan: ${ch.userReadableMessage}`
-
-                  const displayName = ch.shortLabel || (
-                    ch.sourceName.includes('—')
-                      ? 'G-News · ' + ch.sourceName.split('—')[1].split('(')[0].trim()
-                      : ch.sourceName.replace('Google Trends Indonesia (Search Interest)', 'Google Trends ID').split('(')[0].trim()
-                  )
-
-                  return (
-                    <div
-                      key={ch.sourceId}
-                      title={tooltipText}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '6px',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        background: '#0B111A',
-                        border: `1px solid ${dotColor}35`,
-                        color: isDisabled ? '#64748B' : '#CBD5E1',
-                        opacity: isDisabled ? 0.7 : 1,
-                        cursor: 'help'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        <span style={{
-                          width: '6px',
-                          height: '6px',
-                          borderRadius: '50%',
-                          background: dotColor,
-                          boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none',
-                          flexShrink: 0
-                        }} />
-                        <span style={{ fontWeight: 700, color: isDisabled ? '#94A3B8' : '#F1F5F9', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {displayName}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                        <span style={{ color: dotColor, fontWeight: 800 }}>[{statusLabel}]</span>
-                        {(ch.itemCount > 0 || ch.itemCountLastFetch > 0) && (
-                          <span style={{ color: '#64748B', fontSize: '9px' }}>({ch.itemCount || ch.itemCountLastFetch})</span>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        {/* ─── KESEHATAN KONEKTOR SUMBER (ISOLATED REACTIVE COMPONENT) ─── */}
+        <ConnectorTelemetryStrip 
+          isSyncing={isSyncing} 
+          lastSyncTime={lastSyncTime} 
+          telemetryStatus={telemetry.status} 
+        />
       </div>
 
       {/* ─── 2B. Sasis Plat Baja: Deck Filter Spektrum & Konsol Pencarian ─── */}
@@ -1531,7 +1592,10 @@ export default function LiveRadar() {
 
       {/* ─── 3C. Grid Kartu Isu Viral Plat Baja (3 Kolom) ─── */}
       {activeViewMode !== 'TRENDS' && (
-      <div style={{
+      <>
+      <div 
+        id="tactical-radar-feed-deck"
+        style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
         gap: '16px',
@@ -1560,7 +1624,7 @@ export default function LiveRadar() {
             </div>
           </div>
         ) : (
-          filteredItems.map(item => {
+          paginatedItems.map(item => {
             const isHoax = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI' || item.verdict === 'PROPAGANDA'
             const isFact = item.verdict === 'FAKTA'
             const isUnverified = item.verdict === 'UNVERIFIED'
@@ -2350,6 +2414,146 @@ export default function LiveRadar() {
           })
         )}
       </div>
+
+      {/* ─── TACTICAL SEGMENTED PAGINATION CONTROLS (60 FPS DOM OPTIMIZATION) ─── */}
+      {filteredItems.length > 0 && (
+        <div
+          className="steel-chassis-card"
+          style={{
+            marginTop: '16px',
+            padding: '12px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            position: 'relative'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
+          {/* Info Halaman & Rentang Data */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--accent-gold)', fontSize: '11px', fontWeight: 800 }}>///</span>
+            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: '#94A3B8' }}>
+              MENAMPILKAN{' '}
+              <span style={{ color: '#38BDF8', fontWeight: 700 }}>
+                {(safeCurrentPage - 1) * pageSize + 1} - {Math.min(safeCurrentPage * pageSize, filteredItems.length)}
+              </span>{' '}
+              DARI <span style={{ color: '#F1F5F9', fontWeight: 700 }}>{filteredItems.length}</span> ISU TERFILTER
+            </span>
+            <span style={{ color: '#334155' }}>│</span>
+            <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B' }}>
+              HALAMAN {safeCurrentPage} / {totalPages}
+            </span>
+          </div>
+
+          {/* Navigasi Paginasi Cepat */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              disabled={safeCurrentPage <= 1}
+              onClick={() => handlePageChange(safeCurrentPage - 1)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '4px',
+                background: safeCurrentPage <= 1 ? '#090D14' : 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                border: safeCurrentPage <= 1 ? '1px solid #1E2734' : '1px solid #3E4E63',
+                color: safeCurrentPage <= 1 ? '#475569' : '#38BDF8',
+                fontSize: '10.5px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                cursor: safeCurrentPage <= 1 ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              ◀ SEBELUMNYA
+            </button>
+
+            {/* Page Numbers */}
+            {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 2)
+              .map((p, idx, arr) => {
+                const prev = arr[idx - 1]
+                const showEllipsis = prev && p - prev > 1
+                return (
+                  <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {showEllipsis && <span style={{ color: '#475569', fontSize: '10px', fontFamily: 'var(--font-mono)' }}>...</span>}
+                    <button
+                      type="button"
+                      onClick={() => handlePageChange(p)}
+                      style={{
+                        minWidth: '30px',
+                        height: '26px',
+                        borderRadius: '3px',
+                        background: p === safeCurrentPage ? 'linear-gradient(180deg, #38BDF8 0%, #0284C7 100%)' : '#0F1622',
+                        border: p === safeCurrentPage ? '1px solid #38BDF8' : '1px solid #222C3A',
+                        color: p === safeCurrentPage ? '#040810' : '#94A3B8',
+                        fontSize: '10.5px',
+                        fontFamily: 'var(--font-mono)',
+                        fontWeight: p === safeCurrentPage ? 900 : 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {p}
+                    </button>
+                  </span>
+                )
+              })}
+
+            <button
+              type="button"
+              disabled={safeCurrentPage >= totalPages}
+              onClick={() => handlePageChange(safeCurrentPage + 1)}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '4px',
+                background: safeCurrentPage >= totalPages ? '#090D14' : 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                border: safeCurrentPage >= totalPages ? '1px solid #1E2734' : '1px solid #3E4E63',
+                color: safeCurrentPage >= totalPages ? '#475569' : '#38BDF8',
+                fontSize: '10.5px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                cursor: safeCurrentPage >= totalPages ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              SELANJUTNYA ▶
+            </button>
+
+            {/* Pilihan Ukuran Halaman */}
+            <span style={{ color: '#334155', margin: '0 4px' }}>│</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#64748B', marginRight: '2px' }}>KAPASITAS:</span>
+              {[15, 30, 60].map(size => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => { setPageSize(size); setCurrentPage(1) }}
+                  style={{
+                    padding: '3px 7px',
+                    borderRadius: '3px',
+                    background: pageSize === size ? '#1E293B' : '#0B1017',
+                    border: pageSize === size ? '1px solid #38BDF8' : '1px solid #1E2734',
+                    color: pageSize === size ? '#38BDF8' : '#64748B',
+                    fontSize: '9.5px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      </>
       )}
 
       {/* ─── 5. MODAL DRAF KONTRANARASI TAKTIS DISPENAD & BABINSA (Untuk Isu TERINDIKASI HOAKS) ─── */}
