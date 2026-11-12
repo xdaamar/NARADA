@@ -61,6 +61,62 @@ export const PRELOADED_TEST_SCENARIOS: PreloadedTestScenario[] = [
           text: 'Poin nomor 3 sangat krusial: kedaulatan server data intelijen harus 100% berada di teritorial domestik tanpa celah cloud asing.',
           likeCount: 654,
           publishedAt: '2026-11-08T09:25:00Z'
+        },
+        {
+          id: 'c-top-4',
+          authorUsername: '@satria_garuda',
+          authorDisplayName: 'Satria Garuda Pertahanan',
+          text: 'Langkah taktis yang transparan dari Pussenif dan Pussiberad. Keamanan siber nasional memang pilar utama kedaulatan NKRI saat ini.',
+          likeCount: 512,
+          publishedAt: '2026-11-08T09:28:00Z'
+        },
+        {
+          id: 'c-top-5',
+          authorUsername: '@bambang_analis',
+          authorDisplayName: 'Bambang Soedirman (Analis Pertahanan)',
+          text: 'Penting sekali menyaring hoaks yang beredar di medsos sebelum membagikannya ke grup WA keluarga. Edukasi publik harus terus digalakkan.',
+          likeCount: 420,
+          publishedAt: '2026-11-08T09:31:00Z'
+        },
+        {
+          id: 'c-top-6',
+          authorUsername: '@cyber_security_id',
+          authorDisplayName: 'Cyber Security ID Community',
+          text: 'Perlindungan critical infrastructure dan SOC 24/7 di perbatasan laut dan darat memang mutlak diperlukan. Maju terus TNI AD!',
+          likeCount: 388,
+          publishedAt: '2026-11-08T09:35:00Z'
+        },
+        {
+          id: 'c-top-7',
+          authorUsername: '@rina_kartika',
+          authorDisplayName: 'Rina Kartika Sari',
+          text: 'Terima kasih atas klarifikasi resmi ini. Framing negatif di TikTok kemarin sempat bikin resah warga.',
+          likeCount: 295,
+          publishedAt: '2026-11-08T09:38:00Z'
+        },
+        {
+          id: 'c-top-8',
+          authorUsername: '@hendra_surabaya',
+          authorDisplayName: 'Hendra Gunawan',
+          text: 'Mari kawal bersama penguatan pertahanan siber Indonesia. Jangan mudah terprovokasi akun anonim bot buzzer.',
+          likeCount: 210,
+          publishedAt: '2026-11-08T09:41:00Z'
+        },
+        {
+          id: 'c-top-9',
+          authorUsername: '@warga_netral',
+          authorDisplayName: 'Warga Netral Nusantara',
+          text: 'Data verifikasi forensik yang ditampilkan sangat valid dan meyakinkan. Salut untuk tim Siber Pertahanan AD.',
+          likeCount: 175,
+          publishedAt: '2026-11-08T09:44:00Z'
+        },
+        {
+          id: 'c-top-10',
+          authorUsername: '@andi_perkasa',
+          authorDisplayName: 'Andi Perkasa Cyber',
+          text: 'Klarifikasi komprehensif. Menjawab tuntas seluruh disinformasi dokumen palsu yang sempat viral di platform X.',
+          likeCount: 130,
+          publishedAt: '2026-11-08T09:48:00Z'
         }
       ],
       copypastaClusters: [
@@ -170,6 +226,70 @@ export const PRELOADED_TEST_SCENARIOS: PreloadedTestScenario[] = [
           text: 'Bank harus tanggung jawab kalau ada kebocoran dari sistem internal mereka, bukan nasabah yang disalahin.',
           likeCount: 512,
           publishedAt: '2026-11-08T11:42:00Z'
+        },
+        {
+          id: 'tt-top-3',
+          authorUsername: '@reza_pahlevi',
+          authorDisplayName: 'Reza Pahlevi (IT Security)',
+          text: 'Bener banget, jangan pernah kasih kode OTP ke siapa pun bahkan yang ngaku dari pihak bank resmi!',
+          likeCount: 430,
+          publishedAt: '2026-11-08T11:45:00Z'
+        },
+        {
+          id: 'tt-top-4',
+          authorUsername: '@dewi_lestari99',
+          authorDisplayName: 'Dewi Lestari',
+          text: 'Kemarin temen kantor hampir kena modus file APK resi kurir paket, untung langsung diblokir CSIRT.',
+          likeCount: 385,
+          publishedAt: '2026-11-08T11:48:00Z'
+        },
+        {
+          id: 'tt-top-5',
+          authorUsername: '@arif_wibisono',
+          authorDisplayName: 'Arif Wibisono',
+          text: 'Sistem keamanan perbankan kita harus standar internasional, jangan nasabah doang yang dituntut waspada.',
+          likeCount: 310,
+          publishedAt: '2026-11-08T11:51:00Z'
+        },
+        {
+          id: 'tt-top-6',
+          authorUsername: '@fajar_hidayat',
+          authorDisplayName: 'Fajar Hidayat',
+          text: 'Aneh banget banyak komentar copypasta di bawah yang kalimatnya persis sama membela bank kata per kata.',
+          likeCount: 275,
+          publishedAt: '2026-11-08T11:54:00Z'
+        },
+        {
+          id: 'tt-top-7',
+          authorUsername: '@maya_anindita',
+          authorDisplayName: 'Maya Anindita',
+          text: 'Perhatikan akun-akun yang baru bikin kemarin, isinya template semua. Fix bot buzzer swarm ini mah.',
+          likeCount: 240,
+          publishedAt: '2026-11-08T11:57:00Z'
+        },
+        {
+          id: 'tt-top-8',
+          authorUsername: '@eko_prasetyo',
+          authorDisplayName: 'Eko Prasetyo',
+          text: 'Edukasi literasi digital harus masuk kurikulum sekolah biar generasi muda paham modus phising dan sniffing.',
+          likeCount: 195,
+          publishedAt: '2026-11-08T12:01:00Z'
+        },
+        {
+          id: 'tt-top-9',
+          authorUsername: '@tiara_putri',
+          authorDisplayName: 'Tiara Putri',
+          text: 'Terima kasih tipsnya kak! Sangat bermanfaat di tengah maraknya kebocoran data belakangan ini.',
+          likeCount: 160,
+          publishedAt: '2026-11-08T12:05:00Z'
+        },
+        {
+          id: 'tt-top-10',
+          authorUsername: '@dimas_arya',
+          authorDisplayName: 'Dimas Arya',
+          text: 'Hati-hati klik tautan di bio profil akun asing, selalu verifikasi ke situs resmi bank atau saluran BSSN.',
+          likeCount: 125,
+          publishedAt: '2026-11-08T12:09:00Z'
         }
       ],
       copypastaClusters: [
@@ -240,6 +360,78 @@ export const PRELOADED_TEST_SCENARIOS: PreloadedTestScenario[] = [
           text: 'Data jurnal Lancet terlampir sangat jelas menunjukkan efikasi di atas 92%. Jangan termakan mitos tanpa dasar riset.',
           likeCount: 780,
           publishedAt: '2026-11-08T14:15:00Z'
+        },
+        {
+          id: 'ig-top-2',
+          authorUsername: '@farmasi_klinis',
+          authorDisplayName: 'Apoteker Siti Nurhaliza',
+          text: 'Semua obat dan formula yang beredar resmi wajib melalui uji klinis fase 1-3 dan evaluasi ketat BPOM RI.',
+          likeCount: 650,
+          publishedAt: '2026-11-08T14:18:00Z'
+        },
+        {
+          id: 'ig-top-3',
+          authorUsername: '@cekfakta_kesehatan',
+          authorDisplayName: 'Cek Fakta Kesehatan ID',
+          text: 'Klaim narasi kelinci percobaan di postingan sebelah adalah hoaks daur ulang dari tahun 2021 yang diedit ulang oleh bot.',
+          likeCount: 520,
+          publishedAt: '2026-11-08T14:22:00Z'
+        },
+        {
+          id: 'ig-top-4',
+          authorUsername: '@dr_anita_wijaya',
+          authorDisplayName: 'dr. Anita Wijaya Sp.A',
+          text: 'Banyak anak yang terselamatkan berkat imunisasi tepat waktu. Jangan korbankan keluarga demi teori konspirasi medsos.',
+          likeCount: 440,
+          publishedAt: '2026-11-08T14:26:00Z'
+        },
+        {
+          id: 'ig-top-5',
+          authorUsername: '@budi_santoso_id',
+          authorDisplayName: 'Budi Santoso (Relawan Medis)',
+          text: 'Penjelasan dokter sangat mencerahkan dan logis. Mari kita ikuti anjuran medis berbasis bukti ilmiah terverifikasi.',
+          likeCount: 380,
+          publishedAt: '2026-11-08T14:30:00Z'
+        },
+        {
+          id: 'ig-top-6',
+          authorUsername: '@warga_peduli_sehat',
+          authorDisplayName: 'Warga Peduli Sehat',
+          text: 'Perhatikan komentar-komentar spam yang isinya provokasi anti-obat, gaya bahasanya persis buatan bot terorganisir.',
+          likeCount: 310,
+          publishedAt: '2026-11-08T14:33:00Z'
+        },
+        {
+          id: 'ig-top-7',
+          authorUsername: '@rina_maharani',
+          authorDisplayName: 'Rina Maharani',
+          text: 'Infografisnya sangat rapi dan mudah dipahami masyarakat awam. Izin repost di IG story ya dok!',
+          likeCount: 260,
+          publishedAt: '2026-11-08T14:37:00Z'
+        },
+        {
+          id: 'ig-top-8',
+          authorUsername: '@hendro_gunawan',
+          authorDisplayName: 'Hendro Gunawan',
+          text: 'Lawan disinformasi kesehatan dengan sains dan data valid. Sehat selalu para nakes dan dokter Indonesia!',
+          likeCount: 215,
+          publishedAt: '2026-11-08T14:41:00Z'
+        },
+        {
+          id: 'ig-top-9',
+          authorUsername: '@sari_safitri',
+          authorDisplayName: 'Sari Safitri',
+          text: 'Alhamdulillah dapat pencerahan langsung dari ahlinya, tadinya sempat was-was baca broadcast provokatif di WA.',
+          likeCount: 170,
+          publishedAt: '2026-11-08T14:45:00Z'
+        },
+        {
+          id: 'ig-top-10',
+          authorUsername: '@taufiq_rahman',
+          authorDisplayName: 'Taufiq Rahman',
+          text: 'Mari dukung langkah Kemenkes dan IDI dalam mengedukasi masyarakat secara transparan, ilmiah, dan akurat.',
+          likeCount: 135,
+          publishedAt: '2026-11-08T14:50:00Z'
         }
       ],
       copypastaClusters: [
@@ -318,6 +510,70 @@ export const PRELOADED_TEST_SCENARIOS: PreloadedTestScenario[] = [
           text: 'Sanksi denda administratifnya cukup berat, bisa sampai miliaran rupiah jika terbukti lalai.',
           likeCount: 98,
           publishedAt: '2026-11-08T16:25:00Z'
+        },
+        {
+          id: 'th-top-3',
+          authorUsername: '@infosec_id',
+          authorDisplayName: 'InfoSec ID Network',
+          text: 'Implementasi ISO 27001 dan audit privasi pihak ketiga jadi syarat minimum compliance tahun ini.',
+          likeCount: 88,
+          publishedAt: '2026-11-08T16:28:00Z'
+        },
+        {
+          id: 'th-top-4',
+          authorUsername: '@data_privacy_advocate',
+          authorDisplayName: 'Nadia Privacy Counsel',
+          text: 'Hak subjek data untuk meminta penghapusan dan koreksi data pribadi kini punya dasar hukum yang mengikat.',
+          likeCount: 76,
+          publishedAt: '2026-11-08T16:32:00Z'
+        },
+        {
+          id: 'th-top-5',
+          authorUsername: '@teguh_startup',
+          authorDisplayName: 'Teguh Wibowo',
+          text: 'Startup tahap awal perlu panduan teknis implementasi enkripsi at-rest dan in-transit yang praktis.',
+          likeCount: 65,
+          publishedAt: '2026-11-08T16:36:00Z'
+        },
+        {
+          id: 'th-top-6',
+          authorUsername: '@andi_developer',
+          authorDisplayName: 'Andi Kurniawan',
+          text: 'Arsitektur zero-trust security bukan lagi opsi mewah tapi kewajiban operasional bagi perbankan dan fintech.',
+          likeCount: 54,
+          publishedAt: '2026-11-08T16:40:00Z'
+        },
+        {
+          id: 'th-top-7',
+          authorUsername: '@konsultan_siber',
+          authorDisplayName: 'Raka Perdana CISSP',
+          text: 'Kecepatan respon insiden maksimal 3x24 jam ke lembaga pengawas harus disiapkan SOP internalnya.',
+          likeCount: 45,
+          publishedAt: '2026-11-08T16:44:00Z'
+        },
+        {
+          id: 'th-top-8',
+          authorUsername: '@sari_legaltech',
+          authorDisplayName: 'Sari LegalTech ID',
+          text: 'Diskusi yang sangat berbobot di Threads. Menyenangkan melihat komunitas teknikal dan legal bersinergi.',
+          likeCount: 38,
+          publishedAt: '2026-11-08T16:48:00Z'
+        },
+        {
+          id: 'th-top-9',
+          authorUsername: '@fauzan_compliance',
+          authorDisplayName: 'Fauzan Pratama',
+          text: 'Edukasi ke level direksi korporasi sangat penting agar alokasi budget keamanan siber tidak dipangkas.',
+          likeCount: 29,
+          publishedAt: '2026-11-08T16:52:00Z'
+        },
+        {
+          id: 'th-top-10',
+          authorUsername: '@bintang_it',
+          authorDisplayName: 'Bintang Ramadhan',
+          text: 'Sinergi BSSN, Pussiberad, dan Kemenkomdigi harus terus diperkuat untuk melindungi kedaulatan data bangsa.',
+          likeCount: 22,
+          publishedAt: '2026-11-08T16:56:00Z'
         }
       ],
       copypastaClusters: [],
