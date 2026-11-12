@@ -169,13 +169,21 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
       flexDirection: 'column',
       gap: '8px'
     }}>
-      {/* Header Bar Ringkas (Always Visible 1-Line) */}
+      {/* Header Bar Ringkas (Always Visible 1-Line - Plat Besi Beveled) */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         flexWrap: 'wrap',
-        gap: '8px'
+        gap: '8px',
+        background: 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
+        borderTop: '1px solid #334155',
+        borderLeft: '1px solid #273444',
+        borderRight: '1px solid #141B26',
+        borderBottom: '2px solid #080C10',
+        borderRadius: '6px',
+        padding: '7px 12px',
+        boxShadow: '0 3px 8px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12)'
       }}>
         <div 
           onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
@@ -189,7 +197,7 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
           title="Klik untuk buka / tutup rincian 14 kanal radar"
         >
           <span style={{ color: '#94A3B8', fontWeight: 700, fontSize: '10.5px', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <Radio size={12} color="#38BDF8" />
+            <Radio size={12} color="#60A5FA" />
             <span>STATUS KONEKTOR RADAR (14 KANAL):</span>
           </span>
 
@@ -201,14 +209,18 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
               gap: '4px',
               padding: '2px 7px',
               borderRadius: '3px',
-              background: '#101722',
-              border: '1px solid #263345',
+              background: 'linear-gradient(180deg, #131A24 0%, #0A0E15 100%)',
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+              borderBottom: '1px solid #06090D',
+              borderLeft: '1px solid #1C2636',
+              borderRight: '1px solid #141B26',
+              boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.8)',
               color: '#10B981',
               fontSize: '9.5px',
               fontWeight: 700,
               fontFamily: 'var(--font-mono)'
             }}>
-              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', boxShadow: '0 0 4px #10B981' }} />
+              <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981', boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85)' }} />
               {connectorSummary.online} Online
             </span>
 
@@ -219,14 +231,18 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
                 gap: '4px',
                 padding: '2px 7px',
                 borderRadius: '3px',
-                background: '#101722',
-                border: '1px solid #263345',
+                background: 'linear-gradient(180deg, #131A24 0%, #0A0E15 100%)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                borderBottom: '1px solid #06090D',
+                borderLeft: '1px solid #1C2636',
+                borderRight: '1px solid #141B26',
+                boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.8)',
                 color: '#F59E0B',
                 fontSize: '9.5px',
                 fontWeight: 700,
                 fontFamily: 'var(--font-mono)'
               }}>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F59E0B' }} />
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F59E0B', boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85)' }} />
                 {connectorSummary.degraded} Degraded
               </span>
             )}
@@ -238,14 +254,18 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
                 gap: '4px',
                 padding: '2px 7px',
                 borderRadius: '3px',
-                background: '#101722',
-                border: '1px solid #263345',
+                background: 'linear-gradient(180deg, #131A24 0%, #0A0E15 100%)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                borderBottom: '1px solid #06090D',
+                borderLeft: '1px solid #1C2636',
+                borderRight: '1px solid #141B26',
+                boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.8)',
                 color: '#EF4444',
                 fontSize: '9.5px',
                 fontWeight: 700,
                 fontFamily: 'var(--font-mono)'
               }}>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#EF4444' }} />
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#EF4444', boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85)' }} />
                 {connectorSummary.offline} Offline
               </span>
             )}
@@ -257,8 +277,12 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
                 gap: '4px',
                 padding: '2px 7px',
                 borderRadius: '3px',
-                background: '#101722',
-                border: '1px solid #263345',
+                background: 'linear-gradient(180deg, #131A24 0%, #0A0E15 100%)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                borderBottom: '1px solid #06090D',
+                borderLeft: '1px solid #1C2636',
+                borderRight: '1px solid #141B26',
+                boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.8)',
                 color: '#64748B',
                 fontSize: '9.5px',
                 fontWeight: 600,
@@ -276,7 +300,7 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
           </div>
         </div>
 
-        {/* Toggle Button */}
+        {/* Toggle Button (Plat Baja Beveled Taktis) */}
         <button
           type="button"
           onClick={() => setIsConnectorDetailsOpen(!isConnectorDetailsOpen)}
@@ -284,16 +308,21 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '5px',
-            background: isConnectorDetailsOpen ? 'rgba(56, 189, 248, 0.12)' : '#090D14',
-            border: isConnectorDetailsOpen ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #1E2734',
+            background: isConnectorDetailsOpen ? 'linear-gradient(180deg, #243244 0%, #131B26 100%)' : 'linear-gradient(180deg, #1A222E 0%, #0E131C 100%)',
+            borderTop: isConnectorDetailsOpen ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.1)',
+            borderBottom: isConnectorDetailsOpen ? '2px solid #0B0E14' : '2px solid #080C10',
+            borderLeft: isConnectorDetailsOpen ? '1px solid #334358' : '1px solid #202A38',
+            borderRight: isConnectorDetailsOpen ? '1px solid #1A2330' : '1px solid #10151E',
+            boxShadow: isConnectorDetailsOpen ? '0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
             borderRadius: '4px',
-            color: isConnectorDetailsOpen ? '#38BDF8' : '#94A3B8',
+            color: isConnectorDetailsOpen ? '#F1F5F9' : '#94A3B8',
             fontSize: '10px',
-            fontWeight: 600,
+            fontWeight: 700,
             fontFamily: 'var(--font-mono)',
-            padding: '3px 8px',
+            padding: '4px 10px',
             cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            transition: 'all 0.18s ease',
+            textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
           }}
           title={isConnectorDetailsOpen ? 'Tutup rincian kanal' : 'Buka rincian 14 kanal radar'}
         >
@@ -302,13 +331,17 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
         </button>
       </div>
 
-      {/* Tray Dropdown Detail Kanal (Hanya Tampil Saat Buka) */}
+      {/* Tray Dropdown Detail Kanal (Kompartemen Sasis Baja Cekung) */}
       {isConnectorDetailsOpen && (
         <div style={{
-          background: '#070B11',
-          border: '1px solid #1E2734',
+          background: 'linear-gradient(180deg, #0E141D 0%, #070A0F 100%)',
+          borderTop: '1px solid #263345',
+          borderBottom: '2px solid #05070A',
+          borderLeft: '1px solid #1B2432',
+          borderRight: '1px solid #121822',
+          boxShadow: 'inset 0 3px 10px rgba(0, 0, 0, 0.9), 0 4px 12px rgba(0, 0, 0, 0.7)',
           borderRadius: '6px',
-          padding: '10px 12px',
+          padding: '12px 14px',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
@@ -361,12 +394,16 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: '6px',
-                    padding: '4px 8px',
+                    padding: '5px 8px',
                     borderRadius: '4px',
-                    background: '#0B111A',
-                    border: `1px solid ${dotColor}35`,
+                    background: 'linear-gradient(180deg, #161F2C 0%, #0C1118 100%)',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                    borderBottom: '2px solid #06090D',
+                    borderLeft: '1px solid #202C3E',
+                    borderRight: '1px solid #0F151F',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
                     color: isDisabled ? '#64748B' : '#CBD5E1',
-                    opacity: isDisabled ? 0.7 : 1,
+                    opacity: isDisabled ? 0.65 : 1,
                     cursor: 'help'
                   }}
                 >
@@ -376,7 +413,7 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
                       height: '6px',
                       borderRadius: '50%',
                       background: dotColor,
-                      boxShadow: isHealthy ? `0 0 5px ${dotColor}` : 'none',
+                      boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0, 0, 0, 0.85)',
                       flexShrink: 0
                     }} />
                     <span style={{ fontWeight: 700, color: isDisabled ? '#94A3B8' : '#F1F5F9', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1173,7 +1210,7 @@ export default function LiveRadar() {
                 height: '5px',
                 borderRadius: '50%',
                 background: activeFilterInfo.color,
-                boxShadow: `0 0 6px ${activeFilterInfo.color}`
+                boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0, 0, 0, 0.85)'
               }} />
               FILTER AKTIF: {activeFilterInfo.label}
             </span>
@@ -1184,23 +1221,27 @@ export default function LiveRadar() {
               onClick={toggleExpandAllCards}
               title={isAllExpanded ? "Tutup seluruh cuplikan berita pada semua kartu" : "Bentangkan seluruh cuplikan berita pada semua kartu"}
               style={{
-                background: isAllExpanded ? 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)' : '#0B1017',
-                border: '1px solid',
-                borderColor: isAllExpanded ? '#475569' : '#1E2734',
-                color: isAllExpanded ? '#38BDF8' : '#94A3B8',
-                borderRadius: '3px',
-                padding: '2px 8px',
-                fontSize: '9px',
+                background: isAllExpanded ? 'linear-gradient(180deg, #243244 0%, #131B26 100%)' : 'linear-gradient(180deg, #1A222E 0%, #0E131C 100%)',
+                borderTop: isAllExpanded ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.1)',
+                borderBottom: isAllExpanded ? '2px solid #0B0E14' : '2px solid #080C10',
+                borderLeft: isAllExpanded ? '1px solid #334358' : '1px solid #202A38',
+                borderRight: isAllExpanded ? '1px solid #1A2330' : '1px solid #10151E',
+                boxShadow: isAllExpanded ? '0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
+                color: isAllExpanded ? '#F1F5F9' : '#94A3B8',
+                borderRadius: '4px',
+                padding: '4px 10px',
+                fontSize: '9.5px',
                 fontFamily: 'var(--font-mono)',
                 fontWeight: 700,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.15s ease'
+                gap: '5px',
+                transition: 'all 0.18s ease',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
               }}
             >
-              {isAllExpanded ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+              {isAllExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
               <span>{isAllExpanded ? 'TUTUP SEMUA CUPLIKAN' : 'BUKA SEMUA CUPLIKAN'}</span>
             </button>
           </div>
@@ -1261,14 +1302,14 @@ export default function LiveRadar() {
           {/* Baris 1: Filter Status Triage */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '9.5px', fontFamily: 'var(--font-mono)', color: '#64748B', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', marginRight: '2px' }}>
-              <ShieldAlert size={11} color="#38BDF8" /> FILTER STATUS:
+              <ShieldAlert size={11} color="#60A5FA" /> FILTER STATUS:
             </span>
             {[
               { key: 'MOMENTUM', label: 'ISU BARU & MENINGKAT', count: triageCounts.MOMENTUM, color: '#F43F5E', icon: TrendingUp },
               { key: 'UNVERIFIED', label: 'SEDANG DIPANTAU', count: triageCounts.UNVERIFIED, color: '#F59E0B', icon: Eye },
               { key: 'HOAKS', label: 'TERINDIKASI HOAKS', count: triageCounts.HOAKS, color: '#EF4444', icon: AlertTriangle },
               { key: 'RESOLVED', label: 'FAKTA & AMAN', count: triageCounts.FAKTA + triageCounts.NETRAL, color: '#10B981', icon: ShieldCheck },
-              { key: 'ALL', label: 'SEMUA ISU AKTIF', count: triageCounts.ALL, color: '#38BDF8', icon: Layers },
+              { key: 'ALL', label: 'SEMUA ISU AKTIF', count: triageCounts.ALL, color: '#60A5FA', icon: Layers },
             ].map(tab => {
               const isSelected = tab.key === 'ALL'
                 ? (activeViewMode === 'ALL' && selectedTriage === 'ALL')
@@ -1294,25 +1335,28 @@ export default function LiveRadar() {
                     }
                   }}
                   style={{
-                    padding: '5px 10px',
+                    padding: '6px 12px',
                     borderRadius: '4px',
                     fontSize: '10.5px',
                     fontFamily: 'var(--font-mono)',
                     fontWeight: 800,
-                    border: '1px solid',
-                    borderColor: isSelected ? tab.color : '#222C3A',
+                    borderTop: isSelected ? '1px solid rgba(255, 255, 255, 0.28)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    borderBottom: isSelected ? `2px solid ${tab.color}` : '2px solid #080C10',
+                    borderLeft: '1px solid #1E2838',
+                    borderRight: '1px solid #121822',
                     background: isSelected 
-                      ? 'linear-gradient(180deg, #1C2735 0%, #111822 100%)' 
-                      : '#101620',
+                      ? 'linear-gradient(180deg, #243244 0%, #131A25 100%)' 
+                      : 'linear-gradient(180deg, #161F2C 0%, #0D131B 100%)',
                     color: isSelected ? tab.color : '#94A3B8',
                     cursor: 'pointer',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
                     boxShadow: isSelected 
-                      ? `0 0 10px ${tab.color}35, inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 -2px 0 ${tab.color}` 
-                      : 'none',
-                    transition: 'all 0.15s ease'
+                      ? '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.18)' 
+                      : '0 2px 4px rgba(0, 0, 0, 0.5)',
+                    transition: 'all 0.18s ease',
+                    textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
                   }}
                 >
                   <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -1326,7 +1370,7 @@ export default function LiveRadar() {
                         height: '5px',
                         borderRadius: '50%',
                         background: tab.color,
-                        boxShadow: `0 0 6px ${tab.color}`
+                        boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0, 0, 0, 0.85)'
                       }} />
                     )}
                   </div>
@@ -1747,13 +1791,13 @@ export default function LiveRadar() {
                   position: 'relative',
                   gap: '12px',
                   borderTop: isArchived 
-                    ? `2px solid ${isEffectiveHoax ? '#EF4444' : isEffectiveFact ? '#10B981' : '#38BDF8'}` 
+                    ? `2px solid ${isEffectiveHoax ? '#EF4444' : isEffectiveFact ? '#10B981' : '#D4A017'}` 
                     : score >= 75 
                     ? '2px solid #EF4444' 
                     : '1px solid #1E2734',
                   boxShadow: isArchived 
-                    ? `0 0 16px ${isEffectiveHoax ? 'rgba(239, 68, 68, 0.15)' : isEffectiveFact ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)'}, inset 0 1px 0 rgba(56, 189, 248, 0.2)` 
-                    : 'none',
+                    ? '0 12px 28px rgba(0, 0, 0, 0.85), inset 0 2px 0 rgba(255, 255, 255, 0.2)' 
+                    : '0 8px 20px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
                   minHeight: isExiting ? '0px' : '440px',
                   height: isExiting ? 'auto' : (isExpanded ? 'fit-content' : '440px'),
                   transition: isExiting ? 'none' : 'all 0.2s ease',
@@ -1871,14 +1915,13 @@ export default function LiveRadar() {
                                   height: '6px',
                                   borderRadius: '50%',
                                   background: isEffectiveHoax ? '#EF4444' : isEffectiveFact ? '#10B981' : '#F59E0B',
-                                  boxShadow: isEffectiveHoax ? '0 0 6px #EF4444' : isEffectiveFact ? '0 0 6px #10B981' : '0 0 6px #F59E0B',
-                                  animation: 'cyberPulseDot 1.4s infinite'
+                                  boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85)'
                                 }} />
                                 <span style={{ fontSize: '8.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#94A3B8', letterSpacing: '0.8px' }}>
                                   {isArchived ? '// C2-BERITA-TERSEMAT' : '// C2-RADAR-VERIFY'}
                                 </span>
                               </div>
-                              <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '1px 4px', borderRadius: '2px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                              <span style={{ fontSize: '8px', fontFamily: 'var(--font-mono)', color: '#CBD5E1', background: 'rgba(255, 255, 255, 0.06)', padding: '1px 4px', borderRadius: '2px', border: '1px solid rgba(255, 255, 255, 0.12)' }}>
                                 RESPONS 0-MS
                               </span>
                             </div>
@@ -1966,7 +2009,7 @@ export default function LiveRadar() {
                         RELEVANSI {score}/100
                       </span>
 
-                      {/* Tombol Sematkan / Tersemat */}
+                      {/* Tombol Sematkan / Tersemat (Plat Besi Beveled) */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1974,24 +2017,36 @@ export default function LiveRadar() {
                           handleToggleArchive(item)
                         }}
                         style={{
-                          background: isArchived ? 'linear-gradient(180deg, #1A2838 0%, #0D1622 100%)' : 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
-                          border: isArchived ? '1px solid #38BDF8' : '1px solid #3E4E63',
-                          boxShadow: isArchived ? '0 0 8px rgba(56, 189, 248, 0.3)' : 'inset 0 1px 0 rgba(255, 255, 255, 0.12)',
-                          color: isArchived ? '#38BDF8' : '#94A3B8',
+                          background: isArchived 
+                            ? 'linear-gradient(180deg, #3D2D10 0%, #1F1706 100%)' 
+                            : 'linear-gradient(180deg, #222C3A 0%, #131A24 100%)',
+                          borderTop: isArchived 
+                            ? '1px solid rgba(255, 255, 255, 0.25)' 
+                            : '1px solid rgba(255, 255, 255, 0.12)',
+                          borderBottom: isArchived 
+                            ? '2px solid #3B2C01' 
+                            : '2px solid #0B1017',
+                          borderLeft: isArchived ? '1px solid #856404' : '1px solid #2B3746',
+                          borderRight: isArchived ? '1px solid #533F02' : '1px solid #141C25',
+                          boxShadow: isArchived 
+                            ? '0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15)' 
+                            : '0 2px 4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+                          color: isArchived ? '#FDE047' : '#94A3B8',
                           fontSize: '9px',
                           fontFamily: 'var(--font-mono)',
                           fontWeight: 800,
-                          padding: '2px 7px',
+                          padding: '3px 8px',
                           borderRadius: '3px',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '4px',
-                          transition: 'all 0.15s ease'
+                          transition: 'all 0.18s ease',
+                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.9)'
                         }}
                         title={isArchived ? 'Lepas Sematan: Kembalikan berita ke radar biasa' : 'Sematkan Berita: Simpan ke halaman Berita Tersemat agar tidak tenggelam'}
                       >
-                        <Pin size={10} color={isArchived ? '#38BDF8' : '#94A3B8'} style={{ transform: isArchived ? 'rotate(45deg)' : 'none' }} />
+                        <Pin size={10} color={isArchived ? '#FDE047' : '#94A3B8'} style={{ transform: isArchived ? 'rotate(45deg)' : 'none' }} />
                         <span>{isArchived ? 'TERSEMAT' : 'SEMATKAN'}</span>
                       </button>
                     </div>
@@ -2866,10 +2921,13 @@ export default function LiveRadar() {
             width: '390px',
             maxWidth: 'calc(100vw - 48px)',
             padding: '14px 16px',
-            background: 'linear-gradient(180deg, #131C28 0%, #0A1017 100%)',
-            border: '1px solid #38BDF8',
+            background: 'linear-gradient(170deg, #1C2533 0%, #111822 55%, #0A0F16 100%)',
+            borderTop: '2px solid #475569',
+            borderLeft: '2px solid #334155',
+            borderRight: '2px solid #161F2C',
+            borderBottom: '2px solid #0A0E15',
             borderRadius: '6px',
-            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.85), 0 0 24px rgba(56, 189, 248, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             display: 'flex',
@@ -2890,13 +2948,16 @@ export default function LiveRadar() {
                 width: '30px',
                 height: '30px',
                 borderRadius: '4px',
-                background: 'rgba(56, 189, 248, 0.16)',
-                border: '1px solid #38BDF8',
+                background: 'linear-gradient(180deg, #3D2D10 0%, #1F1706 100%)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.25)',
+                borderBottom: '2px solid #3B2C01',
+                borderLeft: '1px solid #856404',
+                borderRight: '1px solid #533F02',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#38BDF8',
-                boxShadow: '0 0 12px rgba(56, 189, 248, 0.35)',
+                color: '#FDE047',
+                boxShadow: '0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
                 flexShrink: 0
               }}>
                 <Pin size={15} style={{ transform: 'rotate(-45deg)' }} />
@@ -2906,7 +2967,7 @@ export default function LiveRadar() {
                   fontSize: '11.5px',
                   fontFamily: 'var(--font-display)',
                   fontWeight: 800,
-                  color: '#38BDF8',
+                  color: '#F8FAFC',
                   letterSpacing: '0.6px',
                   display: 'flex',
                   alignItems: 'center',
@@ -2918,7 +2979,7 @@ export default function LiveRadar() {
                     height: '6px',
                     borderRadius: '50%',
                     background: '#10B981',
-                    boxShadow: '0 0 6px #10B981',
+                    boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85)',
                     display: 'inline-block'
                   }} />
                 </div>
@@ -2967,10 +3028,11 @@ export default function LiveRadar() {
             WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            background: 'rgba(9, 13, 19, 0.75)',
+            background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
             padding: '7px 10px',
             borderRadius: '4px',
-            border: '1px solid #1E293B',
+            border: '1px solid #1C2636',
+            boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.8)',
             fontFamily: 'var(--font-mono)'
           }}>
             {pinToast.cluster && (
@@ -2993,8 +3055,11 @@ export default function LiveRadar() {
                 onClick={() => setHideArchivedInRadar(false)}
                 title="Tampilkan kembali berita yang disematkan di halaman radar ini"
                 style={{
-                  background: 'transparent',
-                  border: '1px solid #2B3B50',
+                  background: 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
+                  borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderBottom: '2px solid #080C10',
+                  borderLeft: '1px solid #202A38',
+                  borderRight: '1px solid #10151E',
                   color: '#94A3B8',
                   borderRadius: '3px',
                   padding: '4px 8px',
@@ -3003,14 +3068,6 @@ export default function LiveRadar() {
                   fontWeight: 600,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = '#F1F5F9'
-                  e.currentTarget.style.borderColor = '#475569'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#94A3B8'
-                  e.currentTarget.style.borderColor = '#2B3B50'
                 }}
               >
                 Tetap Tampilkan di Radar
@@ -3028,9 +3085,12 @@ export default function LiveRadar() {
                 navigate('/archive')
               }}
               style={{
-                background: 'linear-gradient(180deg, #1E2C3D 0%, #101925 100%)',
-                border: '1px solid #38BDF8',
-                color: '#38BDF8',
+                background: 'linear-gradient(180deg, #2D394A 0%, #18202D 100%)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.25)',
+                borderBottom: '2px solid #0A0E15',
+                borderLeft: '1px solid #3A4A60',
+                borderRight: '1px solid #141B26',
+                color: '#FDE047',
                 borderRadius: '3px',
                 padding: '4px 10px',
                 fontSize: '10px',
@@ -3040,18 +3100,9 @@ export default function LiveRadar() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12)',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(180deg, #2A3C52 0%, #162232 100%)'
-                e.currentTarget.style.color = '#7DD3FC'
-                e.currentTarget.style.borderColor = '#7DD3FC'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'linear-gradient(180deg, #1E2C3D 0%, #101925 100%)'
-                e.currentTarget.style.color = '#38BDF8'
-                e.currentTarget.style.borderColor = '#38BDF8'
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
+                transition: 'all 0.18s ease',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
               }}
             >
               <span>BUKA BERITA TERSEMAT</span>
@@ -3066,14 +3117,13 @@ export default function LiveRadar() {
             left: 0,
             right: 0,
             height: '2px',
-            background: 'rgba(56, 189, 248, 0.15)'
+            background: 'rgba(212, 160, 23, 0.2)'
           }}>
             <div
               className="toast-progress-bar"
               style={{
                 height: '100%',
-                background: '#38BDF8',
-                boxShadow: '0 0 6px #38BDF8'
+                background: '#D4A017'
               }}
             />
           </div>

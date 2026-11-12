@@ -138,7 +138,7 @@ function Sidebar({ isCollapsed, onToggle, storageState }: SidebarProps) {
       {!isCollapsed && (
         <div className="sidebar-footer">
           <div className="system-status">
-            <div className="status-dot" style={{ background: statusColor, boxShadow: `0 0 8px ${statusColor}` }} />
+            <div className="status-dot" style={{ background: statusColor, boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0, 0, 0, 0.85)' }} />
             <div className="system-status-detail">
               <div className="status-text" style={{ fontWeight: 700, color: '#F1F5F9' }}>
                 {isPersisted ? 'SISTEM AKTIF' : 'PERINGATAN'}

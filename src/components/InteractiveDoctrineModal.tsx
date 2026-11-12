@@ -47,7 +47,11 @@ export default function InteractiveDoctrineModal({ isOpen, onClose }: Interactiv
           flexDirection: 'column',
           position: 'relative',
           padding: 0,
-          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95), 0 0 30px rgba(212, 175, 55, 0.15)',
+          boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
+          borderTop: '2px solid #D4A017',
+          borderLeft: '1px solid #856404',
+          borderRight: '1px solid #533F02',
+          borderBottom: '2px solid #281D01',
           overflow: 'hidden'
         }}
         onClick={(e) => e.stopPropagation()}

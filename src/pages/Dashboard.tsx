@@ -1186,7 +1186,7 @@ export default function Dashboard() {
                             stroke={isActive ? '#FFFFFF' : '#090C10'}
                             strokeWidth={isActive ? 2 : 1}
                             style={{
-                              filter: isActive ? `drop-shadow(0 0 6px ${entry.color})` : 'none',
+                              filter: isActive ? 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85))' : 'none',
                               cursor: 'pointer'
                             }}
                           />
@@ -1206,7 +1206,7 @@ export default function Dashboard() {
                   height: '32px',
                   borderRadius: '50%',
                   background: 'radial-gradient(circle, #1A232E 50%, #0D1218 100%)',
-                  boxShadow: '0 0 8px rgba(0,0,0,0.8), inset 0 0 5px rgba(212, 160, 23, 0.25)',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1253,7 +1253,7 @@ export default function Dashboard() {
                     {/* Header: Judul Kategori & Metrik Dinamis */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: activeVerdictItem.color, boxShadow: `0 0 8px ${activeVerdictItem.color}` }} />
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: activeVerdictItem.color, boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.4), 0 1px 2px rgba(0, 0, 0, 0.85)' }} />
                         <span style={{ fontSize: '11px', fontFamily: 'var(--font-display)', fontWeight: 800, color: '#F1F5F9', letterSpacing: '0.6px' }}>
                           {activeDeclaration.title}
                         </span>

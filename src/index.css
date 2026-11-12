@@ -9,32 +9,33 @@
 /* ─── DOKTRIN SISTEM DESAIN: TACTICAL ARMORED STEEL (PLAT BAJA) ─── */
 :root {
   /* ─── KANVAS & LAPISAN KEDALAMAN PELAT BAJA ─── */
-  --bg-canvas:         #0C1016; /* Kanvas sasis terdalam (Dark Graphite) */
-  --bg-base:           #10151C; /* Latar area kerja */
-  --bg-surface:        #141B24; /* Sidebar, TopBar, Header */
-  --bg-card-steel:     linear-gradient(160deg, #1C2430 0%, #121822 100%); /* Plat baja utama */
-  --bg-card-bevel:     #171F2A; /* Kartu isi/konten */
-  --bg-card-inset:     #0A0E13; /* Area cekung untuk tabel/terminal/data */
-  --bg-card-hover:     linear-gradient(160deg, #222B3A 0%, #161D28 100%);
-  --bg-overlay:        rgba(8, 11, 16, 0.85);
+  --bg-canvas:         #090C10; /* Kanvas sasis terdalam (Cold Dark Iron) */
+  --bg-base:           #0D1117; /* Latar area kerja militer */
+  --bg-surface:        #10151E; /* Sidebar, TopBar, Header */
+  --bg-card-steel:     linear-gradient(170deg, rgba(28, 36, 48, 0.97) 0%, rgba(16, 21, 29, 0.98) 50%, rgba(9, 13, 18, 1) 100%); /* Plat baja utama */
+  --bg-card-bevel:     #141C27; /* Kartu isi/konten */
+  --bg-card-inset:     #070A0E; /* Area cekung untuk tabel/terminal/data */
+  --bg-card-hover:     linear-gradient(160deg, #202938 0%, #131A24 100%);
+  --bg-overlay:        rgba(6, 8, 12, 0.92);
 
-  /* Kompatibilitas kartu dan container */
-  --bg-elevated:       #161E2A;
-  --bg-card:           #141C26;
-  --bg-card-subtle:    #0C1118;
+  /* Kompatibilitas kartu dan container (Bukan warna polos, melainkan plat baja) */
+  --bg-elevated:       linear-gradient(180deg, #182230 0%, #0E141E 100%);
+  --bg-card:           linear-gradient(170deg, #1A2330 0%, #111722 100%);
+  --bg-card-subtle:    linear-gradient(180deg, #121822 0%, #090D13 100%);
+  --steel-plate-active:linear-gradient(180deg, #2A384C 0%, #16202D 100%);
 
   /* ─── BEVELED EDGES & BORDERS METALIK ─── */
-  --border-steel-light: rgba(255, 255, 255, 0.12); /* Highlight tepi atas pantulan cahaya */
+  --border-steel-light: rgba(255, 255, 255, 0.14); /* Highlight tepi atas pantulan cahaya */
   --border-steel-base:  #2D3848;                 /* Garis batas plat baja */
-  --border-steel-dark:  rgba(0, 0, 0, 0.55);      /* Bayangan lekukan bawah plat */
-  --border-amber:       rgba(245, 158, 11, 0.40); /* Pembatas peringatan */
-  --border-crimson:     rgba(239, 68, 68, 0.45);  /* Pembatas ancaman kritis */
+  --border-steel-dark:  rgba(0, 0, 0, 0.65);      /* Bayangan lekukan bawah plat */
+  --border-amber:       rgba(245, 158, 11, 0.35); /* Pembatas peringatan */
+  --border-crimson:     rgba(220, 38, 38, 0.40);  /* Pembatas ancaman kritis */
 
-  --border-subtle:      #1E2734;   /* Garis pemisah standar antar kartu */
-  --border-moderate:    #2B3748;   /* Garis batas input, chip aktif */
-  --border-strong:      #475569;   /* Batas fokus dan hover aktif */
-  --border-red:         rgba(239, 68, 68, 0.45);
-  --border-gold:        rgba(212, 160, 23, 0.45);
+  --border-subtle:      #1B2430;   /* Garis pemisah standar antar kartu */
+  --border-moderate:    #283547;   /* Garis batas input, chip aktif */
+  --border-strong:      #425267;   /* Batas fokus dan hover aktif */
+  --border-red:         rgba(220, 38, 38, 0.40);
+  --border-gold:        rgba(212, 160, 23, 0.35);
 
   /* ─── TIPOGRAFI MILITER KONTRAS TINGGI ─── */
   --text-primary:      #F1F5F9; /* Titanium White — Tajam dan jernih */
@@ -42,66 +43,66 @@
   --text-tertiary:     #64748B; /* Dark Steel — Timestamp, metadata */
   --text-mono-data:    #E2E8F0; /* Teks data JetBrains Mono */
   --text-disabled:     #475569;
-  --text-inverse:      #0C1016;
+  --text-inverse:      #090C10;
 
-  /* ─── INDIKATOR LAMPU & AKSEN INSTRUMEN ─── */
-  --accent-amber:      #F59E0B; /* Amber konsol militer (status siaga, telemetry) */
-  --accent-crimson:    #EF4444; /* Crimson tempur (DEFCON 1, hoaks kritis) */
-  --accent-gold:       #D4A017; /* Emas lambang resmi (Crest logo proyek) */
-  --accent-green:      #10B981; /* Phosphor Green (normal, fakta valid, network secure) */
+  /* ─── INDIKATOR LAMPU & AKSEN INSTRUMEN (DISIPLIN & MATTE) ─── */
+  --accent-amber:      #F59E0B; /* Amber konsol militer */
+  --accent-crimson:    #DC2626; /* Crimson tempur pekat */
+  --accent-gold:       #D4A017; /* Emas lambang resmi kedinasan */
+  --accent-green:      #10B981; /* Phosphor Green */
   --accent-blue:       #3B82F6; /* Telemetri link / netral */
-  --accent-blue-subtle:rgba(59, 130, 246, 0.15);
+  --accent-blue-subtle:rgba(59, 130, 246, 0.12);
 
-  --brand-red:         #EF4444;
-  --brand-red-light:   #F87171;
-  --brand-red-subtle:  rgba(239, 68, 68, 0.15);
-  --brand-red-dim:     rgba(239, 68, 68, 0.20);
-  --brand-red-glow:    rgba(239, 68, 68, 0.35);
+  --brand-red:         #DC2626;
+  --brand-red-light:   #EF4444;
+  --brand-red-subtle:  rgba(220, 38, 38, 0.12);
+  --brand-red-dim:     rgba(220, 38, 38, 0.18);
+  --brand-red-glow:    rgba(220, 38, 38, 0.08); /* Glow diredam jadi bayangan rim */
 
   --accent-gold-dark:  #B45309;
-  --accent-gold-subtle:rgba(212, 160, 23, 0.15);
-  --accent-gold-dim:   rgba(212, 160, 23, 0.20);
+  --accent-gold-subtle:rgba(212, 160, 23, 0.12);
+  --accent-gold-dim:   rgba(212, 160, 23, 0.18);
 
   /* ─── STATUS SEMANTIK KOGNITIF ─── */
-  --verdict-hoax:        #EF4444;
+  --verdict-hoax:        #DC2626;
   --verdict-hoax-text:   #FCA5A5;
-  --verdict-hoax-bg:     rgba(239, 68, 68, 0.15);
-  --verdict-hoax-border: rgba(239, 68, 68, 0.45);
+  --verdict-hoax-bg:     rgba(220, 38, 38, 0.12);
+  --verdict-hoax-border: rgba(220, 38, 38, 0.40);
 
-  --verdict-propaganda:  #F97316;
-  --verdict-buzzer:      #F59E0B;
+  --verdict-propaganda:  #EA580C;
+  --verdict-buzzer:      #D97706;
 
-  --verdict-fact:        #10B981;
+  --verdict-fact:        #059669;
   --verdict-fact-text:   #6EE7B7;
-  --verdict-fact-bg:     rgba(16, 185, 129, 0.15);
-  --verdict-fact-border: rgba(16, 185, 129, 0.45);
+  --verdict-fact-bg:     rgba(5, 150, 105, 0.12);
+  --verdict-fact-border: rgba(5, 150, 105, 0.40);
 
-  --verdict-doubt:        #F59E0B;
+  --verdict-doubt:        #D97706;
   --verdict-doubt-text:   #FDE68A;
-  --verdict-doubt-bg:     rgba(245, 158, 11, 0.15);
-  --verdict-doubt-border: rgba(245, 158, 11, 0.45);
+  --verdict-doubt-bg:     rgba(217, 119, 6, 0.12);
+  --verdict-doubt-border: rgba(217, 119, 6, 0.40);
 
-  --verdict-disinfo:        #A855F7;
+  --verdict-disinfo:        #9333EA;
   --verdict-disinfo-text:   #D8B4FE;
-  --verdict-disinfo-bg:     rgba(168, 85, 247, 0.15);
-  --verdict-disinfo-border: rgba(168, 85, 247, 0.45);
+  --verdict-disinfo-bg:     rgba(147, 51, 234, 0.12);
+  --verdict-disinfo-border: rgba(147, 51, 234, 0.40);
 
   /* ─── TELEMETRI JARINGAN ─── */
   --telemetry-online:   #10B981;
   --telemetry-degraded: #F59E0B;
-  --telemetry-offline:  #EF4444;
+  --telemetry-offline:  #DC2626;
 
-  /* ─── SHADOWS & BEVELS ─── */
-  --shadow-steel-plate: 0 4px 12px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  --shadow-steel-inset: inset 0 2px 4px rgba(0, 0, 0, 0.6);
-  --shadow-glow-amber:  0 0 12px rgba(245, 158, 11, 0.25);
-  --shadow-glow-crimson:0 0 12px rgba(239, 68, 68, 0.30);
-  --shadow-sm:          0 1px 2px rgba(0, 0, 0, 0.3);
+  /* ─── SHADOWS & BEVELS (TEGAS, BERAT, MILITER, TANPA GLOW NORAK) ─── */
+  --shadow-steel-plate: 0 10px 28px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 2px rgba(0, 0, 0, 0.85);
+  --shadow-steel-inset: inset 0 2px 6px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-glow-amber:  0 3px 8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(245, 158, 11, 0.25);
+  --shadow-glow-crimson:0 3px 8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(220, 38, 38, 0.30);
+  --shadow-sm:          0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-card:        var(--shadow-steel-plate);
-  --shadow-elevated:    0 8px 20px rgba(0, 0, 0, 0.6);
-  --shadow-modal:       0 20px 25px -5px rgba(0, 0, 0, 0.8);
+  --shadow-elevated:    0 16px 36px rgba(0, 0, 0, 0.9);
+  --shadow-modal:       0 25px 50px -5px rgba(0, 0, 0, 0.95);
   --shadow-glow-red:    var(--shadow-glow-crimson);
-  --shadow-glow-gold:   0 0 15px rgba(212, 160, 23, 0.35);
+  --shadow-glow-gold:   0 3px 8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(212, 160, 23, 0.22);
 
   /* ─── UKURAN & RADIUS SUDUT ─── */
   --sidebar-width: 250px;
@@ -451,10 +452,13 @@ body, #root, .app-layout {
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, rgba(200, 16, 46, 0.22) 0%, rgba(140, 15, 35, 0.3) 100%);
-  color: #FCA5A5;
-  border: 1px solid rgba(220, 38, 38, 0.45);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 8px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(90deg, rgba(160, 20, 35, 0.28) 0%, rgba(20, 26, 36, 0.8) 100%);
+  color: #F8FAFC;
+  border-top: 1px solid #3A4758;
+  border-left: 3px solid #C8102E;
+  border-right: 1px solid #1A222E;
+  border-bottom: 1px solid #141B25;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 2px 6px rgba(0, 0, 0, 0.6);
   font-weight: 700;
 }
 
@@ -478,9 +482,12 @@ body, #root, .app-layout {
 }
 
 .sidebar.collapsed .nav-item.active {
-  background: linear-gradient(135deg, rgba(200, 16, 46, 0.35) 0%, rgba(120, 10, 25, 0.5) 100%);
-  border: 1px solid #DC2626;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 6px rgba(0, 0, 0, 0.6);
+  background: linear-gradient(180deg, #261216 0%, #161C26 100%);
+  border-top: 1px solid #4D5D72;
+  border-left: 2px solid #C8102E;
+  border-right: 1px solid #161C24;
+  border-bottom: 2px solid #0E1218;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 3px 8px rgba(0, 0, 0, 0.7);
 }
 
 /* Icon Menu */
@@ -497,8 +504,8 @@ body, #root, .app-layout {
 }
 
 .sidebar.collapsed .nav-item.active .nav-item-icon {
-  color: #F87171;
-  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.6));
+  color: #EF4444;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.9));
 }
 
 /* Tooltip Taktis Saat Collapsed */
@@ -562,8 +569,7 @@ body, #root, .app-layout {
   height: 8px;
   border-radius: 50%;
   background: var(--telemetry-online);
-  box-shadow: 0 0 6px var(--telemetry-online);
-  animation: pulse-green 2s ease-in-out infinite;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.9);
   flex-shrink: 0;
 }
 
@@ -782,12 +788,6 @@ body, #root, .app-layout {
   background: var(--verdict-hoax-bg);
   color: var(--verdict-hoax-text);
   border: 1px solid var(--verdict-hoax-border);
-  animation: pulse-critical 1.8s ease-in-out infinite;
-}
-
-@keyframes pulse-critical {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
-  50% { box-shadow: 0 0 0 5px rgba(220, 38, 38, 0); }
 }
 
 /* ─── CATEGORY BADGES ─── */
@@ -810,59 +810,86 @@ body, #root, .app-layout {
 .cat-disinformasi { background: var(--verdict-disinfo-bg); color: var(--verdict-disinfo-text); border: 1px solid var(--verdict-disinfo-border); }
 .cat-netral { background: var(--verdict-fact-bg); color: var(--verdict-fact-text); border: 1px solid var(--verdict-fact-border); }
 
-/* ─── BUTTONS ─── */
+/* ─── BUTTONS (PLAT BESI MILITER BERAT & BEVELED — TANPA GLOW NORAK) ─── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 9px 18px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   border: 1px solid transparent;
   white-space: nowrap;
   font-family: var(--font-ui);
   text-decoration: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  user-select: none;
 }
 
 .btn-primary {
-  background: var(--brand-red);
-  color: #FFFFFF;
-  border-color: var(--brand-red);
-  box-shadow: 0 1px 3px rgba(200, 16, 46, 0.25);
+  background: linear-gradient(180deg, #A81B2E 0%, #6E121E 100%);
+  color: #F8FAFC;
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  border-left: 1px solid #7F1D1D;
+  border-right: 1px solid #580E17;
+  border-bottom: 2px solid #3B080F;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.5px;
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--brand-red-light);
-  border-color: var(--brand-red-light);
-  box-shadow: var(--shadow-glow-red);
+  background: linear-gradient(180deg, #BA2237 0%, #7E1523 100%);
+  border-top-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.28);
   transform: translateY(-1px);
 }
 .btn-primary:active:not(:disabled) {
-  transform: translateY(0);
+  background: linear-gradient(180deg, #580E17 0%, #7E1523 100%);
+  border-top-color: #3B080F;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85);
+  transform: translateY(1px);
 }
 
 .btn-secondary {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-color: var(--border-moderate);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(180deg, #253245 0%, #151D28 100%);
+  color: #E2E8F0;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-left: 1px solid #2B3A4F;
+  border-right: 1px solid #141C27;
+  border-bottom: 2px solid #0B1017;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  letter-spacing: 0.3px;
 }
 .btn-secondary:hover:not(:disabled) {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
-  border-color: var(--border-strong);
+  background: linear-gradient(180deg, #2E3E54 0%, #1A2432 100%);
+  color: #FFFFFF;
+  border-top-color: rgba(255, 255, 255, 0.28);
+  border-left-color: #384A64;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transform: translateY(-1px);
+}
+.btn-secondary:active:not(:disabled) {
+  background: linear-gradient(180deg, #121822 0%, #202A38 100%);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.85);
+  transform: translateY(1px);
 }
 
 .btn-ghost {
-  background: transparent;
+  background: rgba(18, 25, 36, 0.6);
   color: var(--text-secondary);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 .btn-ghost:hover:not(:disabled) {
-  background: var(--bg-card-hover);
-  color: var(--text-primary);
+  background: linear-gradient(180deg, #232F40 0%, #151E2A 100%);
+  color: #F8FAFC;
+  border-top-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .btn:disabled {
@@ -1081,7 +1108,10 @@ textarea.form-control {
 .omni-input-card:focus-within {
   border-top-color: #5A6E85;
   border-left-color: #5A6E85;
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.2), 0 10px 25px rgba(0, 0, 0, 0.75);
+  box-shadow: 
+    0 12px 28px rgba(0, 0, 0, 0.85),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* ─── SUNKEN CLEAN INPUT WELL (BEBAS DARI NOISE/TEXTURE, MAKSIMAL KONTRAS) ─── */
@@ -1099,11 +1129,10 @@ textarea.form-control {
 }
 
 .omni-input-well:focus-within {
-  border-color: #3B82F6;
+  border-color: #4A5F78;
   box-shadow: 
-    inset 0 2px 6px rgba(0, 0, 0, 0.9),
-    0 0 12px rgba(59, 130, 246, 0.25),
-    0 0 0 1px rgba(59, 130, 246, 0.3);
+    inset 0 2px 6px rgba(0, 0, 0, 0.95),
+    0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* ─── TACTICAL RADAR / NEXUS GRAPH CONTAINER (RECESSED STEEL CONSOLE) ─── */
@@ -1206,14 +1235,14 @@ textarea.form-control {
   font-weight: 700;
 }
 
-/* ─── CREST GLOW EFFECT ─── */
+/* ─── CREST GLOW EFFECT (DISIPLIN METALLIC SHADOW) ─── */
 .crest-glow {
-  filter: drop-shadow(0 1px 4px rgba(212, 160, 23, 0.35));
-  transition: transform 0.3s ease, filter 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.85));
+  transition: transform 0.2s ease, filter 0.2s ease;
 }
 .crest-glow:hover {
-  transform: scale(1.04);
-  filter: drop-shadow(0 2px 8px rgba(212, 160, 23, 0.5));
+  transform: scale(1.03);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.95));
 }
 
 /* ─── PRINT STYLES FOR OFFICIAL MILITARY INTELLIGENCE REPORT ─── */
@@ -1377,21 +1406,15 @@ textarea.form-control {
   0% {
     transform: translateY(0) scale(1);
     opacity: 1;
-    filter: blur(0px) brightness(1);
-    box-shadow: 0 0 0 rgba(56, 189, 248, 0);
   }
-  35% {
-    transform: translateY(-8px) scale(0.97);
-    opacity: 0.92;
-    filter: blur(3px) brightness(1.3);
-    box-shadow: 0 0 28px rgba(56, 189, 248, 0.6), inset 0 0 16px rgba(56, 189, 248, 0.35);
-    border-color: #38BDF8 !important;
+  30% {
+    transform: translateY(-6px) scale(0.98);
+    opacity: 0.95;
+    border-color: #D4A017 !important;
   }
   100% {
-    transform: translateY(-24px) scale(0.90);
+    transform: translateY(-24px) scale(0.92);
     opacity: 0;
-    filter: blur(14px) brightness(1.5);
-    box-shadow: 0 0 45px rgba(56, 189, 248, 0);
     max-height: 0;
     margin-bottom: 0;
     padding-top: 0;
@@ -1768,12 +1791,11 @@ textarea.form-control {
 @keyframes cyberSweepRight {
   0% {
     opacity: 0;
-    transform: translateX(-18px) scale(0.96);
-    filter: drop-shadow(-6px 0 10px rgba(0, 240, 255, 0.45));
+    transform: translateX(-14px) scale(0.97);
   }
   70% {
     opacity: 1;
-    transform: translateX(2px) scale(1.01);
+    transform: translateX(2px) scale(1.005);
   }
   100% {
     opacity: 1;
@@ -1785,7 +1807,7 @@ textarea.form-control {
 @keyframes cyberLaserScan {
   0% {
     left: -40%;
-    opacity: 0.85;
+    opacity: 0.6;
   }
   100% {
     left: 130%;
@@ -1796,11 +1818,9 @@ textarea.form-control {
 @keyframes cyberPulseDot {
   0%, 100% {
     opacity: 1;
-    transform: scale(1);
   }
   50% {
-    opacity: 0.35;
-    transform: scale(0.8);
+    opacity: 0.55;
   }
 }
 
@@ -1827,28 +1847,28 @@ textarea.form-control {
   top: 0;
   bottom: 0;
   width: 45px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   transform: skewX(-20deg);
   animation: cyberLaserScan 0.35s ease-out forwards;
   pointer-events: none;
 }
 
 .cyber-bubble-chat.hoax {
-  border: 1px solid #DC2626;
-  border-left: 3px solid #EF4444;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), 0 0 16px rgba(239, 68, 68, 0.28), inset 0 1px 0 rgba(248, 113, 113, 0.25);
+  border: 1px solid #7F1D1D;
+  border-left: 3px solid #DC2626;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .cyber-bubble-chat.fact {
-  border: 1px solid #059669;
-  border-left: 3px solid #10B981;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), 0 0 16px rgba(16, 185, 129, 0.28), inset 0 1px 0 rgba(52, 211, 153, 0.25);
+  border: 1px solid #064E3B;
+  border-left: 3px solid #059669;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .cyber-bubble-chat.unverified {
-  border: 1px solid #D97706;
-  border-left: 3px solid #F59E0B;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), 0 0 16px rgba(245, 158, 11, 0.28), inset 0 1px 0 rgba(251, 191, 36, 0.25);
+  border: 1px solid #78350F;
+  border-left: 3px solid #D97706;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .cyber-bubble-notch-top {

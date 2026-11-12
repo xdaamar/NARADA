@@ -736,7 +736,7 @@ export default function SocialPostIntelligenceConsole() {
             gap: '8px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: inAppEmbed.embedUrl ? '#10B981' : '#F59E0B', boxShadow: inAppEmbed.embedUrl ? '0 0 6px #10B981' : 'none' }} />
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: inAppEmbed.embedUrl ? '#10B981' : '#F59E0B', boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85)' }} />
               <span>
                 <strong>LIVE IN-APP VIEWPORT:</strong> {inAppEmbed.embedUrl 
                   ? `Konten ${inAppEmbed.platform.toUpperCase()} aktif diputar langsung di konsol aplikasi Narada tanpa keluar sistem.` 
@@ -1657,8 +1657,11 @@ export default function SocialPostIntelligenceConsole() {
               maxWidth: '560px',
               padding: '24px',
               position: 'relative',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95), 0 0 25px rgba(239, 68, 68, 0.25)',
-              border: '1px solid #7F1D1D',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.95), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
+              borderTop: '2px solid #DC2626',
+              borderLeft: '1px solid #7F1D1D',
+              borderRight: '1px solid #450A0A',
+              borderBottom: '2px solid #2B0609',
               display: 'flex',
               flexDirection: 'column',
               gap: '16px'

@@ -576,7 +576,36 @@ export default function Reports() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '4px' }}>
                   {(['RAHASIA', 'TERBATAS', 'BIASA'] as const).map((cls: ReportClassification) => {
                     const isSelected = config.classification === cls
-                    const activeColor = cls === 'RAHASIA' ? '#C8102E' : cls === 'TERBATAS' ? '#D97706' : '#2563EB'
+                    let btnBg = 'linear-gradient(180deg, #1E2734 0%, #111722 100%)'
+                    let btnBorderTop = '1px solid rgba(255, 255, 255, 0.12)'
+                    let btnBorderBottom = '2px solid #080C12'
+                    let btnBorderSides = '1px solid #161F2C'
+                    let btnColor = 'var(--text-secondary)'
+                    let btnShadow = '0 2px 5px rgba(0,0,0,0.6)'
+
+                    if (isSelected) {
+                      btnColor = '#FFFFFF'
+                      if (cls === 'RAHASIA') {
+                        btnBg = 'linear-gradient(180deg, #991B1B 0%, #5B0C15 100%)'
+                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
+                        btnBorderBottom = '2px solid #2B0609'
+                        btnBorderSides = '1px solid #7F1D1D'
+                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      } else if (cls === 'TERBATAS') {
+                        btnBg = 'linear-gradient(180deg, #B45309 0%, #632B03 100%)'
+                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
+                        btnBorderBottom = '2px solid #361701'
+                        btnBorderSides = '1px solid #92400E'
+                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      } else {
+                        btnBg = 'linear-gradient(180deg, #1D4ED8 0%, #0F2D80 100%)'
+                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
+                        btnBorderBottom = '2px solid #081B4E'
+                        btnBorderSides = '1px solid #1E40AF'
+                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      }
+                    }
+
                     return (
                       <button
                         key={cls}
@@ -590,11 +619,15 @@ export default function Reports() {
                           borderRadius: '4px',
                           cursor: 'pointer',
                           textAlign: 'center',
-                          transition: 'all 0.2s ease',
-                          background: isSelected ? activeColor : 'var(--bg-elevated)',
-                          color: isSelected ? '#FFFFFF' : 'var(--text-secondary)',
-                          border: isSelected ? `1px solid ${activeColor}` : '1px solid var(--border-subtle)',
-                          boxShadow: isSelected ? `0 0 10px ${activeColor}55` : 'none',
+                          transition: 'all 0.18s ease',
+                          background: btnBg,
+                          color: btnColor,
+                          borderTop: btnBorderTop,
+                          borderBottom: btnBorderBottom,
+                          borderLeft: btnBorderSides,
+                          borderRight: btnBorderSides,
+                          boxShadow: btnShadow,
+                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
                         }}
                       >
                         {cls}
@@ -629,26 +662,34 @@ export default function Reports() {
                     { key: 'ALL', label: 'Gabungan' },
                     { key: 'ARCHIVE_ONLY', label: 'Tersemat' },
                     { key: 'SOCIAL_ONLY', label: 'Medsos' }
-                  ].map(m => (
-                    <button
-                      key={m.key}
-                      type="button"
-                      onClick={() => setDataSourceMode(m.key as any)}
-                      style={{
-                        padding: '6px 4px',
-                        fontSize: '10px',
-                        fontWeight: '700',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        textAlign: 'center',
-                        background: dataSourceMode === m.key ? 'var(--steel-plate-active)' : 'var(--bg-elevated)',
-                        color: dataSourceMode === m.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                        border: dataSourceMode === m.key ? '1px solid var(--border-focus)' : '1px solid var(--border-subtle)'
-                      }}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
+                  ].map(m => {
+                    const isSel = dataSourceMode === m.key
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => setDataSourceMode(m.key as any)}
+                        style={{
+                          padding: '6px 4px',
+                          fontSize: '10px',
+                          fontWeight: '800',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          background: isSel ? 'linear-gradient(180deg, #2A384C 0%, #16202D 100%)' : 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
+                          color: isSel ? '#F8FAFC' : 'var(--text-secondary)',
+                          borderTop: isSel ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.08)',
+                          borderBottom: isSel ? '2px solid #C8102E' : '2px solid #080C10',
+                          borderLeft: '1px solid #222E3D',
+                          borderRight: '1px solid #121820',
+                          boxShadow: isSel ? '0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
+                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
+                        }}
+                      >
+                        {m.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -656,9 +697,10 @@ export default function Reports() {
               {dataSourceMode !== 'SOCIAL_ONLY' && (
                 <div style={{
                   padding: '10px',
-                  background: 'var(--bg-elevated)',
+                  background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
                   borderRadius: '4px',
-                  border: '1px solid var(--border-subtle)'
+                  border: '1px solid #1C2636',
+                  boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -752,9 +794,10 @@ export default function Reports() {
               {dataSourceMode !== 'ARCHIVE_ONLY' && (
                 <div style={{
                   padding: '10px',
-                  background: 'var(--bg-elevated)',
+                  background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
                   borderRadius: '4px',
-                  border: '1px solid var(--border-subtle)'
+                  border: '1px solid #1C2636',
+                  boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)'
                 }}>
                   <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Share2 size={11} color="var(--accent-cyan)" />
@@ -770,15 +813,20 @@ export default function Reports() {
                           type="button"
                           onClick={() => handleSelectSocialScenario(idx)}
                           style={{
-                            padding: '4px 2px',
+                            padding: '5px 2px',
                             fontSize: '9px',
                             fontWeight: 800,
                             borderRadius: '3px',
                             cursor: 'pointer',
                             textTransform: 'uppercase',
-                            background: isSel ? 'var(--narada-red)' : 'var(--bg-tertiary)',
-                            color: isSel ? '#FFFFFF' : 'var(--text-secondary)',
-                            border: isSel ? '1px solid var(--narada-red)' : '1px solid var(--border-subtle)'
+                            background: isSel ? 'linear-gradient(180deg, #991B1B 0%, #5B0C15 100%)' : 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
+                            color: isSel ? '#F8FAFC' : 'var(--text-secondary)',
+                            borderTop: isSel ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                            borderBottom: isSel ? '2px solid #2B0609' : '2px solid #080C10',
+                            borderLeft: isSel ? '1px solid #7F1D1D' : '1px solid #1C2636',
+                            borderRight: isSel ? '1px solid #450A0A' : '1px solid #121820',
+                            boxShadow: isSel ? '0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
+                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
                           }}
                         >
                           {sc.platform}
@@ -799,9 +847,10 @@ export default function Reports() {
               {/* Komponen yang Disertakan */}
               <div style={{
                 padding: '10px',
-                background: 'var(--bg-elevated)',
+                background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
                 borderRadius: '4px',
-                border: '1px solid var(--border-subtle)',
+                border: '1px solid #1C2636',
+                boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px'

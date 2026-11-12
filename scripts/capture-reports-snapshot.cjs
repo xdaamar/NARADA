@@ -23,3 +23,4 @@ child.on('error', (err) => {
   console.error('Failed to spawn Electron:', err)
   process.exit(1)
 })
+

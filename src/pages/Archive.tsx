@@ -580,7 +580,7 @@ export default function ArchivePage() {
                   gap: '12px',
                   position: 'relative',
                   borderTop: `3px solid ${isHoax ? '#EF4444' : isFact ? '#10B981' : '#F59E0B'}`,
-                  boxShadow: `0 0 16px ${isHoax ? 'rgba(239, 68, 68, 0.12)' : isFact ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)'}`,
+                  boxShadow: '0 12px 28px rgba(0, 0, 0, 0.85), inset 0 2px 0 rgba(255, 255, 255, 0.18)',
                   minHeight: '440px'
                 }}
               >
@@ -612,8 +612,7 @@ export default function ArchivePage() {
                         height: '8px',
                         borderRadius: '50%',
                         background: isHoax ? '#EF4444' : isFact ? '#10B981' : '#F59E0B',
-                        boxShadow: `0 0 8px ${isHoax ? '#EF4444' : isFact ? '#10B981' : '#F59E0B'}`,
-                        animation: isDipantau ? 'cyberPulseDot 1.4s infinite' : 'none'
+                        boxShadow: 'inset 0 1px 1px rgba(255, 255, 255, 0.45), 0 1px 2px rgba(0, 0, 0, 0.85)'
                       }} />
                       <div>
                         <div style={{
