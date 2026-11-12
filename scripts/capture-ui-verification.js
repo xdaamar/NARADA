@@ -12,3 +12,4 @@ child.on('exit', (code) => {
   console.log('[Snapshot Launcher] Electron finished with code:', code)
   process.exit(code || 0)
 })
+

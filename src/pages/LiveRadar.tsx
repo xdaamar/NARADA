@@ -117,7 +117,7 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
 }: ConnectorTelemetryStripProps) {
   const [connectorHealth, setConnectorHealth] = useState<Record<string, ConnectorHealth>>(() => getAllConnectorHealth())
   const [sourceScheduleStates, setSourceScheduleStates] = useState<Record<string, SourceScheduleState>>({})
-  const [isConnectorDetailsOpen, setIsConnectorDetailsOpen] = useState<boolean>(true)
+  const [isConnectorDetailsOpen, setIsConnectorDetailsOpen] = useState<boolean>(false)
 
   useEffect(() => {
     setConnectorHealth(getAllConnectorHealth())
