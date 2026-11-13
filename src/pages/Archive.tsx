@@ -28,15 +28,21 @@ import {
   Search,
   ExternalLink,
   Clock,
-  RefreshCw
+  RefreshCw,
+  SearchCheck,
+  Crosshair,
+  Zap
 } from 'lucide-react'
 import {
   getArchivedEntries,
   unarchiveIssue,
   setArchivedVerdict,
   reconcileArchivedItems,
+  probeEvidenceForArchivedItem,
+  probeAllUnverifiedArchivedItems,
   type ArchivedDebunkEntry
 } from '../engine/archive/archive-service.ts'
+import { playTacticalPinChime } from '../utils/tactical-audio.ts'
 import type { ThreatSpectrumCluster } from '../types.ts'
 
 // Pilihan Klaster Spektrum Kognitif
@@ -59,7 +65,6 @@ const CLUSTER_OPTIONS: ClusterFilterOption[] = [
 ]
 
 export default function ArchivePage() {
-  void setArchivedVerdict // Pertahankan referensi pipeline untuk pengujian integritas
   const navigate = useNavigate()
   const [archivedItems, setArchivedItems] = useState<ArchivedDebunkEntry[]>(() => getArchivedEntries())
   const [selectedTriage, setSelectedTriage] = useState<'ALL' | 'DIPANTAU' | 'FAKTA' | 'HOAKS'>('ALL')
@@ -67,18 +72,20 @@ export default function ArchivePage() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [lastSyncTime, setLastSyncTime] = useState<string>('')
   const [isReconciling, setIsReconciling] = useState<boolean>(false)
+  const [isBatchProbing, setIsBatchProbing] = useState<boolean>(false)
+  const [probingCardIds, setProbingCardIds] = useState<Set<string>>(new Set())
   const [reconcileFeedback, setReconcileFeedback] = useState<string>('')
+
+  const handleUpdate = () => {
+    setArchivedItems(getArchivedEntries())
+    const now = new Date()
+    setLastSyncTime(
+      `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
+    )
+  }
 
   // Sinkronisasi data arsip saat terjadi perubahan (event-driven 0-ms)
   useEffect(() => {
-    const handleUpdate = () => {
-      setArchivedItems(getArchivedEntries())
-      const now = new Date()
-      setLastSyncTime(
-        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
-      )
-    }
-
     window.addEventListener('narada:archive-updated', handleUpdate)
     window.addEventListener('storage', handleUpdate)
 
@@ -87,7 +94,7 @@ export default function ArchivePage() {
     // Rekonsiliasi multi-hari otomatis saat halaman dibuka agar berita tersemat lama langsung terupdate
     reconcileArchivedItems().then(res => {
       if (res.updatedCount > 0) {
-        setArchivedItems(getArchivedEntries())
+        handleUpdate()
         setReconcileFeedback(`${res.updatedCount} berita tersemat berhasil terklasifikasi otomatis!`)
         setTimeout(() => setReconcileFeedback(''), 4500)
       }
@@ -106,11 +113,7 @@ export default function ArchivePage() {
     setIsReconciling(true)
     try {
       const res = await reconcileArchivedItems()
-      setArchivedItems(getArchivedEntries())
-      const now = new Date()
-      setLastSyncTime(
-        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`
-      )
+      handleUpdate()
       if (res.updatedCount > 0) {
         setReconcileFeedback(`${res.updatedCount} berita tersemat berhasil dimutakhirkan ke FAKTA/HOAKS!`)
       } else {
@@ -121,6 +124,51 @@ export default function ArchivePage() {
       console.warn('[Archive] Gagal menyegarkan data arsip:', err)
     } finally {
       setIsReconciling(false)
+    }
+  }
+
+  // Handler Penelusuran Bukti Aktif Per-Kartu (Active Evidence Prober)
+  const handleProbeCard = async (item: ArchivedDebunkEntry) => {
+    if (probingCardIds.has(item.id)) return
+    setProbingCardIds(prev => new Set(prev).add(item.id))
+    try {
+      const res = await probeEvidenceForArchivedItem(item.id)
+      handleUpdate()
+      if (res.status === 'RESOLVED') {
+        playTacticalPinChime()
+        setReconcileFeedback(`[${res.verdict}] Berhasil diverifikasi: ${res.matchedSource || 'Rujukan Resmi'}!`)
+      } else {
+        setReconcileFeedback(`[DIPANTAU] Bukti ${res.evidenceSufficiency}%: ${res.evidenceSummary.slice(0, 48)}...`)
+      }
+      setTimeout(() => setReconcileFeedback(''), 4500)
+    } catch (e) {
+      console.warn('Gagal probe bukti:', e)
+    } finally {
+      setProbingCardIds(prev => {
+        const next = new Set(prev)
+        next.delete(item.id)
+        return next
+      })
+    }
+  }
+
+  // Handler Investigasi Bukti Otomatis Menyeluruh (Batch Probe)
+  const handleBatchProbe = async () => {
+    setIsBatchProbing(true)
+    try {
+      const res = await probeAllUnverifiedArchivedItems()
+      handleUpdate()
+      if (res.resolvedCount > 0) {
+        playTacticalPinChime()
+        setReconcileFeedback(`${res.resolvedCount} berita tersemat berhasil terklasifikasi otomatis ke FAKTA/HOAKS!`)
+      } else {
+        setReconcileFeedback(`Penelusuran selesai: ${res.totalProbed} berita tetap dipantau (bukti belum cukup)`)
+      }
+      setTimeout(() => setReconcileFeedback(''), 5000)
+    } catch (err) {
+      console.warn('[Archive] Gagal batch probe bukti:', err)
+    } finally {
+      setIsBatchProbing(false)
     }
   }
 
@@ -241,10 +289,38 @@ export default function ArchivePage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Tombol Investigasi Bukti Otomatis Menyeluruh */}
+          <button
+            type="button"
+            onClick={handleBatchProbe}
+            disabled={isBatchProbing || isReconciling}
+            title="Investigasi & telusuri bukti secara otomatis untuk seluruh berita tersemat yang masih dipantau"
+            style={{
+              padding: '6px 12px',
+              borderRadius: '4px',
+              background: 'linear-gradient(180deg, #2D2311 0%, #1A1405 100%)',
+              border: '1px solid #B45309',
+              borderBottom: '2px solid #0A0F15',
+              boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 4px rgba(0, 0, 0, 0.5)',
+              color: '#FDE68A',
+              fontSize: '11px',
+              fontWeight: 800,
+              fontFamily: 'var(--font-mono)',
+              cursor: isBatchProbing ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              opacity: isBatchProbing ? 0.7 : 1
+            }}
+          >
+            <Zap size={12} color="#FDE68A" style={{ animation: isBatchProbing ? 'spin 1s linear infinite' : 'none' }} />
+            {isBatchProbing ? 'MEMERIKSA BUKTI...' : 'INVESTIGASI OTOMATIS'}
+          </button>
+
           <button
             type="button"
             onClick={handleRefresh}
-            disabled={isReconciling}
+            disabled={isReconciling || isBatchProbing}
             title="Segarkan dan rekonsiliasikan status berita tersemat dengan basis cek fakta lengkap"
             style={{
               padding: '6px 10px',
@@ -709,6 +785,65 @@ export default function ArchivePage() {
                     {item.clarification || item.tacticalResponseMilitary || 'Belum ada klarifikasi tambahan. Isu disimpan dalam Berita Tersemat menunggu pembaharuan berkala dari dinas terkait atau arus berita resmi.'}
                   </div>
 
+                  {/* Indikator Kecukupan Bukti & Status Penelusuran (Evidence Sufficiency Gauge) */}
+                  <div style={{
+                    padding: '8px 10px',
+                    borderRadius: '4px',
+                    background: '#0D141D',
+                    border: '1px solid #1E2734',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '5px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ color: '#94A3B8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Crosshair size={10} color={isHoax ? '#EF4444' : isFact ? '#10B981' : '#F59E0B'} />
+                        KECUKUPAN DATA BUKTI:
+                      </span>
+                      <span style={{
+                        fontWeight: 800,
+                        color: isHoax ? '#F87171' : isFact ? '#34D399' : '#FBBF24'
+                      }}>
+                        {isHoax || isFact ? '100% (LENGKAP)' : `${item.evidenceSufficiency || 35}% (SEDANG DIHIMPUN)`}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar Kecukupan Bukti */}
+                    <div style={{
+                      width: '100%',
+                      height: '4px',
+                      background: '#151D28',
+                      borderRadius: '2px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
+                    }}>
+                      <div style={{
+                        width: `${isHoax || isFact ? 100 : (item.evidenceSufficiency || 35)}%`,
+                        height: '100%',
+                        background: isHoax 
+                          ? 'linear-gradient(90deg, #991B1B, #EF4444)' 
+                          : isFact 
+                          ? 'linear-gradient(90deg, #065F46, #10B981)' 
+                          : 'linear-gradient(90deg, #92400E, #F59E0B)',
+                        transition: 'width 0.4s ease'
+                      }} />
+                    </div>
+
+                    {/* Audit Note Ringkasan Penelusuran */}
+                    <div style={{ fontSize: '8.5px', color: '#64748B', lineHeight: 1.35, fontFamily: 'var(--font-mono)' }}>
+                      {item.evidenceSummary || (
+                        isHoax 
+                          ? 'Bukti valid terverifikasi: Rujukan resmi mengonfirmasi materi ini sebagai disinformasi/hoaks.'
+                          : isFact 
+                          ? 'Bukti valid terverifikasi: Rujukan resmi mengonfirmasi materi ini sesuai fakta lapangan.'
+                          : 'Data rujukan belum cukup untuk menetapkan vonis definitif. Klik "Cari Bukti Otomatis" atau tunggu sinkronisasi radar.'
+                      )}
+                      {item.lastProbedAt && (
+                        <span style={{ color: '#475569', marginLeft: '4px' }}>• Terakhir diperiksa: {item.lastProbedAt}</span>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Info Sumber Rujukan Otoritatif */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '9.5px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>
                     <span>Sumber: <strong style={{ color: '#94A3B8' }}>{item.officialSource || 'Radar Teritorial'}</strong></span>
@@ -755,6 +890,112 @@ export default function ArchivePage() {
                     }}>
                       {isHoax ? 'TERINDIKASI HOAKS' : isFact ? 'TERVERIFIKASI FAKTA' : 'SEDANG DIPANTAU'}
                     </span>
+                  </div>
+
+                  {/* Tombol Aksi Investigasi Bukti & Penetapan Analis */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    {/* Tombol CARI BUKTI OTOMATIS (Aktif bila masih DIPANTAU) */}
+                    {isDipantau && (
+                      <button
+                        type="button"
+                        onClick={() => handleProbeCard(item)}
+                        disabled={probingCardIds.has(item.id)}
+                        title="Secara aktif mencari rujukan cek fakta di pangkalan data dan feed online untuk membuktikan klaim ini"
+                        style={{
+                          flex: 1,
+                          padding: '5px 8px',
+                          borderRadius: '3px',
+                          background: 'linear-gradient(180deg, #2A210F 0%, #171206 100%)',
+                          border: '1px solid #B45309',
+                          color: '#FDE68A',
+                          fontSize: '9px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 800,
+                          cursor: probingCardIds.has(item.id) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                        }}
+                      >
+                        <SearchCheck size={11} color="#FDE68A" style={{ animation: probingCardIds.has(item.id) ? 'spin 1s linear infinite' : 'none' }} />
+                        {probingCardIds.has(item.id) ? 'MEMERIKSA BUKTI...' : 'CARI BUKTI OTOMATIS'}
+                      </button>
+                    )}
+
+                    {/* Tombol Manual Override Analis */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {item.archiveVerdict !== 'FAKTA' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setArchivedVerdict(item.id, 'FAKTA')
+                            handleUpdate()
+                          }}
+                          title="Tetapkan manual status sebagai FAKTA"
+                          style={{
+                            padding: '4px 6px',
+                            borderRadius: '2px',
+                            background: '#0D1E16',
+                            border: '1px solid #14532D',
+                            color: '#4ADE80',
+                            fontSize: '8.5px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          SET FAKTA
+                        </button>
+                      )}
+                      {item.archiveVerdict !== 'HOAKS' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setArchivedVerdict(item.id, 'HOAKS')
+                            handleUpdate()
+                          }}
+                          title="Tetapkan manual status sebagai HOAKS"
+                          style={{
+                            padding: '4px 6px',
+                            borderRadius: '2px',
+                            background: '#240F13',
+                            border: '1px solid #7F1D1D',
+                            color: '#F87171',
+                            fontSize: '8.5px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          SET HOAKS
+                        </button>
+                      )}
+                      {item.archiveVerdict !== 'DIPANTAU' && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setArchivedVerdict(item.id, 'DIPANTAU')
+                            handleUpdate()
+                          }}
+                          title="Kembalikan status ke SEDANG DIPANTAU dan aktifkan kembali auto-sync radar"
+                          style={{
+                            padding: '4px 6px',
+                            borderRadius: '2px',
+                            background: '#1F1A0E',
+                            border: '1px solid #78350F',
+                            color: '#FBBF24',
+                            fontSize: '8.5px',
+                            fontFamily: 'var(--font-mono)',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          RESET PANTAU
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Tombol Kontrol: Kembalikan ke Radar / Hapus dari Berita Tersemat */}

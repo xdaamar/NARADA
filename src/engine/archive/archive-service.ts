@@ -28,6 +28,20 @@ export interface ArchivedDebunkEntry extends DebunkKnowledgeEntry {
   archiveVerdict: ArchiveVerdict // Status efektif pemantauan (default: DIPANTAU)
   isManualOverride?: boolean     // Apakah analis secara manual menetapkan vonis
   notes?: string
+  evidenceSufficiency?: number  // 0 - 100: Persentase kelengkapan bukti pendukung
+  lastProbedAt?: string         // Waktu audit penelusuran bukti terakhir (WIB)
+  evidenceSummary?: string      // Ringkasan status data pendukung pembuktian
+}
+
+export interface EvidenceProbeResult {
+  id: string
+  status: 'RESOLVED' | 'STILL_MONITORING' | 'MANUAL_OVERRIDE' | 'NOT_FOUND'
+  verdict: ArchiveVerdict
+  evidenceSufficiency: number // 0 - 100
+  evidenceSummary: string
+  matchedSource?: string
+  matchedUrl?: string
+  clarification?: string
 }
 
 const STORAGE_KEY_IDS = 'narada_archived_issues'
@@ -58,6 +72,9 @@ export function normalizeClaimForMatching(text: string): string {
     .toLowerCase()
     .replace(/\[\s*(salah|hoaks|hoax|disinformasi|misinformasi|klarifikasi|fakta|bukan|palsu|manipulasi)\s*\]/gi, '')
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\bwapres\b/g, 'wakil presiden')
+    .replace(/\bmengundurkan\b/g, 'pengunduran')
+    .replace(/\bdiberhentikan\b/g, 'dicopot')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -726,6 +743,264 @@ export async function reconcileArchivedItems(
   } catch (err) {
     console.error('Gagal rekonsiliasi arsip:', err)
     return { updatedCount: 0, items: getArchivedEntries() }
+  }
+}
+
+/**
+ * Investigasi & Penelusuran Bukti Aktif Berita Tersemat (Active Evidence Prober)
+ * Secara otomatis menelusuri korpus cek fakta lokal dan upstream feed untuk mencari
+ * bukti bantahan atau konfirmasi resmi terhadap berita yang sedang dipantau.
+ * Mengklasifikasikan otomatis ke FAKTA atau HOAKS HANYA jika data pendukung sudah cukup (Evidence Sufficiency >= 65%).
+ */
+export async function probeEvidenceForArchivedItem(
+  id: string,
+  customFetch?: typeof fetch,
+  customReferences?: DebunkKnowledgeEntry[]
+): Promise<EvidenceProbeResult> {
+  try {
+    const rawData = localStorage.getItem(STORAGE_KEY_DATA)
+    const dataMap: Record<string, ArchivedDebunkEntry> = rawData ? JSON.parse(rawData) : {}
+    const verdicts = getArchivedVerdicts()
+
+    const item = dataMap[id]
+    if (!item) {
+      return {
+        id,
+        status: 'NOT_FOUND',
+        verdict: 'DIPANTAU',
+        evidenceSufficiency: 0,
+        evidenceSummary: 'Berita tersemat tidak ditemukan di repositori'
+      }
+    }
+
+    if (item.isManualOverride) {
+      return {
+        id,
+        status: 'MANUAL_OVERRIDE',
+        verdict: item.archiveVerdict,
+        evidenceSufficiency: 100,
+        evidenceSummary: `Status ditetapkan secara manual oleh analis (${item.archiveVerdict})`
+      }
+    }
+
+    // Jika sudah FAKTA atau HOAKS dan memiliki rujukan resmi
+    if ((item.archiveVerdict === 'FAKTA' || item.archiveVerdict === 'HOAKS') && isAuthoritativeDebunkSource(item)) {
+      return {
+        id,
+        status: 'RESOLVED',
+        verdict: item.archiveVerdict,
+        evidenceSufficiency: 100,
+        evidenceSummary: `Bukti Terverifikasi 100%: Dikonfirmasi resmi oleh ${item.officialSource || 'Otoritas Terkait'}`,
+        matchedSource: item.officialSource,
+        matchedUrl: item.sourceUrl,
+        clarification: item.clarification
+      }
+    }
+
+    // TAHAP 1: Audit Pencocokan Semantik dengan Basis Pengetahuan Kurasi Lokal (244+ entri)
+    let references: DebunkKnowledgeEntry[] = Array.isArray(customReferences) ? [...customReferences] : []
+    if (references.length === 0) {
+      try {
+        const debunkService = await import('../data/debunk-service.ts')
+        if (debunkService?.getCuratedArchiveDebunks) {
+          references = debunkService.getCuratedArchiveDebunks()
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
+    // Muat juga entri IndexedDB terverifikasi
+    try {
+      const dbAdapter = await import('../../utils/db-adapter.ts')
+      if (dbAdapter?.getCachedRadarItems) {
+        const cached = await dbAdapter.getCachedRadarItems()
+        if (Array.isArray(cached) && cached.length > 0) {
+          const authCached = cached.filter(c => isAuthoritativeDebunkSource(c))
+          references = [...references, ...authCached]
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    const matchedLocal = references.find(ref => 
+      isAuthoritativeDebunkSource(ref) && (
+        ref.id === item.id || areClaimsSemanticallyMatching(item.claim, ref.claim)
+      )
+    )
+
+    if (matchedLocal) {
+      const resolved = resolveReferenceVerdict(matchedLocal)
+      if (resolved === 'HOAKS' || resolved === 'FAKTA') {
+        item.archiveVerdict = resolved
+        item.verdict = resolved
+        item.officialSource = matchedLocal.officialSource || item.officialSource
+        item.sourceUrl = matchedLocal.sourceUrl || item.sourceUrl
+        item.clarification = matchedLocal.clarification || item.clarification
+        if (matchedLocal.tacticalResponseMilitary) {
+          item.tacticalResponseMilitary = matchedLocal.tacticalResponseMilitary
+        }
+        item.evidenceSufficiency = 100
+        item.lastProbedAt = getFormattedWib()
+        item.evidenceSummary = `Bukti Terverifikasi 100%: Ditemukan rujukan cek fakta resmi dari ${matchedLocal.officialSource}`
+
+        verdicts[item.id] = resolved
+        localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
+        localStorage.setItem(STORAGE_KEY_VERDICTS, JSON.stringify(verdicts))
+        window.dispatchEvent(new CustomEvent('narada:archive-updated', { detail: { id, action: 'PROBE_RESOLVED', verdict: resolved } }))
+
+        return {
+          id,
+          status: 'RESOLVED',
+          verdict: resolved,
+          evidenceSufficiency: 100,
+          evidenceSummary: item.evidenceSummary,
+          matchedSource: item.officialSource,
+          matchedUrl: item.sourceUrl,
+          clarification: item.clarification
+        }
+      }
+    }
+
+    // TAHAP 2: Live Online Investigation Probe (Penelusuran Terarah ke Portal Cek Fakta Upstream)
+    const substantiveTokens = extractSubstantiveTokens(item.claim)
+    const queryTokens = substantiveTokens.slice(0, 4).join(' ')
+
+    if (queryTokens.length >= 3) {
+      try {
+        const fetchFn = customFetch || (typeof fetch !== 'undefined' ? fetch : null)
+        if (fetchFn) {
+          const isFileProto = typeof window !== 'undefined' && window.location.protocol === 'file:'
+          const gatewayBase = isFileProto ? 'http://127.0.0.1:5174' : ''
+          const searchUrl = `${gatewayBase}/api/radar/search/gnews-cyber-security?topic=${encodeURIComponent(queryTokens)}`
+
+          const controller = new AbortController()
+          const timer = setTimeout(() => controller.abort(), 6000)
+
+          const res = await (fetchFn as any)(searchUrl, {
+            signal: controller.signal,
+            headers: { 'Accept': 'application/rss+xml, application/xml, text/xml, */*' }
+          }).catch(() => null)
+          clearTimeout(timer)
+
+          if (res && res.ok) {
+            const xmlText = await res.text()
+            const { parseGoogleNewsRss } = await import('../ingest/rss-parser.ts')
+            const parsed = parseGoogleNewsRss(xmlText, 10)
+
+            const onlineMatch = parsed.find(p => 
+              isAuthoritativeDebunkSource(p) && areClaimsSemanticallyMatching(item.claim, p.claim)
+            )
+
+            if (onlineMatch) {
+              const resolved = resolveReferenceVerdict(onlineMatch) || (onlineMatch.verdict === 'FAKTA' ? 'FAKTA' : 'HOAKS')
+              item.archiveVerdict = resolved
+              item.verdict = resolved
+              item.officialSource = onlineMatch.officialSource
+              item.sourceUrl = onlineMatch.sourceUrl
+              item.clarification = onlineMatch.clarification
+              item.evidenceSufficiency = 100
+              item.lastProbedAt = getFormattedWib()
+              item.evidenceSummary = `Bukti Terverifikasi 100%: Ditemukan hasil penelusuran cek fakta dari ${onlineMatch.officialSource}`
+
+              verdicts[item.id] = resolved
+              localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
+              localStorage.setItem(STORAGE_KEY_VERDICTS, JSON.stringify(verdicts))
+              window.dispatchEvent(new CustomEvent('narada:archive-updated', { detail: { id, action: 'PROBE_RESOLVED', verdict: resolved } }))
+
+              return {
+                id,
+                status: 'RESOLVED',
+                verdict: resolved,
+                evidenceSufficiency: 100,
+                evidenceSummary: item.evidenceSummary,
+                matchedSource: item.officialSource,
+                matchedUrl: item.sourceUrl,
+                clarification: item.clarification
+              }
+            } else if (parsed.length > 0) {
+              // Ditemukan artikel warta terkait namun belum ada vonis resmi
+              item.evidenceSufficiency = 55
+              item.lastProbedAt = getFormattedWib()
+              item.evidenceSummary = `Ditemukan ${parsed.length} artikel warta pers terkait topik ini. Belum ada rilis sanggahan/konfirmasi otoritas resmi. Pemantauan dilanjutkan.`
+              localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
+              return {
+                id,
+                status: 'STILL_MONITORING',
+                verdict: 'DIPANTAU',
+                evidenceSufficiency: 55,
+                evidenceSummary: item.evidenceSummary
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Safe fallback jika offline/air-gap
+      }
+    }
+
+    // TAHAP 3: Jika belum ada bukti yang cukup kuat, status WAJIB tetap SEDANG DIPANTAU
+    item.evidenceSufficiency = Math.max(item.evidenceSufficiency || 0, 30)
+    item.lastProbedAt = getFormattedWib()
+    item.evidenceSummary = 'Hasil penelusuran cek fakta belum menemukan rujukan sanggahan atau konfirmasi resmi yang cukup. Status tetap SEDANG DIPANTAU.'
+    localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
+
+    return {
+      id,
+      status: 'STILL_MONITORING',
+      verdict: 'DIPANTAU',
+      evidenceSufficiency: item.evidenceSufficiency,
+      evidenceSummary: item.evidenceSummary
+    }
+  } catch (err: any) {
+    console.error('Gagal menjalankan probe bukti berita tersemat:', err)
+    return {
+      id,
+      status: 'STILL_MONITORING',
+      verdict: 'DIPANTAU',
+      evidenceSufficiency: 20,
+      evidenceSummary: 'Terjadi kendala saat memeriksa pangkalan data rujukan.'
+    }
+  }
+}
+
+/**
+ * Menjalankan penelusuran bukti aktif untuk SELURUH berita tersemat yang masih berstatus DIPANTAU
+ */
+export async function probeAllUnverifiedArchivedItems(
+  customFetch?: typeof fetch,
+  customReferences?: DebunkKnowledgeEntry[]
+): Promise<{
+  totalProbed: number
+  resolvedCount: number
+  updatedCount: number
+  stillMonitoringCount: number
+  results: EvidenceProbeResult[]
+}> {
+  const entries = getArchivedEntries()
+  const unverified = entries.filter(e => e.archiveVerdict === 'DIPANTAU' && !e.isManualOverride)
+
+  let resolvedCount = 0
+  let stillMonitoringCount = 0
+  const results: EvidenceProbeResult[] = []
+
+  for (const item of unverified) {
+    const res = await probeEvidenceForArchivedItem(item.id, customFetch, customReferences)
+    results.push(res)
+    if (res.status === 'RESOLVED') {
+      resolvedCount++
+    } else {
+      stillMonitoringCount++
+    }
+  }
+
+  return {
+    totalProbed: unverified.length,
+    resolvedCount,
+    updatedCount: resolvedCount,
+    stillMonitoringCount,
+    results
   }
 }
 

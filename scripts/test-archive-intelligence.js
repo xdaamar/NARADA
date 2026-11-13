@@ -82,7 +82,9 @@ const {
   setArchivedVerdict,
   syncArchivedItemsWithRadar,
   reconcileArchivedItems,
-  areClaimsSemanticallyMatching
+  areClaimsSemanticallyMatching,
+  probeEvidenceForArchivedItem,
+  probeAllUnverifiedArchivedItems
 } = serviceModule
 
 // ─── GATE 1: ARSIPKAN FUNCTIONALITY & INITIAL STATUS "SEDANG DIPANTAU" ───
@@ -446,6 +448,157 @@ await runTest('ARC-14', 'reconcileArchivedItems memulihkan entri terkontaminasi 
   assert.ok(healed.sourceUrl.includes('turnbackhoax.id'), 'URL rujukan HARUS mengarah ke TurnBackHoax / Cek Fakta resmi!')
   assert.ok(healed.officialSource.includes('Setwapres') || healed.officialSource.includes('TurnBackHoax'), 'Sumber resmi harus mencantumkan Setwapres / TurnBackHoax!')
   assert.ok(healed.clarification.includes('Wali Kota Surakarta') || healed.clarification.includes('16 Juli 2024'), 'Klarifikasi harus menjelaskan konteks rekaman video lama di Solo!')
+})
+
+// ─── GATE 8: ACTIVE EVIDENCE PROBER & EVIDENCE SUFFICIENCY ENGINE (ARC-15, ARC-16, ARC-17) ───
+console.log('\n─── Gate 8: Active Intelligence Evidence Prober & Sufficiency Engine ───')
+
+await runTest('ARC-15', 'probeEvidenceForArchivedItem otomatis menelusuri bukti dan mengklasifikasikan ke HOAKS dengan 100% sufficiency jika bukti cocok', async () => {
+  global.localStorage.clear()
+
+  // Simulasikan berita yang baru disematkan dengan status DIPANTAU
+  const unverifiedClaim = {
+    id: 'PIN-CLAIM-001',
+    claim: 'Wapres Gibran Rakabuming Raka mengundurkan diri dan tinggalkan istana',
+    cluster: 'POLITIK_NEGARA',
+    archiveVerdict: 'DIPANTAU',
+    verdict: 'UNVERIFIED',
+    clarification: 'Menunggu konfirmasi Setwapres',
+    officialSource: 'Pemantauan Arus Informasi',
+    sourceUrl: 'https://example.com/viral-gibran',
+    archivedAt: '13 Nov 2026, 10:00 WIB',
+    archivedTimestamp: Date.now(),
+    isManualOverride: false
+  }
+
+  const rawData = { 'PIN-CLAIM-001': unverifiedClaim }
+  const rawIds = ['PIN-CLAIM-001']
+  const rawVerdicts = { 'PIN-CLAIM-001': 'DIPANTAU' }
+
+  global.localStorage.setItem('narada_archived_items_data', JSON.stringify(rawData))
+  global.localStorage.setItem('narada_archived_issues', JSON.stringify(rawIds))
+  global.localStorage.setItem('narada_archived_classifications', JSON.stringify(rawVerdicts))
+
+  // Muat referensi basis pengetahuan kurasi
+  const debunkDb = JSON.parse(fs.readFileSync(path.join(rootDir, 'src', 'engine', 'data', 'debunk-database.json'), 'utf-8'))
+
+  // Jalankan investigasi aktif untuk entri ini
+  const probeResult = await probeEvidenceForArchivedItem('PIN-CLAIM-001', undefined, debunkDb)
+
+  assert.equal(probeResult.status, 'RESOLVED')
+  assert.equal(probeResult.verdict, 'HOAKS')
+  assert.equal(probeResult.evidenceSufficiency, 100, 'Kecukupan bukti harus mencapai 100% jika rujukan resmi ditemukan')
+  assert.ok(probeResult.evidenceSummary.includes('Bukti Terverifikasi 100%'))
+  assert.ok(probeResult.matchedSource.includes('TurnBackHoax') || probeResult.matchedSource.includes('Setwapres'))
+
+  // Verifikasi penyimpanan lokal juga terupdate secara otomatis
+  const entries = getArchivedEntries()
+  const updatedItem = entries.find(e => e.id === 'PIN-CLAIM-001')
+  assert.ok(updatedItem)
+  assert.equal(updatedItem.archiveVerdict, 'HOAKS')
+  assert.equal(updatedItem.evidenceSufficiency, 100)
+  assert.ok(updatedItem.lastProbedAt)
+})
+
+await runTest('ARC-16', 'probeEvidenceForArchivedItem mempertahankan status DIPANTAU dan menghitung kecukupan data jika bukti belum konklusif', async () => {
+  global.localStorage.clear()
+
+  // Berita unverified yang belum ada bantahan resmi di database cek fakta
+  const freshUnverifiedClaim = {
+    id: 'PIN-UNKNOWN-999',
+    claim: 'Klaim penampakan formasi helikopter tak dikenal terbang rendah di atas perairan terpencil',
+    cluster: 'PERTAHANAN_MILITER',
+    archiveVerdict: 'DIPANTAU',
+    verdict: 'UNVERIFIED',
+    clarification: 'Sedang dihimpun intelijen lokal',
+    officialSource: 'Pemantauan Visual Babinsa',
+    sourceUrl: 'https://example.com/penampakan-heli',
+    archivedAt: '13 Nov 2026, 11:00 WIB',
+    archivedTimestamp: Date.now(),
+    isManualOverride: false
+  }
+
+  const rawData = { 'PIN-UNKNOWN-999': freshUnverifiedClaim }
+  const rawIds = ['PIN-UNKNOWN-999']
+  const rawVerdicts = { 'PIN-UNKNOWN-999': 'DIPANTAU' }
+
+  global.localStorage.setItem('narada_archived_items_data', JSON.stringify(rawData))
+  global.localStorage.setItem('narada_archived_issues', JSON.stringify(rawIds))
+  global.localStorage.setItem('narada_archived_classifications', JSON.stringify(rawVerdicts))
+
+  // Muat referensi basis pengetahuan kurasi
+  const debunkDb = JSON.parse(fs.readFileSync(path.join(rootDir, 'src', 'engine', 'data', 'debunk-database.json'), 'utf-8'))
+
+  // Jalankan investigasi aktif
+  const probeResult = await probeEvidenceForArchivedItem('PIN-UNKNOWN-999', undefined, debunkDb)
+
+  assert.equal(probeResult.status, 'STILL_MONITORING')
+  assert.equal(probeResult.verdict, 'DIPANTAU', 'Status WAJIB tetap DIPANTAU bila bukti belum cukup, DILARANG klaim asal!')
+  assert.ok(probeResult.evidenceSufficiency < 65, 'Kecukupan bukti belum mencapai ambang batas konfirmasi')
+  assert.ok(probeResult.evidenceSummary.includes('belum menemukan rujukan') || probeResult.evidenceSummary.includes('DIPANTAU'))
+
+  // Verifikasi di data store
+  const entries = getArchivedEntries()
+  const currentItem = entries.find(e => e.id === 'PIN-UNKNOWN-999')
+  assert.ok(currentItem)
+  assert.equal(currentItem.archiveVerdict, 'DIPANTAU')
+  assert.ok(currentItem.evidenceSufficiency <= 55)
+  assert.ok(currentItem.lastProbedAt)
+})
+
+await runTest('ARC-17', 'probeAllUnverifiedArchivedItems menjalankan investigasi massal seluruh berita tersemat yang masih unverified', async () => {
+  global.localStorage.clear()
+
+  const items = {
+    'ITEM-A': {
+      id: 'ITEM-A',
+      claim: 'Wapres Gibran ajukan pengunduran diri dan tinggalkan istana',
+      archiveVerdict: 'DIPANTAU',
+      verdict: 'UNVERIFIED',
+      archivedTimestamp: Date.now() - 5000,
+      isManualOverride: false
+    },
+    'ITEM-B': {
+      id: 'ITEM-B',
+      claim: 'Klaim sebaran ranjau laut di selat sunda oleh kapal misterius',
+      archiveVerdict: 'DIPANTAU',
+      verdict: 'UNVERIFIED',
+      archivedTimestamp: Date.now() - 3000,
+      isManualOverride: false
+    },
+    'ITEM-C': {
+      id: 'ITEM-C',
+      claim: 'Isu kenaikan tunjangan prajurit TNI batal dilaksanakan',
+      archiveVerdict: 'FAKTA', // Sudah ada vonis oleh analis
+      verdict: 'FAKTA',
+      archivedTimestamp: Date.now() - 1000,
+      isManualOverride: true
+    }
+  }
+
+  global.localStorage.setItem('narada_archived_items_data', JSON.stringify(items))
+  global.localStorage.setItem('narada_archived_issues', JSON.stringify(['ITEM-A', 'ITEM-B', 'ITEM-C']))
+  global.localStorage.setItem('narada_archived_classifications', JSON.stringify({
+    'ITEM-A': 'DIPANTAU',
+    'ITEM-B': 'DIPANTAU',
+    'ITEM-C': 'FAKTA'
+  }))
+
+  const debunkDb = JSON.parse(fs.readFileSync(path.join(rootDir, 'src', 'engine', 'data', 'debunk-database.json'), 'utf-8'))
+  const batchSummary = await probeAllUnverifiedArchivedItems(undefined, debunkDb)
+
+  assert.equal(batchSummary.totalProbed, 2, 'Hanya memindai 2 item yang berstatus DIPANTAU (ITEM-C dilewati karena manual override/resolved)')
+  assert.equal(batchSummary.updatedCount, 1, 'ITEM-A berhasil di-resolve ke HOAKS karena cocok dengan database debunk')
+  assert.equal(batchSummary.stillMonitoringCount, 1, 'ITEM-B tetap dalam pantauan karena bukti belum konklusif')
+
+  const entries = getArchivedEntries()
+  const itemA = entries.find(e => e.id === 'ITEM-A')
+  const itemB = entries.find(e => e.id === 'ITEM-B')
+  const itemC = entries.find(e => e.id === 'ITEM-C')
+
+  assert.equal(itemA.archiveVerdict, 'HOAKS')
+  assert.equal(itemB.archiveVerdict, 'DIPANTAU')
+  assert.equal(itemC.archiveVerdict, 'FAKTA')
 })
 
 console.log('\n══════════════════════════════════════════════════════════════════════')
