@@ -1725,7 +1725,8 @@ textarea.form-control {
   }
 
   /* 2. Container Dokumen Laporan Kertas Standar Militer */
-  #military-report-document {
+  #military-report-document,
+  #military-report-document-modal {
     background: #FFFFFF !important;
     color: #0F172A !important;
     padding: 0 !important;
@@ -1741,15 +1742,25 @@ textarea.form-control {
 
   /* 3. Pencegahan Pemotongan Konten Liar (Anti Page-Break Cut) */
   #military-report-document table,
+  #military-report-document-modal table,
   #military-report-document tr,
+  #military-report-document-modal tr,
   #military-report-document th,
+  #military-report-document-modal th,
   #military-report-document td,
+  #military-report-document-modal td,
   #military-report-document .signature-block,
+  #military-report-document-modal .signature-block,
   #military-report-document .card-section,
+  #military-report-document-modal .card-section,
   #military-report-document .report-section,
+  #military-report-document-modal .report-section,
   #military-report-document .report-item,
+  #military-report-document-modal .report-item,
   #military-report-document .digital-stamp,
-  #military-report-document .sha256-block {
+  #military-report-document-modal .digital-stamp,
+  #military-report-document .sha256-block,
+  #military-report-document-modal .sha256-block {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }

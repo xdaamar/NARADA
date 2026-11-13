@@ -202,6 +202,18 @@ function AppShell() {
     })
   }
 
+  // Listener Auto-Hide / Icon-Only Sidebar saat Tinjau Penuh Dokumen A4 dibuka
+  useEffect(() => {
+    const handleSidebarEvent = (e: Event) => {
+      const custom = e as CustomEvent<{ collapse: boolean }>
+      if (custom.detail && typeof custom.detail.collapse === 'boolean') {
+        setIsSidebarCollapsed(custom.detail.collapse)
+      }
+    }
+    window.addEventListener('narada:sidebar-collapse', handleSidebarEvent)
+    return () => window.removeEventListener('narada:sidebar-collapse', handleSidebarEvent)
+  }, [])
+
   // Keyboard Hotkeys Alt+1..5, Ctrl+B (Toggle Sidebar) & Global Clipboard Paste (Ctrl+V)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

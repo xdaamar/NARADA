@@ -404,7 +404,7 @@ export function archiveIssue(item: DebunkKnowledgeEntry): void {
     localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
 
     // Notifikasi reaktif ke seluruh komponen
-    window.dispatchEvent(new CustomEvent('narada:archive-updated', { detail: { id: item.id, action: 'ARCHIVE' } }))
+    window.dispatchEvent(new CustomEvent('narada:archive-updated', { detail: { id: item.id, action: 'ARCHIVE', item } }))
   } catch (err) {
     console.error('Gagal mengarsipkan isu:', err)
   }

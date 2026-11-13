@@ -43,6 +43,7 @@ import {
   type SocialPostAnalysisResult,
   type PreloadedTestScenario
 } from '../engine/social/social-post-analyzer.ts'
+import { recordIntelAction } from '../engine/reports/action-recorder.ts'
 
 /**
  * Resolves an embeddable in-app player URL for the given social URL & platform.
@@ -214,6 +215,15 @@ export default function SocialPostIntelligenceConsole() {
     setAnalysisResult(sc.mockResult)
     setErrorMessage(null)
     setMismatchNotice(null)
+    const authorStr = sc.mockResult.post.authorHandle || sc.mockResult.post.authorName || 'Kreator Medsos'
+    recordIntelAction({
+      type: 'SOCIAL_INVESTIGATE',
+      title: `Investigasi Medsos [${sc.platform}]: ${authorStr}`,
+      detail: `${sc.title} — Skor Buzzer ${sc.mockResult.buzzerPattern.coordinationScore}/100`,
+      platform: sc.platform,
+      author: authorStr,
+      metadata: { coordinationScore: sc.mockResult.buzzerPattern.coordinationScore }
+    })
   }
 
   // Eksekusi Analisis dengan Filter Link Ketat Antar Platform
@@ -265,6 +275,15 @@ export default function SocialPostIntelligenceConsole() {
       } catch {
         // Safe storage error bypass
       }
+
+      recordIntelAction({
+        type: 'SOCIAL_INVESTIGATE',
+        title: `Investigasi Medsos [${result.post.platform}]: ${result.post.authorHandle || result.post.authorName}`,
+        detail: `Skor Koordinasi Buzzer ${result.buzzerPattern.coordinationScore}/100 (${result.buzzerPattern.coordinationLevel}) · ${result.copypastaClusters?.length || 0} Kluster Copypasta`,
+        platform: result.post.platform,
+        author: result.post.authorHandle || result.post.authorName,
+        metadata: { coordinationScore: result.buzzerPattern.coordinationScore }
+      })
     } catch (err: any) {
       setErrorMessage(`Gagal memproses analisis: ${err?.message || 'Koneksi platform terputus'}`)
     } finally {

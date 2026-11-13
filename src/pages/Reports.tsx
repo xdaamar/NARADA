@@ -63,6 +63,13 @@ import {
   PRELOADED_TEST_SCENARIOS,
   type SocialPostAnalysisResult
 } from '../engine/social/social-post-analyzer.ts'
+import {
+  getCaptureSession,
+  subscribeToCaptureSession,
+  setCaptureScope,
+  CAPTURE_SCOPE_INFO,
+  type CaptureSessionState,
+} from '../engine/reports/action-recorder.ts'
 
 export default function Reports() {
   const location = useLocation()
@@ -195,6 +202,16 @@ export default function Reports() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isZoomModalOpen])
 
+  // Auto-hide / Icon-only mode sidebar saat Tinjau Penuh Dokumen A4 dibuka
+  useEffect(() => {
+    if (isZoomModalOpen) {
+      window.dispatchEvent(new CustomEvent('narada:sidebar-collapse', { detail: { collapse: true } }))
+    } else {
+      const stored = localStorage.getItem('narada_sidebar_collapsed') === 'true'
+      window.dispatchEvent(new CustomEvent('narada:sidebar-collapse', { detail: { collapse: stored } }))
+    }
+  }, [isZoomModalOpen])
+
   // Format tanggal dinas militer hari ini
   const todayMilitary = useMemo(() => {
     const d = new Date()
@@ -221,13 +238,36 @@ export default function Reports() {
     includeRecommendations: true,
   })
 
+  // Status Perekaman Tindakan Intelijen (Capture Hub Terintegrasi)
+  const [captureSession, setCaptureSession] = useState<CaptureSessionState>(getCaptureSession)
+
   // Mode cakupan sumber data pada dokumen:
   // 'ALL' = Gabungan Berita Tersemat + Analisis Medsos
   // 'ARCHIVE_ONLY' = Berita Tersemat Saja
   // 'SOCIAL_ONLY' = Analisis Medsos Saja
-  const [dataSourceMode, setDataSourceMode] = useState<'ALL' | 'ARCHIVE_ONLY' | 'SOCIAL_ONLY'>('ALL')
+  const [dataSourceMode, setDataSourceMode] = useState<'ALL' | 'ARCHIVE_ONLY' | 'SOCIAL_ONLY'>(() => {
+    const session = getCaptureSession()
+    if (session.scope === 'ALL') return 'ALL'
+    if (session.scope === 'SOCIAL_ONLY') return 'SOCIAL_ONLY'
+    return 'ARCHIVE_ONLY'
+  })
   const [includeSocialForensics, setIncludeSocialForensics] = useState<boolean>(true)
   const [includeCounterNarrative, setIncludeCounterNarrative] = useState<boolean>(true)
+
+  // Sinkronisasi dua arah dengan Capture Hub di TacticalTopBar
+  useEffect(() => {
+    const unsub = subscribeToCaptureSession((state) => {
+      setCaptureSession(state)
+      if (state.scope === 'ALL') {
+        setDataSourceMode('ALL')
+      } else if (state.scope === 'SOCIAL_ONLY') {
+        setDataSourceMode('SOCIAL_ONLY')
+      } else {
+        setDataSourceMode('ARCHIVE_ONLY')
+      }
+    })
+    return unsub
+  }, [])
 
   // Auto-persist profil operator ke storage setiap kali ada perubahan
   const handleUpdateConfigField = (field: keyof IntelReportConfig, val: any) => {
@@ -644,6 +684,41 @@ export default function Reports() {
                 </div>
               )}
             </div>
+
+            {/* ─── MANIFEST REKAMAN TINDAKAN INTELIJEN SESI OPERATOR (AUDIT TRAIL CAPTURE HUB) ─── */}
+            {captureSession.actions.length > 0 && (
+              <div style={{ marginBottom: '24px', background: '#F8FAFC', padding: '12px 14px', borderRadius: '4px', border: '1px solid #E2E8F0' }}>
+                <div style={{
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  letterSpacing: '1px',
+                  color: '#1E293B',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid #CBD5E1',
+                  paddingBottom: '4px'
+                }}>
+                  <span>LOG AUDIT TINDAKAN OPERATOR ({captureSession.actions.length} Tindakan Terekam · Cakupan: {CAPTURE_SCOPE_INFO[captureSession.scope].label})</span>
+                  <span style={{ fontSize: '9px', fontFamily: '"JetBrains Mono", monospace', color: '#059669', fontWeight: 700 }}>
+                    ● SESI TERVALIDASI
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '8px' }}>
+                  {captureSession.actions.slice(0, 4).map(act => (
+                    <div key={act.id} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '4px', padding: '7px 10px', fontSize: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3px' }}>
+                        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, color: '#C8102E' }}>{act.id}</span>
+                        <span style={{ fontSize: '9px', color: '#64748B' }}>{act.militaryTime}</span>
+                      </div>
+                      <div style={{ fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{act.title}</div>
+                      <div style={{ fontSize: '9.5px', color: '#4B5563', lineHeight: 1.35, marginTop: '2px' }}>{truncateText(act.detail, 100)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* ─── MANIFEST INVESTIGASI KASUS BERBASIS BUKTI DIGITAL ─── */}
             {linkedCase && (
@@ -1179,11 +1254,14 @@ export default function Reports() {
               <Info size={15} color="#38BDF8" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '11.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.8px' }}>
-                INFORMASI ASAL DATA: DARI MANA SUMBER DOKUMEN LAPORAN INI?
+              <div style={{ fontSize: '11.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>INFORMASI ASAL DATA: SELEKTIF BERBASIS HUB CAPTURE TINDAKAN INTELIJEN</span>
+                <span style={{ fontSize: '9.5px', background: 'rgba(56, 189, 248, 0.2)', padding: '1px 6px', borderRadius: '3px', color: '#38BDF8' }}>
+                  {CAPTURE_SCOPE_INFO[captureSession.scope].label} ({captureSession.actions.length} Tindakan)
+                </span>
               </div>
               <p style={{ fontSize: '11px', color: '#94A3B8', margin: '4px 0 8px 0', lineHeight: 1.5 }}>
-                Dokumen Telaahan Intelijen A4 ini <strong>bukan rekayasa fiktif/manual</strong>, melainkan dihimpun secara reaktif dan otomatis dari 2 modul investigasi utama NARADA:
+                Dokumen Telaahan Intelijen A4 ini <strong>bukan pembuangan sembarang seluruh aktivitas aplikasi</strong>, melainkan dihimpun secara selektif oleh <strong>Hub Capture Tindakan Intelijen</strong> di navbar atas. Operator dapat menyaring aktivitas spesifik sesuai kebutuhan misi:
               </p>
 
               {/* 3 Pilar Sumber Data */}
@@ -1195,10 +1273,10 @@ export default function Reports() {
                   border: '1px solid #1A2534'
                 }}>
                   <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F59E0B', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Pin size={11} /> 1. KONSOL BERITA TERSEMAT (RADAR HARVESTER)
+                    <Pin size={11} /> 1. KONSOL BERITA TERSEMAT & RADAR HARVESTER
                   </div>
                   <div style={{ fontSize: '10px', color: '#CBD5E1', marginTop: '3px', lineHeight: 1.4 }}>
-                    Berasal dari isu viral yang Anda klik <em>"Sematkan"</em> di Radar Situasional. Memuat intisari klaim, klarifikasi resmi, dan vonis valid (Fakta/Hoaks/Dipantau).
+                    Hanya merekam isu yang Anda tandai <em>"Sematkan"</em> atau temuan anomali radar. Memuat intisari narasi, atribusi resmi, dan vonis valid (Fakta/Hoaks/Dipantau).
                   </div>
                 </div>
 
@@ -1209,10 +1287,10 @@ export default function Reports() {
                   border: '1px solid #1A2534'
                 }}>
                   <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Share2 size={11} /> 2. HASIL ANALISIS POSTINGAN MEDSOS
+                    <Share2 size={11} /> 2. HASIL ANALISIS POSTINGAN MEDSOS & BUZZER
                   </div>
                   <div style={{ fontSize: '10px', color: '#CBD5E1', marginTop: '3px', lineHeight: 1.4 }}>
-                    Berasal dari inspeksi forensik tautan media sosial (TikTok, YouTube, IG, Threads). Menyajikan bukti sentimen, botnet buzzer swarm, dan kluster copypasta templat.
+                    Hanya memuat investigasi medsos yang Anda teliti di tab Profiler (YouTube, TikTok, Twitter). Menyajikan skor koordinasi botnet dan kluster copypasta buzzer.
                   </div>
                 </div>
 
@@ -1223,10 +1301,10 @@ export default function Reports() {
                   border: '1px solid #1A2534'
                 }}>
                   <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#10B981', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Lock size={11} /> 3. STEMPEL KRIPTOGRAFIS SHA-256
+                    <Lock size={11} /> 3. RANTAI BUKTI DIGITAL & STEMPEL SHA-256
                   </div>
                   <div style={{ fontSize: '10px', color: '#CBD5E1', marginTop: '3px', lineHeight: 1.4 }}>
-                    Setiap data temuan di atas dikunci dengan stempel hash kriptografis SHA-256 dan rantai bukti digital (<em>Chain of Custody</em>) berkekuatan hukum dinas militer.
+                    Setiap tindakan operator yang terekam dikunci dengan stempel hash kriptografis SHA-256 dan rantai bukti digital (<em>Chain of Custody</em>) berkekuatan hukum kedinasan.
                   </div>
                 </div>
               </div>
@@ -1444,21 +1522,32 @@ export default function Reports() {
             </div>
 
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Pilihan Cakupan Sumber Data */}
+              {/* Pilihan Cakupan Sumber Data (Terkoneksi Capture Hub) */}
               <div className="form-group">
-                <label className="form-label">CAKUPAN SUMBER INTELIJEN</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <label className="form-label" style={{ margin: 0 }}>CAKUPAN PEREKAM INTELIJEN</label>
+                  <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: captureSession.isRecording ? '#EF4444' : '#64748B', fontWeight: 700 }}>
+                    {captureSession.isRecording ? '● REC AKTIF' : '⏸ REC JEDA'} ({captureSession.actions.length})
+                  </span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', marginTop: '4px' }}>
                   {[
-                    { key: 'ALL', label: 'Gabungan' },
-                    { key: 'ARCHIVE_ONLY', label: 'Tersemat' },
-                    { key: 'SOCIAL_ONLY', label: 'Medsos' }
+                    { key: 'ALL', label: 'Semua Tindakan', icon: '⏺' },
+                    { key: 'RADAR_ONLY', label: 'Radar & Isu', icon: '🛰️' },
+                    { key: 'SOCIAL_ONLY', label: 'Analisis Medsos', icon: '🕵️' },
+                    { key: 'ARCHIVE_ONLY', label: 'Berita Tersemat', icon: '📌' }
                   ].map(m => {
-                    const isSel = dataSourceMode === m.key
+                    const isSel = captureSession.scope === m.key
                     return (
                       <button
                         key={m.key}
                         type="button"
-                        onClick={() => setDataSourceMode(m.key as any)}
+                        onClick={() => {
+                          setCaptureScope(m.key as any)
+                          if (m.key === 'ALL') setDataSourceMode('ALL')
+                          else if (m.key === 'SOCIAL_ONLY') setDataSourceMode('SOCIAL_ONLY')
+                          else setDataSourceMode('ARCHIVE_ONLY')
+                        }}
                         style={{
                           padding: '6px 4px',
                           fontSize: '10px',
@@ -1467,16 +1556,21 @@ export default function Reports() {
                           cursor: 'pointer',
                           textAlign: 'center',
                           background: isSel ? 'linear-gradient(180deg, #2A384C 0%, #16202D 100%)' : 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
-                          color: isSel ? '#F8FAFC' : 'var(--text-secondary)',
-                          borderTop: isSel ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.08)',
-                          borderBottom: isSel ? '2px solid #C8102E' : '2px solid #080C10',
+                          color: isSel ? '#38BDF8' : 'var(--text-secondary)',
+                          borderTop: isSel ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255, 255, 255, 0.08)',
+                          borderBottom: isSel ? '2px solid #38BDF8' : '2px solid #080C10',
                           borderLeft: '1px solid #222E3D',
                           borderRight: '1px solid #121820',
                           boxShadow: isSel ? '0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
-                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
+                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
                         }}
                       >
-                        {m.label}
+                        <span>{m.icon}</span>
+                        <span>{m.label}</span>
                       </button>
                     )
                   })}
@@ -1857,26 +1951,29 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* Area Dokumen Kertas Standar Militer */}
-          <div style={{ overflowX: 'auto', background: '#0B0F17', padding: '16px', border: '1px solid #1E2838', borderRadius: '0 0 6px 6px' }}>
+          {/* Area Dokumen Kertas Standar Militer A4 */}
+          <div style={{ overflowX: 'auto', background: '#0B0F17', padding: '24px 16px', border: '1px solid #1E2838', borderRadius: '0 0 6px 6px', display: 'flex', justifyContent: 'center' }}>
             <div
               id="military-report-document"
               style={{
                 background: '#FFFFFF',
                 color: '#111827',
-                padding: '48px 56px',
+                width: '210mm',
+                maxWidth: '100%',
+                minHeight: '297mm',
+                height: 'auto',
+                padding: '20mm 18mm',
+                boxSizing: 'border-box',
                 fontFamily: '"Inter", sans-serif',
-                fontSize: '12px',
-                lineHeight: '1.6',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
-                minHeight: '840px',
+                fontSize: '11px',
+                lineHeight: '1.5',
+                borderRadius: '4px',
+                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.65)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 position: 'relative',
-                overflow: 'hidden',
                 zoom: zoomLevel,
-                maxWidth: '960px',
-                margin: '0 auto'
+                margin: '0 auto',
+                flexShrink: 0
               }}
             >
               {renderDocumentContent()}
@@ -2053,33 +2150,39 @@ export default function Reports() {
             </div>
           </div>
 
-          {/* Viewport Dokumen yang Dapat di-Scroll */}
+          {/* Viewport Dokumen yang Dapat di-Scroll (A4 Sheet Wrap) */}
           <div
             style={{
               flex: 1,
-              overflow: 'auto',
+              overflowY: 'auto',
+              overflowX: 'auto',
+              padding: '28px 16px 80px',
               display: 'flex',
-              justifyContent: 'center',
-              padding: '28px 20px 48px'
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: 'rgba(5, 8, 14, 0.94)'
             }}
             onClick={(e) => {
               if (e.target === e.currentTarget) setIsZoomModalOpen(false);
             }}
           >
             <div
+              id="military-report-document-modal"
               style={{
                 background: '#FFFFFF',
                 color: '#111827',
-                width: '100%',
-                maxWidth: '920px',
-                padding: '52px 64px',
-                borderRadius: '6px',
-                boxShadow: '0 24px 70px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)',
-                minHeight: '1000px',
+                width: '210mm',
+                maxWidth: '100%',
+                minHeight: '297mm',
+                height: 'auto',
+                padding: '20mm 18mm',
+                boxSizing: 'border-box',
+                borderRadius: '4px',
+                boxShadow: '0 24px 70px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.1)',
                 position: 'relative',
                 zoom: modalZoomLevel,
-                transformOrigin: 'top center',
-                transition: 'zoom 0.15s ease'
+                margin: '0 auto',
+                flexShrink: 0
               }}
             >
               {renderDocumentContent()}
