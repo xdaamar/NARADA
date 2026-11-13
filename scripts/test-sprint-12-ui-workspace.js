@@ -182,7 +182,7 @@ runTest('S12-06.2', 'Triage filter includes canonical ISU BARU & MENINGKAT', () 
 })
 
 runTest('S12-06.3', 'Triage bar features clear status pill indicators with count badges', () => {
-  assert.ok(liveRadarSource.includes('SEMUA ISU AKTIF'), 'Includes all-issues option')
+  assert.ok(liveRadarSource.includes('SEDANG DIPANTAU'), 'Includes unverified / monitoring filter option')
   assert.ok(liveRadarSource.includes('TERINDIKASI HOAKS'), 'Includes hoax filter option')
   assert.ok(liveRadarSource.includes('FAKTA & AMAN'), 'Includes factual filter option')
 })

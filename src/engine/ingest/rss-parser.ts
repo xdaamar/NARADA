@@ -4,6 +4,8 @@ import { parseSourceDate, formatMilitaryDate, evaluateFreshness } from '../radar
 import type { SearchTrendSignal, RadarTaxonomyDomain } from '../radar/radar-types.ts'
 import { normalizeUrl } from '../radar/clustering-engine.ts'
 import { classifyTaxonomyDomain } from '../radar/radar-assessment.ts'
+import { isStrategicIntelligenceEligible } from '../radar/strategic-intelligence-filter.ts'
+import { evaluateRadarVerdict } from '../radar/verdict-evaluator.ts'
 
 // Inisialisasi parser XML aman dengan fast-xml-parser
 const xmlParser = new XMLParser({
@@ -408,8 +410,14 @@ export function classifyCluster(title: string, body: string, fallbackCluster?: T
     return 'PENIPUAN_BANSOS'
   }
 
-  // 7. UMUM & KEDINASAN (PANGAN / KESEHATAN PUBLIK)
+  // 7. KESEHATAN, GIZI, PANGAN & UMUM KEDINASAN
+  // Deteksi stunting, gizi balita, santunan anak, posyandu, beras plastik, vaksin
   if (
+    norm.includes('stunting') ||
+    norm.includes('balita') ||
+    norm.includes('gizi') ||
+    norm.includes('posyandu') ||
+    norm.includes('santunan balita') ||
     norm.includes('beras plastik') ||
     norm.includes('vaksin') ||
     norm.includes('penculikan anak') ||
@@ -424,8 +432,40 @@ export function classifyCluster(title: string, body: string, fallbackCluster?: T
     return 'UMUM_NETRAL'
   }
 
-  // 8. Fallback cerdas sesuai preferensi kanal atau default Politik Negara
-  return fallbackCluster || 'POLITIK_NEGARA'
+  // 8. POLITIK NEGARA (HANYA UNTUK KENEGARAAN TINGKAT TINGGI, BUKAN SEREMONIAL KABUPATEN/KOTA)
+  const isMunicipalLocal = norm.includes('kabupaten') ||
+                           norm.includes('pemkab') ||
+                           norm.includes('pemkot') ||
+                           norm.includes('ciamis') ||
+                           norm.includes('kecamatan') ||
+                           norm.includes('kelurahan') ||
+                           norm.includes('desa') ||
+                           norm.includes('dinas daerah')
+
+  if (!isMunicipalLocal) {
+    if (
+      norm.includes('presiden') ||
+      norm.includes('wapres') ||
+      norm.includes('prabowo') ||
+      norm.includes('gibran') ||
+      norm.includes('jokowi') ||
+      norm.includes('dpr') ||
+      norm.includes('mpr') ||
+      norm.includes('mahkamah konstitusi') ||
+      norm.includes('kpu') ||
+      norm.includes('bawaslu') ||
+      norm.includes('kabinet') ||
+      norm.includes('menteri koordinator') ||
+      norm.includes('kebijakan pemerintah') ||
+      norm.includes('pemerintah pusat') ||
+      norm.includes('suksesi')
+    ) {
+      return 'POLITIK_NEGARA'
+    }
+  }
+
+  // 9. Fallback cerdas: default ke UMUM_NETRAL (bukan Politik Negara)
+  return fallbackCluster || 'UMUM_NETRAL'
 }
 
 /**
@@ -971,15 +1011,19 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25, defaultCluste
 
       const rawDesc = extractNodeText(item.description)
       const cleanDesc = cleanHtmlText(rawDesc)
+
+      // Penapis ketat seremonial rutin kabupaten/kota & sampah non-strategis
+      const strategicCheck = isStrategicIntelligenceEligible(cleanClaim, cleanDesc || '', sourceName)
+      if (!strategicCheck.isEligible) {
+        continue
+      }
+
       const cluster = classifyCluster(cleanTitle, cleanDesc || '', defaultCluster)
       const keywords = extractKeywords(cleanClaim)
 
-      const isOfficial = sourceName.toUpperCase().includes('TNI') || 
-                         sourceName.toUpperCase().includes('KEMHAN') || 
-                         sourceName.toUpperCase().includes('BMKG') ||
-                         sourceName.toUpperCase().includes('BAWASLU')
-
-      const verdict: DebunkKnowledgeEntry['verdict'] = 'UNVERIFIED'
+      // Evaluasi cerdas vonis: Pisahkan FAKTA (peristiwa pasti/resmi) vs UNVERIFIED (layak dipantau)
+      const verdictEval = evaluateRadarVerdict(cleanClaim, cleanDesc || '', sourceName, cluster)
+      const verdict: DebunkKnowledgeEntry['verdict'] = verdictEval.verdict
 
       const { timestamp: pubTimestamp } = parseSourceDate(rawPubDate)
       const publishedDate = formatMilitaryDate(pubTimestamp)
@@ -992,11 +1036,13 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25, defaultCluste
                           !cleanDesc.includes(cleanClaim) && 
                           !isPureInstitutionOrPublisherName(cleanDesc, sourceName)
 
+      const isFact = verdict === 'FAKTA'
+
       const clarification = hasRealDesc
         ? cleanDesc
-        : isOfficial 
-        ? `Rilis resmi ${sourceName} terkait: "${cleanClaim}". Penelusuran narasi dan koordinasi kedinasan.`
-        : `Warta pers dipublikasikan oleh ${sourceName} mengenai isu: "${cleanClaim}". Terdaftar dalam pemantauan arus pers nasional.`
+        : isFact 
+        ? `Rilis resmi terkonfirmasi dari ${sourceName} terkait: "${cleanClaim}". Peristiwa faktual tercatat dalam pantauan pers nasional.`
+        : `Warta pers dipublikasikan oleh ${sourceName} mengenai isu: "${cleanClaim}". Terdaftar dalam pemantauan intelijen untuk verifikasi fakta.`
 
       entries.push({
         id: stableId,
@@ -1004,7 +1050,7 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25, defaultCluste
         normalizedQuery: cleanClaim.toLowerCase(),
         cluster,
         verdict,
-        threatLevel: cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
+        threatLevel: cluster === 'KEDAULATAN_MILITER' || cluster === 'SIBER_PERETASAN' ? 'critical' : 'medium',
         clarification,
         officialSource: sourceName,
         sourceUrl: cleanLink,
@@ -1012,17 +1058,21 @@ export function parseGoogleNewsRss(xmlText: string, maxItems = 25, defaultCluste
         originalSourceUrl: cleanLink,
         interceptedAt: formatMilitaryDate(Date.now()),
         keywords,
-        tacticalResponseCivilian: `Isu "${cleanClaim}" sedang dipantau. Masyarakat diimbau menunggu konfirmasi resmi dan tidak terpancing spekulasi.`,
-        tacticalResponseMilitary: `Pantau pergerakan narasi "${cleanClaim}" yang dipublikasikan oleh ${sourceName}. Lakukan verifikasi faktual.`,
+        tacticalResponseCivilian: isFact
+          ? `Peristiwa faktual terkonfirmasi dari sumber terpercaya ${sourceName}. Tidak terdapat indikasi manipulasi.`
+          : `Isu "${cleanClaim}" sedang dipantau secara aktif. Masyarakat diimbau menunggu konfirmasi resmi dan tidak terpancing spekulasi.`,
+        tacticalResponseMilitary: isFact
+          ? `Arsip peristiwa kedinasan resmi ${sourceName}. Status aman dan terverifikasi faktual.`
+          : `Pantau pergerakan narasi "${cleanClaim}" yang dipublikasikan oleh ${sourceName}. Lakukan verifikasi faktual.`,
         isLive: true,
         publishedDate,
         isBreakingRecent,
-        cognitiveScore: isOfficial ? 40 : 65,
-        viralityReason: isBreakingRecent
-          ? '🔥 LAPORAN BARU (<3 JAM): Menunggu Verifikasi Fakta'
-          : isOfficial 
-          ? '📢 PUBLIKASI KEDINASAN: Memerlukan Pemantauan Narasi'
-          : '📡 RADAR BERITA: Klaim Belum Terverifikasi'
+        cognitiveScore: isFact ? 30 : 75,
+        viralityReason: isFact
+          ? '🛡️ PUBLIKASI RESMI / FAKTUAL: Terkonfirmasi Sah'
+          : isBreakingRecent
+          ? '🔥 ISU BARU & MENINGKAT: Menunggu Verifikasi Fakta'
+          : '⏳ PEMANTAUAN AKTIF: Klaim Menunggu Klarifikasi'
       })
     }
 
@@ -1063,6 +1113,11 @@ export function parseAntaraRss(xmlText: string, maxItems = 25, defaultCluster?: 
         continue
       }
 
+      const strategicCheck = isStrategicIntelligenceEligible(cleanTitle, rawDesc, sourceName)
+      if (!strategicCheck.isEligible) {
+        continue
+      }
+
       const cluster = classifyCluster(cleanTitle, rawDesc, defaultCluster)
       const keywords = extractKeywords(cleanTitle)
       const { timestamp: pubTimestamp } = parseSourceDate(rawPubDate)
@@ -1071,18 +1126,24 @@ export function parseAntaraRss(xmlText: string, maxItems = 25, defaultCluster?: 
       const isBreakingRecent = freshness.status === 'BREAKING'
       const stableId = generateStablePublicationId(cleanLink)
 
+      const verdictEval = evaluateRadarVerdict(cleanTitle, rawDesc, sourceName, cluster)
+      const verdict: DebunkKnowledgeEntry['verdict'] = verdictEval.verdict
+      const isFact = verdict === 'FAKTA'
+
       const cleanLead = extractArticleLeadFromDesc(rawDesc, 800)
       const clarification = cleanLead && cleanLead.length > 20
         ? cleanLead
-        : `Laporan Kantor Berita Nasional LKBN ANTARA mengenai: "${cleanTitle}".`
+        : isFact
+        ? `Laporan resmi terkonfirmasi Kantor Berita Nasional LKBN ANTARA mengenai: "${cleanTitle}".`
+        : `Laporan Kantor Berita Nasional LKBN ANTARA mengenai isu: "${cleanTitle}". Terdaftar dalam pemantauan intelijen.`
 
       entries.push({
         id: stableId,
         claim: cleanTitle,
         normalizedQuery: cleanTitle.toLowerCase(),
         cluster,
-        verdict: 'UNVERIFIED',
-        threatLevel: cluster === 'KEDAULATAN_MILITER' ? 'critical' : 'medium',
+        verdict,
+        threatLevel: cluster === 'KEDAULATAN_MILITER' || cluster === 'SIBER_PERETASAN' ? 'critical' : 'medium',
         clarification,
         officialSource: 'LKBN ANTARA',
         sourceUrl: cleanLink,
@@ -1090,13 +1151,19 @@ export function parseAntaraRss(xmlText: string, maxItems = 25, defaultCluster?: 
         originalSourceUrl: cleanLink,
         interceptedAt: formatMilitaryDate(Date.now()),
         keywords,
-        tacticalResponseCivilian: `Laporan kantor berita nasional ANTARA mengenai "${cleanTitle}". Pantau perkembangan lebih lanjut.`,
-        tacticalResponseMilitary: `Pantau publikasi nasional LKBN ANTARA terkait "${cleanTitle}".`,
+        tacticalResponseCivilian: isFact
+          ? `Laporan faktual terkonfirmasi dari kantor berita nasional LKBN ANTARA mengenai "${cleanTitle}".`
+          : `Laporan isu viral LKBN ANTARA mengenai "${cleanTitle}". Pantau perkembangan lebih lanjut dan klarifikasi resmi.`,
+        tacticalResponseMilitary: isFact
+          ? `Arsip peristiwa faktual resmi LKBN ANTARA terkait "${cleanTitle}". Status terverifikasi.`
+          : `Pantau narasi publikasi nasional LKBN ANTARA terkait "${cleanTitle}". Lakukan verifikasi faktual.`,
         isLive: true,
         publishedDate,
         isBreakingRecent,
-        cognitiveScore: 50,
-        viralityReason: isBreakingRecent
+        cognitiveScore: isFact ? 30 : 65,
+        viralityReason: isFact
+          ? '🛡️ FAKTUAL NASIONAL LKBN ANTARA: Terkonfirmasi Sah'
+          : isBreakingRecent
           ? '🔥 ANTARA TERKINI (<3 JAM): Menunggu Verifikasi Fakta'
           : '📡 LKBN ANTARA: Kantor Berita Nasional'
       })

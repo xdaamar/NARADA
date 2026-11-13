@@ -34,7 +34,7 @@
       "id": "gnews-national-policy",
       "domain": "NATIONAL_POLICY",
       "displayName": "Google News — Kebijakan Negara",
-      "query": "(Prabowo OR presiden OR pemerintah OR DPR OR kementerian OR \"kebijakan negara\") when:3d",
+      "query": "(Prabowo OR presiden OR \"kebijakan pemerintah\" OR \"pemerintah pusat\" OR \"kabinet merah putih\" OR DPR OR kementerian) when:3d",
       "locale": "id",
       "gl": "ID",
       "ceid": "ID:id"

@@ -27,8 +27,7 @@ import {
   ChevronDown,
   ChevronUp,
   Newspaper,
-  Pin,
-  Layers
+  Pin
 } from 'lucide-react'
 import {
   getArchivedIssueIds,
@@ -441,8 +440,8 @@ export default function LiveRadar() {
   // State data dan filter (kosong secara default saat pemindaian awal aktif)
   const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>([])
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
-  const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('ALL')
-  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS'>('MOMENTUM')
+  const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('UNVERIFIED')
+  const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS'>('UNVERIFIED')
   const [trendSignals, setTrendSignals] = useState<SearchTrendSignal[]>([])
 
   // State Paginasi Taktis Viewport Segmented (60 FPS DOM Optimization)
@@ -775,38 +774,12 @@ export default function LiveRadar() {
       const isResolved = item.verdict === 'FAKTA' || item.verdict === 'NETRAL'
       const isExcluded = item.queueState === 'EXCLUDED'
       const isUnverified = !isExcluded && (item.verdict === 'UNVERIFIED' || item.triageStatus === 'UNVERIFIED' || item.queueState === 'MONITOR' || (!isHoaks && !isResolved))
-      
-      const activityState = item.issueActivity?.state || ((item.threatLevel === 'critical' || item.threatLevel === 'high' || item.id.startsWith('NAR-CYB-') || item.verdict === 'UNVERIFIED') ? 'NEW' : 'SUSTAINED')
-      const isMomentum = activityState === 'NEW' || activityState === 'RISING'
-      const isSustained = activityState === 'SUSTAINED'
-      const isCooling = activityState === 'COOLING'
-      const isInsufficientData = activityState === 'INSUFFICIENT_DATA'
 
-      const matchView = activeViewMode === 'ALL'
-        ? (selectedTriage === 'ALL' 
-            ? true 
-            : selectedTriage === 'RESOLVED' 
-            ? isResolved
-            : selectedTriage === 'HOAKS'
-            ? isHoaks
-            : selectedTriage === 'UNVERIFIED'
-            ? isUnverified
-            : item.verdict === selectedTriage)
-        : activeViewMode === 'MOMENTUM'
-        ? isMomentum
-        : activeViewMode === 'SUSTAINED'
-        ? isSustained
-        : activeViewMode === 'COOLING'
-        ? isCooling
-        : activeViewMode === 'INSUFFICIENT_DATA'
-        ? isInsufficientData
-        : activeViewMode === 'UNVERIFIED'
-        ? isUnverified
-        : activeViewMode === 'HOAKS'
+      const matchView = activeViewMode === 'HOAKS' || selectedTriage === 'HOAKS'
         ? isHoaks
-        : activeViewMode === 'RESOLVED'
+        : activeViewMode === 'RESOLVED' || selectedTriage === 'RESOLVED'
         ? isResolved
-        : true
+        : isUnverified
 
       const query = searchQuery.trim().toLowerCase()
       const matchQuery = !query || 
@@ -906,19 +879,13 @@ export default function LiveRadar() {
 
   // Label & Warna status filter aktif untuk indikator visual
   const activeFilterInfo = useMemo(() => {
-    if (activeViewMode === 'MOMENTUM') {
-      return { label: 'ISU BARU & MENINGKAT', color: '#F43F5E' }
-    }
-    if (activeViewMode === 'UNVERIFIED' || selectedTriage === 'UNVERIFIED') {
-      return { label: 'SEDANG DIPANTAU', color: '#F59E0B' }
-    }
     if (activeViewMode === 'HOAKS' || selectedTriage === 'HOAKS') {
       return { label: 'TERINDIKASI HOAKS', color: '#EF4444' }
     }
     if (activeViewMode === 'RESOLVED' || selectedTriage === 'RESOLVED') {
       return { label: 'FAKTA & AMAN', color: '#10B981' }
     }
-    return { label: 'SEMUA ISU AKTIF', color: '#38BDF8' }
+    return { label: 'SEDANG DIPANTAU', color: '#F59E0B' }
   }, [activeViewMode, selectedTriage])
 
   return (
@@ -1330,34 +1297,37 @@ export default function LiveRadar() {
               <ShieldAlert size={11} color="#60A5FA" /> FILTER STATUS:
             </span>
             {[
-              { key: 'MOMENTUM', label: 'ISU BARU & MENINGKAT', count: triageCounts.MOMENTUM, color: '#F43F5E', icon: TrendingUp },
-              { key: 'UNVERIFIED', label: 'SEDANG DIPANTAU', count: triageCounts.UNVERIFIED, color: '#F59E0B', icon: Eye },
-              { key: 'HOAKS', label: 'TERINDIKASI HOAKS', count: triageCounts.HOAKS, color: '#EF4444', icon: AlertTriangle },
-              { key: 'RESOLVED', label: 'FAKTA & AMAN', count: triageCounts.FAKTA + triageCounts.NETRAL, color: '#10B981', icon: ShieldCheck },
-              { key: 'ALL', label: 'SEMUA ISU AKTIF', count: triageCounts.ALL, color: '#60A5FA', icon: Layers },
+              { 
+                key: 'UNVERIFIED', 
+                label: 'SEDANG DIPANTAU', 
+                subBadge: 'ISU BARU & MENINGKAT',
+                count: triageCounts.UNVERIFIED, 
+                color: '#F59E0B', 
+                icon: Eye 
+              },
+              { 
+                key: 'HOAKS', 
+                label: 'TERINDIKASI HOAKS', 
+                count: triageCounts.HOAKS, 
+                color: '#EF4444', 
+                icon: AlertTriangle 
+              },
+              { 
+                key: 'RESOLVED', 
+                label: 'FAKTA & AMAN', 
+                count: triageCounts.FAKTA + triageCounts.NETRAL, 
+                color: '#10B981', 
+                icon: ShieldCheck 
+              },
             ].map(tab => {
-              const isSelected = tab.key === 'ALL'
-                ? (activeViewMode === 'ALL' && selectedTriage === 'ALL')
-                : (activeViewMode === tab.key || (activeViewMode === 'ALL' && selectedTriage === tab.key))
+              const isSelected = activeViewMode === tab.key || selectedTriage === tab.key
               return (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => {
-                    if (tab.key === 'ALL') {
-                      setActiveViewMode('ALL')
-                      setSelectedTriage('ALL')
-                    } else if (isSelected) {
-                      setActiveViewMode('ALL')
-                      setSelectedTriage('ALL')
-                    } else {
-                      setActiveViewMode(tab.key as any)
-                      if (tab.key === 'UNVERIFIED' || tab.key === 'HOAKS' || tab.key === 'RESOLVED') {
-                        setSelectedTriage(tab.key as any)
-                      } else {
-                        setSelectedTriage('ALL')
-                      }
-                    }
+                    setActiveViewMode(tab.key as any)
+                    setSelectedTriage(tab.key as any)
                   }}
                   style={{
                     padding: '6px 12px',
@@ -1399,7 +1369,21 @@ export default function LiveRadar() {
                       }} />
                     )}
                   </div>
-                  <span>{tab.label}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                    <span>{tab.label}</span>
+                    {(tab as any).subBadge && (
+                      <span style={{ 
+                        fontSize: '8px', 
+                        color: isSelected ? '#FCA5A5' : '#64748B',
+                        background: isSelected ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                        padding: '1px 5px',
+                        borderRadius: '2px',
+                        border: '1px solid rgba(255, 255, 255, 0.08)'
+                      }}>
+                        ⚡ {(tab as any).subBadge}
+                      </span>
+                    )}
+                  </span>
                   <span style={{
                     fontSize: '9.5px',
                     padding: '1px 6px',
@@ -1486,17 +1470,17 @@ export default function LiveRadar() {
                 )
               })}
 
-            {/* Tombol Reset Filter jika aktif (S12-06.3 / S12-06.4: SEMUA ISU AKTIF) */}
-            {(selectedCluster !== 'ALL' || activeViewMode !== 'MOMENTUM' || searchQuery) && (
+            {/* Tombol Reset Filter jika aktif */}
+            {(selectedCluster !== 'ALL' || activeViewMode !== 'UNVERIFIED' || searchQuery) && (
               <button
                 type="button"
                 onClick={() => {
                   setSelectedCluster('ALL')
-                  setActiveViewMode('MOMENTUM')
-                  setSelectedTriage('ALL')
+                  setActiveViewMode('UNVERIFIED')
+                  setSelectedTriage('UNVERIFIED')
                   setSearchQuery('')
                 }}
-                title="Reset seluruh filter (Tampilkan SEMUA ISU AKTIF)"
+                title="Reset seluruh filter (Kembali ke SEDANG DIPANTAU)"
                 style={{
                   padding: '3px 9px',
                   borderRadius: '3px',

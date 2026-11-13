@@ -56,7 +56,7 @@ console.log('\n─── Gate 2: Klasifikasi Otomatis Ingesti Berita & Pengenala
 
 // Ekstrak fungsi classifyCluster dari rss-parser.ts secara mandiri tanpa dependensi eksternal parser
 const rssParserSrc = fs.readFileSync(path.join(rootDir, 'src', 'engine', 'ingest', 'rss-parser.ts'), 'utf-8')
-const matchClassify = rssParserSrc.match(/export function classifyCluster\(title: string, body: string\)[\s\S]*?\n\}/)
+const matchClassify = rssParserSrc.match(/export function classifyCluster\([\s\S]*?\n\}/)
 
 let classifyCluster
 if (matchClassify) {
