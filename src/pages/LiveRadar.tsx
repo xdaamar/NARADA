@@ -456,7 +456,7 @@ export default function LiveRadar() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isSyncing, setIsSyncing] = useState<boolean>(true)
   const [lastSyncTime, setLastSyncTime] = useState<string>('Memuat')
-  const [syncIntervalHours, setSyncIntervalHours] = useState<number>(0.5) // SPRINT 10: Default 30 Menit
+  const [syncIntervalHours, setSyncIntervalHours] = useState<number>(1) // Default 1 jam (lebih efisien)
   const [telemetry, setTelemetry] = useState<NetworkTelemetryInfo>({
     status: 'ONLINE',
     latencyMs: 14,
@@ -589,12 +589,15 @@ export default function LiveRadar() {
   }
   void handleSetArchivedVerdict
 
-  // Fungsi sinkronisasi radar via RadarScheduler
+  // Fungsi sinkronisasi radar via RadarScheduler (dipakai saat tombol "Pindai Isu Terkini" ditekan)
   const triggerSync = async (forceClear = false) => {
     setIsSyncing(true)
-    // KOSONGKAN LIST DATA SAAT PROSES MEMINDAI (sesuai instruksi: pengguna tidak bingung & hilangkan dummy saat scan)
-    setDebunkItems([])
-    setTrendSignals([])
+    // KOSONGKAN LIST DATA SAAT FORCE CLEAR saja (Bersihkan Tuntas)
+    // Saat scan biasa (tombol Pindai), data lama tetap tampil sampai data baru tiba
+    if (forceClear) {
+      setDebunkItems([])
+      setTrendSignals([])
+    }
 
     const net = await checkNetworkStatus()
     setTelemetry(net)
@@ -650,7 +653,95 @@ export default function LiveRadar() {
 
   // Muat data radar saat awal buka halaman (menjalankan pemindaian bersih)
   useEffect(() => {
-    triggerSync(false)
+    // ─── SESSION-AWARE SMART LOADING ───────────────────────────────────────────
+    // Strategi: Load dari cache IndexedDB DULU (instan, 0 delay).
+    // Lakukan scan baru hanya jika:
+    // 1. Session baru (pertama kali buka aplikasi / tidak ada cache)
+    // 2. Sudah lebih dari 1 jam sejak scan terakhir
+    // Ini mencegah loading lambat saat user pindah tab dan kembali ke Radar.
+    const SCAN_INTERVAL_MS = 60 * 60 * 1000 // 1 jam
+
+    const loadSmartSession = async () => {
+      setIsSyncing(true)
+
+      try {
+        // 1. Load dari cache IndexedDB terlebih dahulu (instan!)
+        const cached = await getCachedRadarItems()
+        if (cached && cached.length > 0) {
+          const sanitized = sanitizeRadarItems(cached)
+          setDebunkItems(sanitized)
+          syncArchivedItemsWithRadar(sanitized)
+          setIsSyncing(false) // Tampilkan data cache dulu
+
+          // Cek apakah scan baru diperlukan
+          const schedulerStatus = radarScheduler.getStatus()
+          const lastScanAt = schedulerStatus.lastScanCompletedAt || schedulerStatus.lastSyncTimestamp || 0
+          const elapsedSinceLastScan = Date.now() - lastScanAt
+          const needsFreshScan = lastScanAt === 0 || elapsedSinceLastScan > SCAN_INTERVAL_MS
+
+          if (needsFreshScan) {
+            // Background scan tanpa mengosongkan tampilan (user tidak terganggu)
+            setIsSyncing(true)
+            const net = await checkNetworkStatus()
+            setTelemetry(net)
+            radarScheduler.resetCircuitBreakers()
+            const freshEntries = await radarScheduler.triggerNow()
+            if (freshEntries && freshEntries.length > 0) {
+              const sorted = sanitizeRadarItems(freshEntries)
+              setDebunkItems(sorted)
+              syncArchivedItemsWithRadar(sorted)
+              reconcileArchivedItems(sorted).catch(() => {})
+            } else {
+              // Tetap pakai cache yang sudah tampil
+              reconcileArchivedItems(sanitized).catch(() => {})
+            }
+            const status = radarScheduler.getStatus()
+            const now = new Date(status.lastSyncTimestamp || Date.now())
+            setLastSyncTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`)
+            const lastRes = getLastRadarResult()
+            if (lastRes?.trendSignals) setTrendSignals(lastRes.trendSignals)
+          } else {
+            // Cache masih fresh, tidak perlu scan
+            const now = new Date(lastScanAt)
+            setLastSyncTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`)
+          }
+        } else {
+          // Tidak ada cache → lakukan scan penuh seperti biasa
+          setDebunkItems([])
+          setTrendSignals([])
+          const net = await checkNetworkStatus()
+          setTelemetry(net)
+          radarScheduler.resetCircuitBreakers()
+          const entries = await radarScheduler.triggerNow()
+          let finalEntries = entries
+          if (!finalEntries || finalEntries.length === 0) {
+            finalEntries = getCuratedArchiveDebunks()
+          }
+          if (finalEntries && finalEntries.length > 0) {
+            const sorted = sanitizeRadarItems(finalEntries)
+            setDebunkItems(sorted)
+            syncArchivedItemsWithRadar(sorted)
+            reconcileArchivedItems(sorted).catch(() => {})
+          }
+          const status = radarScheduler.getStatus()
+          const now = new Date(status.lastSyncTimestamp || Date.now())
+          setLastSyncTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`)
+          const lastRes = getLastRadarResult()
+          if (lastRes?.trendSignals) setTrendSignals(lastRes.trendSignals)
+        }
+      } catch (err: any) {
+        console.error('[LiveRadar] Smart session load error:', err)
+        const cached = await getCachedRadarItems().catch(() => [])
+        const fallback = (cached && cached.length > 0) ? cached : getCuratedArchiveDebunks()
+        const sorted = sanitizeRadarItems(fallback)
+        setDebunkItems(sorted)
+        syncArchivedItemsWithRadar(sorted)
+      } finally {
+        setIsSyncing(false)
+      }
+    }
+
+    loadSmartSession()
   }, [])
 
   // Hubungkan RadarScheduler interval dan subscribe ke event siaran
@@ -749,8 +840,9 @@ export default function LiveRadar() {
 
   // Filter isu berdasarkan status triage, klaster, view mode, dan query pencarian
   const filteredItems = useMemo(() => {
-    // KOSONGKAN LIST DATA SAAT SEDANG MEMINDAI (sesuai instruksi user)
-    if (isSyncing) return []
+    // KOSONGKAN LIST DATA SAAT SEDANG MEMINDAI DAN TIDAK ADA DATA TERSIMPAN
+    // Jika ada data di debunkItems (dari cache/retensi), tampilkan meski sedang syncing background
+    if (isSyncing && debunkItems.length === 0) return []
 
     const seenClaims = new Set<string>()
     const list = debunkItems.filter(item => {
@@ -1122,7 +1214,7 @@ export default function LiveRadar() {
                 }}
               >
                 <option value={0.5}>Auto-Sync: 30m</option>
-                <option value={1}>Auto-Sync: 1 Jam</option>
+                <option value={1} selected>Auto-Sync: 1 Jam</option>
                 <option value={2}>Auto-Sync: 2 Jam</option>
                 <option value={6}>Auto-Sync: 6 Jam</option>
                 <option value={0}>Auto-Sync: Manual</option>

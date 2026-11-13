@@ -116,6 +116,35 @@ export interface SingleSourceFetchResult {
 const knownPublicationsMap = new Map<string, NormalizedPublication>()
 const knownFirstObservedTimes = new Map<string, number>()
 
+// ─── RADAR RETENTION LAYER: 24 Jam TTL untuk SEDANG DIPANTAU ───────────────
+// Item yang berstatus UNVERIFIED akan bertahan 24 jam meskipun scan baru tidak
+// menghasilkan mereka lagi. Ini mencegah radar kosong dan mempertahankan berita
+// yang masih relevan dan belum terklasifikasi dari hari sebelumnya.
+const RADAR_UNVERIFIED_TTL_MS = 24 * 60 * 60 * 1000 // 24 jam
+const RADAR_FAKTA_TTL_MS = 48 * 60 * 60 * 1000      // 48 jam untuk FAKTA & HOAKS
+
+/**
+ * Mengambil TTL efektif berdasarkan verdict item
+ */
+function getItemTTLMs(verdict: string | undefined): number {
+  if (verdict === 'UNVERIFIED') return RADAR_UNVERIFIED_TTL_MS
+  if (verdict === 'HOAKS' || verdict === 'DISINFORMASI') return RADAR_FAKTA_TTL_MS
+  return RADAR_FAKTA_TTL_MS
+}
+
+/**
+ * Memeriksa apakah entri masih dalam masa retensi (belum expired)
+ */
+function isItemStillRetained(item: DebunkKnowledgeEntry, nowMs: number): boolean {
+  const ttl = getItemTTLMs(item.verdict)
+  // Gunakan interceptedAt atau publishedDate sebagai referensi waktu masuk radar
+  const { timestamp: interceptedTs } = parseSourceDate(item.interceptedAt)
+  const { timestamp: publishedTs } = parseSourceDate(item.publishedDate)
+  const entryTime = interceptedTs || publishedTs || 0
+  if (entryTime <= 0) return true // Jika tidak ada timestamp, pertahankan
+  return (nowMs - entryTime) < ttl
+}
+
 /**
  * Mengosongkan memori publikasi radar (misal saat operator memilih pembersihan tuntas)
  */
@@ -1269,6 +1298,25 @@ export async function processRadarIngestion(
 
   const allPubs = Array.from(knownPublicationsMap.values())
 
+  // ─── RADAR RETENTION MERGE: Gabungkan dengan item UNVERIFIED dari cache yang masih dalam 24 jam ───
+  // Ini memastikan berita kemarin yang masih layak dipantau tetap tampil meski feed hari ini sepi.
+  let retainedCacheItems: DebunkKnowledgeEntry[] = []
+  try {
+    const cachedItems = await getCachedRadarItems()
+    // Ambil item dari cache yang:
+    // 1. UNVERIFIED (belum terklasifikasi) → retained 24 jam
+    // 2. HOAKS / FAKTA → retained 48 jam
+    // 3. Tidak sudah ada di knownPublicationsMap (tidak duplikat)
+    const knownTitles = new Set(allPubs.map(p => p.title.trim().toLowerCase()))
+    retainedCacheItems = cachedItems.filter(item => {
+      if (!item || !item.claim) return false
+      if (knownTitles.has(item.claim.trim().toLowerCase())) return false // Sudah ada dari feed baru
+      return isItemStillRetained(item, now) // Belum expired
+    })
+  } catch {
+    // Abaikan jika cache tidak dapat diakses
+  }
+
   // 2. Deduplikasi publikasi
   const dedupedItems = deduplicatePublications(allPubs)
 
@@ -1331,14 +1379,31 @@ export async function processRadarIngestion(
 
   // Deduplikasi final berdasarkan judul klaim terstandarisasi untuk mencegah duplikasi kartu di UI
   const seenClaimsInRadar = new Set<string>()
-  const sortedEntries: DebunkKnowledgeEntry[] = []
+  const freshEntries: DebunkKnowledgeEntry[] = []
   for (const item of sortedRaw) {
     const key = item.claim.trim().toLowerCase()
     if (!seenClaimsInRadar.has(key)) {
       seenClaimsInRadar.add(key)
-      sortedEntries.push(item)
+      freshEntries.push(item)
     }
   }
+
+  // ─── MERGE RETAINED CACHE ITEMS (Berita kemarin yang belum terpantau ditambahkan kembali) ───
+  // Prinsip: Jika feed hari ini sepi / nihil, berita kemarin yang masih UNVERIFIED dan layak pantau
+  // akan tetap tampil. Ini mencegah radar "kosong" dan memberikan data minimum yang bermakna.
+  for (const retainedItem of retainedCacheItems) {
+    const key = retainedItem.claim.trim().toLowerCase()
+    if (!seenClaimsInRadar.has(key)) {
+      seenClaimsInRadar.add(key)
+      // Tag retained item agar user bisa melihat ini dari cache historis
+      freshEntries.push({
+        ...retainedItem,
+        viralityReason: retainedItem.viralityReason || `📂 RETENSI 24 JAM: Masih dipantau dari ${retainedItem.publishedDate || 'kemarin'}`
+      })
+    }
+  }
+
+  const sortedEntries = sortRadarEntries(freshEntries)
 
   // TIER 3: KURASI CERDAS KUOTA ISU (MAKSIMAL 150 ISU EMAS PRIORITAS TINGGI)
   // Menjamin seluruh isu HOAKS dan isu berprioritas kritis/tinggi serta SEDANG DIPANTAU tidak pernah terpotong,
