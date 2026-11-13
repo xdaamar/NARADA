@@ -32,7 +32,13 @@ import {
   Download,
   Pin,
   Share2,
-  Layers
+  Layers,
+  Info,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  X,
+  Eye
 } from 'lucide-react'
 import type { IntelReportConfig, ReportClassification } from '../types.ts'
 import { getUserSettings, saveUserSettings } from '../utils/storage.ts'
@@ -161,7 +167,33 @@ export default function Reports() {
   }, [navState.caseId])
 
   // ─── 4. KONFIGURASI LAPORAN & IDENTITAS OPERATOR TERPADU ───
-  const userSettings = useMemo(() => getUserSettings(), [])
+  const userSettings = useMemo(() => {
+    const s = getUserSettings()
+    // Bersihkan nama atau NRP bawaan lama jika mengandung data pribadi
+    const cleanedName = (s.analystName && !s.analystName.toLowerCase().includes('damar')) ? s.analystName : ''
+    const cleanedNrp = (s.analystNrp && s.analystNrp !== '21260408') ? s.analystNrp : ''
+    return {
+      ...s,
+      analystName: cleanedName,
+      analystNrp: cleanedNrp
+    }
+  }, [])
+
+  // State Zooming Dokumen & Modal Layar Penuh
+  const [zoomLevel, setZoomLevel] = useState<number>(1.0)
+  const [modalZoomLevel, setModalZoomLevel] = useState<number>(1.1)
+  const [isZoomModalOpen, setIsZoomModalOpen] = useState<boolean>(false)
+
+  // Keyboard listener untuk tombol Escape menutup modal zoom
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isZoomModalOpen) {
+        setIsZoomModalOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isZoomModalOpen])
 
   // Format tanggal dinas militer hari ini
   const todayMilitary = useMemo(() => {
@@ -179,8 +211,8 @@ export default function Reports() {
 
   const [config, setConfig] = useState<IntelReportConfig>({
     unitName: userSettings.defaultUnit || 'PUSSIBERAD TNI AD',
-    analystName: userSettings.analystName || 'Sertu Damar / Analis Madya',
-    analystNrp: userSettings.analystNrp || '21260408',
+    analystName: userSettings.analystName || '',
+    analystNrp: userSettings.analystNrp || '',
     reportNumber: generatedReportNumber,
     classification: 'RAHASIA',
     date: todayMilitary,
@@ -379,8 +411,8 @@ export default function Reports() {
   const handleResetConfig = () => {
     setConfig({
       unitName: 'PUSSIBERAD TNI AD',
-      analystName: 'Sertu Damar / Analis Madya',
-      analystNrp: '21260408',
+      analystName: '',
+      analystNrp: '',
       reportNumber: generatedReportNumber,
       classification: 'RAHASIA',
       date: todayMilitary,
@@ -410,539 +442,10 @@ export default function Reports() {
     }
   }
 
-  return (
-    <div className="fade-in" style={{ paddingBottom: '32px' }}>
-      {/* ─── Header Operasional ─── */}
-      <div className="no-print" style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-          <span style={{
-            fontSize: '10px',
-            fontFamily: 'var(--font-mono)',
-            padding: '2px 8px',
-            borderRadius: '3px',
-            background: 'var(--narada-red-subtle)',
-            color: 'var(--narada-red)',
-            border: '1px solid rgba(200, 16, 46, 0.3)',
-            letterSpacing: '1.5px',
-            textTransform: 'uppercase',
-            fontWeight: 700
-          }}>
-            INTELLIGENCE REPORT GENERATOR
-          </span>
-          <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-            /// FORMAT DOKUMEN DINAS MILITER TNI AD (A4 RESMI)
-          </span>
-        </div>
-
-        <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '24px',
-          fontWeight: '800',
-          letterSpacing: '2px',
-          textTransform: 'uppercase',
-          color: 'var(--text-primary)'
-        }}>
-          Laporan Intelijen Ancaman Kognitif & Siber
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Penyusunan produk telaahan intelijen komando militer yang terhubung langsung dengan <strong>Berita Tersemat</strong> dan <strong>Analisis Medsos</strong> terkini, siap cetak standar A4 resmi dengan stempel SHA-256.
-        </p>
-      </div>
-
-      {/* ─── Banner Peringatan Simulasi Sintetis (Firewall Integritas) ─── */}
-      {isSimulationMode && (
-        <div className="no-print" style={{
-          marginBottom: '16px',
-          padding: '12px 16px',
-          background: 'rgba(245, 158, 11, 0.08)',
-          border: '1px solid rgba(245, 158, 11, 0.4)',
-          borderRadius: '6px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px'
-        }}>
-          <AlertTriangle size={18} style={{ color: '#F59E0B', flexShrink: 0 }} />
-          <div style={{ fontSize: '11px', lineHeight: 1.5, color: '#FDE68A' }}>
-            <span style={{ fontWeight: 800, letterSpacing: '0.8px', color: '#F59E0B' }}>
-              FIREWALL INTEGRITAS: PRESET SIMULASI SINTETIS AKTIF
-            </span>
-            <div style={{ color: '#94A3B8', marginTop: '2px' }}>
-              Dokumen ini dibangkitkan dari benchmark sintetis terkontrol. Tanda air "SIMULASI" tercantum permanen pada cetakan A4 dan ekspor data sesuai doktrin integritas bukti.
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── Layout 2 Kolom: Kiri Panel Konfigurasi, Kanan Pratinjau Kertas Resmi ─── */}
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
-
-        {/* ─── KOLOM KIRI: Panel Konfigurasi Laporan (Disembunyikan saat cetak) ─── */}
-        <div className="report-config-panel no-print" style={{ width: '360px', flexShrink: 0 }}>
-          
-          {/* Card 1: Pengaturan Identitas & Kop Militer */}
-          <div className="steel-chassis-card" style={{ marginBottom: '16px', position: 'relative' }}>
-            <span className="bolt-tl" />
-            <span className="bolt-tr" />
-            <span className="bolt-bl" />
-            <span className="bolt-br" />
-            
-            <div className="card-header">
-              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Sliders size={13} color="var(--narada-red)" />
-                IDENTITAS & KOP DOKUMEN MILITER
-              </div>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={handleResetConfig}
-                title="Atur Ulang Pengaturan Default"
-              >
-                <RotateCcw size={12} />
-              </button>
-            </div>
-
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Nama Satuan */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Building size={11} /> NAMA SATUAN / KOTAMA
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={config.unitName}
-                  onChange={e => handleUpdateConfigField('unitName', e.target.value)}
-                  placeholder="PUSSIBERAD TNI AD"
-                />
-              </div>
-
-              {/* Nama Analis & NRP */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '8px' }}>
-                <div className="form-group">
-                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <User size={11} /> NAMA ANALIS & PANGKAT
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={config.analystName}
-                    onChange={e => handleUpdateConfigField('analystName', e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Award size={11} /> NRP / NIP
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={config.analystNrp || ''}
-                    onChange={e => handleUpdateConfigField('analystNrp', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Nomor Laporan & Tanggal */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <div className="form-group">
-                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    <Hash size={11} /> NO. LAPORAN DINAS
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={config.reportNumber}
-                    onChange={e => handleUpdateConfigField('reportNumber', e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">TANGGAL DINAS</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={config.date}
-                    onChange={e => handleUpdateConfigField('date', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Tingkat Klasifikasi Keamanan */}
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Lock size={11} /> TINGKAT KLASIFIKASI DOKUMEN
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '4px' }}>
-                  {(['RAHASIA', 'TERBATAS', 'BIASA'] as const).map((cls: ReportClassification) => {
-                    const isSelected = config.classification === cls
-                    let btnBg = 'linear-gradient(180deg, #1E2734 0%, #111722 100%)'
-                    let btnBorderTop = '1px solid rgba(255, 255, 255, 0.12)'
-                    let btnBorderBottom = '2px solid #080C12'
-                    let btnBorderSides = '1px solid #161F2C'
-                    let btnColor = 'var(--text-secondary)'
-                    let btnShadow = '0 2px 5px rgba(0,0,0,0.6)'
-
-                    if (isSelected) {
-                      btnColor = '#FFFFFF'
-                      if (cls === 'RAHASIA') {
-                        btnBg = 'linear-gradient(180deg, #991B1B 0%, #5B0C15 100%)'
-                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
-                        btnBorderBottom = '2px solid #2B0609'
-                        btnBorderSides = '1px solid #7F1D1D'
-                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
-                      } else if (cls === 'TERBATAS') {
-                        btnBg = 'linear-gradient(180deg, #B45309 0%, #632B03 100%)'
-                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
-                        btnBorderBottom = '2px solid #361701'
-                        btnBorderSides = '1px solid #92400E'
-                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
-                      } else {
-                        btnBg = 'linear-gradient(180deg, #1D4ED8 0%, #0F2D80 100%)'
-                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
-                        btnBorderBottom = '2px solid #081B4E'
-                        btnBorderSides = '1px solid #1E40AF'
-                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
-                      }
-                    }
-
-                    return (
-                      <button
-                        key={cls}
-                        type="button"
-                        onClick={() => handleUpdateConfigField('classification', cls)}
-                        style={{
-                          padding: '7px 4px',
-                          fontSize: '11px',
-                          fontWeight: '800',
-                          letterSpacing: '1px',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          transition: 'all 0.18s ease',
-                          background: btnBg,
-                          color: btnColor,
-                          borderTop: btnBorderTop,
-                          borderBottom: btnBorderBottom,
-                          borderLeft: btnBorderSides,
-                          borderRight: btnBorderSides,
-                          boxShadow: btnShadow,
-                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
-                        }}
-                      >
-                        {cls}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Sumber Data & Komponen Dokumen */}
-          <div className="steel-chassis-card" style={{ marginBottom: '16px', position: 'relative' }}>
-            <span className="bolt-tl" />
-            <span className="bolt-tr" />
-            <span className="bolt-bl" />
-            <span className="bolt-br" />
-
-            <div className="card-header">
-              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Layers size={13} color="var(--narada-gold)" />
-                SUMBER DATA LAPORAN INTELIJEN
-              </div>
-            </div>
-
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {/* Pilihan Cakupan Sumber Data */}
-              <div className="form-group">
-                <label className="form-label">CAKUPAN SUMBER INTELIJEN</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '4px' }}>
-                  {[
-                    { key: 'ALL', label: 'Gabungan' },
-                    { key: 'ARCHIVE_ONLY', label: 'Tersemat' },
-                    { key: 'SOCIAL_ONLY', label: 'Medsos' }
-                  ].map(m => {
-                    const isSel = dataSourceMode === m.key
-                    return (
-                      <button
-                        key={m.key}
-                        type="button"
-                        onClick={() => setDataSourceMode(m.key as any)}
-                        style={{
-                          padding: '6px 4px',
-                          fontSize: '10px',
-                          fontWeight: '800',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          textAlign: 'center',
-                          background: isSel ? 'linear-gradient(180deg, #2A384C 0%, #16202D 100%)' : 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
-                          color: isSel ? '#F8FAFC' : 'var(--text-secondary)',
-                          borderTop: isSel ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.08)',
-                          borderBottom: isSel ? '2px solid #C8102E' : '2px solid #080C10',
-                          borderLeft: '1px solid #222E3D',
-                          borderRight: '1px solid #121820',
-                          boxShadow: isSel ? '0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
-                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
-                        }}
-                      >
-                        {m.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Checklist Isu Berita Tersemat */}
-              {dataSourceMode !== 'SOCIAL_ONLY' && (
-                <div style={{
-                  padding: '10px',
-                  background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
-                  borderRadius: '4px',
-                  border: '1px solid #1C2636',
-                  boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: '8px'
-                  }}>
-                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Pin size={11} color="var(--accent-gold)" />
-                      PILIH ISU TERSEMAT ({activeArchiveItems.length}/{archivedEntries.length}):
-                    </span>
-                    {archivedEntries.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={toggleSelectAllArchives}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--accent-cyan)',
-                          fontSize: '9px',
-                          cursor: 'pointer',
-                          textDecoration: 'underline'
-                        }}
-                      >
-                        {selectedArchiveIds.size === archivedEntries.length ? 'Batal Semua' : 'Pilih Semua'}
-                      </button>
-                    )}
-                  </div>
-
-                  {archivedEntries.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '10px 4px' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                        Belum ada berita tersemat dari Radar.
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={handleSeedCuratedArchive}
-                        style={{ width: '100%', fontSize: '10px', justifyContent: 'center' }}
-                      >
-                        <Sparkles size={11} color="var(--accent-gold)" /> + Muat Isu Tersemat Binaan
-                      </button>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
-                      {archivedEntries.map(entry => {
-                        const isChecked = selectedArchiveIds.has(entry.id)
-                        const verdictColor = entry.archiveVerdict === 'HOAKS' ? '#EF4444' : entry.archiveVerdict === 'FAKTA' ? '#10B981' : '#F59E0B'
-                        return (
-                          <div
-                            key={entry.id}
-                            onClick={() => toggleArchiveSelection(entry.id)}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                              padding: '5px 6px',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                              background: isChecked ? 'rgba(255,255,255,0.04)' : 'transparent',
-                              border: isChecked ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent'
-                            }}
-                          >
-                            {isChecked ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
-                            <div style={{ flex: 1, minWidth: 0, fontSize: '11px' }}>
-                              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
-                                {entry.claim}
-                              </div>
-                            </div>
-                            <span style={{
-                              fontSize: '8px',
-                              fontWeight: 800,
-                              padding: '1px 4px',
-                              borderRadius: '2px',
-                              background: `${verdictColor}22`,
-                              color: verdictColor,
-                              border: `1px solid ${verdictColor}44`,
-                              flexShrink: 0
-                            }}>
-                              {entry.archiveVerdict || 'DIPANTAU'}
-                            </span>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Pilihan Postingan Medsos */}
-              {dataSourceMode !== 'ARCHIVE_ONLY' && (
-                <div style={{
-                  padding: '10px',
-                  background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
-                  borderRadius: '4px',
-                  border: '1px solid #1C2636',
-                  boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)'
-                }}>
-                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Share2 size={11} color="var(--accent-cyan)" />
-                    SKENARIO ANALISIS MEDSOS:
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginBottom: '8px' }}>
-                    {PRELOADED_TEST_SCENARIOS.map((sc, idx) => {
-                      const isSel = selectedScenarioIndex === idx
-                      return (
-                        <button
-                          key={sc.id}
-                          type="button"
-                          onClick={() => handleSelectSocialScenario(idx)}
-                          style={{
-                            padding: '5px 2px',
-                            fontSize: '9px',
-                            fontWeight: 800,
-                            borderRadius: '3px',
-                            cursor: 'pointer',
-                            textTransform: 'uppercase',
-                            background: isSel ? 'linear-gradient(180deg, #991B1B 0%, #5B0C15 100%)' : 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
-                            color: isSel ? '#F8FAFC' : 'var(--text-secondary)',
-                            borderTop: isSel ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
-                            borderBottom: isSel ? '2px solid #2B0609' : '2px solid #080C10',
-                            borderLeft: isSel ? '1px solid #7F1D1D' : '1px solid #1C2636',
-                            borderRight: isSel ? '1px solid #450A0A' : '1px solid #121820',
-                            boxShadow: isSel ? '0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
-                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
-                          }}
-                        >
-                          {sc.platform}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  {socialAnalysis && (
-                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                      <div><strong>Kreator:</strong> {socialAnalysis.post.authorHandle || '@official_source'}</div>
-                      <div style={{ color: 'var(--accent-gold)' }}><strong>Kluster Copypasta:</strong> {socialAnalysis.copypastaClusters?.length || 0} kelompok terdeteksi</div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Komponen yang Disertakan */}
-              <div style={{
-                padding: '10px',
-                background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
-                borderRadius: '4px',
-                border: '1px solid #1C2636',
-                boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                  BAGIAN DOKUMEN YANG DISERTAKAN:
-                </div>
-
-                <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
-                  onClick={() => handleUpdateConfigField('includeFindingsDetail', !config.includeFindingsDetail)}
-                >
-                  {config.includeFindingsDetail ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
-                  <span>Matriks Temuan Isu Tersemat</span>
-                </div>
-
-                <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
-                  onClick={() => setIncludeSocialForensics(!includeSocialForensics)}
-                >
-                  {includeSocialForensics ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
-                  <span>Forensik Medsos & Kluster Buzzer</span>
-                </div>
-
-                <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
-                  onClick={() => handleUpdateConfigField('includeRecommendations', !config.includeRecommendations)}
-                >
-                  {config.includeRecommendations ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
-                  <span>Rekomendasi Tindakan Komando</span>
-                </div>
-
-                <div
-                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
-                  onClick={() => setIncludeCounterNarrative(!includeCounterNarrative)}
-                >
-                  {includeCounterNarrative ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
-                  <span>Draf Kontranarasi 4 Kanal Dispenad</span>
-                </div>
-              </div>
-
-              {/* Tombol Cetak / PDF */}
-              <button
-                type="button"
-                className="btn btn-primary btn-lg"
-                onClick={handlePrint}
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                <Printer size={16} />
-                Cetak / Simpan PDF Resmi (A4)
-              </button>
-
-              {/* Tombol Unduh Evidence Manifest JSON */}
-              <button
-                type="button"
-                className="btn btn-secondary btn-lg"
-                onClick={handleExportManifest}
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  border: '1px solid rgba(212, 175, 55, 0.4)',
-                  color: '#D4AF37'
-                }}
-                title="Unduh berkas JSON Evidence Manifest machine-readable dengan digest SHA-256"
-              >
-                <Download size={15} />
-                Unduh Evidence Manifest (JSON)
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ─── KOLOM KANAN: LIVE DOCUMENT PREVIEW (Kertas Putih Standar Militer) ─── */}
-        <div style={{ flex: 1, minWidth: 0, overflowX: 'auto' }}>
-          <div
-            id="military-report-document"
-            style={{
-              background: '#FFFFFF',
-              color: '#111827',
-              padding: '48px 56px',
-              fontFamily: '"Inter", sans-serif',
-              fontSize: '12px',
-              lineHeight: '1.6',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
-              minHeight: '840px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-          >
-            {/* ─── WATERMARK RESMI DINAS MILITER TNI AD ─── */}
+    // ─── 8. RENDER ISI DOKUMEN INTELIJEN A4 (REUSABLE UNTUK PREVIEW & MODAL ZOOM) ───
+  const renderDocumentContent = () => (
+    <>
+      {/* ─── WATERMARK RESMI DINAS MILITER TNI AD ─── */}
             <div className="watermark" style={{
               position: 'absolute',
               top: '50%',
@@ -1525,9 +1028,11 @@ export default function Reports() {
                 <div style={{ color: '#6B7280', marginBottom: '4px' }}>Jakarta, {config.date}</div>
                 <div style={{ fontWeight: '700', color: '#111827' }}>Perwira Analis Intelijen Siber</div>
                 <div style={{ marginTop: '76px', fontWeight: '800', textDecoration: 'underline', color: '#111827' }}>
-                  {config.analystName.toUpperCase()}
+                  {config.analystName ? config.analystName.toUpperCase() : '( .................................................... )'}
                 </div>
-                <div style={{ color: '#4B5563', fontSize: '10px' }}>NRP. {config.analystNrp || '21260408'}</div>
+                <div style={{ color: '#4B5563', fontSize: '10px' }}>
+                  {config.analystNrp ? `NRP. ${config.analystNrp}` : 'NRP. ........................................'}
+                </div>
               </div>
             </div>
 
@@ -1571,9 +1076,1017 @@ export default function Reports() {
               <span>PRODUK INTELIJEN OTOMATIS · NARADA v1.0.0</span>
               <span>KLASIFIKASI: {config.classification} · HALAMAN 1 DARI 1</span>
             </div>
+    </>
+  )
+
+  return (
+    <div className="fade-in" style={{ paddingBottom: '32px' }}>
+      {/* ─── Header Operasional & Informasi Asal Data Laporan (Pojok Kiri Atas) ─── */}
+      <div className="no-print" style={{ marginBottom: '18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{
+                fontSize: '10px',
+                fontFamily: 'var(--font-mono)',
+                padding: '2px 8px',
+                borderRadius: '3px',
+                background: 'var(--narada-red-subtle)',
+                color: 'var(--narada-red)',
+                border: '1px solid rgba(200, 16, 46, 0.3)',
+                letterSpacing: '1.5px',
+                textTransform: 'uppercase',
+                fontWeight: 700
+              }}>
+                INTELLIGENCE REPORT GENERATOR
+              </span>
+              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                /// FORMAT DOKUMEN DINAS MILITER TNI AD (A4 RESMI)
+              </span>
+            </div>
+
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '22px',
+              fontWeight: '800',
+              letterSpacing: '1.5px',
+              textTransform: 'uppercase',
+              color: 'var(--text-primary)',
+              margin: '0 0 4px 0'
+            }}>
+              Laporan Intelijen Ancaman Kognitif & Siber
+            </h1>
+          </div>
+
+          {/* Tombol Preview Layar Penuh di Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setIsZoomModalOpen(true)}
+              style={{
+                padding: '7px 14px',
+                borderRadius: '4px',
+                background: 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)',
+                border: '1px solid #4D627E',
+                borderBottom: '2px solid #0D131B',
+                color: '#F8FAFC',
+                fontSize: '11px',
+                fontFamily: 'var(--font-mono)',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.6)'
+              }}
+              title="Pratinjau Dokumen A4 dalam Tampilan Penuh / Mode Zoom"
+            >
+              <Maximize2 size={13} color="#38BDF8" />
+              <span>PREVIEW DOKUMEN PENUH (ZOOM)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ─── KOTAK INFORMASI ASAL & PROVENANCE DATA LAPORAN (POJOK KIRI ATAS) ─── */}
+        <div 
+          className="steel-chassis-card"
+          style={{
+            marginTop: '12px',
+            padding: '12px 16px',
+            borderLeft: '4px solid #38BDF8',
+            background: 'linear-gradient(180deg, #131B26 0%, #0B1017 100%)',
+            position: 'relative'
+          }}
+        >
+          <span className="bolt-tl" />
+          <span className="bolt-tr" />
+          <span className="bolt-bl" />
+          <span className="bolt-br" />
+
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <div style={{
+              width: '28px',
+              height: '28px',
+              borderRadius: '4px',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              marginTop: '1px'
+            }}>
+              <Info size={15} color="#38BDF8" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '11.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.8px' }}>
+                INFORMASI ASAL DATA: DARI MANA SUMBER DOKUMEN LAPORAN INI?
+              </div>
+              <p style={{ fontSize: '11px', color: '#94A3B8', margin: '4px 0 8px 0', lineHeight: 1.5 }}>
+                Dokumen Telaahan Intelijen A4 ini <strong>bukan rekayasa fiktif/manual</strong>, melainkan dihimpun secara reaktif dan otomatis dari 2 modul investigasi utama NARADA:
+              </p>
+
+              {/* 3 Pilar Sumber Data */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '8px' }}>
+                <div style={{
+                  padding: '8px 10px',
+                  borderRadius: '3px',
+                  background: '#090E15',
+                  border: '1px solid #1A2534'
+                }}>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#F59E0B', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Pin size={11} /> 1. KONSOL BERITA TERSEMAT (RADAR HARVESTER)
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#CBD5E1', marginTop: '3px', lineHeight: 1.4 }}>
+                    Berasal dari isu viral yang Anda klik <em>"Sematkan"</em> di Radar Situasional. Memuat intisari klaim, klarifikasi resmi, dan vonis valid (Fakta/Hoaks/Dipantau).
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '8px 10px',
+                  borderRadius: '3px',
+                  background: '#090E15',
+                  border: '1px solid #1A2534'
+                }}>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Share2 size={11} /> 2. HASIL ANALISIS POSTINGAN MEDSOS
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#CBD5E1', marginTop: '3px', lineHeight: 1.4 }}>
+                    Berasal dari inspeksi forensik tautan media sosial (TikTok, YouTube, IG, Threads). Menyajikan bukti sentimen, botnet buzzer swarm, dan kluster copypasta templat.
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '8px 10px',
+                  borderRadius: '3px',
+                  background: '#090E15',
+                  border: '1px solid #1A2534'
+                }}>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#10B981', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Lock size={11} /> 3. STEMPEL KRIPTOGRAFIS SHA-256
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#CBD5E1', marginTop: '3px', lineHeight: 1.4 }}>
+                    Setiap data temuan di atas dikunci dengan stempel hash kriptografis SHA-256 dan rantai bukti digital (<em>Chain of Custody</em>) berkekuatan hukum dinas militer.
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* ─── Banner Peringatan Simulasi Sintetis (Firewall Integritas) ─── */}
+      {isSimulationMode && (
+        <div className="no-print" style={{
+          marginBottom: '16px',
+          padding: '12px 16px',
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.4)',
+          borderRadius: '6px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px'
+        }}>
+          <AlertTriangle size={18} style={{ color: '#F59E0B', flexShrink: 0 }} />
+          <div style={{ fontSize: '11px', lineHeight: 1.5, color: '#FDE68A' }}>
+            <span style={{ fontWeight: 800, letterSpacing: '0.8px', color: '#F59E0B' }}>
+              FIREWALL INTEGRITAS: PRESET SIMULASI SINTETIS AKTIF
+            </span>
+            <div style={{ color: '#94A3B8', marginTop: '2px' }}>
+              Dokumen ini dibangkitkan dari benchmark sintetis terkontrol. Tanda air "SIMULASI" tercantum permanen pada cetakan A4 dan ekspor data sesuai doktrin integritas bukti.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Layout 2 Kolom: Kiri Panel Konfigurasi, Kanan Pratinjau Kertas Resmi ─── */}
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+
+        {/* ─── KOLOM KIRI: Panel Konfigurasi Laporan (Disembunyikan saat cetak) ─── */}
+        <div className="report-config-panel no-print" style={{ width: '360px', flexShrink: 0 }}>
+          
+          {/* Card 1: Pengaturan Identitas & Kop Militer */}
+          <div className="steel-chassis-card" style={{ marginBottom: '16px', position: 'relative' }}>
+            <span className="bolt-tl" />
+            <span className="bolt-tr" />
+            <span className="bolt-bl" />
+            <span className="bolt-br" />
+            
+            <div className="card-header">
+              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Sliders size={13} color="var(--narada-red)" />
+                IDENTITAS PEMERIKSA & KOP RESMI
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={handleResetConfig}
+                title="Kosongkan Formulir / Reset Pengaturan"
+              >
+                <RotateCcw size={12} />
+              </button>
+            </div>
+
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Nama Satuan */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Building size={11} /> NAMA SATUAN / KOTAMA
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={config.unitName}
+                  onChange={e => handleUpdateConfigField('unitName', e.target.value)}
+                  placeholder="Contoh: PUSSIBERAD TNI AD"
+                />
+              </div>
+
+              {/* Nama Analis & NRP */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '8px' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <User size={11} /> NAMA ANALIS & PANGKAT
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={config.analystName}
+                    onChange={e => handleUpdateConfigField('analystName', e.target.value)}
+                    placeholder="Contoh: Letda Chb Aryo Bagus / Analis Intelijen"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Award size={11} /> NRP / NIP
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={config.analystNrp || ''}
+                    onChange={e => handleUpdateConfigField('analystNrp', e.target.value)}
+                    placeholder="Contoh: 212401829002"
+                  />
+                </div>
+              </div>
+
+              {/* Nomor Laporan & Tanggal */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Hash size={11} /> NO. LAPORAN DINAS
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={config.reportNumber}
+                    onChange={e => handleUpdateConfigField('reportNumber', e.target.value)}
+                    placeholder="Contoh: NRD-LAP/XI/2026/04"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">TANGGAL DINAS</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={config.date}
+                    onChange={e => handleUpdateConfigField('date', e.target.value)}
+                    placeholder="Contoh: 13 November 2026"
+                  />
+                </div>
+              </div>
+
+              {/* Tingkat Klasifikasi Keamanan */}
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Lock size={11} /> TINGKAT KLASIFIKASI DOKUMEN
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '4px' }}>
+                  {(['RAHASIA', 'TERBATAS', 'BIASA'] as const).map((cls: ReportClassification) => {
+                    const isSelected = config.classification === cls
+                    let btnBg = 'linear-gradient(180deg, #1E2734 0%, #111722 100%)'
+                    let btnBorderTop = '1px solid rgba(255, 255, 255, 0.12)'
+                    let btnBorderBottom = '2px solid #080C12'
+                    let btnBorderSides = '1px solid #161F2C'
+                    let btnColor = 'var(--text-secondary)'
+                    let btnShadow = '0 2px 5px rgba(0,0,0,0.6)'
+
+                    if (isSelected) {
+                      btnColor = '#FFFFFF'
+                      if (cls === 'RAHASIA') {
+                        btnBg = 'linear-gradient(180deg, #991B1B 0%, #5B0C15 100%)'
+                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
+                        btnBorderBottom = '2px solid #2B0609'
+                        btnBorderSides = '1px solid #7F1D1D'
+                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      } else if (cls === 'TERBATAS') {
+                        btnBg = 'linear-gradient(180deg, #B45309 0%, #632B03 100%)'
+                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
+                        btnBorderBottom = '2px solid #361701'
+                        btnBorderSides = '1px solid #92400E'
+                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      } else {
+                        btnBg = 'linear-gradient(180deg, #1D4ED8 0%, #0F2D80 100%)'
+                        btnBorderTop = '1px solid rgba(255, 255, 255, 0.35)'
+                        btnBorderBottom = '2px solid #081B4E'
+                        btnBorderSides = '1px solid #1E40AF'
+                        btnShadow = '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25)'
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={cls}
+                        type="button"
+                        onClick={() => handleUpdateConfigField('classification', cls)}
+                        style={{
+                          padding: '7px 4px',
+                          fontSize: '11px',
+                          fontWeight: '800',
+                          letterSpacing: '1px',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          transition: 'all 0.18s ease',
+                          background: btnBg,
+                          color: btnColor,
+                          borderTop: btnBorderTop,
+                          borderBottom: btnBorderBottom,
+                          borderLeft: btnBorderSides,
+                          borderRight: btnBorderSides,
+                          boxShadow: btnShadow,
+                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
+                        }}
+                      >
+                        {cls}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Sumber Data & Komponen Dokumen */}
+          <div className="steel-chassis-card" style={{ marginBottom: '16px', position: 'relative' }}>
+            <span className="bolt-tl" />
+            <span className="bolt-tr" />
+            <span className="bolt-bl" />
+            <span className="bolt-br" />
+
+            <div className="card-header">
+              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Layers size={13} color="var(--narada-gold)" />
+                SUMBER DATA LAPORAN INTELIJEN
+              </div>
+            </div>
+
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Pilihan Cakupan Sumber Data */}
+              <div className="form-group">
+                <label className="form-label">CAKUPAN SUMBER INTELIJEN</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginTop: '4px' }}>
+                  {[
+                    { key: 'ALL', label: 'Gabungan' },
+                    { key: 'ARCHIVE_ONLY', label: 'Tersemat' },
+                    { key: 'SOCIAL_ONLY', label: 'Medsos' }
+                  ].map(m => {
+                    const isSel = dataSourceMode === m.key
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => setDataSourceMode(m.key as any)}
+                        style={{
+                          padding: '6px 4px',
+                          fontSize: '10px',
+                          fontWeight: '800',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          background: isSel ? 'linear-gradient(180deg, #2A384C 0%, #16202D 100%)' : 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
+                          color: isSel ? '#F8FAFC' : 'var(--text-secondary)',
+                          borderTop: isSel ? '1px solid rgba(255, 255, 255, 0.25)' : '1px solid rgba(255, 255, 255, 0.08)',
+                          borderBottom: isSel ? '2px solid #C8102E' : '2px solid #080C10',
+                          borderLeft: '1px solid #222E3D',
+                          borderRight: '1px solid #121820',
+                          boxShadow: isSel ? '0 2px 6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
+                          textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
+                        }}
+                      >
+                        {m.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Checklist Isu Berita Tersemat */}
+              {dataSourceMode !== 'SOCIAL_ONLY' && (
+                <div style={{
+                  padding: '10px',
+                  background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
+                  borderRadius: '4px',
+                  border: '1px solid #1C2636',
+                  boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '8px'
+                  }}>
+                    <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Pin size={11} color="var(--accent-gold)" />
+                      PILIH ISU TERSEMAT ({activeArchiveItems.length}/{archivedEntries.length}):
+                    </span>
+                    {archivedEntries.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={toggleSelectAllArchives}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--accent-cyan)',
+                          fontSize: '9px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        {selectedArchiveIds.size === archivedEntries.length ? 'Batal Semua' : 'Pilih Semua'}
+                      </button>
+                    )}
+                  </div>
+
+                  {archivedEntries.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '10px 4px' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                        Belum ada berita tersemat dari Radar.
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleSeedCuratedArchive}
+                        style={{ width: '100%', fontSize: '10px', justifyContent: 'center' }}
+                      >
+                        <Sparkles size={11} color="var(--accent-gold)" /> + Muat Isu Tersemat Binaan
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
+                      {archivedEntries.map(entry => {
+                        const isChecked = selectedArchiveIds.has(entry.id)
+                        const verdictColor = entry.archiveVerdict === 'HOAKS' ? '#EF4444' : entry.archiveVerdict === 'FAKTA' ? '#10B981' : '#F59E0B'
+                        return (
+                          <div
+                            key={entry.id}
+                            onClick={() => toggleArchiveSelection(entry.id)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '5px 6px',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              background: isChecked ? 'rgba(255,255,255,0.04)' : 'transparent',
+                              border: isChecked ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent'
+                            }}
+                          >
+                            {isChecked ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                            <div style={{ flex: 1, minWidth: 0, fontSize: '11px' }}>
+                              <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
+                                {entry.claim}
+                              </div>
+                            </div>
+                            <span style={{
+                              fontSize: '8px',
+                              fontWeight: 800,
+                              padding: '1px 4px',
+                              borderRadius: '2px',
+                              background: `${verdictColor}22`,
+                              color: verdictColor,
+                              border: `1px solid ${verdictColor}44`,
+                              flexShrink: 0
+                            }}>
+                              {entry.archiveVerdict || 'DIPANTAU'}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Pilihan Postingan Medsos */}
+              {dataSourceMode !== 'ARCHIVE_ONLY' && (
+                <div style={{
+                  padding: '10px',
+                  background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
+                  borderRadius: '4px',
+                  border: '1px solid #1C2636',
+                  boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)'
+                }}>
+                  <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Share2 size={11} color="var(--accent-cyan)" />
+                    SKENARIO ANALISIS MEDSOS:
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginBottom: '8px' }}>
+                    {PRELOADED_TEST_SCENARIOS.map((sc, idx) => {
+                      const isSel = selectedScenarioIndex === idx
+                      return (
+                        <button
+                          key={sc.id}
+                          type="button"
+                          onClick={() => handleSelectSocialScenario(idx)}
+                          style={{
+                            padding: '5px 2px',
+                            fontSize: '9px',
+                            fontWeight: 800,
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            textTransform: 'uppercase',
+                            background: isSel ? 'linear-gradient(180deg, #991B1B 0%, #5B0C15 100%)' : 'linear-gradient(180deg, #182230 0%, #0E141E 100%)',
+                            color: isSel ? '#F8FAFC' : 'var(--text-secondary)',
+                            borderTop: isSel ? '1px solid rgba(255, 255, 255, 0.3)' : '1px solid rgba(255, 255, 255, 0.08)',
+                            borderBottom: isSel ? '2px solid #2B0609' : '2px solid #080C10',
+                            borderLeft: isSel ? '1px solid #7F1D1D' : '1px solid #1C2636',
+                            borderRight: isSel ? '1px solid #450A0A' : '1px solid #121820',
+                            boxShadow: isSel ? '0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2)' : '0 2px 4px rgba(0, 0, 0, 0.5)',
+                            textShadow: '0 1px 2px rgba(0, 0, 0, 0.85)'
+                          }}
+                        >
+                          {sc.platform}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {socialAnalysis && (
+                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                      <div><strong>Kreator:</strong> {socialAnalysis.post.authorHandle || '@official_source'}</div>
+                      <div style={{ color: 'var(--accent-gold)' }}><strong>Kluster Copypasta:</strong> {socialAnalysis.copypastaClusters?.length || 0} kelompok terdeteksi</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Komponen yang Disertakan */}
+              <div style={{
+                padding: '10px',
+                background: 'linear-gradient(180deg, #101622 0%, #090D13 100%)',
+                borderRadius: '4px',
+                border: '1px solid #1C2636',
+                boxShadow: 'inset 0 2px 6px rgba(0, 0, 0, 0.85)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                  BAGIAN DOKUMEN YANG DISERTAKAN:
+                </div>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
+                  onClick={() => handleUpdateConfigField('includeFindingsDetail', !config.includeFindingsDetail)}
+                >
+                  {config.includeFindingsDetail ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                  <span>Matriks Temuan Isu Tersemat</span>
+                </div>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
+                  onClick={() => setIncludeSocialForensics(!includeSocialForensics)}
+                >
+                  {includeSocialForensics ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                  <span>Forensik Medsos & Kluster Buzzer</span>
+                </div>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
+                  onClick={() => handleUpdateConfigField('includeRecommendations', !config.includeRecommendations)}
+                >
+                  {config.includeRecommendations ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                  <span>Rekomendasi Tindakan Komando</span>
+                </div>
+
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '11px' }}
+                  onClick={() => setIncludeCounterNarrative(!includeCounterNarrative)}
+                >
+                  {includeCounterNarrative ? <CheckSquare size={13} color="var(--narada-red)" /> : <Square size={13} color="var(--text-muted)" />}
+                  <span>Draf Kontranarasi 4 Kanal Dispenad</span>
+                </div>
+              </div>
+
+              {/* Tombol Tinjau Penuh / Zoom Preview */}
+              <button
+                type="button"
+                className="btn btn-secondary btn-lg"
+                onClick={() => setIsZoomModalOpen(true)}
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  background: 'linear-gradient(180deg, #1C2736 0%, #101622 100%)',
+                  border: '1px solid #2B3A4E',
+                  color: '#38BDF8',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                title="Tinjau dokumen dalam mode layar penuh dengan kontrol pembesaran (Zoom & Fullscreen)"
+              >
+                <Maximize2 size={15} />
+                Tinjau Layar Penuh (Zoom A4)
+              </button>
+
+              {/* Tombol Cetak / PDF */}
+              <button
+                type="button"
+                className="btn btn-primary btn-lg"
+                onClick={handlePrint}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <Printer size={16} />
+                Cetak / Simpan PDF Resmi (A4)
+              </button>
+
+              {/* Tombol Unduh Evidence Manifest JSON */}
+              <button
+                type="button"
+                className="btn btn-secondary btn-lg"
+                onClick={handleExportManifest}
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  border: '1px solid rgba(212, 175, 55, 0.4)',
+                  color: '#D4AF37'
+                }}
+                title="Unduh berkas JSON Evidence Manifest machine-readable dengan digest SHA-256"
+              >
+                <Download size={15} />
+                Unduh Evidence Manifest (JSON)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── KOLOM KANAN: LIVE DOCUMENT PREVIEW (Kertas Putih Standar Militer) ─── */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Toolbar Kontrol Dokumen & Zoom */}
+          <div
+            className="no-print"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              padding: '10px 14px',
+              background: 'linear-gradient(180deg, #1A2330 0%, #0F1620 100%)',
+              border: '1px solid #223042',
+              borderRadius: '6px 6px 0 0',
+              marginBottom: '-1px'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Eye size={14} color="#38BDF8" />
+              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#E2E8F0', letterSpacing: '0.5px' }}>
+                PRATINJAU DOKUMEN INTELIJEN A4
+              </span>
+              <span style={{
+                fontSize: '9px',
+                fontFamily: 'var(--font-mono)',
+                padding: '2px 6px',
+                borderRadius: '3px',
+                fontWeight: 800,
+                background: config.classification === 'RAHASIA' ? '#7F1D1D' : config.classification === 'TERBATAS' ? '#78350F' : '#1E3A8A',
+                color: '#FFFFFF'
+              }}>
+                {config.classification}
+              </span>
+            </div>
+
+            {/* Kontrol Zoom & Aksi Layar Penuh */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: '#090E15',
+                border: '1px solid #1A2534',
+                borderRadius: '4px',
+                padding: '2px 4px',
+                gap: '2px'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel(z => Math.max(0.6, Number((z - 0.1).toFixed(1))))}
+                  disabled={zoomLevel <= 0.6}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: zoomLevel <= 0.6 ? '#475569' : '#94A3B8',
+                    cursor: zoomLevel <= 0.6 ? 'not-allowed' : 'pointer',
+                    padding: '3px 6px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Perkecil Zoom (Zoom Out)"
+                >
+                  <ZoomOut size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel(1.0)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '10px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    color: zoomLevel === 1.0 ? '#38BDF8' : '#CBD5E1',
+                    cursor: 'pointer',
+                    padding: '2px 6px'
+                  }}
+                  title="Klik untuk reset Zoom 100%"
+                >
+                  {Math.round(zoomLevel * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel(z => Math.min(1.5, Number((z + 0.1).toFixed(1))))}
+                  disabled={zoomLevel >= 1.5}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: zoomLevel >= 1.5 ? '#475569' : '#94A3B8',
+                    cursor: zoomLevel >= 1.5 ? 'not-allowed' : 'pointer',
+                    padding: '3px 6px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Perbesar Zoom (Zoom In)"
+                >
+                  <ZoomIn size={13} />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsZoomModalOpen(true)}
+                style={{
+                  fontSize: '11px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  border: '1px solid #2B3A4E',
+                  color: '#38BDF8',
+                  background: 'linear-gradient(180deg, #1C2736 0%, #101622 100%)'
+                }}
+                title="Buka pratinjau dalam layar penuh (Fullscreen Modal Lightbox)"
+              >
+                <Maximize2 size={12} />
+                <span>Tinjau Penuh</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Area Dokumen Kertas Standar Militer */}
+          <div style={{ overflowX: 'auto', background: '#0B0F17', padding: '16px', border: '1px solid #1E2838', borderRadius: '0 0 6px 6px' }}>
+            <div
+              id="military-report-document"
+              style={{
+                background: '#FFFFFF',
+                color: '#111827',
+                padding: '48px 56px',
+                fontFamily: '"Inter", sans-serif',
+                fontSize: '12px',
+                lineHeight: '1.6',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
+                minHeight: '840px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                position: 'relative',
+                overflow: 'hidden',
+                zoom: zoomLevel,
+                maxWidth: '960px',
+                margin: '0 auto'
+              }}
+            >
+              {renderDocumentContent()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── MODAL TINJAU PENUH DOKUMEN A4 (FULLSCREEN LIGHTBOX & ZOOM) ─── */}
+      {isZoomModalOpen && (
+        <div
+          className="no-print"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(5, 8, 14, 0.94)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}
+        >
+          {/* Topbar Modal */}
+          <div
+            style={{
+              padding: '12px 20px',
+              background: 'linear-gradient(180deg, #192230 0%, #0E1520 100%)',
+              borderBottom: '1px solid #223042',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.6)'
+            }}
+          >
+            {/* Judul & Dokumen Info */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '6px',
+                background: 'rgba(56, 189, 248, 0.12)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#38BDF8'
+              }}>
+                <Eye size={17} />
+              </div>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#F8FAFC', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>TINJAU PENUH DOKUMEN DINAS MILITER A4</span>
+                  <span style={{
+                    fontSize: '9px',
+                    padding: '2px 6px',
+                    borderRadius: '3px',
+                    background: config.classification === 'RAHASIA' ? '#7F1D1D' : config.classification === 'TERBATAS' ? '#78350F' : '#1E3A8A',
+                    color: '#FFF'
+                  }}>
+                    {config.classification}
+                  </span>
+                </div>
+                <div style={{ fontSize: '10px', color: '#94A3B8', fontFamily: 'var(--font-mono)' }}>
+                  NO: {config.reportNumber} · {config.unitName} · {config.date}
+                </div>
+              </div>
+            </div>
+
+            {/* Kontrol Zoom di Modal + Tombol Aksi */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {/* Zoom Controls */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                background: '#070B10',
+                border: '1px solid #1E293B',
+                borderRadius: '4px',
+                padding: '2px 6px',
+                gap: '4px'
+              }}>
+                <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', color: '#64748B', marginRight: '4px' }}>
+                  ZOOM:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setModalZoomLevel(z => Math.max(0.7, Number((z - 0.1).toFixed(1))))}
+                  disabled={modalZoomLevel <= 0.7}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: modalZoomLevel <= 0.7 ? '#475569' : '#CBD5E1',
+                    cursor: modalZoomLevel <= 0.7 ? 'not-allowed' : 'pointer',
+                    padding: '4px 6px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Perkecil Zoom"
+                >
+                  <ZoomOut size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalZoomLevel(1.0)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    color: modalZoomLevel === 1.0 ? '#38BDF8' : '#F1F5F9',
+                    cursor: 'pointer',
+                    padding: '2px 8px'
+                  }}
+                  title="Reset Zoom ke 100%"
+                >
+                  {Math.round(modalZoomLevel * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalZoomLevel(z => Math.min(2.0, Number((z + 0.1).toFixed(1))))}
+                  disabled={modalZoomLevel >= 2.0}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: modalZoomLevel >= 2.0 ? '#475569' : '#CBD5E1',
+                    cursor: modalZoomLevel >= 2.0 ? 'not-allowed' : 'pointer',
+                    padding: '4px 6px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                  title="Perbesar Zoom"
+                >
+                  <ZoomIn size={14} />
+                </button>
+              </div>
+
+              {/* Cetak PDF dari modal */}
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handlePrint}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', padding: '6px 14px' }}
+              >
+                <Printer size={14} />
+                <span>Cetak / PDF</span>
+              </button>
+
+              {/* Tombol Tutup */}
+              <button
+                type="button"
+                onClick={() => setIsZoomModalOpen(false)}
+                style={{
+                  background: '#1F2937',
+                  border: '1px solid #374151',
+                  color: '#F9FAFB',
+                  borderRadius: '4px',
+                  padding: '6px 12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '11px',
+                  fontFamily: 'var(--font-mono)',
+                  fontWeight: 700
+                }}
+                title="Tutup Modal [ESC]"
+              >
+                <X size={14} />
+                <span>TUTUP [ESC]</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Viewport Dokumen yang Dapat di-Scroll */}
+          <div
+            style={{
+              flex: 1,
+              overflow: 'auto',
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '28px 20px 48px'
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setIsZoomModalOpen(false);
+            }}
+          >
+            <div
+              style={{
+                background: '#FFFFFF',
+                color: '#111827',
+                width: '100%',
+                maxWidth: '920px',
+                padding: '52px 64px',
+                borderRadius: '6px',
+                boxShadow: '0 24px 70px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08)',
+                minHeight: '1000px',
+                position: 'relative',
+                zoom: modalZoomLevel,
+                transformOrigin: 'top center',
+                transition: 'zoom 0.15s ease'
+              }}
+            >
+              {renderDocumentContent()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -11,8 +11,8 @@ export const STORAGE_KEYS = {
 export const DEFAULT_SETTINGS: UserSettings = {
   googleFactCheckApiKey: '',
   defaultUnit: 'PUSSIBERAD TNI AD',
-  analystName: 'Sertu Damar / Analis Madya',
-  analystNrp: '21260408',
+  analystName: '',
+  analystNrp: '',
   mlWeight: 0.6,
   ruleWeight: 0.4,
   offlineMode: false,
