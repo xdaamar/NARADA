@@ -127,6 +127,23 @@ export class RadarSchedulerEngine {
   constructor() {
     this.initSourceStates()
 
+    // Pulihkan stempel waktu pemindaian terakhir dari localStorage agar tab switch 0-delay
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const stored = localStorage.getItem('narada_last_radar_scan_timestamp')
+        if (stored) {
+          const num = Number(stored)
+          if (!isNaN(num) && num > 0) {
+            this.lastScanCompletedAt = num
+            this.lastSyncTimestamp = num
+            this.lastSuccessfulScanAt = num
+          }
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     // Inisialisasi BroadcastChannel jika didukung peramban
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       try {
@@ -349,6 +366,12 @@ export class RadarSchedulerEngine {
         const completionTime = Date.now()
         this.lastScanCompletedAt = completionTime
         this.scanDurationMs = completionTime - runStart
+
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('narada_last_radar_scan_timestamp', String(completionTime))
+          }
+        } catch {}
         this.nextScheduledAt = completionTime + (this.intervalMinutes * 60 * 1000)
 
         // Catat log hasil pemindaian
@@ -591,6 +614,12 @@ export class RadarSchedulerEngine {
         const completionTime = Date.now()
         this.lastScanCompletedAt = completionTime
         this.scanDurationMs = completionTime - runStart
+
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('narada_last_radar_scan_timestamp', String(completionTime))
+          }
+        } catch {}
 
         // Catat log hasil pemindaian
         const scanLog: ScanRunLog = {

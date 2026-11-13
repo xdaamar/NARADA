@@ -33,9 +33,14 @@ export async function checkNetworkStatus(): Promise<NetworkTelemetryInfo> {
     return cachedStatus
   }
 
+  // Gunakan cache telemetri jika diperiksa kurang dari 30 detik lalu (respons instan 0-ms)
+  if (cachedStatus && (Date.now() - cachedStatus.lastChecked < 30000)) {
+    return cachedStatus
+  }
+
   const startTime = Date.now()
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 3500)
+  const timeoutId = setTimeout(() => controller.abort(), 1200)
 
   // 1. Coba Kanal 1: Vite Proxy lokal (/api/turnbackhoax)
   try {
@@ -59,10 +64,10 @@ export async function checkNetworkStatus(): Promise<NetworkTelemetryInfo> {
     // Abaikan kegagalan kanal 1, coba kanal direct/fallback
   }
 
-  // 2. Coba Kanal 2: Direct public fetch dengan timeout
+  // 2. Coba Kanal 2: Direct public fetch dengan timeout responsif
   try {
     const directController = new AbortController()
-    const directTimeout = setTimeout(() => directController.abort(), 3000)
+    const directTimeout = setTimeout(() => directController.abort(), 1200)
     const directStart = Date.now()
     const resDirect = await fetch('https://turnbackhoax.id/wp-json/wp/v2/posts?per_page=1&_fields=id', {
       signal: directController.signal,

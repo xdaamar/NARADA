@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { HashRouter, Routes, Route, NavLink, useNavigate, Navigate } from 'react-router-dom'
 import { 
   LayoutDashboard, 
@@ -12,13 +12,13 @@ import {
   UserCheck
 } from 'lucide-react'
 
-// Code-Splitting Rute Halaman (Sprint 14 Performance Hardening)
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const LiveRadar = lazy(() => import('./pages/LiveRadar'))
-const ArchivePage = lazy(() => import('./pages/Archive'))
-const SocialForensic = lazy(() => import('./pages/SocialForensic'))
-const Reports = lazy(() => import('./pages/Reports'))
-const AboutDeveloper = lazy(() => import('./pages/AboutDeveloper'))
+// Halaman Aplikasi (Eager Loading untuk Responsivitas Desktop Instan 0-ms Tanpa UI Freeze)
+import Dashboard from './pages/Dashboard'
+import LiveRadar from './pages/LiveRadar'
+import ArchivePage from './pages/Archive'
+import SocialForensic from './pages/SocialForensic'
+import Reports from './pages/Reports'
+import AboutDeveloper from './pages/AboutDeveloper'
 
 import TacticalTopBar from './components/TacticalTopBar'
 import InteractiveDoctrineModal from './components/InteractiveDoctrineModal'

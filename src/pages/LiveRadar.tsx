@@ -602,8 +602,10 @@ export default function LiveRadar() {
       setTrendSignals([])
     }
 
-    const net = await checkNetworkStatus()
-    setTelemetry(net)
+    // Beri jeda 1 tick agar UI spinner langsung aktif seketika tanpa freeze
+    await new Promise(r => setTimeout(r, 0))
+
+    checkNetworkStatus().then(net => setTelemetry(net)).catch(() => {})
 
     try {
       if (forceClear) {
@@ -667,26 +669,28 @@ export default function LiveRadar() {
     const loadSmartSession = async () => {
       setIsSyncing(true)
 
+      // Berikan kesempatan browser me-render frame pertama agar animasi spinner langsung berputar lancar
+      await new Promise(r => setTimeout(r, 0))
+
       try {
         // 1. Load dari cache IndexedDB terlebih dahulu (instan!)
         const cached = await getCachedRadarItems()
         if (cached && cached.length > 0) {
-          const sanitized = sanitizeRadarItems(cached)
-          setDebunkItems(sanitized)
-          syncArchivedItemsWithRadar(sanitized)
-          setIsSyncing(false) // Tampilkan data cache dulu
+          // Tampilkan data cache langsung (0 delay)
+          setDebunkItems(cached)
+          setIsSyncing(false)
 
           // Cek apakah scan baru diperlukan
+          const storedLastScan = Number(localStorage.getItem('narada_last_radar_scan_timestamp') || '0')
           const schedulerStatus = radarScheduler.getStatus()
-          const lastScanAt = schedulerStatus.lastScanCompletedAt || schedulerStatus.lastSyncTimestamp || 0
+          const lastScanAt = schedulerStatus.lastScanCompletedAt || schedulerStatus.lastSyncTimestamp || storedLastScan || 0
           const elapsedSinceLastScan = Date.now() - lastScanAt
           const needsFreshScan = lastScanAt === 0 || elapsedSinceLastScan > SCAN_INTERVAL_MS
 
           if (needsFreshScan) {
             // Background scan tanpa mengosongkan tampilan (user tidak terganggu)
             setIsSyncing(true)
-            const net = await checkNetworkStatus()
-            setTelemetry(net)
+            checkNetworkStatus().then(net => setTelemetry(net)).catch(() => {})
             radarScheduler.resetCircuitBreakers()
             const freshEntries = await radarScheduler.triggerNow()
             if (freshEntries && freshEntries.length > 0) {
@@ -696,7 +700,7 @@ export default function LiveRadar() {
               reconcileArchivedItems(sorted).catch(() => {})
             } else {
               // Tetap pakai cache yang sudah tampil
-              reconcileArchivedItems(sanitized).catch(() => {})
+              reconcileArchivedItems(cached).catch(() => {})
             }
             const status = radarScheduler.getStatus()
             const now = new Date(status.lastSyncTimestamp || Date.now())
@@ -704,16 +708,18 @@ export default function LiveRadar() {
             const lastRes = getLastRadarResult()
             if (lastRes?.trendSignals) setTrendSignals(lastRes.trendSignals)
           } else {
-            // Cache masih fresh, tidak perlu scan
+            // Cache masih fresh, tidak perlu scan baru
             const now = new Date(lastScanAt)
             setLastSyncTime(`${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')} WIB`)
+            setTimeout(() => {
+              syncArchivedItemsWithRadar(cached)
+            }, 50)
           }
         } else {
           // Tidak ada cache → lakukan scan penuh seperti biasa
           setDebunkItems([])
           setTrendSignals([])
-          const net = await checkNetworkStatus()
-          setTelemetry(net)
+          checkNetworkStatus().then(net => setTelemetry(net)).catch(() => {})
           radarScheduler.resetCircuitBreakers()
           const entries = await radarScheduler.triggerNow()
           let finalEntries = entries
