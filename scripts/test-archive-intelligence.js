@@ -84,7 +84,11 @@ const {
   reconcileArchivedItems,
   areClaimsSemanticallyMatching,
   probeEvidenceForArchivedItem,
-  probeAllUnverifiedArchivedItems
+  probeAllUnverifiedArchivedItems,
+  setOriginalSourceStatus,
+  toggleOriginalSourceStatus,
+  getDisplayOriginPlatform,
+  isOriginalSourceDeleted
 } = serviceModule
 
 // ─── GATE 1: ARSIPKAN FUNCTIONALITY & INITIAL STATUS "SEDANG DIPANTAU" ───
@@ -599,6 +603,70 @@ await runTest('ARC-17', 'probeAllUnverifiedArchivedItems menjalankan investigasi
   assert.equal(itemA.archiveVerdict, 'HOAKS')
   assert.equal(itemB.archiveVerdict, 'DIPANTAU')
   assert.equal(itemC.archiveVerdict, 'FAKTA')
+})
+
+// ─── GATE 9: PROVENANCE SUMBER BERITA DIAMBIL & INDIKATOR PENGHAPUSAN (BUKTI BUKAN FIKTIF) ───
+console.log('\n─── Gate 9: Provenance Sumber Berita Diambil & Indikator Takedown / Dihapus ───')
+
+await runTest('ARC-18', 'setOriginalSourceStatus dan toggleOriginalSourceStatus mengelola status keaktifan sumber asal', () => {
+  global.localStorage.clear()
+  const mockItem = {
+    id: 'ITEM-SRC-01',
+    claim: 'Klaim viral surat edaran penipuan bantuan',
+    originalPlatform: 'X (Twitter) - Akun Publik @anon_leaks',
+    originalSourceUrl: 'https://twitter.com/anon_leaks/status/18567291',
+    officialSource: 'Dispenad',
+    sourceUrl: 'https://tniad.mil.id/cek-fakta'
+  }
+  archiveIssue(mockItem)
+
+  let entries = getArchivedEntries()
+  const item = entries.find(e => e.id === 'ITEM-SRC-01')
+  assert.ok(item, 'Item harus tersimpan di arsip')
+  assert.equal(item.originalPlatform, 'X (Twitter) - Akun Publik @anon_leaks')
+  assert.equal(isOriginalSourceDeleted(item), false, 'Status awal harus ACTIVE')
+
+  // Operator menandai tautan dihapus oleh pemilik akun
+  setOriginalSourceStatus('ITEM-SRC-01', 'DELETED', 'Postingan dihapus oleh pemilik akun')
+  entries = getArchivedEntries()
+  const updatedItem = entries.find(e => e.id === 'ITEM-SRC-01')
+  assert.equal(updatedItem.originalSourceStatus, 'DELETED')
+  assert.equal(isOriginalSourceDeleted(updatedItem), true)
+  assert.equal(updatedItem.originalPlatform, 'X (Twitter) - Akun Publik @anon_leaks', 'Nama sumber asal HARUS TETAP ADA!')
+
+  // Toggle kembali ke aktif
+  toggleOriginalSourceStatus('ITEM-SRC-01')
+  entries = getArchivedEntries()
+  const toggledItem = entries.find(e => e.id === 'ITEM-SRC-01')
+  assert.equal(toggledItem.originalSourceStatus, 'ACTIVE')
+  assert.equal(isOriginalSourceDeleted(toggledItem), false)
+})
+
+await runTest('ARC-19', 'getDisplayOriginPlatform dan isOriginalSourceDeleted mengidentifikasi sumber asal dan URL takedown', () => {
+  const itemWithExplicitPlatform = {
+    originalPlatform: 'Pusat Operasi Keamanan Siber',
+    originalSourceUrl: 'https://bssn.go.id/news/1'
+  }
+  assert.equal(getDisplayOriginPlatform(itemWithExplicitPlatform), 'Pusat Operasi Keamanan Siber')
+
+  const itemFromXUrl = {
+    originalSourceUrl: 'https://x.com/viral_post/status/999'
+  }
+  assert.equal(getDisplayOriginPlatform(itemFromXUrl), 'X (Twitter) - Akun Publik')
+
+  const itemTakedownUrl = {
+    originalSourceUrl: 'https://tiktok.com/@buzzer/video/123-takedown'
+  }
+  assert.equal(isOriginalSourceDeleted(itemTakedownUrl), true, 'URL bertanda takedown harus terdeteksi dihapus')
+})
+
+await runTest('ARC-20', 'Archive.tsx menyertakan nama sumber berita diambil, indikator takedown, dan penjelasan bukan fiktif', () => {
+  const archivePageSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Archive.tsx'), 'utf-8')
+  assert.ok(archivePageSrc.includes('SUMBER BERITA DIAMBIL:'), 'Archive.tsx harus memiliki header SUMBER BERITA DIAMBIL:')
+  assert.ok(archivePageSrc.includes('SUMBER ASAL TELAH DIHAPUS / TAKEDOWN'), 'Archive.tsx harus memuat lencana takedown')
+  assert.ok(archivePageSrc.includes('BUKTI FORENSIK AUTENTIK (BUKAN DATA FIKTIF):'), 'Archive.tsx harus memuat penjelasan bukti bukan fiktif')
+  assert.ok(archivePageSrc.includes('toggleOriginalSourceStatus'), 'Archive.tsx harus memuat tombol toggle status sumber')
+  assert.ok(archivePageSrc.includes('originPlatform'), 'Archive.tsx harus menampilkan nama platform sumber')
 })
 
 console.log('\n══════════════════════════════════════════════════════════════════════')

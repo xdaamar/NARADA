@@ -22,6 +22,8 @@ import type { DebunkKnowledgeEntry } from '../../types.ts'
 
 export type ArchiveVerdict = 'DIPANTAU' | 'FAKTA' | 'HOAKS'
 
+export type OriginalSourceStatus = 'ACTIVE' | 'DELETED' | 'TAKEN_DOWN'
+
 export interface ArchivedDebunkEntry extends DebunkKnowledgeEntry {
   archivedAt: string            // Timestamp saat diarsipkan (format WIB/lokal)
   archivedTimestamp: number     // Unix timestamp epoch (ms)
@@ -31,6 +33,9 @@ export interface ArchivedDebunkEntry extends DebunkKnowledgeEntry {
   evidenceSufficiency?: number  // 0 - 100: Persentase kelengkapan bukti pendukung
   lastProbedAt?: string         // Waktu audit penelusuran bukti terakhir (WIB)
   evidenceSummary?: string      // Ringkasan status data pendukung pembuktian
+  originalSourceStatus?: OriginalSourceStatus // Status keaktifan sumber asal berita (ACTIVE | DELETED | TAKEN_DOWN)
+  sourceDeletedReason?: string  // Keterangan mengapa sumber asal dihapus / diturunkan oleh platform
+  forensicCaptureHash?: string  // Hash identitas kriptografis penangkapan metadata forensik
 }
 
 export interface EvidenceProbeResult {
@@ -377,12 +382,22 @@ export function archiveIssue(item: DebunkKnowledgeEntry): void {
     const rawData = localStorage.getItem(STORAGE_KEY_DATA)
     const dataMap: Record<string, ArchivedDebunkEntry> = rawData ? JSON.parse(rawData) : {}
 
+    // Deteksi cerdas status keaktifan sumber asal
+    let initialSourceStatus: OriginalSourceStatus = (item as any).originalSourceStatus || dataMap[item.id]?.originalSourceStatus || 'ACTIVE'
+    const origUrl = ((item as any).originalSourceUrl || '').toLowerCase()
+    if (origUrl.includes('deleted') || origUrl.includes('takedown') || origUrl.includes('404')) {
+      initialSourceStatus = 'DELETED'
+    }
+
     const archivedEntry: ArchivedDebunkEntry = {
       ...item,
       archivedAt: dataMap[item.id]?.archivedAt || getFormattedWib(),
       archivedTimestamp: dataMap[item.id]?.archivedTimestamp || Date.now(),
       archiveVerdict: 'DIPANTAU',
-      isManualOverride: false
+      isManualOverride: false,
+      originalSourceStatus: initialSourceStatus,
+      sourceDeletedReason: (item as any).sourceDeletedReason || dataMap[item.id]?.sourceDeletedReason,
+      forensicCaptureHash: (item as any).forensicCaptureHash || dataMap[item.id]?.forensicCaptureHash || `NAR-EVD-${item.id.replace(/[^a-zA-Z0-9]/g, '').slice(-8).toUpperCase()}`
     }
 
     dataMap[item.id] = archivedEntry
@@ -467,6 +482,98 @@ export function setArchivedVerdict(id: string, verdict: ArchiveVerdict): void {
 }
 
 /**
+ * Resolusi cerdas nama platform atau publisher asal berita diambil
+ */
+export function getDisplayOriginPlatform(item: Partial<DebunkKnowledgeEntry>): string {
+  if (item.originalPlatform && item.originalPlatform.trim().length > 0) {
+    return item.originalPlatform.trim()
+  }
+  if (item.originalSourceUrl) {
+    try {
+      const url = new URL(item.originalSourceUrl)
+      const host = url.hostname.replace(/^www\./, '')
+      if (host.includes('twitter.com') || host.includes('x.com')) return 'X (Twitter) - Akun Publik'
+      if (host.includes('tiktok.com')) return 'TikTok - Unggahan Video Publik'
+      if (host.includes('facebook.com')) return 'Facebook - Ruang Diskusi Publik'
+      if (host.includes('instagram.com')) return 'Instagram - Postingan Netizen'
+      if (host.includes('t.me') || host.includes('telegram')) return 'Telegram - Kanal Siaran'
+      if (host.includes('antaranews.com')) return 'LKBN ANTARA News'
+      if (host.includes('detik.com')) return 'Detikcom Warta Nasional'
+      if (host.includes('kompas.com')) return 'Kompas.com Berita'
+      if (host.includes('tempo.co')) return 'Tempo Media'
+      if (host.includes('cnnindonesia.com')) return 'CNN Indonesia'
+      return host
+    } catch {
+      // ignore
+    }
+  }
+  if (item.cluster === 'SIBER_PERETASAN') {
+    return 'Dark Web / Forum Siber / Ruang Intelijen Siber'
+  }
+  if (item.cluster === 'POLITIK_NEGARA' || item.cluster === 'AKSI_MASSA') {
+    return 'Media Sosial & Arus Warta Netizen'
+  }
+  return 'Portal Media Siber / Kanal Informasi Publik'
+}
+
+/**
+ * Mengevaluasi apakah tautan/sumber asal telah dihapus, di-takedown, atau tidak aktif
+ */
+export function isOriginalSourceDeleted(item: ArchivedDebunkEntry | DebunkKnowledgeEntry): boolean {
+  const status = (item as any).originalSourceStatus
+  if (status === 'DELETED' || status === 'TAKEN_DOWN') {
+    return true
+  }
+  const url = ((item as any).originalSourceUrl || '').toLowerCase()
+  if (url.includes('takedown') || url.includes('deleted') || url.includes('404')) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Memperbarui status keaktifan sumber asal berita (ACTIVE | DELETED | TAKEN_DOWN)
+ */
+export function setOriginalSourceStatus(id: string, status: OriginalSourceStatus, reason?: string): void {
+  try {
+    const rawData = localStorage.getItem(STORAGE_KEY_DATA)
+    if (rawData) {
+      const dataMap: Record<string, ArchivedDebunkEntry> = JSON.parse(rawData)
+      if (dataMap[id]) {
+        dataMap[id].originalSourceStatus = status
+        if (reason !== undefined) {
+          dataMap[id].sourceDeletedReason = reason
+        }
+        localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(dataMap))
+        window.dispatchEvent(new CustomEvent('narada:archive-updated', { detail: { id, action: 'SOURCE_STATUS_UPDATED', status } }))
+      }
+    }
+  } catch (err) {
+    console.error('Gagal memperbarui status keaktifan sumber:', err)
+  }
+}
+
+/**
+ * Toggle status keaktifan sumber asal berita antara ACTIVE dan DELETED
+ */
+export function toggleOriginalSourceStatus(id: string): OriginalSourceStatus {
+  try {
+    const rawData = localStorage.getItem(STORAGE_KEY_DATA)
+    const dataMap: Record<string, ArchivedDebunkEntry> = rawData ? JSON.parse(rawData) : {}
+    const current = dataMap[id]?.originalSourceStatus
+    const nextStatus: OriginalSourceStatus = (current === 'DELETED' || current === 'TAKEN_DOWN') ? 'ACTIVE' : 'DELETED'
+    setOriginalSourceStatus(
+      id,
+      nextStatus,
+      nextStatus === 'DELETED' ? 'Tautan/unggahan asal telah dihapus atau di-takedown oleh platform/pemilik akun' : undefined
+    )
+    return nextStatus
+  } catch {
+    return 'ACTIVE'
+  }
+}
+
+/**
  * Menyinkronkan item arsip dengan arus radar terbaru:
  * 1. Exact ID Matching (kompatibilitas pipeline historis)
  * 2. Semantic Claim Matching: Jika artikel berita disematkan, kemudian terbit artikel cek fakta
@@ -507,6 +614,18 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
         }
         if (fresh.publishedDate && fresh.publishedDate !== existing.publishedDate) {
           existing.publishedDate = fresh.publishedDate
+          hasChanges = true
+        }
+        if ((fresh as any).originalPlatform && (fresh as any).originalPlatform !== existing.originalPlatform) {
+          existing.originalPlatform = (fresh as any).originalPlatform
+          hasChanges = true
+        }
+        if ((fresh as any).originalSourceUrl && (fresh as any).originalSourceUrl !== existing.originalSourceUrl) {
+          existing.originalSourceUrl = (fresh as any).originalSourceUrl
+          hasChanges = true
+        }
+        if ((fresh as any).originalSourceStatus && (fresh as any).originalSourceStatus !== existing.originalSourceStatus) {
+          existing.originalSourceStatus = (fresh as any).originalSourceStatus
           hasChanges = true
         }
 
@@ -558,6 +677,15 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
           if (matchedFresh.officialSource) existing.officialSource = matchedFresh.officialSource
           if (matchedFresh.sourceUrl && isAuthoritativeDebunkSource(matchedFresh)) {
             existing.sourceUrl = matchedFresh.sourceUrl
+          }
+          if (matchedFresh.originalPlatform && !existing.originalPlatform) {
+            existing.originalPlatform = matchedFresh.originalPlatform
+          }
+          if (matchedFresh.originalSourceUrl && !existing.originalSourceUrl) {
+            existing.originalSourceUrl = matchedFresh.originalSourceUrl
+          }
+          if ((matchedFresh as any).originalSourceStatus && !existing.originalSourceStatus) {
+            existing.originalSourceStatus = (matchedFresh as any).originalSourceStatus
           }
           hasChanges = true
         }
@@ -688,6 +816,15 @@ export async function reconcileArchivedItems(
             }
             if (matchedRef.sourceUrl && isAuthoritativeDebunkSource(matchedRef)) {
               existing.sourceUrl = matchedRef.sourceUrl
+            }
+            if (matchedRef.originalPlatform && !existing.originalPlatform) {
+              existing.originalPlatform = matchedRef.originalPlatform
+            }
+            if (matchedRef.originalSourceUrl && !existing.originalSourceUrl) {
+              existing.originalSourceUrl = matchedRef.originalSourceUrl
+            }
+            if ((matchedRef as any).originalSourceStatus && !existing.originalSourceStatus) {
+              existing.originalSourceStatus = (matchedRef as any).originalSourceStatus
             }
             if (matchedRef.tacticalResponseMilitary) {
               existing.tacticalResponseMilitary = matchedRef.tacticalResponseMilitary
@@ -840,6 +977,15 @@ export async function probeEvidenceForArchivedItem(
         item.clarification = matchedLocal.clarification || item.clarification
         if (matchedLocal.tacticalResponseMilitary) {
           item.tacticalResponseMilitary = matchedLocal.tacticalResponseMilitary
+        }
+        if (matchedLocal.originalPlatform && !item.originalPlatform) {
+          item.originalPlatform = matchedLocal.originalPlatform
+        }
+        if (matchedLocal.originalSourceUrl && !item.originalSourceUrl) {
+          item.originalSourceUrl = matchedLocal.originalSourceUrl
+        }
+        if ((matchedLocal as any).originalSourceStatus && !item.originalSourceStatus) {
+          item.originalSourceStatus = (matchedLocal as any).originalSourceStatus
         }
         item.evidenceSufficiency = 100
         item.lastProbedAt = getFormattedWib()

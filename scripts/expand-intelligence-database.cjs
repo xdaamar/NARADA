@@ -1204,3 +1204,4 @@ fs.writeFileSync(dbPath, JSON.stringify(currentDb, null, 2), 'utf8');
 
 console.log(`Successfully added ${addedCount} new curated intelligence entries!`);
 console.log('Total Database Entries now:', currentDb.length);
+

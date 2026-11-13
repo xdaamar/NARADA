@@ -31,7 +31,9 @@ import {
   RefreshCw,
   SearchCheck,
   Crosshair,
-  Zap
+  Zap,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react'
 import {
   getArchivedEntries,
@@ -40,6 +42,9 @@ import {
   reconcileArchivedItems,
   probeEvidenceForArchivedItem,
   probeAllUnverifiedArchivedItems,
+  getDisplayOriginPlatform,
+  isOriginalSourceDeleted,
+  toggleOriginalSourceStatus,
   type ArchivedDebunkEntry
 } from '../engine/archive/archive-service.ts'
 import { playTacticalPinChime } from '../utils/tactical-audio.ts'
@@ -643,21 +648,22 @@ export default function ArchivePage() {
             const isDipantau = item.archiveVerdict === 'DIPANTAU'
 
             const clusterMeta = CLUSTER_OPTIONS.find(c => c.key === item.cluster) || { label: item.cluster, color: '#94A3B8' }
+            const originPlatform = getDisplayOriginPlatform(item)
+            const isSourceDeleted = isOriginalSourceDeleted(item)
 
             return (
               <div
                 key={item.id}
                 className="steel-chassis-card"
                 style={{
-                  padding: '16px 18px',
+                  padding: '14px 16px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  gap: '12px',
+                  gap: '10px',
                   position: 'relative',
                   borderTop: `3px solid ${isHoax ? '#EF4444' : isFact ? '#10B981' : '#F59E0B'}`,
-                  boxShadow: '0 12px 28px rgba(0, 0, 0, 0.85), inset 0 2px 0 rgba(255, 255, 255, 0.18)',
-                  minHeight: '440px'
+                  boxShadow: '0 12px 28px rgba(0, 0, 0, 0.85), inset 0 2px 0 rgba(255, 255, 255, 0.18)'
                 }}
               >
                 <span className="bolt-tl" />
@@ -771,15 +777,15 @@ export default function ArchivePage() {
                   <div 
                     className="steel-sunken-tray"
                     style={{
-                      padding: '10px 12px',
-                      fontSize: '11px',
-                      lineHeight: 1.5,
+                      padding: '8px 10px',
+                      fontSize: '10.5px',
+                      lineHeight: 1.45,
                       color: '#CBD5E1',
-                      maxHeight: '130px',
+                      maxHeight: '75px',
                       overflowY: 'auto'
                     }}
                   >
-                    <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#64748B', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#64748B', marginBottom: '3px' }}>
                       INTISARI FAKTA & DATA LAPANGAN YANG DITUNGGU:
                     </div>
                     {item.clarification || item.tacticalResponseMilitary || 'Belum ada klarifikasi tambahan. Isu disimpan dalam Berita Tersemat menunggu pembaharuan berkala dari dinas terkait atau arus berita resmi.'}
@@ -787,13 +793,13 @@ export default function ArchivePage() {
 
                   {/* Indikator Kecukupan Bukti & Status Penelusuran (Evidence Sufficiency Gauge) */}
                   <div style={{
-                    padding: '8px 10px',
+                    padding: '6px 9px',
                     borderRadius: '4px',
                     background: '#0D141D',
                     border: '1px solid #1E2734',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '5px'
+                    gap: '4px'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '9px', fontFamily: 'var(--font-mono)' }}>
                       <span style={{ color: '#94A3B8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -844,24 +850,181 @@ export default function ArchivePage() {
                     </div>
                   </div>
 
-                  {/* Info Sumber Rujukan Otoritatif */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '9.5px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>
-                    <span>Sumber: <strong style={{ color: '#94A3B8' }}>{item.officialSource || 'Radar Teritorial'}</strong></span>
-                    {item.sourceUrl && (
-                      <a 
-                        href={
-                          item.sourceUrl.includes('kumham-imipas.go.id')
-                            ? 'https://turnbackhoax.id/?s=gibran+pengunduran+diri'
-                            : item.sourceUrl
-                        } 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{ color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '3px', textDecoration: 'none', fontWeight: 700 }}
-                        title={isHoax ? 'Buka Rujukan Klarifikasi Cek Fakta Resmi' : isFact ? 'Buka Konfirmasi Dokumen/Berita Resmi' : 'Buka Sumber Tautan yang Sedang Dipantau'}
-                      >
-                        {isHoax ? 'Buka Rujukan Cek Fakta' : isFact ? 'Buka Konfirmasi Resmi' : 'Pantau Sumber Berita'} <ExternalLink size={9} />
-                      </a>
-                    )}
+                  {/* ─── KOTAK PROVENANSI & PEMBUKTIAN FORENSIK SUMBER (INTELLIGENCE PROVENANCE TRAY) ─── */}
+                  <div style={{
+                    padding: '10px 12px',
+                    borderRadius: '4px',
+                    background: '#0B1017',
+                    border: '1px solid #1C2736',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}>
+                    {/* 1. SUMBER BERITA ASAL DIAMBIL (ORIGINAL INTERCEPT SOURCE) */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '9px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#94A3B8' }}>
+                          <Radio size={11} color="#38BDF8" />
+                          <span>SUMBER BERITA DIAMBIL:</span>
+                        </div>
+
+                        {/* Indikator Status Keaktifan Sumber Asal */}
+                        {isSourceDeleted ? (
+                          <span 
+                            style={{
+                              fontSize: '8.5px',
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: '2px',
+                              background: 'rgba(239, 68, 68, 0.18)',
+                              border: '1px solid #EF4444',
+                              color: '#FCA5A5',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                            title="Tautan/unggahan asli telah dihapus atau di-takedown dari platform asal"
+                          >
+                            <AlertTriangle size={10} color="#EF4444" />
+                            SUMBER ASAL TELAH DIHAPUS / TAKEDOWN
+                          </span>
+                        ) : (
+                          <span 
+                            style={{
+                              fontSize: '8.5px',
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: '2px',
+                              background: 'rgba(16, 185, 129, 0.15)',
+                              border: '1px solid #10B981',
+                              color: '#6EE7B7',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10B981' }} />
+                            SUMBER ASAL AKTIF
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Baris Nama Platform Sumber & Link/Aksi */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', fontSize: '10px', fontFamily: 'var(--font-mono)' }}>
+                        <div style={{ color: '#E2E8F0', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <span style={{ color: '#64748B' }}>Platform / Media:</span>
+                          <strong style={{ color: '#F8FAFC', fontWeight: 700 }}>
+                            {originPlatform}
+                          </strong>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {/* Jika belum dihapus dan ada originalSourceUrl -> buka tautan asal */}
+                          {!isSourceDeleted && item.originalSourceUrl && (
+                            <a
+                              href={item.originalSourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                color: '#38BDF8',
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: '2px 6px',
+                                borderRadius: '2px',
+                                background: '#0F1A26',
+                                border: '1px solid #1E3A5F'
+                              }}
+                              title="Buka tautan unggahan / artikel asli tempat isu pertama kali beredar"
+                            >
+                              Buka Tautan Asal <ExternalLink size={9} />
+                            </a>
+                          )}
+
+                          {/* Tombol Toggle Status Dihapus bagi Analis */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              toggleOriginalSourceStatus(item.id)
+                              handleUpdate()
+                            }}
+                            title={isSourceDeleted ? 'Klik untuk memulihkan status tautan sebagai aktif kembali' : 'Tandai bahwa tautan asal/postingan telah dihapus oleh pelaku/platform (metadata tetap disimpan sebagai bukti autentik)'}
+                            style={{
+                              fontSize: '8.5px',
+                              fontFamily: 'var(--font-mono)',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '2px',
+                              background: isSourceDeleted ? '#15231B' : '#261214',
+                              border: `1px solid ${isSourceDeleted ? '#166534' : '#7F1D1D'}`,
+                              color: isSourceDeleted ? '#86EFAC' : '#FCA5A5',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            {isSourceDeleted ? 'Pulihkan Status Aktif' : 'Tandai Sumber Dihapus'}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Penjelasan Otentikasi Forensik saat Sumber Dihapus */}
+                      {isSourceDeleted && (
+                        <div style={{
+                          marginTop: '3px',
+                          padding: '6px 9px',
+                          borderRadius: '3px',
+                          background: '#1C0D11',
+                          border: '1px solid #7F1D1D',
+                          fontSize: '8.5px',
+                          color: '#FECACA',
+                          lineHeight: 1.4,
+                          fontFamily: 'var(--font-mono)'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 800, color: '#F87171', marginBottom: '2px' }}>
+                            <ShieldAlert size={11} color="#F87171" />
+                            <span>BUKTI FORENSIK AUTENTIK (BUKAN DATA FIKTIF):</span>
+                          </div>
+                          Tautan artikel/unggahan asli telah dihapus atau di-takedown dari platform asal. Metadata penangkapan dan ringkasan isi telah terarsip otomatis dalam sistem NARADA sebelum penghapusan, membuktikan bahwa isu ini benar-benar beredar di ruang publik dan bukan data fiktif atau rekayasa.
+                          <div style={{ marginTop: '3px', color: '#FCA5A5', fontSize: '8px', opacity: 0.85 }}>
+                            ID Forensik: {item.forensicCaptureHash || `NAR-EVD-${item.id.replace(/[^a-zA-Z0-9]/g, '').slice(-8).toUpperCase()}`} • Rekam Penangkapan: {item.interceptedAt || item.archivedAt}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Garis Pemisah Tipis */}
+                    <div style={{ height: '1px', background: '#1A2433' }} />
+
+                    {/* 2. RUJUKAN CEK FAKTA & VERIFIKASI RESMI (OFFICIAL AUTHORITY VERIFICATION) */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', fontSize: '9.5px', fontFamily: 'var(--font-mono)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94A3B8' }}>
+                        <CheckCircle2 size={10} color={isHoax ? '#EF4444' : isFact ? '#10B981' : '#F59E0B'} />
+                        <span>Rujukan Verifikasi: <strong style={{ color: '#E2E8F0' }}>{item.officialSource || 'Dinas Penerangan / Otoritas Terkait'}</strong></span>
+                      </div>
+
+                      {item.sourceUrl && (
+                        <a 
+                          href={
+                            item.sourceUrl.includes('kumham-imipas.go.id')
+                              ? 'https://turnbackhoax.id/?s=gibran+pengunduran+diri'
+                              : item.sourceUrl
+                          } 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '3px', textDecoration: 'none', fontWeight: 700 }}
+                          title={isHoax ? 'Buka Rujukan Klarifikasi Cek Fakta Resmi' : isFact ? 'Buka Konfirmasi Dokumen/Berita Resmi' : 'Buka Sumber Tautan yang Sedang Dipantau'}
+                        >
+                          {isHoax ? 'Buka Rujukan Cek Fakta' : isFact ? 'Buka Konfirmasi Resmi' : 'Pantau Sumber Berita'} <ExternalLink size={9} />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
 

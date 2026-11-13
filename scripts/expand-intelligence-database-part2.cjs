@@ -800,3 +800,4 @@ for (const entry of part2Entries) {
 fs.writeFileSync(dbPath, JSON.stringify(currentDb, null, 2), 'utf8');
 
 console.log(`Part 2: Successfully added ${added} entries! Total now: ${currentDb.length}`);
+
