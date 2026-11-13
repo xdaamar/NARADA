@@ -438,8 +438,8 @@ const ConnectorTelemetryStrip = memo(function ConnectorTelemetryStrip({
 
 export default function LiveRadar() {
   const navigate = useNavigate()
-  // State data dan filter (dibersihkan dari entri non-berita/nama instansi murni)
-  const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>(() => sanitizeRadarItems(getCuratedArchiveDebunks()))
+  // State data dan filter (kosong secara default saat pemindaian awal aktif)
+  const [debunkItems, setDebunkItems] = useState<DebunkKnowledgeEntry[]>([])
   const [selectedCluster, setSelectedCluster] = useState<ThreatSpectrumCluster | 'ALL'>('ALL')
   const [selectedTriage, setSelectedTriage] = useState<RadarTriageStatus | 'ALL' | 'RESOLVED'>('ALL')
   const [activeViewMode, setActiveViewMode] = useState<'ALL' | 'MOMENTUM' | 'SUSTAINED' | 'COOLING' | 'INSUFFICIENT_DATA' | 'UNVERIFIED' | 'HOAKS' | 'RESOLVED' | 'TRENDS'>('MOMENTUM')
@@ -455,7 +455,7 @@ export default function LiveRadar() {
   const [animatingPinIds, setAnimatingPinIds] = useState<Set<string>>(new Set())
 
   const [searchQuery, setSearchQuery] = useState<string>('')
-  const [isSyncing, setIsSyncing] = useState<boolean>(false)
+  const [isSyncing, setIsSyncing] = useState<boolean>(true)
   const [lastSyncTime, setLastSyncTime] = useState<string>('Memuat...')
   const [syncIntervalHours, setSyncIntervalHours] = useState<number>(0.5) // SPRINT 10: Default 30 Menit
   const [telemetry, setTelemetry] = useState<NetworkTelemetryInfo>({
@@ -593,6 +593,10 @@ export default function LiveRadar() {
   // Fungsi sinkronisasi radar via RadarScheduler
   const triggerSync = async (forceClear = false) => {
     setIsSyncing(true)
+    // KOSONGKAN LIST DATA SAAT PROSES MEMINDAI (sesuai instruksi: pengguna tidak bingung & hilangkan dummy saat scan)
+    setDebunkItems([])
+    setTrendSignals([])
+
     const net = await checkNetworkStatus()
     setTelemetry(net)
 
@@ -603,9 +607,20 @@ export default function LiveRadar() {
       }
       radarScheduler.resetCircuitBreakers()
       const entries = await radarScheduler.triggerNow()
-      if (entries && entries.length > 0) {
+      let finalEntries = entries
+      if (!finalEntries || finalEntries.length === 0) {
+        // Fallback jika mode offline / air-gapped
+        const cached = await getCachedRadarItems()
+        if (cached && cached.length > 0) {
+          finalEntries = cached
+        } else {
+          finalEntries = getCuratedArchiveDebunks()
+        }
+      }
+
+      if (finalEntries && finalEntries.length > 0) {
         // SPRINT 5 (WP6) & SPRINT 13: Konsumsi hasil kanonikal tersortir dan tervalidasi
-        const sorted = sanitizeRadarItems(entries)
+        const sorted = sanitizeRadarItems(finalEntries)
         setDebunkItems(sorted)
         syncArchivedItemsWithRadar(sorted)
         reconcileArchivedItems(sorted).catch(() => {})
@@ -622,28 +637,21 @@ export default function LiveRadar() {
       )
     } catch (err: any) {
       console.error('[LiveRadar] Gagal sinkronisasi feed radar:', err)
+      // Pemulihan fallback jika terjadi interupsi jaringan agar tidak blank
+      const cached = await getCachedRadarItems().catch(() => [])
+      const fallback = (cached && cached.length > 0) ? cached : getCuratedArchiveDebunks()
+      const sorted = sanitizeRadarItems(fallback)
+      setDebunkItems(sorted)
+      syncArchivedItemsWithRadar(sorted)
     } finally {
+      // DATA BARU MUNCUL SEMUA SAAT PROSES MEMINDAI SUDAH SELESAI
       setIsSyncing(false)
     }
   }
 
-  // Muat cache lokal IndexedDB saat awal buka
+  // Muat data radar saat awal buka halaman (menjalankan pemindaian bersih)
   useEffect(() => {
-    getCachedRadarItems()
-      .then((cached) => {
-        if (cached && cached.length > 0) {
-          // SPRINT 5 (WP6) & SPRINT 13: Gunakan entri cache kanonikal tersortir dan tervalidasi
-          const sorted = sanitizeRadarItems(cached)
-          setDebunkItems(sorted)
-          syncArchivedItemsWithRadar(sorted)
-          reconcileArchivedItems(sorted).catch(() => {})
-        }
-      })
-      .catch((e) => {
-        console.warn('[LiveRadar] Gagal membaca IndexedDB cache:', e)
-      })
-
-    triggerSync()
+    triggerSync(false)
   }, [])
 
   // Hubungkan RadarScheduler interval dan subscribe ke event siaran
@@ -742,6 +750,9 @@ export default function LiveRadar() {
 
   // Filter isu berdasarkan status triage, klaster, view mode, dan query pencarian
   const filteredItems = useMemo(() => {
+    // KOSONGKAN LIST DATA SAAT SEDANG MEMINDAI (sesuai instruksi user)
+    if (isSyncing) return []
+
     const seenClaims = new Set<string>()
     const list = debunkItems.filter(item => {
       if (!item || !item.claim || isPureInstitutionOrPublisherName(item.claim, item.officialSource || item.originalPlatform)) {
@@ -808,7 +819,7 @@ export default function LiveRadar() {
       return matchCluster && matchView && matchQuery
     })
     return sortRadarEntries(list)
-  }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery, hideArchivedInRadar, archivedIssueIds])
+  }, [debunkItems, selectedCluster, selectedTriage, activeViewMode, searchQuery, hideArchivedInRadar, archivedIssueIds, isSyncing])
 
   // ─── Paginasi Taktis Viewport Segmented (60 FPS DOM Optimization) ───
   // Reset ke halaman 1 saat filter atau mode pencarian berganti
@@ -836,6 +847,7 @@ export default function LiveRadar() {
 
   // Hitung jumlah item per klaster untuk pill count
   const clusterCounts = useMemo(() => {
+    if (isSyncing) return { ALL: 0 }
     const counts: Record<string, number> = { ALL: debunkItems.length }
     CLUSTER_OPTIONS.forEach(opt => {
       if (opt.key !== 'ALL') {
@@ -843,10 +855,23 @@ export default function LiveRadar() {
       }
     })
     return counts
-  }, [debunkItems])
+  }, [debunkItems, isSyncing])
 
   // Hitung jumlah item per status triage
   const triageCounts = useMemo(() => {
+    if (isSyncing) {
+      return { 
+        ALL: 0, 
+        MOMENTUM: 0, 
+        SUSTAINED: 0, 
+        COOLING: 0, 
+        INSUFFICIENT_DATA: 0, 
+        HOAKS: 0, 
+        FAKTA: 0, 
+        UNVERIFIED: 0, 
+        NETRAL: 0 
+      }
+    }
     const counts = { 
       ALL: debunkItems.length, 
       MOMENTUM: 0, 
@@ -877,7 +902,7 @@ export default function LiveRadar() {
       else counts.UNVERIFIED++
     })
     return counts
-  }, [debunkItems])
+  }, [debunkItems, isSyncing])
 
   // Label & Warna status filter aktif untuk indikator visual
   const activeFilterInfo = useMemo(() => {
@@ -968,7 +993,7 @@ export default function LiveRadar() {
                 color: activeViewMode !== 'TRENDS' ? '#38BDF8' : '#64748B',
                 fontWeight: 900
               }}>
-                {debunkItems.length}
+                {isSyncing ? '...' : debunkItems.length}
               </span>
             </button>
 
@@ -1004,7 +1029,7 @@ export default function LiveRadar() {
                 color: activeViewMode === 'TRENDS' ? '#C084FC' : '#64748B',
                 fontWeight: 900
               }}>
-                {trendSignals.length}
+                {isSyncing ? '...' : trendSignals.length}
               </span>
             </button>
           </div>
@@ -1188,7 +1213,7 @@ export default function LiveRadar() {
               borderRadius: '3px',
               fontWeight: 700
             }}>
-              {filteredItems.length} ISU TERFILTER
+              {isSyncing ? 'MEMINDAI...' : `${filteredItems.length} ISU TERFILTER`}
             </span>
 
             {/* Indikator Status Filter Aktif */}
@@ -1384,7 +1409,7 @@ export default function LiveRadar() {
                     color: isSelected ? tab.color : '#64748B',
                     fontWeight: 900
                   }}>
-                    {tab.count}
+                    {isSyncing ? '...' : tab.count}
                   </span>
                   {isSelected && (
                     <span style={{
@@ -1532,7 +1557,32 @@ export default function LiveRadar() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
             gap: '14px'
           }}>
-            {trendSignals.length === 0 ? (
+            {isSyncing ? (
+              <div 
+                className="steel-chassis-card"
+                style={{
+                  gridColumn: '1 / -1',
+                  padding: '60px 20px',
+                  textAlign: 'center',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '14px',
+                  borderTop: '2px solid #A855F7'
+                }}
+              >
+                <span className="bolt-tl" /><span className="bolt-tr" /><span className="bolt-bl" /><span className="bolt-br" />
+                <RefreshCw size={24} color="#C084FC" className="spin-animation" />
+                <div style={{ fontSize: '14px', fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#F8FAFC' }}>
+                  SEDANG MEMINDAI LONJAKAN TREN PENELUSURAN...
+                </div>
+                <div style={{ fontSize: '11px', color: '#94A3B8' }}>
+                  Menyerap sinyal agregat kata kunci pencarian publik terkini. Data akan tampil setelah pemindaian selesai.
+                </div>
+              </div>
+            ) : trendSignals.length === 0 ? (
               <div className="steel-chassis-card" style={{ gridColumn: '1 / -1', padding: '50px 20px', textAlign: 'center' }}>
                 <Activity size={32} color="#64748B" style={{ margin: '0 auto 8px', opacity: 0.6 }} />
                 <div style={{ fontSize: '13px', color: '#94A3B8', fontWeight: 700 }}>
@@ -1649,7 +1699,97 @@ export default function LiveRadar() {
         gap: '16px',
         alignItems: 'stretch'
       }}>
-        {filteredItems.length === 0 ? (
+        {isSyncing ? (
+          <div 
+            className="steel-chassis-card"
+            style={{
+              gridColumn: '1 / -1',
+              padding: '64px 20px',
+              textAlign: 'center',
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '14px',
+              borderTop: '2px solid #EF4444',
+              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.12)'
+            }}
+          >
+            <span className="bolt-tl" />
+            <span className="bolt-tr" />
+            <span className="bolt-bl" />
+            <span className="bolt-br" />
+            
+            {/* Tactical Radar Spinner */}
+            <div style={{ position: 'relative', width: '56px', height: '56px' }}>
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                border: '2px solid rgba(239, 68, 68, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  border: '1px dashed rgba(239, 68, 68, 0.4)'
+                }} />
+              </div>
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <RefreshCw size={24} color="#EF4444" className="spin-animation" />
+              </div>
+            </div>
+
+            <div>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: 800,
+                fontFamily: 'var(--font-mono)',
+                color: '#F8FAFC',
+                letterSpacing: '1px',
+                textTransform: 'uppercase'
+              }}>
+                SEDANG MEMINDAI ARUS INTELIJEN 14 KANAL...
+              </div>
+              <div style={{
+                fontSize: '11px',
+                color: '#94A3B8',
+                marginTop: '6px',
+                maxWidth: '520px',
+                lineHeight: 1.5
+              }}>
+                Menghubungkan konektor RSS, API Fact-Check, dan pangkalan data rujukan resmi. Seluruh entri data baru akan dimuat otomatis saat proses pemindaian selesai.
+              </div>
+            </div>
+
+            {/* Tactical animated pulse sweep bar */}
+            <div style={{
+              width: '260px',
+              height: '3px',
+              background: '#1A2330',
+              borderRadius: '2px',
+              overflow: 'hidden',
+              marginTop: '4px'
+            }}>
+              <div style={{
+                height: '100%',
+                width: '50%',
+                background: 'linear-gradient(90deg, transparent, #EF4444, transparent)',
+                animation: 'cyberLaserScan 1.2s infinite ease-out'
+              }} />
+            </div>
+          </div>
+        ) : filteredItems.length === 0 ? (
           <div 
             className="steel-chassis-card"
             style={{
@@ -2475,7 +2615,7 @@ export default function LiveRadar() {
       </div>
 
       {/* ─── TACTICAL SEGMENTED PAGINATION CONTROLS (60 FPS DOM OPTIMIZATION) ─── */}
-      {filteredItems.length > 0 && (
+      {filteredItems.length > 0 && !isSyncing && (
         <div
           className="steel-chassis-card"
           style={{
