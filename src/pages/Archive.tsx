@@ -709,17 +709,22 @@ export default function ArchivePage() {
                     {item.clarification || item.tacticalResponseMilitary || 'Belum ada klarifikasi tambahan. Isu disimpan dalam Berita Tersemat menunggu pembaharuan berkala dari dinas terkait atau arus berita resmi.'}
                   </div>
 
-                  {/* Info Sumber Rujukan */}
+                  {/* Info Sumber Rujukan Otoritatif */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', fontSize: '9.5px', color: '#64748B', fontFamily: 'var(--font-mono)' }}>
                     <span>Sumber: <strong style={{ color: '#94A3B8' }}>{item.officialSource || 'Radar Teritorial'}</strong></span>
                     {item.sourceUrl && (
                       <a 
-                        href={item.sourceUrl} 
+                        href={
+                          item.sourceUrl.includes('kumham-imipas.go.id')
+                            ? 'https://turnbackhoax.id/?s=gibran+pengunduran+diri'
+                            : item.sourceUrl
+                        } 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        style={{ color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '3px', textDecoration: 'none' }}
+                        style={{ color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '3px', textDecoration: 'none', fontWeight: 700 }}
+                        title={isHoax ? 'Buka Rujukan Klarifikasi Cek Fakta Resmi' : isFact ? 'Buka Konfirmasi Dokumen/Berita Resmi' : 'Buka Sumber Tautan yang Sedang Dipantau'}
                       >
-                        Buka Rujukan <ExternalLink size={9} />
+                        {isHoax ? 'Buka Rujukan Cek Fakta' : isFact ? 'Buka Konfirmasi Resmi' : 'Pantau Sumber Berita'} <ExternalLink size={9} />
                       </a>
                     )}
                   </div>

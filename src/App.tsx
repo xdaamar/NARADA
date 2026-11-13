@@ -8,7 +8,8 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
-  Search
+  Search,
+  UserCheck
 } from 'lucide-react'
 
 // Code-Splitting Rute Halaman (Sprint 14 Performance Hardening)
@@ -17,6 +18,7 @@ const LiveRadar = lazy(() => import('./pages/LiveRadar'))
 const ArchivePage = lazy(() => import('./pages/Archive'))
 const SocialForensic = lazy(() => import('./pages/SocialForensic'))
 const Reports = lazy(() => import('./pages/Reports'))
+const AboutDeveloper = lazy(() => import('./pages/AboutDeveloper'))
 
 import TacticalTopBar from './components/TacticalTopBar'
 import InteractiveDoctrineModal from './components/InteractiveDoctrineModal'
@@ -35,6 +37,7 @@ const NAV_ITEMS = [
   { to: '/archive', icon: Pin, label: 'Berita Tersemat', hotkey: 'Alt+3' },
   { to: '/social-forensic', icon: Search, label: 'Analisa Postingan Medsos', hotkey: 'Alt+4' },
   { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
+  { to: '/about', icon: UserCheck, label: 'Tentang Pengembang', hotkey: 'Alt+6' },
 ]
 
 // ─── Sidebar Component (Tactical Armored Steel Plate) ───
@@ -229,6 +232,9 @@ function AppShell() {
         } else if (e.key === '5') {
           e.preventDefault()
           navigate('/reports')
+        } else if (e.key === '6') {
+          e.preventDefault()
+          navigate('/about')
         }
       }
     }
@@ -303,6 +309,9 @@ function TacticalPageLoader() {
               <Route path="/profiler" element={<SocialForensic />} />
               <Route path="/nexus" element={<LiveRadar />} />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/about" element={<AboutDeveloper />} />
+              <Route path="/developer" element={<AboutDeveloper />} />
+              <Route path="/tentang-pengembang" element={<AboutDeveloper />} />
               <Route path="/settings" element={<Navigate to="/reports" replace />} />
             </Routes>
           </Suspense>

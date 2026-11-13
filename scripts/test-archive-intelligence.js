@@ -23,10 +23,10 @@ console.log('══════════════════════�
 let passCount = 0
 let totalCount = 0
 
-function runTest(id, description, fn) {
+async function runTest(id, description, fn) {
   totalCount++
   try {
-    fn()
+    await fn()
     console.log(`  ✅ PASS: [${id}] ${description}`)
     passCount++
   } catch (err) {
@@ -88,7 +88,7 @@ const {
 // ─── GATE 1: ARSIPKAN FUNCTIONALITY & INITIAL STATUS "SEDANG DIPANTAU" ───
 console.log('─── Gate 1: Fungsi Arsip & Jaminan Status Awal "Sedang Dipantau" ───')
 
-runTest('ARC-01', 'Arsip awal dari berita unverified harus memiliki status archiveVerdict: DIPANTAU', () => {
+await runTest('ARC-01', 'Arsip awal dari berita unverified harus memiliki status archiveVerdict: DIPANTAU', () => {
   global.localStorage.clear()
   dispatchedEvents.length = 0
 
@@ -121,7 +121,7 @@ runTest('ARC-01', 'Arsip awal dari berita unverified harus memiliki status archi
   assert.ok(typeof entries[0].archivedTimestamp === 'number')
 })
 
-runTest('ARC-02', 'Berita yang diarsipkan tidak boleh langsung otomatis terindikasi Hoaks', () => {
+await runTest('ARC-02', 'Berita yang diarsipkan tidak boleh langsung otomatis terindikasi Hoaks', () => {
   // Bahkan jika item radar aslinya membawa label hoaks/unverified, saat pertama kali masuk console arsip pemantauan, statusnya DIPANTAU
   const mockItem2 = {
     id: 'radar-item-102',
@@ -145,7 +145,7 @@ runTest('ARC-02', 'Berita yang diarsipkan tidak boleh langsung otomatis terindik
 // ─── GATE 2: SINKRONISASI DINAMIS DENGAN ARUS RADAR TERBARU ───
 console.log('\n─── Gate 2: Sinkronisasi Dinamis Otomatis dengan Arus Radar Baru ───')
 
-runTest('ARC-03', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi FAKTA saat rujukan resmi terbit', () => {
+await runTest('ARC-03', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi FAKTA saat rujukan resmi terbit', () => {
   // Simulasikan kedatangan feed radar baru beberapa jam kemudian di mana item-101 telah dikonfirmasi FAKTA
   const freshRadarFeed = [
     {
@@ -171,7 +171,7 @@ runTest('ARC-03', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi F
   assert.equal(item101.sourceUrl, 'https://kemensos.go.id/klarifikasi-101')
 })
 
-runTest('ARC-04', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi HOAKS saat bukti manipulasi terdeteksi', () => {
+await runTest('ARC-04', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi HOAKS saat bukti manipulasi terdeteksi', () => {
   // Simulasikan kedatangan feed radar baru di mana item-102 telah dibongkar hoaksnya oleh Mafindo/TurnBackHoax
   const freshRadarFeed = [
     {
@@ -197,7 +197,7 @@ runTest('ARC-04', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi H
 // ─── GATE 3: MANUAL OVERRIDE OLEH ANALIS & RESET PANTAU ───
 console.log('\n─── Gate 3: Penetapan Manual Analis (Set Fakta, Set Hoaks, Reset Pantau) ───')
 
-runTest('ARC-05', 'setArchivedVerdict menetapkan manual override yang kebal dari radar conflicting overwrite', () => {
+await runTest('ARC-05', 'setArchivedVerdict menetapkan manual override yang kebal dari radar conflicting overwrite', () => {
   // Analis secara sadar menetapkan item-101 sebagai HOAKS berdasarkan bukti forensik digital
   setArchivedVerdict('radar-item-101', 'HOAKS')
 
@@ -220,7 +220,7 @@ runTest('ARC-05', 'setArchivedVerdict menetapkan manual override yang kebal dari
   assert.equal(item101.archiveVerdict, 'HOAKS', 'Manual override analis harus melindungi vonis dari radar overwrite!')
 })
 
-runTest('ARC-06', 'Reset Pantau mengembalikan status ke DIPANTAU dan mengaktifkan kembali auto-sync radar', () => {
+await runTest('ARC-06', 'Reset Pantau mengembalikan status ke DIPANTAU dan mengaktifkan kembali auto-sync radar', () => {
   // Analis mengklik Reset Pantau
   setArchivedVerdict('radar-item-101', 'DIPANTAU')
 
@@ -246,7 +246,7 @@ runTest('ARC-06', 'Reset Pantau mengembalikan status ke DIPANTAU dan mengaktifka
 // ─── GATE 4: TOGGLE & UNARCHIVE (PEMBERSIHAN DATA) ───
 console.log('\n─── Gate 4: Toggle & Batal Arsip (Pembersihan Data) ───')
 
-runTest('ARC-07', 'unarchiveIssue dan toggleArchive menghapus item dari repositori arsip secara bersih', () => {
+await runTest('ARC-07', 'unarchiveIssue dan toggleArchive menghapus item dari repositori arsip secara bersih', () => {
   assert.equal(isIssueArchived('radar-item-101'), true)
 
   // Batal arsip via toggleArchive
@@ -262,7 +262,7 @@ runTest('ARC-07', 'unarchiveIssue dan toggleArchive menghapus item dari reposito
 // ─── GATE 5: INTEGRITAS HALAMAN & KONTRAK UI ───
 console.log('\n─── Gate 5: Integritas Halaman Berita Tersemat, Radar & Navigasi Sematkan ───')
 
-runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Berita Tersemat secara lengkap & Analyzer.tsx terhapus total', () => {
+await runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Berita Tersemat secara lengkap & Analyzer.tsx terhapus total', () => {
   const archiveSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Archive.tsx'), 'utf-8')
 
   assert.ok(archiveSrc.includes('KONSOL BERITA TERSEMAT'), 'Judul konsol berita tersemat harus ada')
@@ -277,7 +277,7 @@ runTest('ARC-08', 'File src/pages/Archive.tsx mengimplementasikan Konsol Berita 
   assert.ok(!fs.existsSync(path.join(rootDir, 'src', 'components', 'OCRUploader.tsx')), 'OCRUploader.tsx harus sudah dihapus total')
 })
 
-runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol SEMATKAN / TERSEMAT dan kontrol penyembunyian berita tersemat agar radar clean', () => {
+await runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol SEMATKAN / TERSEMAT dan kontrol penyembunyian berita tersemat agar radar clean', () => {
   const radarSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'LiveRadar.tsx'), 'utf-8')
 
   assert.ok(radarSrc.includes('SEMATKAN'), 'Tombol SEMATKAN harus ada di kartu radar')
@@ -287,7 +287,7 @@ runTest('ARC-09', 'LiveRadar.tsx menyediakan tombol SEMATKAN / TERSEMAT dan kont
   assert.ok(radarSrc.includes('syncArchivedItemsWithRadar'), 'LiveRadar harus memanggil syncArchivedItemsWithRadar saat data masuk')
 })
 
-runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah mengadopsi Sematkan & Berita Tersemat dengan urutan menu yang tepat', () => {
+await runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah mengadopsi Sematkan & Berita Tersemat dengan urutan menu yang tepat', () => {
   const appSrc = fs.readFileSync(path.join(rootDir, 'src', 'App.tsx'), 'utf-8')
   const topBarSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'TacticalTopBar.tsx'), 'utf-8')
   const dashSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Dashboard.tsx'), 'utf-8')
@@ -312,7 +312,7 @@ runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah mengadop
 // ─── GATE 6: SPRINT 14 ENGINE HARDENING — SEMANTIC MATCHING & MULTI-DAY RECONCILE ───
 console.log('\n─── Gate 6: Sprint 14 Engine Hardening (Semantic Matching & Multi-Day Reconcile) ───')
 
-runTest('ARC-11', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi HOAKS melalui Semantic Claim Matching meskipun ID berbeda', () => {
+await runTest('ARC-11', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi HOAKS melalui Semantic Claim Matching meskipun ID berbeda', () => {
   // Simulasikan berita disematkan analis saat masih belum terverifikasi
   const pinnedNewsItem = {
     id: 'CLUST-POLI-99214a',
@@ -354,7 +354,7 @@ runTest('ARC-11', 'syncArchivedItemsWithRadar otomatis mengubah status menjadi H
   assert.equal(pinned.officialSource, 'DPP PDI Perjuangan & DPP Gerindra')
 })
 
-runTest('ARC-12', 'reconcileArchivedItems otomatis memperbarui berita tersemat dari hari lampau (10 Nov) ke HOAKS/FAKTA per 13 Nov', async () => {
+await runTest('ARC-12', 'reconcileArchivedItems otomatis memperbarui berita tersemat dari hari lampau (10 Nov) ke HOAKS/FAKTA per 13 Nov', async () => {
   // Simulasikan berita disematkan pada 10 Nov (sudah tidak ada di feed radar hari ini)
   const oldPinnedItem = {
     id: 'CLUST-SIBE-10NOV-001',
@@ -394,6 +394,58 @@ runTest('ARC-12', 'reconcileArchivedItems otomatis memperbarui berita tersemat d
   assert.ok(oldItem)
   assert.equal(oldItem.archiveVerdict, 'HOAKS', 'Berita tersemat 10 Nov HARUS otomatis berubah statusnya menjadi HOAKS!')
   assert.ok(oldItem.clarification.includes('Putusan MK'), 'Klarifikasi resmi harus terpasang di berita tersemat')
+})
+
+// ─── GATE 7: INTEGRITAS SUMBER RUJUKAN & PERLINDUNGAN ANTI-KONTAMINASI DATA ───
+console.log('\n─── Gate 7: Integritas Sumber Rujukan & Anti-Kontaminasi Link (Kasus Wapres Gibran) ───')
+
+await runTest('ARC-13', 'areClaimsSemanticallyMatching menolak pencocokan antara klaim viral dengan artikel wacana hukum umum', () => {
+  const viralClaim = 'Usai ajukan pengunduran diri, Gibran tinggalkan Istana Wakil Presiden'
+  const ministryArticle = 'Menko Yusril: Pengunduran Diri Wakil Presiden Gibran Tidak Memerlukan Persetujuan MPR'
+
+  const isMatched = areClaimsSemanticallyMatching(viralClaim, ministryArticle)
+  assert.equal(isMatched, false, 'Klaim viral TIDAK BOLEH mencocokkan wacana ketatanegaraan umum Menko Yusril!')
+})
+
+await runTest('ARC-14', 'reconcileArchivedItems memulihkan entri terkontaminasi kumham-imipas ke rujukan resmi TurnBackHoax & Setwapres', async () => {
+  global.localStorage.clear()
+
+  // Simulasikan data tersimpan yang sebelumnya tercemar URL umum
+  const contaminatedItem = {
+    id: 'PIN-GIBRAN-001',
+    claim: 'Usai ajukan pengunduran diri, Gibran tinggalkan Istana Wakil Presiden',
+    cluster: 'POLITIK_NEGARA',
+    archiveVerdict: 'HOAKS',
+    verdict: 'HOAKS',
+    officialSource: 'kumham-imipas.go.id',
+    sourceUrl: 'https://kumham-imipas.go.id/ruang-berita/berita-list/menko-yusril-pengunduran-diri-wakil-presiden-gibran-tidak-memerlukan-persetujuan-mpr',
+    clarification: '',
+    archivedAt: '12 Nov 2026, 20:01 WIB',
+    archivedTimestamp: 1794500000000,
+    isManualOverride: false
+  }
+
+  const rawData = { 'PIN-GIBRAN-001': contaminatedItem }
+  const rawIds = ['PIN-GIBRAN-001']
+  const rawVerdicts = { 'PIN-GIBRAN-001': 'HOAKS' }
+
+  global.localStorage.setItem('narada_archived_items_data', JSON.stringify(rawData))
+  global.localStorage.setItem('narada_archived_issues', JSON.stringify(rawIds))
+  global.localStorage.setItem('narada_archived_classifications', JSON.stringify(rawVerdicts))
+
+  // Muat entri resmi dari database
+  const debunkDb = JSON.parse(fs.readFileSync(path.join(rootDir, 'src', 'engine', 'data', 'debunk-database.json'), 'utf-8'))
+  const result = await reconcileArchivedItems(debunkDb)
+  assert.ok(result.updatedCount >= 1, 'Self-healing harus mendeteksi dan memperbarui entri terkontaminasi')
+
+  const entries = getArchivedEntries()
+  const healed = entries.find(e => e.id === 'PIN-GIBRAN-001')
+  assert.ok(healed)
+  assert.equal(healed.archiveVerdict, 'HOAKS')
+  assert.ok(!healed.sourceUrl.includes('kumham-imipas.go.id'), 'URL kumham-imipas HARUS dibersihkan total!')
+  assert.ok(healed.sourceUrl.includes('turnbackhoax.id'), 'URL rujukan HARUS mengarah ke TurnBackHoax / Cek Fakta resmi!')
+  assert.ok(healed.officialSource.includes('Setwapres') || healed.officialSource.includes('TurnBackHoax'), 'Sumber resmi harus mencantumkan Setwapres / TurnBackHoax!')
+  assert.ok(healed.clarification.includes('Wali Kota Surakarta') || healed.clarification.includes('16 Juli 2024'), 'Klarifikasi harus menjelaskan konteks rekaman video lama di Solo!')
 })
 
 console.log('\n══════════════════════════════════════════════════════════════════════')

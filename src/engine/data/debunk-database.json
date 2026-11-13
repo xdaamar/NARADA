@@ -1186,6 +1186,30 @@
     "tacticalResponseMilitary": "Integritas Pemerintahan: Laporkan oknum yang mencatut nama pimpinan untuk menjanjikan jabatan publik."
   },
   {
+    "id": "TBH-POL-051",
+    "claim": "Usai ajukan pengunduran diri, Gibran tinggalkan Istana Wakil Presiden",
+    "normalizedQuery": "usai ajukan pengunduran diri gibran tinggalkan istana wakil presiden mundur wapres",
+    "cluster": "POLITIK_NEGARA",
+    "verdict": "HOAKS",
+    "threatLevel": "critical",
+    "clarification": "Klaim video dan narasi yang menyebutkan Wakil Presiden Gibran Rakabuming Raka mengajukan surat pengunduran diri dan meninggalkan Istana Wakil Presiden adalah HOAKS konteks palsu (False Context). Berdasarkan verifikasi periksa fakta TurnBackHoax (Mafindo) dan konfirmasi resmi Sekretariat Wakil Presiden (Setwapres), video tersebut merupakan rekaman lawas saat Gibran menyerahkan surat pengunduran diri sebagai Wali Kota Surakarta kepada pimpinan DPRD Solo pada 16 Juli 2024 menjelang pelantikan nasional. Wakil Presiden Gibran aktif secara sah dan konstitusional bertugas memimpin agenda pemerintahan di Istana Wapres.",
+    "officialSource": "TurnBackHoax.ID (Mafindo) & Sekretariat Wakil Presiden",
+    "sourceUrl": "https://turnbackhoax.id/?s=gibran+pengunduran+diri",
+    "keywords": [
+      "gibran",
+      "pengunduran diri",
+      "tinggalkan istana",
+      "mundur",
+      "wapres",
+      "wakil presiden",
+      "istana wakil presiden",
+      "surat pengunduran diri",
+      "ajukan pengunduran diri"
+    ],
+    "tacticalResponseCivilian": "Bapak/Ibu dan rekan-rekan sekalian, kabar video yang mengeklaim Wapres Gibran mengundurkan diri dan meninggalkan istana adalah hoaks daur ulang video pengunduran diri sebagai Wali Kota Solo pada Juli 2024. Wapres tetap aktif bertugas.",
+    "tacticalResponseMilitary": "Atensi Intelijen Teritorial: Waspadai peredaran video daur ulang dengan narasi disinformasi pemakzulan/pengunduran diri Wapres. Pastikan masyarakat memperoleh klarifikasi faktual berbasis rujukan resmi Setwapres RI."
+  },
+  {
     "id": "TBH-BEN-001",
     "claim": "Gempa Megathrust Selat Sunda 9.0 SR dipastikan terjadi lusa malam pukul 23.00",
     "normalizedQuery": "gempa megathrust selat sunda 9 magnitudo lusa malam bmkg",

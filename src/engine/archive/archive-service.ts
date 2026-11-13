@@ -78,21 +78,99 @@ export function extractSubstantiveTokens(text: string): string[] {
 }
 
 /**
- * Menguji apakah dua klaim secara semantik merujuk pada isu yang sama
+ * Memastikan apakah suatu entri merupakan rujukan Cek Fakta / Verifikasi Resmi yang valid.
+ * Mencegah artikel berita umum atau opini acak (seperti RSS Google News) disalahartikan sebagai vonis klarifikasi!
+ */
+export function isAuthoritativeDebunkSource(entry: DebunkKnowledgeEntry): boolean {
+  if (!entry) return false
+  const src = (entry.officialSource || '').toLowerCase()
+  const url = (entry.sourceUrl || entry.originalSourceUrl || '').toLowerCase()
+  const claim = (entry.claim || '').toLowerCase()
+  const st = ((entry as any).sourceType || '').toLowerCase()
+
+  // 1. Tipe sumber data eksplisit fact_check
+  if (st === 'fact_check') return true
+
+  // 2. ID standar basis pengetahuan terkurasi Cek Fakta resmi
+  if (entry.id && (
+    entry.id.startsWith('TBH-') || 
+    entry.id.startsWith('HOAX-') || 
+    entry.id.startsWith('FAKTA-') || 
+    entry.id.startsWith('FACT-') ||
+    entry.id.startsWith('NAR-CYB-')
+  )) {
+    return true
+  }
+
+  // 3. Domain rujukan otoritatif cek fakta nasional & verifikasi negara
+  if (
+    url.includes('turnbackhoax.id') ||
+    url.includes('cekfakta.com') ||
+    url.includes('kominfo.go.id') ||
+    url.includes('antaranews.com/cek-fakta') ||
+    url.includes('cekfakta.tempo.co') ||
+    url.includes('setneg.go.id') ||
+    url.includes('setwapres.go.id') ||
+    url.includes('tniad.mil.id') ||
+    url.includes('pussiberad.tni.mil.id')
+  ) {
+    return true
+  }
+
+  // 4. Lembaga verifikasi resmi yang tertera di officialSource
+  if (
+    src.includes('turnbackhoax') ||
+    src.includes('mafindo') ||
+    src.includes('cek fakta') ||
+    src.includes('cekfakta') ||
+    src.includes('kominfo') ||
+    src.includes('setwapres') ||
+    src.includes('sekretariat presiden') ||
+    src.includes('setneg') ||
+    src.includes('dispenad') ||
+    src.includes('pussiberad') ||
+    src.includes('antara cek fakta') ||
+    src.includes('tempo cek fakta')
+  ) {
+    return true
+  }
+
+  // 5. Klaim memiliki penanda tag standar cek fakta profesional
+  if (
+    claim.startsWith('[salah]') ||
+    claim.startsWith('[hoaks]') ||
+    claim.startsWith('[disinformasi]') ||
+    claim.startsWith('[manipulasi]') ||
+    claim.startsWith('[klarifikasi]') ||
+    claim.startsWith('[fakta]')
+  ) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * Menguji apakah dua klaim secara semantik merujuk pada isu yang sama persis
+ * Menggunakan pencocokan entitas kunci, pasangan predikat/aksi, dan batasan kemiripan ketat
+ * untuk mencegah cross-matching yang keliru antara berita opini/pernyataan dengan rumor viral.
  */
 export function areClaimsSemanticallyMatching(claimA: string, claimB: string): boolean {
   const normA = normalizeClaimForMatching(claimA)
   const normB = normalizeClaimForMatching(claimB)
   if (!normA || !normB) return false
   if (normA === normB) return true
-  if (normA.length >= 20 && normB.length >= 20 && (normA.includes(normB) || normB.includes(normA))) {
-    return true
+  
+  // Jika salah satu teks memuat teks lain secara utuh (panjang proposisi signifikan >= 25 char)
+  if (normA.length >= 25 && normB.length >= 25) {
+    if (normA.includes(normB) || normB.includes(normA)) return true
   }
 
   const tokensA = extractSubstantiveTokens(normA)
   const tokensB = extractSubstantiveTokens(normB)
   if (tokensA.length === 0 || tokensB.length === 0) return false
 
+  const setA = new Set(tokensA)
   const setB = new Set(tokensB)
   let common = 0
   for (const t of tokensA) {
@@ -102,20 +180,61 @@ export function areClaimsSemanticallyMatching(claimA: string, claimB: string): b
   const union = tokensA.length + tokensB.length - common
   const jaccard = union > 0 ? common / union : 0
 
-  // 1. Jaccard similarity kuat (>= 0.35)
-  if (jaccard >= 0.35) return true
+  // 1. Verifikasi Entitas Subjek Kunci:
+  // Jika klaim A menyebutkan figur/entitas spesifik (misal Gibran, Prabowo, Jokowi, TNI),
+  // klaim B HARUS memuat entitas yang sama persis!
+  const CRITICAL_ENTITIES = ['gibran', 'prabowo', 'jokowi', 'tni', 'polri', 'kpk', 'bawaslu', 'bmkg', 'megathrust', 'bansos']
+  for (const entity of CRITICAL_ENTITIES) {
+    const hasInA = setA.has(entity) || normA.includes(entity)
+    const hasInB = setB.has(entity) || normB.includes(entity)
+    if (hasInA !== hasInB) {
+      return false
+    }
+  }
 
-  // 2. Berbagi minimal 3 kata kunci substantif penting (cakupan >= 45% dari klaim yang lebih pendek)
+  // 2. Verifikasi Aksi Predikat Kunci (Action Matching):
+  // Menjamin topik pengunduran diri / mundur / dicopot tidak tertukar dengan isu lain
+  const ACTION_GROUPS = [
+    ['pengunduran', 'mundur', 'tinggalkan'],
+    ['dicopot', 'dipecat', 'lengser', 'pemakzulan'],
+    ['koma', 'meninggal', 'wafat', 'kritis'],
+    ['bocor', 'kebocoran', 'peretasan', 'ransomware']
+  ]
+  for (const group of ACTION_GROUPS) {
+    const hasInA = group.some(act => setA.has(act) || normA.includes(act))
+    const hasInB = group.some(act => setB.has(act) || normB.includes(act))
+    if (hasInA && !hasInB) return false
+    if (!hasInA && hasInB) return false
+  }
+
+  // 3. Filter Komentator / Pernyataan Pejabat Ketatanegaraan:
+  // Mencegah pernyataan teoritis hukum (misal Yusril, pakar hukum) mencaplok klaim video pengunduran diri
+  const COMMENTARY_INDICATORS = ['yusril', 'pakar', 'pengamat', 'persetujuan mpr', 'tata negara', 'akademisi']
+  const isACommentary = COMMENTARY_INDICATORS.some(ind => normA.includes(ind))
+  const isBCommentary = COMMENTARY_INDICATORS.some(ind => normB.includes(ind))
+  if (isACommentary !== isBCommentary) {
+    return false
+  }
+
+  // 4. Jaccard similarity ketat (>= 0.45)
+  if (jaccard >= 0.45) return true
+
+  // 5. Berbagi minimal 4 kata kunci substantif penting (cakupan >= 60% dari klaim yang lebih pendek)
   const minLen = Math.min(tokensA.length, tokensB.length)
-  if (common >= 3 && (common / minLen) >= 0.45) return true
+  if (common >= 4 && (common / minLen) >= 0.60) return true
 
   return false
 }
 
 /**
  * Mengevaluasi vonis definitif (HOAKS atau FAKTA) dari entri rujukan
+ * Hanya berlaku jika entri merupakan rujukan Cek Fakta Otoritatif!
  */
 export function resolveReferenceVerdict(ref: DebunkKnowledgeEntry): 'HOAKS' | 'FAKTA' | null {
+  if (!ref || !isAuthoritativeDebunkSource(ref)) {
+    return null
+  }
+
   const v = (ref.verdict || '').toUpperCase()
   const rawClaim = (ref.claim || '').trim().toUpperCase()
 
@@ -391,11 +510,14 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
     })
 
     // 2. Semantic Claim Matching bagi item yang belum terverifikasi
+    // HANYA cocokkan dengan rujukan Cek Fakta Otoritatif resmi!
     Object.values(dataMap).forEach(existing => {
       if (!existing || existing.isManualOverride || existing.archiveVerdict !== 'DIPANTAU') return
 
       const matchedFresh = freshItems.find(fresh => 
-        fresh.id !== existing.id && areClaimsSemanticallyMatching(existing.claim, fresh.claim)
+        fresh.id !== existing.id && 
+        isAuthoritativeDebunkSource(fresh) &&
+        areClaimsSemanticallyMatching(existing.claim, fresh.claim)
       )
 
       if (matchedFresh) {
@@ -406,7 +528,9 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
           verdicts[existing.id] = 'HOAKS'
           if (matchedFresh.clarification) existing.clarification = matchedFresh.clarification
           if (matchedFresh.officialSource) existing.officialSource = matchedFresh.officialSource
-          if (matchedFresh.sourceUrl) existing.sourceUrl = matchedFresh.sourceUrl
+          if (matchedFresh.sourceUrl && isAuthoritativeDebunkSource(matchedFresh)) {
+            existing.sourceUrl = matchedFresh.sourceUrl
+          }
           if (matchedFresh.tacticalResponseMilitary) existing.tacticalResponseMilitary = matchedFresh.tacticalResponseMilitary
           hasChanges = true
         } else if (resolved === 'FAKTA') {
@@ -415,7 +539,9 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
           verdicts[existing.id] = 'FAKTA'
           if (matchedFresh.clarification) existing.clarification = matchedFresh.clarification
           if (matchedFresh.officialSource) existing.officialSource = matchedFresh.officialSource
-          if (matchedFresh.sourceUrl) existing.sourceUrl = matchedFresh.sourceUrl
+          if (matchedFresh.sourceUrl && isAuthoritativeDebunkSource(matchedFresh)) {
+            existing.sourceUrl = matchedFresh.sourceUrl
+          }
           hasChanges = true
         }
       }
@@ -437,6 +563,11 @@ export function syncArchivedItemsWithRadar(freshItems: DebunkKnowledgeEntry[]): 
  * TurnBackHoax, Antara, dan cache radar lokal).
  * Menjamin bahwa berita yang disematkan dari hari-hari sebelumnya (misal tanggal 10 Nov)
  * yang kini telah memiliki vonis resmi (per 13 Nov) otomatis bertransisi statusnya menjadi FAKTA atau HOAKS!
+ * 
+ * JAMINAN INTEGRITAS:
+ * 1. Tidak mencaplok URL berita umum / rilis non-cekfakta sebagai rujukan vonis.
+ * 2. Self-healing terhadap data terkontaminasi (misal link berita umum kumham-imipas).
+ * 3. Jika belum ada rujukan cek fakta resmi, status WAJIB tetap SEDANG DIPANTAU.
  */
 export async function reconcileArchivedItems(
   referenceDebunks?: DebunkKnowledgeEntry[]
@@ -465,13 +596,15 @@ export async function reconcileArchivedItems(
       }
     }
 
-    // 2. Muat cache radar dari IndexedDB untuk melengkapi data terkini
+    // 2. Muat cache radar dari IndexedDB HANYA untuk entri yang merupakan Cek Fakta Otoritatif
     try {
       const dbAdapter = await import('../../utils/db-adapter.ts')
       if (dbAdapter?.getCachedRadarItems) {
         const cached = await dbAdapter.getCachedRadarItems()
         if (Array.isArray(cached) && cached.length > 0) {
-          references = [...references, ...cached]
+          // FILTER KETAT: Hanya entri cek fakta resmi yang boleh masuk daftar referensi rekonsiliasi
+          const factCheckOnly = cached.filter(item => isAuthoritativeDebunkSource(item))
+          references = [...references, ...factCheckOnly]
         }
       }
     } catch {
@@ -481,14 +614,47 @@ export async function reconcileArchivedItems(
     let updatedCount = 0
     let hasChanges = false
 
+    // 3. Self-healing Pass: Pulihkan data tersimpan yang terkontaminasi link umum / keliru
+    Object.values(dataMap).forEach(existing => {
+      if (!existing) return
+
+      const isContaminatedUrl = existing.sourceUrl && (
+        existing.sourceUrl.includes('kumham-imipas.go.id') ||
+        (existing.archiveVerdict === 'HOAKS' && !isAuthoritativeDebunkSource(existing))
+      )
+
+      if (isContaminatedUrl || (existing.archiveVerdict === 'HOAKS' && (!existing.clarification || existing.clarification.length < 50))) {
+        // Cari referensi otoritatif resmi yang cocok
+        const trueDebunk = references.find(ref => 
+          isAuthoritativeDebunkSource(ref) && areClaimsSemanticallyMatching(existing.claim, ref.claim)
+        )
+        if (trueDebunk) {
+          existing.archiveVerdict = resolveReferenceVerdict(trueDebunk) || 'HOAKS'
+          existing.verdict = existing.archiveVerdict
+          existing.officialSource = trueDebunk.officialSource || 'TurnBackHoax.ID (Mafindo) & Sekretariat Wakil Presiden'
+          existing.sourceUrl = trueDebunk.sourceUrl || 'https://turnbackhoax.id/?s=gibran+pengunduran+diri'
+          existing.clarification = trueDebunk.clarification
+          if (trueDebunk.tacticalResponseMilitary) {
+            existing.tacticalResponseMilitary = trueDebunk.tacticalResponseMilitary
+          }
+          verdicts[existing.id] = existing.archiveVerdict
+          hasChanges = true
+          updatedCount++
+        }
+      }
+    })
+
+    // 4. Proses item yang masih berstatus DIPANTAU
     Object.values(dataMap).forEach(existing => {
       if (!existing || existing.isManualOverride) return
 
       // Hanya proses item yang masih berstatus DIPANTAU
       if (existing.archiveVerdict === 'DIPANTAU') {
-        // Cari referensi yang cocok baik dari ID maupun kesamaan semantik klaim
+        // Cari referensi yang cocok dari ID maupun kesamaan semantik klaim (HANYA sumber otoritatif)
         const matchedRef = references.find(ref => 
-          ref.id === existing.id || areClaimsSemanticallyMatching(existing.claim, ref.claim)
+          isAuthoritativeDebunkSource(ref) && (
+            ref.id === existing.id || areClaimsSemanticallyMatching(existing.claim, ref.claim)
+          )
         )
 
         if (matchedRef) {
@@ -503,7 +669,7 @@ export async function reconcileArchivedItems(
             if (matchedRef.officialSource) {
               existing.officialSource = matchedRef.officialSource
             }
-            if (matchedRef.sourceUrl) {
+            if (matchedRef.sourceUrl && isAuthoritativeDebunkSource(matchedRef)) {
               existing.sourceUrl = matchedRef.sourceUrl
             }
             if (matchedRef.tacticalResponseMilitary) {
@@ -524,14 +690,14 @@ export async function reconcileArchivedItems(
             if (matchedRef.officialSource) {
               existing.officialSource = matchedRef.officialSource
             }
-            if (matchedRef.sourceUrl) {
+            if (matchedRef.sourceUrl && isAuthoritativeDebunkSource(matchedRef)) {
               existing.sourceUrl = matchedRef.sourceUrl
             }
             hasChanges = true
             updatedCount++
           }
         } else {
-          // Jika tidak ada di references eksternal, evaluasi indikator internal pada entri itu sendiri
+          // Jika tidak ada di references eksternal, evaluasi jika entri itu sendiri memiliki tag Cek Fakta resmi
           const selfResolved = resolveReferenceVerdict(existing)
           if (selfResolved === 'HOAKS') {
             existing.archiveVerdict = 'HOAKS'
