@@ -455,7 +455,7 @@ export default function LiveRadar() {
 
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [isSyncing, setIsSyncing] = useState<boolean>(true)
-  const [lastSyncTime, setLastSyncTime] = useState<string>('Memuat...')
+  const [lastSyncTime, setLastSyncTime] = useState<string>('Memuat')
   const [syncIntervalHours, setSyncIntervalHours] = useState<number>(0.5) // SPRINT 10: Default 30 Menit
   const [telemetry, setTelemetry] = useState<NetworkTelemetryInfo>({
     status: 'ONLINE',
@@ -960,7 +960,7 @@ export default function LiveRadar() {
                 color: activeViewMode !== 'TRENDS' ? '#38BDF8' : '#64748B',
                 fontWeight: 900
               }}>
-                {isSyncing ? '...' : debunkItems.length}
+                {debunkItems.length}
               </span>
             </button>
 
@@ -996,7 +996,7 @@ export default function LiveRadar() {
                 color: activeViewMode === 'TRENDS' ? '#C084FC' : '#64748B',
                 fontWeight: 900
               }}>
-                {isSyncing ? '...' : trendSignals.length}
+                {trendSignals.length}
               </span>
             </button>
           </div>
@@ -1100,7 +1100,7 @@ export default function LiveRadar() {
               }}
             >
               <RefreshCw size={11} color="#EF4444" className={isSyncing ? 'spin-animation' : ''} />
-              <span>{isSyncing ? 'Memindai...' : 'Pindai Isu Terkini'}</span>
+              <span>{isSyncing ? 'Memindai' : 'Pindai Isu Terkini'}</span>
             </button>
 
             {/* Selector Interval Pembaruan Otomatis */}
@@ -1180,7 +1180,7 @@ export default function LiveRadar() {
               borderRadius: '3px',
               fontWeight: 700
             }}>
-              {isSyncing ? 'MEMINDAI...' : `${filteredItems.length} ISU TERFILTER`}
+              {isSyncing ? 'MEMINDAI' : `${filteredItems.length} ISU TERFILTER`}
             </span>
 
             {/* Indikator Status Filter Aktif */}
@@ -1300,7 +1300,7 @@ export default function LiveRadar() {
               { 
                 key: 'UNVERIFIED', 
                 label: 'SEDANG DIPANTAU', 
-                subBadge: 'ISU BARU & MENINGKAT',
+                tooltip: 'Pemantauan terpadu rumor belum terverifikasi serta ISU BARU & MENINGKAT',
                 count: triageCounts.UNVERIFIED, 
                 color: '#F59E0B', 
                 icon: Eye 
@@ -1325,6 +1325,7 @@ export default function LiveRadar() {
                 <button
                   key={tab.key}
                   type="button"
+                  title={(tab as any).tooltip || tab.label}
                   onClick={() => {
                     setActiveViewMode(tab.key as any)
                     setSelectedTriage(tab.key as any)
@@ -1369,21 +1370,7 @@ export default function LiveRadar() {
                       }} />
                     )}
                   </div>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                    <span>{tab.label}</span>
-                    {(tab as any).subBadge && (
-                      <span style={{ 
-                        fontSize: '8px', 
-                        color: isSelected ? '#FCA5A5' : '#64748B',
-                        background: isSelected ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                        padding: '1px 5px',
-                        borderRadius: '2px',
-                        border: '1px solid rgba(255, 255, 255, 0.08)'
-                      }}>
-                        ⚡ {(tab as any).subBadge}
-                      </span>
-                    )}
-                  </span>
+                  <span>{tab.label}</span>
                   <span style={{
                     fontSize: '9.5px',
                     padding: '1px 6px',
@@ -1393,7 +1380,7 @@ export default function LiveRadar() {
                     color: isSelected ? tab.color : '#64748B',
                     fontWeight: 900
                   }}>
-                    {isSyncing ? '...' : tab.count}
+                    {tab.count}
                   </span>
                   {isSelected && (
                     <span style={{
