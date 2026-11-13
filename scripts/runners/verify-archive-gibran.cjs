@@ -60,3 +60,4 @@ app.whenReady().then(async () => {
   win.close()
   app.quit()
 })
+

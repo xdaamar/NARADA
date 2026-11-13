@@ -1,27 +1,34 @@
 import type { DebunkKnowledgeEntry } from '../../types.ts'
-import { formatMilitaryDateTime } from '../ingest/rss-parser.ts'
+import { formatMilitaryDateTime, calculateIntelligenceWeight } from '../ingest/rss-parser.ts'
 import databaseJson from './debunk-database.json' with { type: 'json' }
 
-const LOCAL_ARCHIVE_ENTRIES: DebunkKnowledgeEntry[] = (databaseJson as DebunkKnowledgeEntry[]).map((e) => ({
-  ...e,
-  isLive: false,
-  publishedDate: e.publishedDate ? formatMilitaryDateTime(e.publishedDate) : undefined,
-  viralityReason: e.viralityReason || (
-    e.verdict === 'HOAKS' || e.verdict === 'DISINFORMASI' || e.verdict === 'PROPAGANDA'
-      ? '🚨 PUSSIBERAD ARSIP: Disinformasi Terverifikasi'
-      : e.verdict === 'UNVERIFIED'
-      ? '⏳ PUSSIBERAD ARSIP: Klaim Belum Terverifikasi'
-      : '🛡️ PUSSIBERAD ARSIP: Klarifikasi Resmi Hankam'
-  ),
-  originalPlatform: e.originalPlatform || 'Pusat Analisis Siber AD (Pangkalan Data Teritorial)',
-  originalSourceUrl: e.originalSourceUrl || e.sourceUrl,
-  interceptedAt: e.interceptedAt || undefined,
-  verifiedAt: e.verifiedAt || undefined,
-  viralVelocity: e.viralVelocity || undefined,
-  engagement: e.engagement || undefined,
-  queueState: e.queueState || (e.verdict === 'UNVERIFIED' ? 'MONITOR' : 'RESOLVED'),
-  triageStatus: e.triageStatus || (e.verdict as any)
-}))
+const LOCAL_ARCHIVE_ENTRIES: DebunkKnowledgeEntry[] = (databaseJson as DebunkKnowledgeEntry[]).map((e) => {
+  const intelWeight = calculateIntelligenceWeight(e.claim, e.clarification || '', e.cluster || '')
+  return {
+    ...e,
+    intelligenceWeightScore: e.intelligenceWeightScore || intelWeight.weightScore,
+    intelligenceWeightCategory: e.intelligenceWeightCategory || intelWeight.weightCategory,
+    intelligenceWeightLabel: e.intelligenceWeightLabel || intelWeight.weightLabel,
+    intelligenceWeightColor: e.intelligenceWeightColor || intelWeight.weightColor,
+    isLive: false,
+    publishedDate: e.publishedDate ? formatMilitaryDateTime(e.publishedDate) : undefined,
+    viralityReason: e.viralityReason || (
+      e.verdict === 'HOAKS' || e.verdict === 'DISINFORMASI' || e.verdict === 'PROPAGANDA'
+        ? '🚨 PUSSIBERAD ARSIP: Disinformasi Terverifikasi'
+        : e.verdict === 'UNVERIFIED'
+        ? '⏳ PUSSIBERAD ARSIP: Klaim Belum Terverifikasi'
+        : '🛡️ PUSSIBERAD ARSIP: Klarifikasi Resmi Hankam'
+    ),
+    originalPlatform: e.originalPlatform || 'Pusat Analisis Siber AD (Pangkalan Data Teritorial)',
+    originalSourceUrl: e.originalSourceUrl || e.sourceUrl,
+    interceptedAt: e.interceptedAt || undefined,
+    verifiedAt: e.verifiedAt || undefined,
+    viralVelocity: e.viralVelocity || undefined,
+    engagement: e.engagement || undefined,
+    queueState: e.queueState || (e.verdict === 'UNVERIFIED' ? 'MONITOR' : 'RESOLVED'),
+    triageStatus: e.triageStatus || (e.verdict as any)
+  }
+})
 
 let activeDebunkDatabase: DebunkKnowledgeEntry[] = [...LOCAL_ARCHIVE_ENTRIES]
 

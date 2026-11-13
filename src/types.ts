@@ -108,6 +108,11 @@ export interface DebunkKnowledgeEntry {
     verdict: string
     explanation: string
   }
+  // ─── Sprint 15: Penilaian Bobot Intelijen Strategis (High-Weight Intelligence) ───
+  intelligenceWeightScore?: number
+  intelligenceWeightCategory?: 'STRATEGIS_HANKAM' | 'DINAMIKA_TERITORIAL' | 'KRISIS_NASIONAL' | 'KEBIJAKAN_NEGARA' | 'STANDAR'
+  intelligenceWeightLabel?: string
+  intelligenceWeightColor?: string
   // ─── Sprint 6: Coverage Momentum, Taxonomy, Provenance & Sinyal Penelusuran ───
   issueActivity?: import('./engine/radar/radar-types.ts').IssueActivityAssessment
   clusterDomain?: import('./engine/radar/radar-types.ts').RadarTaxonomyDomain

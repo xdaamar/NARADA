@@ -21,6 +21,7 @@ import { analyzeSentiment } from '../forensic/sentiment-engine.ts'
 import { evaluateContextRelevance, evaluateMetadataTransparency } from './radar-assessment.ts'
 import { parseSourceDate, evaluateFreshness } from './freshness-engine.ts'
 import { evaluateClaimFirewall } from './claim-firewall.ts'
+import { calculateIntelligenceWeight } from '../ingest/rss-parser.ts'
 import type { ClaimMatchCandidate } from './radar-types.ts'
 
 export type EarlyWarningAlertLevel = 'SIAGA_KRITIS' | 'ATENSI_INTELIJEN' | 'MONITORING_RUTIN'
@@ -355,10 +356,22 @@ export function scoreAndTriageRadarEntries(
   return entries.map(item => {
     const scoreResult = computeEarlyWarningScore(item, knownDebunks)
 
+    // Evaluasi bobot intelijen strategis (High-Weight Intelligence Scorer)
+    const intelWeight = calculateIntelligenceWeight(item.claim, item.clarification, item.cluster)
+
     let threatLevel: ThreatLevel = 'low'
     if (scoreResult.alertLevel === 'SIAGA_KRITIS') threatLevel = 'critical'
     else if (scoreResult.alertLevel === 'ATENSI_INTELIJEN') threatLevel = 'high'
     else threatLevel = 'medium'
+
+    // Tingkatkan ancaman untuk isu berbobot pertahanan negara/siber/kebijakan strategis pada status pemantauan
+    if (scoreResult.triageStatus === 'UNVERIFIED') {
+      if (intelWeight.weightCategory === 'STRATEGIS_HANKAM') {
+        threatLevel = 'critical'
+      } else if (intelWeight.weightCategory === 'KEBIJAKAN_NEGARA' || intelWeight.weightCategory === 'KRISIS_NASIONAL') {
+        threatLevel = 'high'
+      }
+    }
 
     const queueState: 'MONITOR' | 'RESOLVED' | 'EXCLUDED' = 
       scoreResult.triageStatus === 'UNVERIFIED' 
@@ -373,7 +386,11 @@ export function scoreAndTriageRadarEntries(
       triageStatus: scoreResult.triageStatus,
       threatLevel,
       queueState,
-      cognitiveScore: scoreResult.threatIndex,
+      cognitiveScore: Math.max(scoreResult.threatIndex, intelWeight.weightScore),
+      intelligenceWeightScore: intelWeight.weightScore,
+      intelligenceWeightCategory: intelWeight.weightCategory,
+      intelligenceWeightLabel: intelWeight.weightLabel,
+      intelligenceWeightColor: intelWeight.weightColor,
       tacticalResponseMilitary: scoreResult.strategicAdvice,
       claimAssessment: scoreResult.claimMatchCandidate,
       requiresAnalystReview: scoreResult.requiresAnalystReview,

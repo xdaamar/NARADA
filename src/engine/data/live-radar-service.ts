@@ -161,6 +161,11 @@ export function sortRadarEntries(entries: DebunkKnowledgeEntry[]): DebunkKnowled
     if (tsB !== tsA) {
       return tsB - tsA
     }
+    const weightB = b.intelligenceWeightScore || 0
+    const weightA = a.intelligenceWeightScore || 0
+    if (weightB !== weightA) {
+      return weightB - weightA
+    }
     return (b.cognitiveScore || 0) - (a.cognitiveScore || 0)
   })
 }
@@ -1335,21 +1340,25 @@ export async function processRadarIngestion(
     }
   }
 
-  // TIER 3: KURASI CERDAS KUOTA ISU (MAKSIMAL 85 ISU EMAS PRIORITAS TINGGI)
-  // Menjamin seluruh isu HOAKS dan isu berprioritas kritis/tinggi tidak pernah terpotong,
-  // sambil menjaga beban DOM dan peramban tetap super ringan.
-  const MAX_CURATED_RADAR_ITEMS = 85
+  // TIER 3: KURASI CERDAS KUOTA ISU (MAKSIMAL 150 ISU EMAS PRIORITAS TINGGI)
+  // Menjamin seluruh isu HOAKS dan isu berprioritas kritis/tinggi serta SEDANG DIPANTAU tidak pernah terpotong,
+  // sambil menjaga beban DOM dan peramban tetap super ringan melalui segmented viewport pagination.
+  const MAX_CURATED_RADAR_ITEMS = 150
   let finalCuratedEntries = sortedEntries
   if (sortedEntries.length > MAX_CURATED_RADAR_ITEMS) {
     const highPriority = sortedEntries.filter(i => 
       i.verdict === 'HOAKS' || 
       i.verdict === 'DISINFORMASI' || 
+      i.verdict === 'UNVERIFIED' ||
+      i.queueState === 'MONITOR' ||
       i.threatLevel === 'critical' || 
       i.threatLevel === 'high'
     )
     const standardPriority = sortedEntries.filter(i => 
       i.verdict !== 'HOAKS' && 
       i.verdict !== 'DISINFORMASI' && 
+      i.verdict !== 'UNVERIFIED' &&
+      i.queueState !== 'MONITOR' &&
       i.threatLevel !== 'critical' && 
       i.threatLevel !== 'high'
     )

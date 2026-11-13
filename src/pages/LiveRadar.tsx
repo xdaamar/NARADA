@@ -2135,6 +2135,27 @@ export default function LiveRadar() {
                         )}
                       </div>
 
+                      {/* Lencana Bobot Intelijen Strategis untuk SEDANG DIPANTAU */}
+                      {isEffectiveUnverified && item.intelligenceWeightLabel && (
+                        <span style={{
+                          fontSize: '8px',
+                          fontFamily: 'var(--font-mono)',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '2px',
+                          background: '#101622',
+                          color: item.intelligenceWeightColor || '#F59E0B',
+                          border: `1px solid ${item.intelligenceWeightColor ? item.intelligenceWeightColor + '44' : '#F59E0B44'}`,
+                          letterSpacing: '0.3px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }} title="Klasifikasi Bobot Intelijen NARADA: Menilai kedalaman dan urgensi substansi warta">
+                          <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: item.intelligenceWeightColor || '#F59E0B' }} />
+                          {item.intelligenceWeightLabel}
+                        </span>
+                      )}
+
                       {/* Skor Relevansi Konteks (Indikator Heuristik, BUKAN Probabilitas Ancaman) */}
                       <span style={{
                         fontSize: '9px',

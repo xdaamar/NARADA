@@ -535,65 +535,85 @@ export function evaluatePublicationEligibility(
     }
   }
 
-  // 2. Pemicu Taksonomi Strategis 7 Domain NARADA
-  const strategicTriggers = [
-    // National Policy & State Dynamics
-    'prabowo', 'gibran', 'jokowi', 'presiden', 'wapres', 'pemerintah', 'dpr', 'mpr',
-    'kementerian', 'menteri', 'kebijakan', 'regulasi', 'perpres', 'uu', 'apbn', 'anggaran',
-    'ikn', 'kpk', 'kejagung', 'mahkamah', 'mk', 'kpu', 'bawaslu', 'bkn', 'sidang', 'putusan',
-    'dorong', 'terbitkan', 'resmikan', 'tinjau', 'tetapkan',
-    // Digital Economy & Fiscal
-    'pajak digital', 'transaksi digital', 'ekonomi digital', 'fintech', 'marketplace',
-    'pph 22', 'pph', 'ppn', 'bank digital', 'qris', 'kripto', 'e-commerce', 'hashim',
-    'fiskal', 'ojk', 'bank indonesia', 'devisa', 'investasi', 'tarif', 'pajak', 'finansial',
-    // Defense & National Security
-    'tni', 'alutsista', 'kemhan', 'papua', 'kkb', 'opm', 'ambalat', 'natuna', 'perbatasan',
-    'kedaulatan', 'keamanan', 'kapal perang', 'pesawat tempur', 'marinir', 'kopassus', 'pussiberad',
-    'kodam', 'korem', 'kodim', 'babinsa', 'intelijen', 'militer', 'operasi', 'gugur', 'serangan',
-    // Civic Dynamics & Demonstrations
-    'demo', 'unjuk rasa', 'aksi massa', 'protes', 'penolakan', 'bentrok', 'ricuh', 'kericuhan',
-    'pemakzulan', 'buruh', 'mahasiswa', 'tuntut', 'desak', 'petisi', 'mogok',
-    // Public Crisis & Disasters
-    'bencana', 'darurat', 'gempa', 'tsunami', 'megathrust', 'banjir', 'longsor', 'erupsi',
-    'merapi', 'pangan', 'beras', 'bbm', 'solar', 'pertalite', 'lpg', 'listrik', 'pln',
-    'kesehatan', 'obat', 'bpom', 'bnpb', 'bmkg', 'kelangkaan', 'wabah', 'krisis',
-    // Information Integrity & Disinformation
-    'hoaks', 'hoax', 'disinformasi', 'misinformasi', 'palsu', 'bohong', 'fitnah', 'manipulasi',
-    'cek fakta', 'klarifikasi', 'bantah', 'meluruskan',
-    // Cyber & Public Critical Infrastructure
-    'kebocoran data', 'serangan siber', 'ransomware', 'hacker', 'peretasan', 'pdns', 'bssn',
-    'malware', 'keamanan siber', 'sistem down', 'server down',
-    // Peristiwa Dinamis & Polemik Umum
-    'viral', 'heboh', 'geger', 'kontroversi', 'polemik', 'skandal', 'korupsi', 'bocoran'
+  // 2. PENAPIS SAMPAH & JUNK MUTLAK (STRICT JUNK BLACKLIST)
+  // Dievaluasi PERTAMA KALI sebelum pemicu strategis apapun agar tidak tertembus oleh kata "viral", "heboh", atau "kebijakan"
+  const STRICT_JUNK_PATTERNS = [
+    // A. Infotainment, Selebriti, Perceraian, Konser, Gaya Hidup Pop & Fesyen
+    'infotainment', 'gossip', 'gosip', 'seleb', 'selebriti', 'artis', 'pacar baru', 'gaya pacaran',
+    'cerai', 'perceraian artis', 'pernikahan artis', 'sinetron', 'aktor', 'aktris', 'film bioskop',
+    'box office', 'trailer film', 'drama korea', 'drakor', 'k-pop', 'boyband', 'girlband',
+    'konser musik', 'pedangdut', 'penyanyi pop', 'outfit', 'busana artis', 'gaun malam',
+    'skincare', 'glowing', 'tips kecantikan', 'ramalan zodiak', 'zodiak hari ini', 'horoskop',
+    'ramalan tarot', 'chord gitar', 'kunci gitar', 'lirik lagu', 'bikin baper', 'warganet salfok',
+    // B. Olahraga Komersial, Skor Pertandingan & Prediksi Lineup
+    'prediksi skor', 'skor akhir', 'hasil pertandingan', 'lineup pemain', 'susunan pemain',
+    'klasemen liga', 'liga 1', 'premier league', 'liga inggris', 'la liga', 'serie a', 'bundesliga',
+    'liga champion', 'champions league', 'piala fa', 'badminton', 'bulutangkis', 'all england',
+    'thomas cup', 'motogp', 'formula 1', 'f1 gp', 'futsal', 'sepak bola', 'bursa transfer',
+    'transfer pemain', 'bellingham', 'kroos', 'mbappe', 'haaland', 'messi', 'ronaldo',
+    'shin tae-yong', 'timnas u-17', 'timnas u-20', 'el clasico', 'chelsea', 'liverpool', 'arsenal',
+    'manchester united', 'manchester city', 'juventus', 'inter milan', 'ac milan', 'barcelona', 'real madrid',
+    // C. Clickbait Finansial Cuan, Game & Gaya Hidup Konsumtif
+    'saldo dana', 'dana kaget', 'klaim saldo', 'link dana kaget', 'kode redeem', 'game ff',
+    'free fire', 'mobile legends', 'mlbb', 'roblox', 'slot gacor', 'judi online', 'judol',
+    'pinjaman online ilegal', 'pinjol cair', 'diskon belanja', 'promo belanja', 'shopee haul',
+    'resep masakan', 'resep kue', 'cara memasak', 'kuliner enak', 'menu diet', 'tips diet',
+    'rumah hantu',
+    // D. Rutinitas Seremonial Internal & Kegiatan Non-Strategis
+    'kuliah umum', 'beasiswa santri', 'lldikti', 'politeknik', 'wisuda', 'mahasiswa kkn', 'pelajar magang',
+    'lepas sambut', 'ziarah makam', 'gowes santai', 'senam bersama', 'senam sehat', 'lomba agustusan',
+    'donor darah baksos', 'donor darah kodim', 'peringatan hut ke-', 'upacara bendera 17', 'apel pagi',
+    'buka jalan 25 pemuda', 'panen jagung kodim', 'tanam bibit jagung', 'tanam bibit padi'
   ]
 
-  const hasStrategicMatch = strategicTriggers.some(t => norm.includes(t))
-
-  // 3. Blacklist Filter: Olahraga & Rutinitas Dinas / Seremonial Murni
-  // Hanya menolak bila TIDAK memuat pemicu strategis di atas
-  const ceremonialBlacklist = [
-    'kuliah', 'beasiswa', 'lldikti', 'politeknik', 'wisuda', 'mahasiswa kkn', 'pelajar magang',
-    'tmmd', 'tni manunggal', 'bakti tni', 'sinergi pemda dan tni', 'tim wasev',
-    'kunjungan kerja', 'terima perwakilan', 'audiensi', 'lepas sambut', 'sertijab', 'ziarah',
-    'futsal', 'sepak bola', 'kejuaraan', 'turnamen', 'gowes', 'senam bersama', 'lomba',
-    'panen raya', 'tanam jagung', 'tanam padi', 'bibit', 'buka jalan 25 pemuda', 'baksos donor darah',
-    'peringatan hut', 'upacara bendera 17', 'apel pagi', 'berbaur dalam latihan',
-    'serie a', 'la liga', 'premier league', 'liga inggris', 'liga champion', 'acl two',
-    'kitchee', 'frosinone', 'lecce', 'bellingham', 'kroos', 'el clasico', 'chelsea', 'liverpool',
-    'prediksi skor', 'skor dan lineup', 'rumah hantu'
-  ]
-
-  if (!hasStrategicMatch) {
-    for (const b of ceremonialBlacklist) {
-      if (norm.includes(b)) {
-        return {
-          isEligible: false,
-          exclusionReason: 'IRRELEVANT_TOPIC',
-          reasonExplanation: `Memuat topik seremonial/olahraga non-strategis (${b})`
-        }
+  for (const junk of STRICT_JUNK_PATTERNS) {
+    if (norm.includes(junk)) {
+      return {
+        isEligible: false,
+        exclusionReason: 'IRRELEVANT_TOPIC',
+        reasonExplanation: `Ditolak filter konten non-strategis/hiburan/olahraga: (${junk})`
       }
     }
   }
+
+  // 3. Pemicu Taksonomi Strategis Berbobot Tinggi (High-Weight Intelligence Triggers)
+  const strategicTriggers = [
+    // Pertahanan, Intelijen & Kedaulatan Wilayah (HANKAM)
+    'tni', 'kemhan', 'alutsista', 'kedaulatan', 'keamanan nasional', 'papua', 'kkb', 'opm',
+    'ambalat', 'natuna', 'perbatasan ri', 'perbatasan negara', 'patroli laut', 'kapal perang',
+    'kri ', 'pesawat tempur', 'sukhoi', 'f-16', 'rafale', 'radar hanud', 'marinir', 'kopassus',
+    'kostrad', 'pussiberad', 'kodam', 'korem', 'kodim', 'babinsa', 'intelijen', 'militer',
+    'operasi militer', 'gugur tugas', 'serangan bersenjata', 'spionase', 'infiltrasi',
+    'pulau terluar', 'patok batas', 'bakamla', 'lanud', 'lantamal', 'pos pamtas',
+    // Kebijakan Strategis, Hukum & Ketatanegaraan
+    'prabowo', 'gibran', 'jokowi', 'presiden', 'wapres', 'pemerintah', 'dpr', 'mpr',
+    'kementerian', 'menteri', 'kebijakan negara', 'regulasi', 'perpres', 'inpres', 'uu',
+    'rUU', 'apbn', 'anggaran negara', 'ikn nusantara', 'kpk', 'kejagung', 'mahkamah konstitusi',
+    'mk', 'kpu', 'bawaslu', 'bkn', 'sidang kabinet', 'putusan pengadilan', 'hilirisasi',
+    'swasembada', 'devisa', 'ekspor mineral', 'subsidi energi',
+    // Siber, Data & Infrastruktur Kritis Nasional
+    'kebocoran data', 'serangan siber', 'ransomware', 'hacker', 'peretasan', 'pdns', 'bssn',
+    'malware', 'keamanan siber', 'sistem down', 'server down', 'dark web', 'credential leak',
+    'data breach', 'scada', 'csirt', 'ddos', 'infrastruktur kritis',
+    // Digital Economy & Fiscal
+    'pajak digital', 'transaksi digital', 'ekonomi digital', 'fintech', 'marketplace',
+    'pph 22', 'pph', 'ppn', 'bank digital', 'qris', 'kripto', 'fiskal', 'ojk',
+    'bank indonesia', 'bi rate', 'inflasi', 'tarif impor', 'finansial sistemik',
+    // Dinamika Massa, Buruh & Aspirasi Sipil
+    'unjuk rasa', 'aksi massa', 'demonstrasi buruh', 'protes nasional', 'penolakan rUU',
+    'bentrok massa', 'kericuhan', 'pemakzulan', 'serikat buruh', 'aliansi mahasiswa',
+    'mogok kerja nasional', 'petisi rakyat',
+    // Krisis Publik, Logistik, Pangan & Bencana Strategis
+    'bencana alam', 'keadaan darurat', 'gempa bumi', 'tsunami', 'megathrust', 'banjir bandang',
+    'tanah longsor', 'erupsi gunung', 'merapi', 'ketahanan pangan', 'stok beras', 'kelangkaan bbm',
+    'solar subsidi', 'pertalite', 'gas lpg 3kg', 'pasokan listrik', 'pln', 'bpom', 'bnpb',
+    'bmkg', 'krisis logistik',
+    // Integritas Informasi & Klarifikasi Fakta
+    'hoaks', 'hoax', 'disinformasi', 'misinformasi', 'palsu', 'fitnah politik', 'manipulasi video',
+    'deepfake', 'cek fakta', 'klarifikasi resmi', 'bantah klaim', 'meluruskan isu'
+  ]
+
+  const hasStrategicMatch = strategicTriggers.some(t => norm.includes(t))
 
   const VALID_DOMAINS = new Set([
     'NATIONAL_POLICY', 'DIGITAL_ECONOMY', 'DEFENSE_SECURITY', 'CIVIC_DYNAMICS',
@@ -603,7 +623,7 @@ export function evaluatePublicationEligibility(
 
   const isValidDomainHint = Boolean(domainHint && VALID_DOMAINS.has(domainHint))
 
-  // Jika memuat salah satu pemicu strategis atau diberi hint domain taksonomi yang sah
+  // Jika lolos blacklist dan memuat pemicu strategis atau diberi hint domain taksonomi yang sah
   if (hasStrategicMatch || isValidDomainHint) {
     const matchedDomain = classifyTaxonomyDomain(title, sourceName, (isValidDomainHint ? domainHint : 'NATIONAL_POLICY') as any)
     return { isEligible: true, matchedDomain }
@@ -613,6 +633,87 @@ export function evaluatePublicationEligibility(
     isEligible: false,
     exclusionReason: 'NO_CHECKABLE_CLAIM',
     reasonExplanation: 'Tidak memuat indikasi peristiwa faktual atau dinamika strategis yang relevan'
+  }
+}
+
+/**
+ * Penilai Bobot Intelijen Strategis untuk Isu Pemantauan (High-Weight Intelligence Scorer)
+ * Memastikan isu pertahanan negara, kedaulatan, siber, dan kebijakan strategis
+ * mendapatkan skor prioritas tinggi (70-95) pada antrean SEDANG DIPANTAU.
+ */
+export interface IntelligenceWeightAssessment {
+  weightScore: number // 50 - 95
+  weightCategory: 'STRATEGIS_HANKAM' | 'DINAMIKA_TERITORIAL' | 'KRISIS_NASIONAL' | 'KEBIJAKAN_NEGARA' | 'STANDAR'
+  weightLabel: string
+  weightColor: string
+}
+
+export function calculateIntelligenceWeight(title: string, body = '', cluster = ''): IntelligenceWeightAssessment {
+  const norm = (title + ' ' + body + ' ' + cluster).toLowerCase()
+
+  const hankamKeywords = [
+    'kedaulatan', 'alutsista', 'perbatasan', 'natuna', 'ambalat', 'pussiberad',
+    'tni', 'kemhan', 'militer', 'operasi intelijen', 'spionase', 'kapal perang',
+    'pesawat tempur', 'radar hanud', 'pamtas', 'papua', 'kkb', 'opm', 'kopassus'
+  ]
+  const cyberKeywords = [
+    'ransomware', 'kebocoran data', 'peretasan', 'pdns', 'bssn', 'data breach',
+    'dark web', 'malware', 'infrastruktur kritis', 'serangan siber', 'spoofing'
+  ]
+  const statePolicyKeywords = [
+    'prabowo', 'gibran', 'kabinet', 'sidang kabinet', 'perpres', 'apbn',
+    'swasembada', 'hilirisasi', 'kpk ott', 'kejagung', 'mahkamah konstitusi'
+  ]
+  const crisisKeywords = [
+    'megathrust', 'tsunami', 'darurat bencana', 'kelangkaan pangan', 'krisis energi',
+    'gempa bumi', 'erupsi'
+  ]
+
+  if (hankamKeywords.some(k => norm.includes(k)) || cyberKeywords.some(k => norm.includes(k))) {
+    return {
+      weightScore: 90,
+      weightCategory: 'STRATEGIS_HANKAM',
+      weightLabel: 'BOBOT: STRATEGIS HANKAM & SIBER',
+      weightColor: '#EF4444'
+    }
+  }
+
+  if (statePolicyKeywords.some(k => norm.includes(k))) {
+    return {
+      weightScore: 84,
+      weightCategory: 'KEBIJAKAN_NEGARA',
+      weightLabel: 'BOBOT: KEBIJAKAN STRATEGIS NEGARA',
+      weightColor: '#F59E0B'
+    }
+  }
+
+  if (crisisKeywords.some(k => norm.includes(k))) {
+    return {
+      weightScore: 78,
+      weightCategory: 'KRISIS_NASIONAL',
+      weightLabel: 'BOBOT: KRISIS & BENCANA STRATEGIS',
+      weightColor: '#06B6D4'
+    }
+  }
+
+  if (
+    norm.includes('unjuk rasa') || norm.includes('demo') || norm.includes('aksi massa') ||
+    norm.includes('buruh') || norm.includes('patok') || norm.includes('wilayah') ||
+    norm.includes('penyelundupan') || norm.includes('sembako')
+  ) {
+    return {
+      weightScore: 72,
+      weightCategory: 'DINAMIKA_TERITORIAL',
+      weightLabel: 'BOBOT: DINAMIKA TERITORIAL & SOSIAL',
+      weightColor: '#FB923C'
+    }
+  }
+
+  return {
+    weightScore: 55,
+    weightCategory: 'STANDAR',
+    weightLabel: 'BOBOT: PEMANTAUAN REGULER',
+    weightColor: '#94A3B8'
   }
 }
 
@@ -1112,6 +1213,16 @@ export function parseGoogleTrendsRss(xmlText: string, maxItems = 20): DebunkKnow
       const canonicalUrl = rawNewsUrl ? cleanHtmlText(rawNewsUrl) : 'https://trends.google.com/trending?geo=ID'
 
       const claim = newsTitle || `Lonjakan Minat Penelusuran Google: "${trendTitle}"`
+
+      // Filter ketat penjamin mutu: buang tren sampah/hiburan/olahraga/nama institusi murni
+      if (isPureInstitutionOrPublisherName(claim, cleanPlatform) || isPureInstitutionOrPublisherName(trendTitle, cleanPlatform)) {
+        continue
+      }
+
+      if (!isEligibleCognitiveRadarItem(claim, cleanPlatform) && !isEligibleCognitiveRadarItem(trendTitle, cleanPlatform)) {
+        continue
+      }
+
       const cluster = classifyCluster(trendTitle, newsTitle)
       const keywords = [trendTitle.toLowerCase(), ...extractKeywords(claim)]
 
