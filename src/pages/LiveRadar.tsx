@@ -52,6 +52,7 @@ import type { ConnectorHealth, SearchTrendSignal } from '../engine/radar/radar-t
 import { getLastRadarResult, clearKnownPublications } from '../engine/data/live-radar-service.ts'
 import { isPureInstitutionOrPublisherName } from '../engine/ingest/rss-parser.ts'
 import { playTacticalPinChime } from '../utils/tactical-audio.ts'
+import { autoClassifyRadarItems } from '../engine/radar/radar-auto-classifier.ts'
 
 /**
  * Filter penjamin integritas: membuang entri non-berita/nama instansi murni
@@ -80,7 +81,9 @@ function sanitizeRadarItems(items: DebunkKnowledgeEntry[]): DebunkKnowledgeEntry
       })
     }
   }
-  return sortRadarEntries(result)
+  const sorted = sortRadarEntries(result)
+  const autoClassified = autoClassifyRadarItems(sorted)
+  return autoClassified.updatedItems
 }
 
 // ─── Definisi Klaster Spektrum Kognitif ───

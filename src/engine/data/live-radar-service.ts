@@ -46,6 +46,7 @@ import {
   mapDomainToGdeltProfile
 } from '../radar/topic-discovery-engine.ts'
 import { parseGdeltDocResponse } from '../ingest/gdelt-adapter.ts'
+import { autoClassifyRadarItems } from '../radar/radar-auto-classifier.ts'
 import type { 
   NormalizedPublication, 
   EventCluster, 
@@ -1430,6 +1431,11 @@ export async function processRadarIngestion(
     const remainingSlots = Math.max(0, MAX_CURATED_RADAR_ITEMS - highPriority.length)
     finalCuratedEntries = sortRadarEntries([...highPriority, ...standardPriority.slice(0, remainingSlots)])
   }
+
+  // 9.5 AUTOMATIC SELF-CLASSIFICATION: Rekonsiliasi otomatis item UNVERIFIED terhadap rujukan resmi
+  // Mengubah status item menjadi FAKTA atau HOAKS dan otomatis memindahkannya antar tab filter
+  const autoClassifiedResult = autoClassifyRadarItems(finalCuratedEntries, allKnownDebunks)
+  finalCuratedEntries = autoClassifiedResult.updatedItems
 
   // 10. Daftarkan ke in-memory cache dan simpan ke IndexedDB
   registerLiveDebunks(finalCuratedEntries)
