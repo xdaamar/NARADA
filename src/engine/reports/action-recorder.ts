@@ -126,9 +126,17 @@ function getInitialCuratedActions(): CapturedAction[] {
 export function getCaptureSession(): CaptureSessionState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
+    const sessionInitialized = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('narada_capture_initialized') : null
+
     if (raw) {
       const parsed = JSON.parse(raw)
       if (parsed && Array.isArray(parsed.actions)) {
+        if (!sessionInitialized) {
+          // Default awal saat session baru dibuka adalah REC OFF
+          parsed.isRecording = false
+          if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('narada_capture_initialized', 'true')
+          saveCaptureSession(parsed)
+        }
         return parsed
       }
     }
@@ -136,13 +144,14 @@ export function getCaptureSession(): CaptureSessionState {
     console.warn('[ActionRecorder] Gagal membaca session capture:', err)
   }
 
-  // Default state awal
+  // Default state awal: REC OFF
   const defaultState: CaptureSessionState = {
-    isRecording: true,
+    isRecording: false,
     scope: 'ALL',
     actions: getInitialCuratedActions(),
     sessionStartedAt: new Date().toISOString()
   }
+  if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('narada_capture_initialized', 'true')
   saveCaptureSession(defaultState)
   return defaultState
 }

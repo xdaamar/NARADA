@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   PanelLeft,
-  Pause,
   SlidersHorizontal,
   ChevronDown,
   Check,
@@ -118,6 +117,7 @@ export default function TacticalTopBar({
   // ─── STATUS PEREKAM TINDAKAN INTELIJEN (PENGGANTI JAM NAVBAR) ───
   const [captureSession, setCaptureSession] = useState<CaptureSessionState>(getCaptureSession)
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false)
+  const [isRecHovered, setIsRecHovered] = useState<boolean>(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -170,51 +170,169 @@ export default function TacticalTopBar({
 
       {/* ─── Kanan: Tombol & Menu CAPTURE TINDAKAN INTELIJEN (Menggantikan Jam) ─── */}
       <div className="topbar-actions" ref={menuRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {/* Tombol Toggle Rekam (REC Active / Paused) */}
-        <button
-          type="button"
-          onClick={() => toggleRecordingState()}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '5px 10px',
-            borderRadius: '4px',
-            border: captureSession.isRecording
-              ? '1px solid rgba(220, 38, 38, 0.6)'
-              : '1px solid rgba(148, 163, 184, 0.3)',
-            background: captureSession.isRecording
-              ? 'linear-gradient(180deg, rgba(220, 38, 38, 0.22) 0%, rgba(153, 27, 27, 0.15) 100%)'
-              : 'rgba(15, 23, 42, 0.6)',
-            color: captureSession.isRecording ? '#EF4444' : '#94A3B8',
-            fontSize: '11px',
-            fontFamily: 'var(--font-mono)',
-            fontWeight: 700,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease'
-          }}
-          title={captureSession.isRecording ? 'Perekaman Tindakan Aktif (Klik untuk Jeda)' : 'Perekaman Dijeda (Klik untuk Lanjutkan)'}
+        {/* Tombol Toggle Rekam (Hanya ON dan OFF) dengan Card Berwarna saat Hover */}
+        <div
+          style={{ position: 'relative' }}
+          onMouseEnter={() => setIsRecHovered(true)}
+          onMouseLeave={() => setIsRecHovered(false)}
         >
-          {captureSession.isRecording ? (
-            <>
-              <span style={{
-                display: 'inline-block',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#EF4444',
-                boxShadow: '0 0 8px #EF4444',
-                animation: 'pulse 1.2s infinite'
-              }} />
-              <span>REC AKTIF</span>
-            </>
-          ) : (
-            <>
-              <Pause size={10} color="#94A3B8" />
-              <span>REC JEDA</span>
-            </>
+          <button
+            type="button"
+            onClick={() => toggleRecordingState()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              borderRadius: '4px',
+              border: captureSession.isRecording
+                ? '1px solid rgba(239, 68, 68, 0.7)'
+                : '1px solid rgba(148, 163, 184, 0.28)',
+              background: captureSession.isRecording
+                ? 'linear-gradient(180deg, rgba(220, 38, 38, 0.24) 0%, rgba(153, 27, 27, 0.16) 100%)'
+                : 'rgba(15, 23, 42, 0.7)',
+              color: captureSession.isRecording ? '#EF4444' : '#94A3B8',
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: captureSession.isRecording ? '0 0 10px rgba(239, 68, 68, 0.25)' : 'none'
+            }}
+          >
+            {captureSession.isRecording ? (
+              <>
+                <span style={{
+                  display: 'inline-block',
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background: '#EF4444',
+                  boxShadow: '0 0 8px #EF4444',
+                  animation: 'pulse 1.2s infinite'
+                }} />
+                <span>REC ON</span>
+              </>
+            ) : (
+              <>
+                <span style={{
+                  display: 'inline-block',
+                  width: '7px',
+                  height: '7px',
+                  borderRadius: '50%',
+                  background: '#475569',
+                  border: '1px solid #64748B'
+                }} />
+                <span>REC OFF</span>
+              </>
+            )}
+          </button>
+
+          {/* Hover Card Berwarna: Menginformasikan Fungsi Record Tindakan untuk Laporan */}
+          {isRecHovered && !isMenuOpen && (
+            <div
+              className="steel-chassis-card"
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                width: '300px',
+                zIndex: 10000,
+                padding: '12px 14px',
+                borderRadius: '6px',
+                background: 'linear-gradient(175deg, #16202E 0%, #0F1622 100%)',
+                border: captureSession.isRecording
+                  ? '1px solid rgba(239, 68, 68, 0.6)'
+                  : '1px solid rgba(56, 189, 248, 0.5)',
+                boxShadow: '0 16px 36px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.15)',
+                pointerEvents: 'none',
+                animation: 'fadeIn 0.15s ease'
+              }}
+            >
+              {/* 4 Baut Sudut Plat Baja */}
+              <div className="bolt-tl" />
+              <div className="bolt-tr" />
+              <div className="bolt-bl" />
+              <div className="bolt-br" />
+
+              {/* Header Popover Card */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                  paddingBottom: '6px',
+                  marginBottom: '8px'
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '9.5px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 800,
+                    color: 'var(--accent-gold)',
+                    letterSpacing: '1px'
+                  }}
+                >
+                  /// PEREKAM TINDAKAN LAPORAN
+                </span>
+                <span
+                  style={{
+                    fontSize: '9px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 800,
+                    color: captureSession.isRecording ? '#EF4444' : '#94A3B8',
+                    background: captureSession.isRecording ? 'rgba(239, 68, 68, 0.15)' : 'rgba(148, 163, 184, 0.1)',
+                    border: `1px solid ${captureSession.isRecording ? 'rgba(239, 68, 68, 0.4)' : 'rgba(148, 163, 184, 0.3)'}`,
+                    padding: '1px 6px',
+                    borderRadius: '3px'
+                  }}
+                >
+                  {captureSession.isRecording ? '● ON (MEREKAM)' : '○ OFF (NONAKTIF)'}
+                </span>
+              </div>
+
+              {/* Judul & Penjelasan Rapi & Mudah Dipahami */}
+              <div style={{ fontSize: '11px', fontWeight: 700, color: '#F1F5F9', marginBottom: '4px', lineHeight: 1.3 }}>
+                Rekam Jejak Investigasi (Audit Trail)
+              </div>
+              <p
+                style={{
+                  fontSize: '10px',
+                  color: '#CBD5E1',
+                  lineHeight: 1.45,
+                  margin: '0 0 8px 0'
+                }}
+              >
+                Fitur ini merekam seluruh tindakan operasional Anda (penyematan isu, analisa medsos, verifikasi fakta/hoaks, dan draf kontranarasi) untuk dihimpun otomatis ke dalam data <strong>Intel Report (Laporan Intelijen)</strong>.
+              </p>
+
+              {/* Petunjuk Aksi Cepat */}
+              <div
+                style={{
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  padding: '6px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  fontSize: '9px',
+                  fontFamily: 'var(--font-mono)',
+                  color: captureSession.isRecording ? '#FCA5A5' : '#38BDF8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>{captureSession.isRecording ? '🔴' : '⚪'}</span>
+                <span>
+                  {captureSession.isRecording
+                    ? 'Klik tombol untuk mematikan perekaman tindakan (OFF).'
+                    : 'Klik tombol untuk mengaktifkan perekaman ke laporan (ON).'}
+                </span>
+              </div>
+            </div>
           )}
-        </button>
+        </div>
 
         {/* Tombol Pemilih Cakupan Capture (Dropdown Menu) */}
         <button
