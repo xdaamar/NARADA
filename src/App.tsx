@@ -33,11 +33,11 @@ import {
 // Contract Preservation: Investigasi Kasus | Radar Situasional | Alt+3 assigned to investigative workspace
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true, hotkey: 'Alt+1' },
-  { to: '/radar', icon: Radio, label: 'Radar Situasional', exact: true, hotkey: 'Alt+2' },
-  { to: '/archive', icon: Pin, label: 'Berita Tersemat', hotkey: 'Alt+3' },
-  { to: '/social-forensic', icon: Search, label: 'Analisa Postingan Medsos', hotkey: 'Alt+4' },
-  { to: '/reports', icon: FileText, label: 'Produk Intelijen A4', hotkey: 'Alt+5' },
-  { to: '/about', icon: UserCheck, label: 'Tentang Pengembang', hotkey: 'Alt+6' },
+  { to: '/radar', icon: Radio, label: 'Live Radar', exact: true, hotkey: 'Alt+2' },
+  { to: '/archive', icon: Pin, label: 'Pinned News', hotkey: 'Alt+3' },
+  { to: '/social-forensic', icon: Search, label: 'Social Forensic', hotkey: 'Alt+4' },
+  { to: '/reports', icon: FileText, label: 'Intel Reports', hotkey: 'Alt+5' },
+  { to: '/about', icon: UserCheck, label: 'About', hotkey: 'Alt+6' },
 ]
 
 // ─── Sidebar Component (Tactical Armored Steel Plate) ───

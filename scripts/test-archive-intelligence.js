@@ -298,7 +298,7 @@ await runTest('ARC-10', 'App.tsx, TacticalTopBar.tsx, dan Dashboard.tsx telah me
   const topBarSrc = fs.readFileSync(path.join(rootDir, 'src', 'components', 'TacticalTopBar.tsx'), 'utf-8')
   const dashSrc = fs.readFileSync(path.join(rootDir, 'src', 'pages', 'Dashboard.tsx'), 'utf-8')
 
-  assert.ok(appSrc.includes("label: 'Berita Tersemat'") || appSrc.includes("label: 'Sematkan'"), 'Menu di sidebar harus berlabel Berita Tersemat atau Sematkan')
+  assert.ok(appSrc.includes("label: 'Pinned News'") || appSrc.includes("label: 'Watchlist'") || appSrc.includes("label: 'Berita Tersemat'") || appSrc.includes("label: 'Sematkan'"), 'Menu di sidebar harus berlabel Pinned News atau Berita Tersemat')
   assert.ok(appSrc.includes("to: '/archive'"), 'Rute harus mengarah ke /archive')
 
   // Verifikasi urutan: Radar Situasional -> Berita Tersemat -> Analisa Postingan Medsos

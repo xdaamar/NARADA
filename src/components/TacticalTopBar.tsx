@@ -90,6 +90,18 @@ const PAGE_CONFIG: Record<string, PageMeta> = {
     title: 'PENGATURAN SISTEM',
     subtitle: 'KONFIGURASI PARAMETER, BOBOT MODEL & TELEMETRI OPSEC',
   },
+  '/about': {
+    title: 'ABOUT DEVELOPER & DOSSIER',
+    subtitle: 'PROFIL PENGEMBANG & SPESIFIKASI PROYEK NARADA',
+  },
+  '/developer': {
+    title: 'ABOUT DEVELOPER & DOSSIER',
+    subtitle: 'PROFIL PENGEMBANG & SPESIFIKASI PROYEK NARADA',
+  },
+  '/tentang-pengembang': {
+    title: 'ABOUT DEVELOPER & DOSSIER',
+    subtitle: 'PROFIL PENGEMBANG & SPESIFIKASI PROYEK NARADA',
+  },
 }
 
 export default function TacticalTopBar({

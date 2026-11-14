@@ -1156,77 +1156,11 @@ export default function Reports() {
 
   return (
     <div className="fade-in" style={{ paddingBottom: '32px' }}>
-      {/* ─── Header Operasional & Informasi Asal Data Laporan (Pojok Kiri Atas) ─── */}
+      {/* ─── KOTAK INFORMASI ASAL & PROVENANCE DATA LAPORAN (CHASSIS PLAT BESI BAJA) ─── */}
       <div className="no-print" style={{ marginBottom: '18px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <span style={{
-                fontSize: '10px',
-                fontFamily: 'var(--font-mono)',
-                padding: '2px 8px',
-                borderRadius: '3px',
-                background: 'var(--narada-red-subtle)',
-                color: 'var(--narada-red)',
-                border: '1px solid rgba(200, 16, 46, 0.3)',
-                letterSpacing: '1.5px',
-                textTransform: 'uppercase',
-                fontWeight: 700
-              }}>
-                INTELLIGENCE REPORT GENERATOR
-              </span>
-              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                /// FORMAT DOKUMEN DINAS MILITER TNI AD (A4 RESMI)
-              </span>
-            </div>
-
-            <h1 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '22px',
-              fontWeight: '800',
-              letterSpacing: '1.5px',
-              textTransform: 'uppercase',
-              color: 'var(--text-primary)',
-              margin: '0 0 4px 0'
-            }}>
-              Laporan Intelijen Ancaman Kognitif & Siber
-            </h1>
-          </div>
-
-          {/* Tombol Preview Layar Penuh di Header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setIsZoomModalOpen(true)}
-              style={{
-                padding: '7px 14px',
-                borderRadius: '4px',
-                background: 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)',
-                border: '1px solid #4D627E',
-                borderBottom: '2px solid #0D131B',
-                color: '#F8FAFC',
-                fontSize: '11px',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.6)'
-              }}
-              title="Pratinjau Dokumen A4 dalam Tampilan Penuh / Mode Zoom"
-            >
-              <Maximize2 size={13} color="#38BDF8" />
-              <span>PREVIEW DOKUMEN PENUH (ZOOM)</span>
-            </button>
-          </div>
-        </div>
-
-        {/* ─── KOTAK INFORMASI ASAL & PROVENANCE DATA LAPORAN (POJOK KIRI ATAS) ─── */}
         <div 
           className="steel-chassis-card"
           style={{
-            marginTop: '12px',
             padding: '12px 16px',
             borderLeft: '4px solid #38BDF8',
             background: 'linear-gradient(180deg, #131B26 0%, #0B1017 100%)',
@@ -1254,11 +1188,37 @@ export default function Reports() {
               <Info size={15} color="#38BDF8" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '11.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>INFORMASI ASAL DATA: SELEKTIF BERBASIS HUB CAPTURE TINDAKAN INTELIJEN</span>
-                <span style={{ fontSize: '9.5px', background: 'rgba(56, 189, 248, 0.2)', padding: '1px 6px', borderRadius: '3px', color: '#38BDF8' }}>
-                  {CAPTURE_SCOPE_INFO[captureSession.scope].label} ({captureSession.actions.length} Tindakan)
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ fontSize: '11.5px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#38BDF8', letterSpacing: '0.8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>INFORMASI ASAL DATA: SELEKTIF BERBASIS HUB CAPTURE TINDAKAN INTELIJEN</span>
+                  <span style={{ fontSize: '9.5px', background: 'rgba(56, 189, 248, 0.2)', padding: '1px 6px', borderRadius: '3px', color: '#38BDF8' }}>
+                    {CAPTURE_SCOPE_INFO[captureSession.scope].label} ({captureSession.actions.length} Tindakan)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsZoomModalOpen(true)}
+                  style={{
+                    padding: '5px 12px',
+                    borderRadius: '4px',
+                    background: 'linear-gradient(180deg, #2D3D52 0%, #17212D 100%)',
+                    border: '1px solid #4D627E',
+                    borderBottom: '2px solid #0D131B',
+                    color: '#F8FAFC',
+                    fontSize: '10.5px',
+                    fontFamily: 'var(--font-mono)',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.6)'
+                  }}
+                  title="Pratinjau Dokumen A4 dalam Tampilan Penuh / Mode Zoom"
+                >
+                  <Maximize2 size={12} color="#38BDF8" />
+                  <span>TINJAU PENUH DOKUMEN (ZOOM A4)</span>
+                </button>
               </div>
               <p style={{ fontSize: '11px', color: '#94A3B8', margin: '4px 0 8px 0', lineHeight: 1.5 }}>
                 Dokumen Telaahan Intelijen A4 ini <strong>bukan pembuangan sembarang seluruh aktivitas aplikasi</strong>, melainkan dihimpun secara selektif oleh <strong>Hub Capture Tindakan Intelijen</strong> di navbar atas. Operator dapat menyaring aktivitas spesifik sesuai kebutuhan misi:

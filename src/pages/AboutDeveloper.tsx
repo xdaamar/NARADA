@@ -5,7 +5,6 @@ import {
   MapPin,
   School,
   Users,
-  Award,
   Globe,
   Mail,
   Phone,
@@ -18,92 +17,15 @@ import {
   X,
   Sparkles,
   CheckCircle,
-  Terminal,
-  HelpCircle
+  Terminal
 } from 'lucide-react'
 
 export default function AboutDeveloper() {
   const [isPhotoZoomed, setIsPhotoZoomed] = useState<boolean>(false)
-  const [isPhotoHovered, setIsPhotoHovered] = useState<boolean>(false)
 
   return (
     <div className="fade-in" style={{ paddingBottom: '40px' }}>
-      {/* ─── 1. Header Taktis Dossier ─── */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '12px',
-        marginBottom: '20px'
-      }}>
-        <div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '11px',
-            fontFamily: 'var(--font-mono)',
-            color: 'var(--accent-gold)',
-            fontWeight: 800,
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            marginBottom: '4px'
-          }}>
-            <span className="tactical-slashes">///</span>
-            <span>DOSSIER PENGEMBANG & KARYA INOVASI</span>
-            <span style={{ color: 'var(--border-steel-base)' }}>|</span>
-            <span style={{ color: '#94A3B8' }}>KARTIKA CYBER HACKATHON 2026</span>
-          </div>
-          <h1 style={{
-            fontSize: '22px',
-            fontFamily: 'var(--font-display)',
-            fontWeight: 800,
-            color: '#F8FAFC',
-            letterSpacing: '1.2px',
-            textTransform: 'uppercase',
-            margin: 0,
-            lineHeight: 1.2
-          }}>
-            PROFIL PENGEMBANG & SPESIFIKASI PROYEK NARADA
-          </h1>
-          <p style={{
-            fontSize: '12px',
-            color: '#94A3B8',
-            fontFamily: 'var(--font-sans)',
-            margin: '4px 0 0 0'
-          }}>
-            Informasi identitas pengembang karya, kontak resmi, dan arsitektur platform pertahanan kognitif untuk kategori lomba <strong>Siber Sosial</strong>.
-          </p>
-        </div>
-
-        {/* Lencana Status Kedinasan */}
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'linear-gradient(180deg, #243042 0%, #121A25 100%)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.22)',
-          borderBottom: '2px solid #0B0E14',
-          borderLeft: '1px solid #2B3848',
-          borderRight: '1px solid #141C26',
-          borderRadius: '6px',
-          padding: '6px 14px',
-          boxShadow: '0 3px 8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12)'
-        }}>
-          <Award size={16} color="var(--accent-gold)" />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '9px', fontFamily: 'var(--font-mono)', color: '#94A3B8', letterSpacing: '0.8px' }}>
-              KOMPETISI RESMI
-            </span>
-            <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9' }}>
-              PUSSIBERAD TNI AD × CODEPOLITAN
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ─── 2. Grid Utama: Profil Pengembang (Kiri) & Dossier Proyek (Kanan) ─── */}
+      {/* ─── Grid Utama: Profil Pengembang (Kiri) & Dossier Proyek (Kanan) ─── */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'minmax(340px, 400px) 1fr',
@@ -176,8 +98,6 @@ export default function AboutDeveloper() {
                 boxShadow: '0 8px 24px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.2)',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease'
               }}
-              onMouseEnter={() => setIsPhotoHovered(true)}
-              onMouseLeave={() => setIsPhotoHovered(false)}
               onClick={() => setIsPhotoZoomed(true)}
               title="Klik untuk memperbesar foto profil pengembang"
             >
@@ -224,51 +144,6 @@ export default function AboutDeveloper() {
                   <span>ZOOM</span>
                 </div>
               </div>
-            </div>
-
-            {/* Pesan Rahasia Saat Hover (Permintaan Spesifik User) */}
-            <div style={{
-              marginTop: '10px',
-              width: '100%',
-              minHeight: '44px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {isPhotoHovered ? (
-                <div style={{
-                  background: 'linear-gradient(180deg, #2D1A10 0%, #180E08 100%)',
-                  borderTop: '1px solid rgba(245, 158, 11, 0.35)',
-                  borderLeft: '1px solid #854D0E',
-                  borderRight: '1px solid #451A03',
-                  borderBottom: '2px solid #2B0E02',
-                  borderRadius: '5px',
-                  padding: '8px 12px',
-                  color: '#FDE68A',
-                  fontSize: '10.5px',
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                  textAlign: 'center',
-                  lineHeight: 1.4,
-                  boxShadow: '0 3px 8px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.15)',
-                  animation: 'fadeIn 180ms ease-out'
-                }}>
-                  💬 "Ga Pake Foto Asli Karna Si Dev Ingin Terlihat Misterius, wkwkwk"
-                </div>
-              ) : (
-                <div style={{
-                  fontSize: '9.5px',
-                  fontFamily: 'var(--font-mono)',
-                  color: '#64748B',
-                  textAlign: 'center',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}>
-                  <HelpCircle size={11} color="#64748B" />
-                  <span>Arahkan kursor (hover) ke foto avatar untuk membaca catatan pengembang</span>
-                </div>
-              )}
             </div>
           </div>
 
