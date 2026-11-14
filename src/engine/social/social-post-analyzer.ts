@@ -160,7 +160,7 @@ export async function executeSocialPostAnalysis(params: {
     publishedAt: extractedPost.publishedAt,
     viewCount: extractedPost.viewCount,
     likeCount: extractedPost.likeCount,
-    commentCount: extractedPost.commentCount,
+    commentCount: extractedPost.commentCount || (rawComments.length > 0 ? rawComments.length : undefined),
     thumbnailUrl: extractedPost.thumbnailUrl,
     commentsDisabled: extractedPost.commentsDisabled ?? false,
     acquisitionMethod: isManualIngest 

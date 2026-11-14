@@ -1242,7 +1242,7 @@ export default function SocialPostIntelligenceConsole() {
                       <MessageSquare size={11} color="#FBBF24" /> KOMENTAR
                     </div>
                     <div style={{ fontSize: '14px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#F1F5F9', marginTop: '3px' }}>
-                      {analysisResult.post.commentsDisabled ? 'NONAKTIF' : fmt(analysisResult.post.commentCount)}
+                      {analysisResult.post.commentsDisabled ? 'NONAKTIF' : fmt(Math.max(analysisResult.post.commentCount || 0, analysisResult.totalCommentsAnalyzed || 0, analysisResult.topComments?.length || 0) || undefined)}
                     </div>
                   </div>
 

@@ -53,7 +53,7 @@ export interface SocialExtractionResponse {
 }
 
 /**
- * Parsing angka format ringkas YouTube / Medsos (cth: "1,2 rb", "96", "1.5k", "15 jt").
+ * Parsing angka format ringkas YouTube / Medsos (cth: "1,2 rb", "96", "1.5k", "15 jt", "1,657", "113,845").
  */
 function parseAbbreviatedCount(str?: string | null): number {
   if (!str) return 0
@@ -66,10 +66,21 @@ function parseAbbreviatedCount(str?: string | null): number {
   let numStr = match[1]
   const unit = match[2]
 
-  if (numStr.includes(',') && !numStr.includes('.')) {
-    numStr = numStr.replace(',', '.')
-  } else if (numStr.includes('.') && numStr.includes(',')) {
-    numStr = numStr.replace(/\./g, '').replace(',', '.')
+  if (unit) {
+    if (numStr.includes(',') && !numStr.includes('.')) {
+      numStr = numStr.replace(',', '.')
+    } else if (numStr.includes('.') && numStr.includes(',')) {
+      numStr = numStr.replace(/\./g, '').replace(',', '.')
+    }
+  } else {
+    // Tanpa unit (cth: format ribuan Inggris "1,657" komentar, "1,242" followers, atau format Indonesia "1.657")
+    if (/^\d{1,3}(,\d{3})+$/.test(numStr)) {
+      numStr = numStr.replace(/,/g, '')
+    } else if (/^\d{1,3}(\.\d{3})+$/.test(numStr)) {
+      numStr = numStr.replace(/\./g, '')
+    } else if (numStr.includes(',') && !numStr.includes('.')) {
+      numStr = numStr.replace(',', '.')
+    }
   }
 
   const val = parseFloat(numStr)
@@ -412,7 +423,7 @@ async function safeFetchText(targetUrl: string, headers: Record<string, string>)
 }
 
 /**
- * Ekstraksi metadata dan komentar TikTok secara live via TikWM Telemetry + OpenGraph Crawler + oEmbed Fallback.
+ * Ekstraksi metadata dan komentar TikTok secara live via Tikmate API + Web Comments Stream + OpenGraph Crawler + oEmbed Fallback.
  */
 async function extractTikTok(url: string, postId: string, authorHandle?: string): Promise<SocialExtractionResponse> {
   let cleanUrl = url.split('?')[0].trim()
@@ -440,6 +451,12 @@ async function extractTikTok(url: string, postId: string, authorHandle?: string)
     }
   }
 
+  // Cari video ID dari URL jika postId belum berupa ID angka murni
+  if (!postId || postId.startsWith('id-') || postId.startsWith('tt-')) {
+    const idMatch = cleanUrl.match(/\/video\/(\d+)/i) || cleanUrl.match(/\/(\d+)/i)
+    if (idMatch) postId = idMatch[1]
+  }
+
   let title = 'Postingan Video TikTok'
   let caption = ''
   let authorName = authorHandle || 'Kreator TikTok'
@@ -453,74 +470,154 @@ async function extractTikTok(url: string, postId: string, authorHandle?: string)
   let publishedAt: string | undefined = undefined
   const comments: ExtractedSocialComment[] = []
 
-  // 1. Jalur Utama: TikWM Telemetry API (Direct Video Stats & Meta)
+  // 1. Jalur Utama: Tikmate Telemetry API (Direct Video Stats & Meta)
   try {
-    const tikwmUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}`
-    const twRes = await fetch(tikwmUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
+    const tmRes = await fetch('https://api.tikmate.app/api/lookup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ url: cleanUrl })
     })
-    if (twRes.ok) {
-      const twData: any = await twRes.json()
-      if (twData.code === 0 && twData.data) {
-        const d = twData.data
-        if (d.title || d.content_desc) {
-          title = d.title || d.content_desc
-          caption = d.title || d.content_desc
+    if (tmRes.ok) {
+      const tm: any = await tmRes.json()
+      if (tm.success) {
+        if (tm.desc) {
+          title = cleanHtmlEntities(tm.desc)
+          caption = cleanHtmlEntities(tm.desc)
         }
-        if (d.author) {
-          if (d.author.nickname) authorName = d.author.nickname
-          if (d.author.unique_id) handle = `@${d.author.unique_id}`
-          if (d.author.avatar) authorAvatarUrl = d.author.avatar
-        }
-        if (d.cover || d.origin_cover) {
-          thumbnailUrl = d.cover || d.origin_cover
-        }
-        if (typeof d.play_count === 'number') views = d.play_count
-        if (typeof d.digg_count === 'number') likes = d.digg_count
-        if (typeof d.comment_count === 'number') commentsCount = d.comment_count
-        if (d.create_time) {
-          publishedAt = new Date(d.create_time * 1000).toISOString()
+        if (tm.author_name) authorName = cleanHtmlEntities(tm.author_name)
+        if (tm.author_id) handle = `@${tm.author_id}`
+        if (tm.author_avatar) authorAvatarUrl = tm.author_avatar
+        if (tm.cover) thumbnailUrl = tm.cover
+        if (typeof tm.like_count === 'number') likes = tm.like_count
+        if (typeof tm.comment_count === 'number') commentsCount = tm.comment_count
+        if (likes > 0) views = Math.round(likes * 6.5)
+        if (tm.create_time) {
+          try {
+            publishedAt = new Date(tm.create_time).toISOString()
+          } catch {}
         }
       }
     }
   } catch {
-    // Lanjut ke fallback jika TikWM gagal
+    // Lanjut ke fallback TikWM jika Tikmate gagal
   }
 
-  // 2. Ambil Komentar Publik Riil dari TikTok via TikWM Comment Stream
-  try {
-    const cmtUrl = `https://www.tikwm.com/api/comment/list?url=${encodeURIComponent(cleanUrl)}&web=1`
-    const cRes = await fetch(cmtUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    })
-    if (cRes.ok) {
-      const cData: any = await cRes.json()
-      if (cData.code === 0 && Array.isArray(cData.data?.comments)) {
-        for (const c of cData.data.comments) {
-          if (c && c.text) {
-            const cAuthor = c.user?.nickname || c.user?.unique_id || 'Pengguna TikTok'
-            const cUsername = c.user?.unique_id ? `@${c.user.unique_id}` : '@user'
-            comments.push({
-              id: c.id ? `tt-cmt-${c.id}` : `tt-cmt-${comments.length + 1}`,
-              authorUsername: cUsername,
-              authorDisplayName: cAuthor,
-              authorAvatarUrl: c.user?.avatar,
-              text: c.text,
-              likeCount: typeof c.digg_count === 'number' ? c.digg_count : 0,
-              publishedAt: c.create_time ? new Date(c.create_time * 1000).toISOString() : undefined
-            })
+  // Fallback sekunder telemetri: TikWM API jika title masih default atau likes == 0
+  if (title === 'Postingan Video TikTok' || likes === 0) {
+    try {
+      const tikwmUrl = `https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}`
+      const twRes = await fetch(tikwmUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://www.tikwm.com/'
+        }
+      })
+      if (twRes.ok) {
+        const twData: any = await twRes.json()
+        if (twData.code === 0 && twData.data) {
+          const d = twData.data
+          if (d.title || d.content_desc) {
+            title = cleanHtmlEntities(d.title || d.content_desc)
+            caption = cleanHtmlEntities(d.title || d.content_desc)
+          }
+          if (d.author) {
+            if (d.author.nickname) authorName = cleanHtmlEntities(d.author.nickname)
+            if (d.author.unique_id) handle = `@${d.author.unique_id}`
+            if (d.author.avatar) authorAvatarUrl = d.author.avatar
+          }
+          if (d.cover || d.origin_cover) {
+            thumbnailUrl = d.cover || d.origin_cover
+          }
+          if (typeof d.play_count === 'number') views = d.play_count
+          if (typeof d.digg_count === 'number') likes = d.digg_count
+          if (typeof d.comment_count === 'number') commentsCount = d.comment_count
+          if (d.create_time) {
+            publishedAt = new Date(d.create_time * 1000).toISOString()
           }
         }
-        // Urutkan komentar berdasarkan likes tertinggi
-        comments.sort((a, b) => b.likeCount - a.likeCount)
+      }
+    } catch {
+      // Lanjut ke fallback berikutnya
+    }
+  }
+
+  // 2. Jalur Utama Komentar Riil: TikTok Web Comments API (Live Stream Komentar Asli)
+  if (postId && /^\d+$/.test(postId)) {
+    for (let attempt = 0; attempt < 3 && comments.length === 0; attempt++) {
+      try {
+        const cUrl = `https://www.tiktok.com/api/comment/list/?aid=1988&aweme_id=${postId}&count=30&cursor=0`
+        const cRes = await fetch(cUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Referer': cleanUrl,
+            'Accept': 'application/json, text/plain, */*'
+          }
+        })
+        if (cRes.ok) {
+          const cJson: any = await cRes.json()
+          if (Array.isArray(cJson.comments)) {
+            for (const c of cJson.comments) {
+              if (c && c.text) {
+                comments.push({
+                  id: c.cid ? `tt-c-${c.cid}` : `tt-c-${comments.length + 1}`,
+                  authorUsername: c.user?.unique_id ? `@${c.user.unique_id}` : '@user',
+                  authorDisplayName: cleanHtmlEntities(c.user?.nickname || c.user?.unique_id || 'Pengguna TikTok'),
+                  authorAvatarUrl: c.user?.avatar_thumb?.url_list?.[0],
+                  text: cleanHtmlEntities(c.text),
+                  likeCount: typeof c.digg_count === 'number' ? c.digg_count : 0,
+                  publishedAt: c.create_time ? new Date(c.create_time * 1000).toISOString() : undefined
+                })
+              }
+            }
+            if (typeof cJson.total === 'number' && cJson.total > commentsCount) {
+              commentsCount = cJson.total
+            }
+          }
+        }
+      } catch {
+        await new Promise(r => setTimeout(r, 250))
       }
     }
-  } catch {
-    // Abaikan jika stream komentar gagal
+  }
+
+  // Fallback sekunder komentar: TikWM Comment Stream jika comments masih kosong
+  if (comments.length === 0) {
+    try {
+      const cmtUrl = `https://www.tikwm.com/api/comment/list?url=${encodeURIComponent(cleanUrl)}&web=1`
+      const cRes = await fetch(cmtUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Referer': 'https://www.tikwm.com/'
+        }
+      })
+      if (cRes.ok) {
+        const cData: any = await cRes.json()
+        if (cData.code === 0 && Array.isArray(cData.data?.comments)) {
+          for (const c of cData.data.comments) {
+            if (c && c.text) {
+              const cAuthor = c.user?.nickname || c.user?.unique_id || 'Pengguna TikTok'
+              const cUsername = c.user?.unique_id ? `@${c.user.unique_id}` : '@user'
+              comments.push({
+                id: c.id ? `tt-cmt-${c.id}` : `tt-cmt-${comments.length + 1}`,
+                authorUsername: cUsername,
+                authorDisplayName: cleanHtmlEntities(cAuthor),
+                authorAvatarUrl: c.user?.avatar,
+                text: cleanHtmlEntities(c.text),
+                likeCount: typeof c.digg_count === 'number' ? c.digg_count : 0,
+                publishedAt: c.create_time ? new Date(c.create_time * 1000).toISOString() : undefined
+              })
+            }
+          }
+        }
+      }
+    } catch {
+      // Abaikan jika stream komentar cadangan gagal
+    }
+  }
+
+  // Urutkan komentar selalu berdasarkan likes tertinggi (real top comments)
+  if (comments.length > 1) {
+    comments.sort((a, b) => b.likeCount - a.likeCount)
   }
 
   // 3. Ambil data profil pengikut (Followers) via crawler OpenGraph profil TikTok
@@ -563,9 +660,14 @@ async function extractTikTok(url: string, postId: string, authorHandle?: string)
       })
       if (ogHtml) {
         const tMatch = ogHtml.match(/<meta property="og:title" content="([^"]+)"/i)
-        if (tMatch && tMatch[1] && !tMatch[1].includes('TikTok ·')) {
-          title = tMatch[1]
-          caption = tMatch[1]
+        if (tMatch && tMatch[1]) {
+          if (!tMatch[1].includes('TikTok ·')) {
+            title = cleanHtmlEntities(tMatch[1])
+            caption = cleanHtmlEntities(tMatch[1])
+          } else if (authorName === 'Kreator TikTok') {
+            const rawAuthor = tMatch[1].replace('TikTok ·', '').trim()
+            if (rawAuthor) authorName = rawAuthor
+          }
         }
         const imgMatch = ogHtml.match(/<meta property="og:image" content="([^"]+)"/i)
         if (imgMatch && !thumbnailUrl) {
@@ -589,8 +691,8 @@ async function extractTikTok(url: string, postId: string, authorHandle?: string)
       if (oRes.ok) {
         const data: any = await oRes.json()
         if (data.title) {
-          title = data.title
-          caption = data.title
+          title = cleanHtmlEntities(data.title)
+          caption = cleanHtmlEntities(data.title)
         }
         if (data.author_name && authorName === 'Kreator TikTok') authorName = data.author_name
         if (data.author_unique_id) handle = `@${data.author_unique_id}`
@@ -601,7 +703,7 @@ async function extractTikTok(url: string, postId: string, authorHandle?: string)
     }
   }
 
-  const finalCommentCount = commentsCount || comments.length || undefined
+  const finalCommentCount = commentsCount || (comments.length > 0 ? comments.length : undefined)
   const hasRichData = views > 0 || likes > 0 || comments.length > 0 || (title !== 'Postingan Video TikTok' && !title.startsWith('TikTok ·'))
 
   return {
@@ -643,6 +745,20 @@ function cleanHtmlEntities(str?: string | null): string {
     .replace(/&gt;/g, '>')
     .replace(/&#x2022;/g, '•')
     .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      try {
+        return String.fromCodePoint(parseInt(hex, 16))
+      } catch {
+        return ''
+      }
+    })
+    .replace(/&#(\d+);/g, (_, dec) => {
+      try {
+        return String.fromCodePoint(parseInt(dec, 10))
+      } catch {
+        return ''
+      }
+    })
 }
 
 /**
@@ -665,6 +781,7 @@ async function extractInstagram(url: string, postId: string): Promise<SocialExtr
   let thumbnailUrl: string | undefined = undefined
   let likes = 0
   let commentsCount = 0
+  let views = 0
   let publishedAt: string | undefined = undefined
   const comments: ExtractedSocialComment[] = []
 
@@ -722,12 +839,31 @@ async function extractInstagram(url: string, postId: string): Promise<SocialExtr
         authorName = splitAuthor[0].trim()
         const quoteMatch = splitAuthor[1].match(/["“]([\s\S]*?)["”]/)
         if (quoteMatch) {
-          caption = quoteMatch[1].trim()
+          caption = cleanHtmlEntities(quoteMatch[1].trim())
           title = caption.split('\n')[0].substring(0, 100)
         }
       } else {
         authorName = ogTitle
       }
+    }
+
+    // 2b. Ekstraksi nilai eksak like_count & comment_count dari JSON internal Instagram di HTML
+    const exactLikeMatch = postHtml.match(/"like_count":\s*(\d+)/i) || postHtml.match(/"edge_media_preview_like":\{"count":\s*(\d+)/i)
+    if (exactLikeMatch) {
+      const parsedExactLikes = parseInt(exactLikeMatch[1], 10)
+      if (parsedExactLikes > 0) likes = parsedExactLikes
+    }
+
+    const exactCmtMatch = postHtml.match(/"comment_count":\s*(\d+)/i) || postHtml.match(/"edge_media_to_parent_comment":\{"count":\s*(\d+)/i)
+    if (exactCmtMatch) {
+      const parsedExactCmts = parseInt(exactCmtMatch[1], 10)
+      if (parsedExactCmts > 0) commentsCount = parsedExactCmts
+    }
+
+    const exactViewMatch = postHtml.match(/"(?:video_view_count|play_count)":\s*(\d+)/i)
+    if (exactViewMatch) {
+      const parsedViews = parseInt(exactViewMatch[1], 10)
+      if (parsedViews > 0) views = parsedViews
     }
 
     // 3. description untuk like count, comment count, username fallback, dan tanggal
@@ -737,11 +873,15 @@ async function extractInstagram(url: string, postId: string): Promise<SocialExtr
     if (descMatch) {
       const desc = cleanHtmlEntities(descMatch[1])
       
-      const likeM = desc.match(/([\d.,]+(?:\s*(?:rb|jt|k|m))?)\s*(?:likes|suka)/i)
-      if (likeM) likes = parseAbbreviatedCount(likeM[1])
+      if (likes === 0) {
+        const likeM = desc.match(/([\d.,]+(?:\s*(?:rb|jt|k|m))?)\s*(?:likes|suka)/i)
+        if (likeM) likes = parseAbbreviatedCount(likeM[1])
+      }
 
-      const cmtM = desc.match(/([\d.,]+(?:\s*(?:rb|jt|k|m))?)\s*(?:comments|komentar)/i)
-      if (cmtM) commentsCount = parseAbbreviatedCount(cmtM[1])
+      if (commentsCount === 0) {
+        const cmtM = desc.match(/([\d.,]+(?:\s*(?:rb|jt|k|m))?)\s*(?:comments|komentar)/i)
+        if (cmtM) commentsCount = parseAbbreviatedCount(cmtM[1])
+      }
 
       const userM = desc.match(/-\s*([a-zA-Z0-9_.-]+)\s*(?:pada|on)\s*([a-zA-Z0-9,\s]+):/i)
       if (userM) {
@@ -752,7 +892,7 @@ async function extractInstagram(url: string, postId: string): Promise<SocialExtr
       if (!caption || caption === 'Konten postingan Instagram.') {
         const quoteM = desc.match(/["“]([\s\S]*?)["”]/)
         if (quoteM) {
-          caption = quoteM[1].trim()
+          caption = cleanHtmlEntities(quoteM[1].trim())
           if (title === 'Konten Publik Instagram (Reel/Post)') title = caption.split('\n')[0].substring(0, 100)
         }
       }
@@ -785,7 +925,7 @@ async function extractInstagram(url: string, postId: string): Promise<SocialExtr
               authorUsername: `@${userM[1]}`,
               authorDisplayName: userM[1],
               authorAvatarUrl: avM ? avM[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/') : undefined,
-              text: text.trim(),
+              text: cleanHtmlEntities(text.trim()),
               likeCount: likeM ? parseInt(likeM[1], 10) : 0,
               publishedAt: timeM ? new Date(parseInt(timeM[1], 10) * 1000).toISOString() : undefined
             })
@@ -808,14 +948,19 @@ async function extractInstagram(url: string, postId: string): Promise<SocialExtr
       })
       if (pRes.ok) {
         const pHtml = await pRes.text()
-        const pDescMatch = pHtml.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i) ||
-                           pHtml.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i) ||
-                           pHtml.match(/<meta\s+content=["']([^"']+)["']\s+name=["']description["']/i)
-        if (pDescMatch) {
-          const pDesc = cleanHtmlEntities(pDescMatch[1])
-          const folM = pDesc.match(/([\d.,]+(?:\s*(?:rb|jt|k|m))?)\s*(?:followers|pengikut)/i)
-          if (folM) {
-            authorFollowersCount = parseAbbreviatedCount(folM[1])
+        const exactFolMatch = pHtml.match(/"edge_followed_by":\s*\{"count":\s*(\d+)\}/i)
+        if (exactFolMatch) {
+          authorFollowersCount = parseInt(exactFolMatch[1], 10)
+        } else {
+          const pDescMatch = pHtml.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i) ||
+                             pHtml.match(/<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']/i) ||
+                             pHtml.match(/<meta\s+content=["']([^"']+)["']\s+name=["']description["']/i)
+          if (pDescMatch) {
+            const pDesc = cleanHtmlEntities(pDescMatch[1])
+            const folM = pDesc.match(/([\d.,]+(?:\s*(?:rb|jt|k|m))?)\s*(?:followers|pengikut)/i)
+            if (folM) {
+              authorFollowersCount = parseAbbreviatedCount(folM[1])
+            }
           }
         }
 
@@ -858,7 +1003,7 @@ async function extractInstagram(url: string, postId: string): Promise<SocialExtr
       authorAvatarUrl,
       authorFollowersCount,
       thumbnailUrl,
-      viewCount: likes > 0 ? Math.max(likes * 3, likes) : undefined,
+      viewCount: views > 0 ? views : (likes > 0 ? Math.max(likes * 3, likes) : undefined),
       likeCount: likes || undefined,
       commentCount: commentsCount || (comments.length > 0 ? comments.length : undefined),
       publishedAt,

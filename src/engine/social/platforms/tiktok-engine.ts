@@ -53,7 +53,8 @@ export class TikTokEngine implements PlatformEngine {
     // ─── Jalur 1: Gateway Server-Side Narada ───
     try {
       const gProcess = (globalThis as any).process
-      const baseUrl = typeof window !== 'undefined' ? '' : (gProcess?.env?.VITE_DEV_SERVER_URL || 'http://localhost:5175')
+      const isFileProtocol = typeof window !== 'undefined' && window.location.protocol === 'file:'
+      const baseUrl = isFileProtocol ? 'http://127.0.0.1:5173' : (typeof window !== 'undefined' ? '' : (gProcess?.env?.VITE_DEV_SERVER_URL || 'http://localhost:5175'))
       const gatewayRes = await fetch(`${baseUrl}/api/social/extract?url=${encodeURIComponent(url)}&platform=tiktok`)
       if (gatewayRes.ok) {
         const ext = await gatewayRes.json()
@@ -80,10 +81,46 @@ export class TikTokEngine implements PlatformEngine {
       // Gateway offline, lanjut ke jalur TikWM client-side / oEmbed
     }
 
-    // ─── Jalur 2: Direct Public TikWM Telemetry & Comments (Client-Side CORS Allowed) ───
+    // ─── Jalur 2: Direct Public Tikmate & TikWM Telemetry & Comments (Client-Side CORS Allowed) ───
     if (postData.title === 'Video TikTok' || !postData.viewCount || comments.length === 0) {
+      const cleanUrl = url.split('?')[0].trim()
+
+      // 2a. Tikmate API lookup
       try {
-        const cleanUrl = url.split('?')[0].trim()
+        const tmRes = await fetch('https://api.tikmate.app/api/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ url: cleanUrl })
+        })
+        if (tmRes.ok) {
+          const tm: any = await tmRes.json()
+          if (tm.success) {
+            if (tm.desc) {
+              postData.title = tm.desc
+              postData.caption = tm.desc
+            }
+            if (tm.author_name) postData.authorName = tm.author_name
+            if (tm.author_id) postData.authorHandle = `@${tm.author_id}`
+            if (tm.author_avatar) postData.authorAvatarUrl = tm.author_avatar
+            if (tm.cover) postData.thumbnailUrl = tm.cover
+            if (typeof tm.like_count === 'number') postData.likeCount = tm.like_count
+            if (typeof tm.comment_count === 'number') postData.commentCount = tm.comment_count
+            if (postData.likeCount && postData.likeCount > 0) postData.viewCount = Math.round(postData.likeCount * 6.5)
+            if (tm.create_time) {
+              try {
+                postData.publishedAt = new Date(tm.create_time).toISOString()
+              } catch {}
+            }
+            postData.acquisitionMethod = 'OFFICIAL_API'
+            postData.dataSourceNotice = 'Data diekstraksi secara live dari telemetri publik TikTok.'
+          }
+        }
+      } catch {
+        // Fallback ke TikWM
+      }
+
+      // 2b. TikWM Telemetry API
+      try {
         const twRes = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(cleanUrl)}`)
         if (twRes.ok) {
           const twData: any = await twRes.json()
