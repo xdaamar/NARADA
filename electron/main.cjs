@@ -1,5 +1,6 @@
 const { app, BrowserWindow, shell, ipcMain, safeStorage } = require('electron')
 const path = require('path')
+const os = require('os')
 const { startGatewayServer, stopGatewayServer } = require('./gateway-runner.cjs')
 const {
   openEvidenceBrowser,
@@ -382,6 +383,77 @@ app.whenReady().then(async () => {
   ipcMain.handle('narada:sec:has-credential', async (event, keyName) => {
     if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
     return Boolean(process.env[keyName] || false)
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Registrasi IPC Telemetri Hardware & Spesifikasi Sistem Host Asli
+  // ══════════════════════════════════════════════════════════════════════════
+  let prevCpuSample = null
+  function sampleCpu() {
+    const cpus = os.cpus() || []
+    let totalIdle = 0
+    let totalTick = 0
+    for (const cpu of cpus) {
+      for (const type in cpu.times) totalTick += cpu.times[type]
+      totalIdle += cpu.times.idle
+    }
+    return { idle: totalIdle / (cpus.length || 1), total: totalTick / (cpus.length || 1) }
+  }
+
+  ipcMain.handle('narada:sys:hardware-specs', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    let gpuName = 'DirectX Hardware Acceleration'
+    try {
+      const gpuInfo = await app.getGPUInfo('basic')
+      const mainGpu = gpuInfo?.gpuDevice?.find(d => d.deviceString && !d.deviceString.includes('Basic Render')) || gpuInfo?.gpuDevice?.[0]
+      if (mainGpu?.deviceString) gpuName = mainGpu.deviceString
+    } catch (e) {}
+
+    const cpus = os.cpus() || []
+    let cpuModel = cpus[0]?.model?.trim() || 'Multi-Core Processor'
+    cpuModel = cpuModel.replace(/\s+/g, ' ')
+
+    const totalBytes = os.totalmem()
+    const totalGB = parseFloat((totalBytes / (1024 ** 3)).toFixed(1))
+
+    return {
+      cpuModel,
+      cpuCores: cpus.length,
+      gpuModel: gpuName,
+      totalRamGB: totalGB,
+      totalRamBytes: totalBytes
+    }
+  })
+
+  ipcMain.handle('narada:sys:telemetry-sample', async (event) => {
+    if (!isTrustedSender(event)) throw new Error('Untrusted IPC sender')
+    const currentSample = sampleCpu()
+    let cpuPercent = 14
+
+    if (prevCpuSample) {
+      const idleDiff = currentSample.idle - prevCpuSample.idle
+      const totalDiff = currentSample.total - prevCpuSample.total
+      if (totalDiff > 0) {
+        const rawCpu = 100 - Math.round((100 * idleDiff) / totalDiff)
+        cpuPercent = Math.min(100, Math.max(2, rawCpu))
+      }
+    }
+    prevCpuSample = currentSample
+
+    const totalBytes = os.totalmem()
+    const freeBytes = os.freemem()
+    const usedBytes = totalBytes - freeBytes
+    const usedGB = parseFloat((usedBytes / (1024 ** 3)).toFixed(1))
+    const freeGB = parseFloat((freeBytes / (1024 ** 3)).toFixed(1))
+    const ramPercent = Math.min(100, Math.max(5, Math.round((usedBytes / totalBytes) * 100)))
+
+    return {
+      cpuPercent,
+      ramPercent,
+      usedRamGB: usedGB,
+      freeRamGB: freeGB,
+      totalRamGB: parseFloat((totalBytes / (1024 ** 3)).toFixed(1))
+    }
   })
 
   // Inisialisasi Database Utama di userData

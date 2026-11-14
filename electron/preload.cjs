@@ -102,3 +102,8 @@ contextBridge.exposeInMainWorld('naradaDatabase', {
   hasCredential: (keyName) => ipcRenderer.invoke('narada:sec:has-credential', keyName)
 })
 
+contextBridge.exposeInMainWorld('naradaHardware', {
+  getHardwareSpecs: () => ipcRenderer.invoke('narada:sys:hardware-specs'),
+  getTelemetrySample: () => ipcRenderer.invoke('narada:sys:telemetry-sample')
+})
+
