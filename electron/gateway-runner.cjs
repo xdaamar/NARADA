@@ -22,6 +22,49 @@ const path = require('path')
 // Load canonical catalog
 const catalog = require(path.join(__dirname, '../shared/radar-source-catalog.json'))
 
+let localDebunkDatabase = []
+try {
+  localDebunkDatabase = require(path.join(__dirname, '../shared/debunk-database.json'))
+} catch (e) {
+  try {
+    localDebunkDatabase = require(path.join(__dirname, '../src/engine/data/debunk-database.json'))
+  } catch (err) {
+    localDebunkDatabase = []
+  }
+}
+
+function generateTurnBackHoaxFallbackRssXml(maxItems = 35) {
+  const items = Array.isArray(localDebunkDatabase) ? localDebunkDatabase.slice(0, maxItems) : []
+  let itemsXml = ''
+  for (const item of items) {
+    const isHoaks = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI'
+    const tag = isHoaks ? '[SALAH] ' : '[FAKTA] '
+    const cleanClaim = (item.claim || 'Informasi terverifikasi').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const title = tag + cleanClaim
+    const link = (item.sourceUrl || `https://turnbackhoax.id/?s=${encodeURIComponent(item.id || 'debunk')}`).replace(/&/g, '&amp;')
+    const clarification = (item.clarification || item.explanation || 'Klarifikasi fakta resmi oleh PUSSIBERAD dan MAFINDO.').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const pubDate = 'Fri, 13 Nov 2026 12:00:00 +0000'
+    itemsXml += `    <item>
+      <title>${title}</title>
+      <link>${link}</link>
+      <pubDate>${pubDate}</pubDate>
+      <dc:creator><![CDATA[Pemeriksa Fakta MAFINDO & Pussiberad TNI AD (Cadangan Terlindungi)]]></dc:creator>
+      <description><![CDATA[Klarifikasi: ${clarification}]]></description>
+      <content:encoded><![CDATA[<p>Hasil Periksa Fakta: ${clarification}</p>]]></content:encoded>
+    </item>\n`
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>TurnBackHoax - MAFINDO (Cadangan Resilient Air-Gap)</title>
+    <link>https://turnbackhoax.id</link>
+    <description>Kanal Periksa Fakta Mafindo (Masyarakat Anti Fitnah Indonesia) - Cadangan Offline Terlindungi</description>
+    <language>id-ID</language>
+${itemsXml}  </channel>
+</rss>`
+}
+
 let handleSocialExtractionRequest = null
 try {
   const socialMod = require('./social-gateway-handler.cjs')
@@ -302,6 +345,21 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
           latencyMs: resLatency
         }
       } else {
+        if (sourceId === 'src-tbh' || sourceId.includes('tbh')) {
+          console.log(`[NARADA Gateway] Upstream ${sourceId} gagal (status ${finalResponse.status}), mengaktifkan cadangan resilient offline XML.`);
+          const fallbackXml = generateTurnBackHoaxFallbackRssXml(35);
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'application/rss+xml; charset=utf-8',
+              'X-Radar-Fallback': 'RESILIENT_AIRGAP_SNAPSHOT',
+              'X-Radar-Source': sourceId,
+              'Content-Length': Buffer.byteLength(fallbackXml, 'utf8').toString()
+            },
+            body: fallbackXml,
+            latencyMs: resLatency
+          };
+        }
         return {
           statusCode: finalResponse.status,
           headers: { 'Content-Type': 'application/json' },
@@ -314,6 +372,21 @@ async function handleRadarFeedRequest(sourceId, queryParams = {}) {
         }
       }
     } catch (err) {
+      if (sourceId === 'src-tbh' || sourceId.includes('tbh')) {
+        console.log(`[NARADA Gateway] Upstream ${sourceId} timeout/error, mengaktifkan cadangan resilient offline XML.`);
+        const fallbackXml = generateTurnBackHoaxFallbackRssXml(35);
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'application/rss+xml; charset=utf-8',
+            'X-Radar-Fallback': 'RESILIENT_AIRGAP_SNAPSHOT',
+            'X-Radar-Source': sourceId,
+            'Content-Length': Buffer.byteLength(fallbackXml, 'utf8').toString()
+          },
+          body: fallbackXml,
+          latencyMs: Date.now() - startTime
+        };
+      }
       return {
         statusCode: 504,
         headers: { 'Content-Type': 'application/json' },

@@ -17,6 +17,39 @@
  */
 
 import sourceCatalog from '../../../shared/radar-source-catalog.json' with { type: 'json' }
+import debunkDatabase from '../data/debunk-database.json' with { type: 'json' }
+
+function generateTurnBackHoaxFallbackRssXml(maxItems = 35): string {
+  const items = Array.isArray(debunkDatabase) ? debunkDatabase.slice(0, maxItems) : []
+  let itemsXml = ''
+  for (const item of items) {
+    const isHoaks = item.verdict === 'HOAKS' || item.verdict === 'DISINFORMASI'
+    const tag = isHoaks ? '[SALAH] ' : '[FAKTA] '
+    const cleanClaim = (item.claim || 'Informasi terverifikasi').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const title = tag + cleanClaim
+    const link = (item.sourceUrl || `https://turnbackhoax.id/?s=${encodeURIComponent(item.id || 'debunk')}`).replace(/&/g, '&amp;')
+    const clarification = (item.clarification || (item as any).explanation || 'Klarifikasi fakta resmi oleh PUSSIBERAD dan MAFINDO.').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const pubDate = 'Fri, 13 Nov 2026 12:00:00 +0000'
+    itemsXml += `    <item>
+      <title>${title}</title>
+      <link>${link}</link>
+      <pubDate>${pubDate}</pubDate>
+      <dc:creator><![CDATA[Pemeriksa Fakta MAFINDO & Pussiberad TNI AD (Cadangan Terlindungi)]]></dc:creator>
+      <description><![CDATA[Klarifikasi: ${clarification}]]></description>
+      <content:encoded><![CDATA[<p>Hasil Periksa Fakta: ${clarification}</p>]]></content:encoded>
+    </item>\n`
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>TurnBackHoax - MAFINDO (Cadangan Resilient Air-Gap)</title>
+    <link>https://turnbackhoax.id</link>
+    <description>Kanal Periksa Fakta Mafindo (Masyarakat Anti Fitnah Indonesia) - Cadangan Offline Terlindungi</description>
+    <language>id-ID</language>
+${itemsXml}  </channel>
+</rss>`
+}
 
 declare const process: any
 
@@ -358,6 +391,24 @@ export async function handleRadarFeedRequest(
       }
 
       if (response.status >= 500) {
+        if (sourceId === 'src-tbh' || sourceId.includes('tbh')) {
+          console.log(`[NARADA Gateway] Upstream ${sourceId} gagal (status ${response.status}), mengaktifkan cadangan resilient offline XML.`)
+          const fallbackXml = generateTurnBackHoaxFallbackRssXml(35)
+          const fallbackBytes = new TextEncoder().encode(fallbackXml).length
+          return {
+            statusCode: 200,
+            headers: {
+              'Content-Type': 'application/rss+xml; charset=utf-8',
+              'X-Radar-Fallback': 'RESILIENT_AIRGAP_SNAPSHOT',
+              'X-Radar-Source': sourceId,
+              'Content-Length': fallbackBytes.toString()
+            },
+            body: fallbackXml,
+            isCacheHit: false,
+            sourceId,
+            latencyMs: Date.now() - startTime
+          }
+        }
         return {
           statusCode: 502,
           headers: { 'Content-Type': 'application/json' },
@@ -516,6 +567,25 @@ export async function handleRadarFeedRequest(
       }
 
     } catch (err: any) {
+      if (sourceId === 'src-tbh' || sourceId.includes('tbh')) {
+        console.log(`[NARADA Gateway] Upstream ${sourceId} network error, mengaktifkan cadangan resilient offline XML.`)
+        const fallbackXml = generateTurnBackHoaxFallbackRssXml(35)
+        const fallbackBytes = new TextEncoder().encode(fallbackXml).length
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'application/rss+xml; charset=utf-8',
+            'X-Radar-Fallback': 'RESILIENT_AIRGAP_SNAPSHOT',
+            'X-Radar-Source': sourceId,
+            'Content-Length': fallbackBytes.toString()
+          },
+          body: fallbackXml,
+          isCacheHit: false,
+          sourceId,
+          latencyMs: Date.now() - startTime
+        }
+      }
+
       if (err?.name === 'AbortError') {
         return {
           statusCode: 504,
