@@ -131,8 +131,9 @@ export function getCaptureSession(): CaptureSessionState {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (parsed && Array.isArray(parsed.actions)) {
+        // Bersihkan data dummy kurasi lama (ACT-001..ACT-004) agar data murni hasil capture user
+        parsed.actions = (parsed.actions as CapturedAction[]).filter(a => !['ACT-001', 'ACT-002', 'ACT-003', 'ACT-004'].includes(a.id))
         if (!sessionInitialized) {
-          // Default awal saat session baru dibuka adalah REC OFF
           parsed.isRecording = false
           if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('narada_capture_initialized', 'true')
           saveCaptureSession(parsed)
@@ -144,11 +145,11 @@ export function getCaptureSession(): CaptureSessionState {
     console.warn('[ActionRecorder] Gagal membaca session capture:', err)
   }
 
-  // Default state awal: REC OFF
+  // Default state awal: REC OFF dan actions murni kosong tanpa dummy
   const defaultState: CaptureSessionState = {
     isRecording: false,
     scope: 'ALL',
-    actions: getInitialCuratedActions(),
+    actions: [],
     sessionStartedAt: new Date().toISOString()
   }
   if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('narada_capture_initialized', 'true')
