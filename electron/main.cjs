@@ -1,6 +1,7 @@
 const { app, BrowserWindow, shell, ipcMain, safeStorage } = require('electron')
 const path = require('path')
 const os = require('os')
+const fs = require('fs')
 const { startGatewayServer, stopGatewayServer } = require('./gateway-runner.cjs')
 const {
   openEvidenceBrowser,
@@ -25,7 +26,9 @@ if (!gotTheLock) {
   process.exit(0)
 }
 
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
+const distIndexPath = path.join(__dirname, '../dist/index.html')
+const isProduction = process.env.NODE_ENV === 'production' || app.isPackaged || fs.existsSync(distIndexPath)
+const isDev = !isProduction && process.env.NODE_ENV === 'development'
 let gatewayInstance = null
 let mainWindow = null
 
@@ -81,10 +84,12 @@ function createWindow() {
     mainWindow = null
   })
 
-  if (isDev) {
+  if (!isDev && fs.existsSync(distIndexPath)) {
+    mainWindow.loadFile(distIndexPath)
+  } else if (isDev) {
     mainWindow.loadURL('http://localhost:5173')
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    mainWindow.loadFile(distIndexPath)
   }
 }
 
