@@ -22,6 +22,14 @@ const path = require('path')
 // Load canonical catalog
 const catalog = require(path.join(__dirname, '../shared/radar-source-catalog.json'))
 
+let handleSocialExtractionRequest = null
+try {
+  const socialMod = require('./social-gateway-handler.cjs')
+  handleSocialExtractionRequest = socialMod.handleSocialExtractionRequest
+} catch (e) {
+  console.warn('[NARADA Gateway] Social extraction handler not loaded:', e.message)
+}
+
 const ALLOWED_UPSTREAM_HOSTS = new Set(catalog.allowedUpstreamHosts)
 
 const GATEWAY_SOURCE_REGISTRY = Object.fromEntries(
@@ -819,6 +827,27 @@ function createGatewayServer() {
       } catch (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ success: false, message: sanitizeGatewayError(err.message) }))
+      }
+      return
+    }
+
+    // Social Media Extraction endpoint: /api/social/extract
+    if (pathname === '/api/social/extract') {
+      if (typeof handleSocialExtractionRequest === 'function') {
+        try {
+          const result = await handleSocialExtractionRequest(query)
+          res.writeHead(result.statusCode, {
+            ...result.headers,
+            'Access-Control-Allow-Origin': '*'
+          })
+          res.end(result.body)
+        } catch (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' })
+          res.end(JSON.stringify({ success: false, errorMessage: err?.message || 'Social extraction gateway error' }))
+        }
+      } else {
+        res.writeHead(503, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ success: false, errorMessage: 'Social gateway handler tidak tersedia di lingkungan runtime ini.' }))
       }
       return
     }

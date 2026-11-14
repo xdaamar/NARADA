@@ -57,7 +57,7 @@ export class InstagramEngine implements PlatformEngine {
     try {
       const gProcess = (globalThis as any).process
       const isFileProtocol = typeof window !== 'undefined' && window.location.protocol === 'file:'
-      const baseUrl = isFileProtocol ? 'http://127.0.0.1:5173' : (typeof window !== 'undefined' ? '' : (gProcess?.env?.VITE_DEV_SERVER_URL || 'http://localhost:5175'))
+      const baseUrl = isFileProtocol ? 'http://127.0.0.1:5174' : (typeof window !== 'undefined' ? '' : (gProcess?.env?.VITE_DEV_SERVER_URL || 'http://localhost:5175'))
       const gatewayRes = await fetch(`${baseUrl}/api/social/extract?url=${encodeURIComponent(url)}&platform=instagram`)
       if (gatewayRes.ok) {
         const ext = await gatewayRes.json()

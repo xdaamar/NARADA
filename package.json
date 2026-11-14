@@ -8,7 +8,8 @@
   "author": "PUSSIBERAD TNI AD × CODEPOLITAN",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "bundle:gateway": "esbuild src/engine/transport/social-gateway-handler.ts --bundle --platform=node --format=cjs --outfile=electron/social-gateway-handler.cjs",
+    "build": "npm run bundle:gateway && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
     "gateway": "node scripts/start-radar-gateway.js",
@@ -37,7 +38,7 @@
     "test:radar": "node scripts/test-radar-cluster-and-verdict.js",
     "test:social": "node scripts/test-social-intelligence-v2.js",
     "electron:dev": "concurrently -k \"vite\" \"wait-on tcp:5173 && electron electron/main.cjs\"",
-    "electron:build": "tsc -b && vite build && electron-builder --win nsis --x64"
+    "electron:build": "npm run build && electron-builder --win nsis --x64"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
@@ -64,6 +65,7 @@
     "concurrently": "^10.0.6",
     "electron": "^45.0.0",
     "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2",
     "oxlint": "^1.88.0",
     "typescript": "~6.0.3",
     "vite": "^8.3.4",
@@ -79,6 +81,7 @@
       "dist/**/*",
       "electron/**/*",
       "shared/**/*",
+      "public/**/*",
       "package.json"
     ],
     "win": {
