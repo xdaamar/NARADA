@@ -6,6 +6,7 @@ import {
   Cpu,
   BarChart3
 } from 'lucide-react'
+import crestLogo from '../assets/crest-logo.png'
 
 interface InteractiveDoctrineModalProps {
   isOpen: boolean
@@ -87,8 +88,15 @@ export default function InteractiveDoctrineModal({ isOpen, onClose }: Interactiv
               }}
             >
               <img
-                src="/image/Electrified%20Golden%20Globe%20Crest.png"
+                src={crestLogo}
                 alt="NARADA Crest"
+                onError={(e) => {
+                  const t = e.currentTarget
+                  if (!t.dataset.retried) {
+                    t.dataset.retried = '1'
+                    t.src = './image/Electrified%20Golden%20Globe%20Crest.png'
+                  }
+                }}
                 style={{ width: '26px', height: '26px', objectFit: 'contain' }}
               />
             </div>

@@ -41,6 +41,7 @@ import {
 } from '../engine/archive/archive-service.ts'
 import { playTacticalPinChime } from '../utils/tactical-audio.ts'
 import { truncateText } from '../utils/format.ts'
+import crestLogo from '../assets/crest-logo.png'
 
 // ─── Definisi Klaster Spektrum Kognitif ───
 interface ClusterMeta {
@@ -1214,8 +1215,15 @@ export default function Dashboard() {
                   zIndex: 4
                 }}>
                   <img
-                    src="/image/Electrified%20Golden%20Globe%20Crest.png"
+                    src={crestLogo}
                     alt="Official Project Crest"
+                    onError={(e) => {
+                      const t = e.currentTarget
+                      if (!t.dataset.retried) {
+                        t.dataset.retried = '1'
+                        t.src = './image/Electrified%20Golden%20Globe%20Crest.png'
+                      }
+                    }}
                     style={{ width: '22px', height: '22px', objectFit: 'contain' }}
                   />
                 </div>

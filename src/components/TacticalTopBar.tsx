@@ -20,6 +20,7 @@ import {
   type CaptureScope,
   type CaptureSessionState,
 } from '../engine/reports/action-recorder'
+import crestLogo from '../assets/crest-logo.png'
 
 interface TacticalTopBarProps {
   onOpenDoctrineModal?: () => void
@@ -520,6 +521,41 @@ export default function TacticalTopBar({
             </div>
           </div>
         )}
+
+        {/* ─── Emblem Resmi PUSSIBERAD TNI AD di Pojok Kanan Atas TopBar ─── */}
+        <div
+          className="topbar-official-badge"
+          title="NARADA — PUSSIBERAD TNI AD"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '3px 8px 3px 6px',
+            borderRadius: '4px',
+            background: 'linear-gradient(180deg, #172230 0%, #0B1017 100%)',
+            border: '1px solid rgba(245, 158, 11, 0.45)',
+            boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 10px rgba(245, 158, 11, 0.1)',
+            cursor: 'default',
+            userSelect: 'none',
+            marginLeft: '2px'
+          }}
+        >
+          <img
+            src={crestLogo}
+            alt="NARADA Emblem"
+            onError={(e) => {
+              const t = e.currentTarget
+              if (!t.dataset.retried) {
+                t.dataset.retried = '1'
+                t.src = './image/Electrified%20Golden%20Globe%20Crest.png'
+              }
+            }}
+            style={{ width: '20px', height: '20px', objectFit: 'contain', filter: 'drop-shadow(0 0 5px rgba(245, 158, 11, 0.6))' }}
+          />
+          <span style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--accent-gold)', letterSpacing: '0.8px' }}>
+            PUSSIBERAD
+          </span>
+        </div>
       </div>
     </header>
   )

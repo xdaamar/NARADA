@@ -30,13 +30,14 @@ let gatewayInstance = null
 let mainWindow = null
 
 function createWindow() {
+  const appIconPath = path.join(__dirname, 'assets/icon.png')
   mainWindow = new BrowserWindow({
     width: 1366,
     height: 850,
     minWidth: 1024,
     minHeight: 700,
-    title: 'NARADA — Cognitive Threat Defense System',
-    icon: path.join(__dirname, '../public/image/Electrified Golden Globe Crest.png'),
+    title: 'NARADA — Platform Intelijen Ancaman Kognitif Berbasis AI',
+    icon: appIconPath,
     backgroundColor: '#0C1016',
     autoHideMenuBar: true,
     webPreferences: {
@@ -44,6 +45,28 @@ function createWindow() {
       contextIsolation: true,
       webSecurity: true,
       preload: path.join(__dirname, 'preload.cjs')
+    }
+  })
+
+  // Fitur Zoom In / Zoom Out Desktop (Ctrl+, Ctrl-, Ctrl 0)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.control || input.meta) {
+      if (input.key === '=' || input.key === '+' || input.key === 'Add') {
+        const currentZoom = mainWindow.webContents.getZoomFactor()
+        if (currentZoom < 1.8) {
+          mainWindow.webContents.setZoomFactor(Math.min(1.8, currentZoom + 0.08))
+        }
+        event.preventDefault()
+      } else if (input.key === '-' || input.key === '_' || input.key === 'Subtract') {
+        const currentZoom = mainWindow.webContents.getZoomFactor()
+        if (currentZoom > 0.6) {
+          mainWindow.webContents.setZoomFactor(Math.max(0.6, currentZoom - 0.08))
+        }
+        event.preventDefault()
+      } else if (input.key === '0') {
+        mainWindow.webContents.setZoomFactor(1.0)
+        event.preventDefault()
+      }
     }
   })
 

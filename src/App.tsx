@@ -24,6 +24,7 @@ import TacticalTopBar from './components/TacticalTopBar'
 import InteractiveDoctrineModal from './components/InteractiveDoctrineModal'
 import { SystemHardwareCard } from './components/SystemHardwareCard'
 import { useHardwareTelemetry } from './engine/telemetry/hardware-telemetry-service'
+import crestLogo from './assets/crest-logo.png'
 
 import { 
   getStorageDurabilityStatus,
@@ -77,9 +78,16 @@ function Sidebar({ isCollapsed, onToggle, storageState }: SidebarProps) {
             <div className="sidebar-logo-brand">
               <div className="sidebar-logo-icon" style={{ background: 'transparent', padding: 0 }}>
                 <img 
-                  src="/image/Electrified%20Golden%20Globe%20Crest.png" 
+                  src={crestLogo} 
                   alt="NARADA Crest" 
                   className="crest-glow"
+                  onError={(e) => {
+                    const t = e.currentTarget
+                    if (!t.dataset.retried) {
+                      t.dataset.retried = '1'
+                      t.src = './image/Electrified%20Golden%20Globe%20Crest.png'
+                    }
+                  }}
                   style={{ width: '36px', height: '36px', objectFit: 'contain' }} 
                 />
               </div>
@@ -302,9 +310,31 @@ function AppShell() {
     return () => window.removeEventListener('narada:sidebar-collapse', handleSidebarEvent)
   }, [])
 
-  // Keyboard Hotkeys Alt+1..5, Ctrl+B (Toggle Sidebar) & Global Clipboard Paste (Ctrl+V)
+  // Keyboard Hotkeys Alt+1..5, Ctrl+B (Toggle Sidebar) & Desktop Zoom (Ctrl+, Ctrl-, Ctrl 0)
   useEffect(() => {
+    let zoomLevel = 1.0
+
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Fitur Zoom In / Zoom Out dengan Ctrl+, Ctrl-, Ctrl 0
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+' || e.code === 'NumpadAdd') {
+          e.preventDefault()
+          zoomLevel = Math.min(1.8, +(zoomLevel + 0.08).toFixed(2))
+          document.documentElement.style.zoom = `${zoomLevel}`
+          return
+        } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') {
+          e.preventDefault()
+          zoomLevel = Math.max(0.65, +(zoomLevel - 0.08).toFixed(2))
+          document.documentElement.style.zoom = `${zoomLevel}`
+          return
+        } else if (e.key === '0' || e.code === 'Numpad0') {
+          e.preventDefault()
+          zoomLevel = 1.0
+          document.documentElement.style.zoom = '1.0'
+          return
+        }
+      }
+
       // Toggle Sidebar via Ctrl+B / Cmd+B
       if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault()

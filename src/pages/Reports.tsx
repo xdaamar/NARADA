@@ -46,6 +46,7 @@ import { getUserSettings, saveUserSettings } from '../utils/storage.ts'
 import { truncateText } from '../utils/format.ts'
 import { generateSHA256 } from '../utils/crypto.ts'
 import { generateCounterNarratives } from '../engine/forensic/counter-narrative-generator.ts'
+import crestLogo from '../assets/crest-logo.png'
 import {
   getInvestigationCase,
   getAllInvestigationCases,
@@ -562,12 +563,12 @@ export default function Reports() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                   <img
-                    src="./image/Electrified%20Golden%20Globe%20Crest.png"
+                    src={crestLogo}
                     onError={(e) => {
-                      // Fallback jika dimuat di web dev server
                       const target = e.currentTarget
-                      if (target.src.includes('./image/')) {
-                        target.src = '/image/Electrified%20Golden%20Globe%20Crest.png'
+                      if (!target.dataset.retried) {
+                        target.dataset.retried = '1'
+                        target.src = './image/Electrified%20Golden%20Globe%20Crest.png'
                       }
                     }}
                     alt="Lambang Kartika Eka Paksi &amp; Pussiberad TNI AD"
